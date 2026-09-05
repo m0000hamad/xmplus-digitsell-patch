@@ -19,6 +19,7 @@
 	{include file='user/pay/qrcode.tpl'}
 	
 {include file='user/layout/footer.tpl'}
+{include file='common/orderresult.tpl'}
 
 <script src="/assets/js/mobile-detect.min.js"></script>
 
@@ -27,6 +28,19 @@
 {/if} 
 
 <script>
+	window.PayWords = new Object();
+	window.PayWords.paidTitle = "{$translate->get('PayDoneTitle')|escape:'javascript'}";
+	window.PayWords.paidText  = "{$translate->get('PayDoneText')|escape:'javascript'}";
+	window.PayWords.toPanel   = "{$translate->get('PayGoPanel')|escape:'javascript'}";
+	window.PayWords.orderNo   = "{$translate->get('TransactionNo')|escape:'javascript'}";
+	window.PayWords.plan      = "{$translate->get('Package')|escape:'javascript'}";
+	window.PayWords.paid      = "{$translate->get('Total')|escape:'javascript'}";
+
+	window.PayOrder = new Object();
+	window.PayOrder.id    = "{$order->order_id|escape:'javascript'}";
+	window.PayOrder.name  = "{$package->name|escape:'javascript'}";
+	window.PayOrder.total = "{$currency->symbol_left} {number_format((float)$order->total_amount, (int){$currency->decimals})} {$currency->symbol_right}";
+
 	{if $order->refund_amount > 0 || $order->refund_amount != "" && $order->upgrade == 1}
 	Swal.fire({
 		title: '',
@@ -340,8 +354,32 @@
 				$('#CardModal').modal('hide');
 				$('#_pay').modal('hide');
 				$('#pay_').modal('hide');
-				layer.msg(data.msg);
-				window.setTimeout("location.href='/portal/dashboard'", 1500);
+
+				var verdict = {
+					kind: 'ok',
+					title: window.PayWords.paidTitle,
+					text: window.PayWords.paidText,
+					button: window.PayWords.toPanel,
+					seconds: 6,
+					meta: [
+						[window.PayWords.orderNo, window.PayOrder.id],
+						[window.PayWords.plan, window.PayOrder.name],
+						[window.PayWords.paid, window.PayOrder.total]
+					]
+				};
+
+				/* shown here, and again on the page the buyer lands on, so the
+				   answer survives the redirect either way */
+				window.OrderResult.carry(verdict);
+
+				/* a copy with a shorter fuse for this page; note the round trip
+				   rather than a brace literal, which Smarty would read as a tag */
+				var here = JSON.parse(JSON.stringify(verdict));
+				here.seconds = 4;
+				here.then = function () { location.href = '/portal/dashboard'; };
+				window.OrderResult.show(here);
+
+				window.setTimeout(function () { location.href = '/portal/dashboard'; }, 4600);
 			}
 		},
 		error: (jqXHR) => {

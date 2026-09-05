@@ -1,179 +1,450 @@
 {include file='user/layout/header.tpl'}
 
-    <div class="page-header">
-        <div class="row align-items-end">
-			<div class="col-sm mb-2 mb-sm-0">
-				<h1 class="page-header-title">{$translate->get('PlanDetails')}</h1>
+{literal}
+<style>
+/* ---- checkout step one: choosing the cycle ---- */
+.pd-head {
+	border: 0;
+	padding: 0;
+	margin-bottom: 18px;
+}
+.pd-head-inner {
+	border-radius: 20px;
+	padding: 20px 22px;
+	background: linear-gradient(135deg, #4f46e5, #7c3aed 55%, #0ea5e9);
+	color: #fff;
+	box-shadow: 0 14px 34px rgba(79, 70, 229, .28);
+}
+.pd-steps { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 9px; }
+.pd-step {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 11.5px;
+	font-weight: 700;
+	padding: 5px 11px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, .16);
+	border: 1px solid rgba(255, 255, 255, .24);
+	color: rgba(255, 255, 255, .82);
+}
+.pd-step.is-now { background: #fff; color: #4338ca; border-color: #fff; }
+.pd-step-sep { color: rgba(255, 255, 255, .5); font-size: 11px; }
+.pd-head-title { font-size: 20px; font-weight: 800; margin: 0; color: #fff; }
+
+.pd-card {
+	border: 0;
+	border-radius: 18px;
+	background: #fff;
+	box-shadow: 0 10px 26px rgba(23, 32, 61, .07);
+	overflow: hidden;
+	margin-bottom: 18px;
+}
+.pd-card-head {
+	padding: 15px 18px;
+	border-bottom: 1px solid rgba(23, 32, 61, .07);
+	display: flex;
+	align-items: center;
+	gap: 9px;
+}
+.pd-card-emoji {
+	width: 34px;
+	height: 34px;
+	flex: 0 0 auto;
+	border-radius: 12px;
+	background: rgba(99, 102, 241, .13);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 17px;
+}
+.pd-card-title { font-size: 15px; font-weight: 800; color: #16203d; margin: 0; }
+.pd-card-body { padding: 17px 18px; }
+
+/* ---- what you get ---- */
+.pd-specs { display: grid; grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)); gap: 10px; }
+.pd-spec {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	border-radius: 14px;
+	padding: 11px 13px;
+	background: var(--soft, rgba(99, 102, 241, .08));
+}
+.pd-spec-emoji { font-size: 18px; line-height: 1; flex: 0 0 auto; }
+.pd-spec-label { font-size: 11px; font-weight: 700; color: #8c98ab; display: block; }
+.pd-spec-value {
+	font-size: 13.5px;
+	font-weight: 800;
+	color: #16203d;
+	line-height: 1.6;
+	word-break: break-word;
+}
+.pd-note {
+	margin-top: 14px;
+	border-radius: 14px;
+	padding: 13px 15px;
+	background: rgba(245, 158, 11, .08);
+	border: 1px dashed rgba(245, 158, 11, .35);
+	font-size: 12.5px;
+	line-height: 2;
+	color: #3b4a6b;
+}
+
+/* ---- the billing cycles ---- */
+.pd-cycles { display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 11px; }
+.pd-cycle { position: relative; margin: 0; }
+.pd-cycle input {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+	pointer-events: none;
+}
+.pd-cycle-box {
+	display: block;
+	border: 1.5px solid rgba(23, 32, 61, .11);
+	border-radius: 16px;
+	padding: 15px 13px;
+	text-align: center;
+	cursor: pointer;
+	background: #fff;
+	transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.pd-cycle-box:hover { border-color: #6366f1; transform: translateY(-2px); }
+.pd-cycle input:checked + .pd-cycle-box {
+	border-color: #6366f1;
+	background: linear-gradient(135deg, rgba(99, 102, 241, .12), rgba(14, 165, 233, .1));
+	box-shadow: 0 9px 22px rgba(99, 102, 241, .18);
+}
+.pd-cycle input:checked + .pd-cycle-box::after {
+	content: "✓";
+	position: absolute;
+	top: 9px;
+	inset-inline-end: 11px;
+	width: 19px;
+	height: 19px;
+	border-radius: 50%;
+	background: #6366f1;
+	color: #fff;
+	font-size: 11px;
+	line-height: 19px;
+	font-weight: 700;
+}
+.pd-cycle-price {
+	font-size: 16px;
+	font-weight: 800;
+	color: #16203d;
+	direction: ltr;
+	unicode-bidi: isolate;
+	display: block;
+}
+.pd-cycle-name { font-size: 12.5px; font-weight: 700; color: #4338ca; margin-top: 6px; display: block; }
+.pd-cycle-days { font-size: 11px; color: #8c98ab; margin-top: 2px; display: block; }
+.pd-cycle-tag {
+	position: absolute;
+	top: -8px;
+	inset-inline-start: 12px;
+	background: #10b981;
+	color: #fff;
+	font-size: 9.5px;
+	font-weight: 800;
+	padding: 2px 8px;
+	border-radius: 999px;
+	box-shadow: 0 3px 8px rgba(16, 185, 129, .38);
+}
+
+/* ---- coupon ---- */
+.pd-coupon { display: flex; gap: 8px; flex-wrap: wrap; }
+.pd-coupon input {
+	flex: 1 1 140px;
+	min-width: 0;
+	border: 1.5px solid rgba(23, 32, 61, .12);
+	border-radius: 13px;
+	padding: 11px 13px;
+	font-size: 13px;
+	font-weight: 600;
+	color: #16203d;
+	background: #fff;
+	outline: none;
+}
+.pd-coupon input:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, .12); }
+.pd-coupon input:disabled { background: rgba(16, 185, 129, .09); border-color: rgba(16, 185, 129, .35); }
+.pd-mini {
+	flex: 0 0 auto;
+	border: 0;
+	border-radius: 13px;
+	padding: 11px 17px;
+	font-size: 12.5px;
+	font-weight: 800;
+	cursor: pointer;
+	color: #fff;
+	background: linear-gradient(135deg, #4f46e5, #7c3aed);
+}
+.pd-mini-off { background: linear-gradient(135deg, #be123c, #f43f5e); }
+
+/* ---- the switch ---- */
+.pd-switch {
+	display: flex;
+	align-items: center;
+	gap: 11px;
+	border-radius: 14px;
+	padding: 12px 14px;
+	background: rgba(245, 158, 11, .08);
+	border: 1px solid rgba(245, 158, 11, .28);
+}
+.pd-switch input { width: 2.6em; height: 1.4em; cursor: pointer; flex: 0 0 auto; margin: 0; }
+.pd-switch label { font-size: 12.5px; font-weight: 700; color: #16203d; cursor: pointer; margin: 0; }
+
+/* ---- the total ---- */
+.pd-sum { position: sticky; top: 84px; }
+.pd-line {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 10px;
+	font-size: 13px;
+	color: #56617a;
+	margin-bottom: 11px;
+}
+.pd-line span:last-child { font-weight: 700; color: #16203d; direction: ltr; unicode-bidi: isolate; }
+.pd-line-off span:last-child { color: #be123c; }
+.pd-total {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 10px;
+	border-top: 1.5px dashed rgba(23, 32, 61, .12);
+	padding-top: 14px;
+	margin-top: 4px;
+}
+.pd-total-label { font-size: 14px; font-weight: 800; color: #16203d; }
+.pd-total-value {
+	font-size: 19px;
+	font-weight: 800;
+	color: #047857;
+	direction: ltr;
+	unicode-bidi: isolate;
+}
+.pd-buy {
+	display: block;
+	width: 100%;
+	margin-top: 16px;
+	border: 0;
+	border-radius: 15px;
+	padding: 14px 18px;
+	font-size: 14.5px;
+	font-weight: 800;
+	color: #fff;
+	cursor: pointer;
+	background: linear-gradient(135deg, #059669, #10b981);
+	box-shadow: 0 8px 20px rgba(16, 185, 129, .34);
+	transition: transform .14s ease, box-shadow .14s ease;
+}
+.pd-buy:hover { box-shadow: 0 12px 26px rgba(16, 185, 129, .44); }
+.pd-buy:active { transform: scale(.98); }
+.pd-safe {
+	margin-top: 11px;
+	font-size: 11.5px;
+	color: #8c98ab;
+	text-align: center;
+	line-height: 1.9;
+}
+
+html[data-hs-theme="dark"] .pd-card { background: #1c2536; box-shadow: 0 10px 26px rgba(0, 0, 0, .35); }
+html[data-hs-theme="dark"] .pd-card-head { border-bottom-color: rgba(255, 255, 255, .08); }
+html[data-hs-theme="dark"] .pd-card-title,
+html[data-hs-theme="dark"] .pd-spec-value,
+html[data-hs-theme="dark"] .pd-cycle-price,
+html[data-hs-theme="dark"] .pd-total-label,
+html[data-hs-theme="dark"] .pd-switch label { color: #e7eaf3; }
+html[data-hs-theme="dark"] .pd-cycle-box { background: #1c2536; border-color: rgba(255, 255, 255, .1); }
+html[data-hs-theme="dark"] .pd-coupon input { background: #1c2536; border-color: rgba(255, 255, 255, .12); color: #e7eaf3; }
+html[data-hs-theme="dark"] .pd-note { color: #b9c2d4; }
+html[data-hs-theme="dark"] .pd-line span:last-child { color: #e7eaf3; }
+html[data-hs-theme="dark"] .pd-total-value { color: #34d399; }
+html[data-hs-theme="dark"] .pd-total { border-top-color: rgba(255, 255, 255, .14); }
+
+@media (max-width: 575.98px) {
+	.pd-head-inner { padding: 17px; }
+	.pd-head-title { font-size: 17.5px; }
+	.pd-sum { position: static; }
+}
+</style>
+{/literal}
+
+	<div class="page-header pd-head">
+		<div class="pd-head-inner">
+			<div class="pd-steps">
+				<span class="pd-step is-now">1 · {$translate->get('PlanDetails')}</span>
+				<span class="pd-step-sep">›</span>
+				<span class="pd-step">2 · {$translate->get('Checkout')}</span>
+				<span class="pd-step-sep">›</span>
+				<span class="pd-step">3 · {$translate->get('Pay')}</span>
 			</div>
-        </div>
-    </div>
-	  
-	<div class="row mb-3">
-		<div class="col-xl-8 col-lg-8 col-md-12 col-sm-12">
-			<div class="row mb-2">
-				<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 mb-3">
-					<div class="card card-lg card-shadow shadow-lg rounded">
-						<div class="card-header card-header-content-between border-bottom">	
-							<h3><b><i class="fa-duotone fa-cart-shopping"></i> {$package->name}</b></h3>
-						</div>
-						<div class="card-body">
-							<i class="fa-duotone fa-circle-check m-1"></i> <strong>{$translate->get('Bandwidth')} : </strong>{if $package->bandwidth < 10000}{$package->bandwidth} GB{else}{$translate->get('Unlimited')}{/if} <br>
-							<i class="fa-duotone fa-circle-check m-1"></i> <strong>{$translate->get('PortSpeed')} : </strong>{$helpers->PortSpd($package->speedlimit)}<br>
-							<i class="fa-duotone fa-circle-check m-1"></i> <strong>{$translate->get('ConnLimit')} : </strong>{$package->iplimit}<br>
-							<i class="fa-duotone fa-circle-check m-1"></i> <strong>{$translate->get('ServerGroup')} : </strong>{str_replace([' | '],[''],$helpers->serveGroup($package->server_group))}<br>
-							{if $package->reset_days > 0}
-								<i class="fa-duotone fa-circle-check m-1"></i> <strong> {$translate->get('AllowReset')} : </strong> {$translate->get('Every')}{$package->reset_days} {$translate->get('Days')}
-							{else}
-								<i class="fa-duotone fa-circle-xmark m-1"></i> <strong> {$translate->get('AllowReset')} : </strong> {$translate->get('None')}
-							{/if}
-							
-							{if $package->order_note != null}<br><br><br>
-								<h3><b><i class="fa-duotone fa-ballot-check"></i> {$translate->get('OrderNote')}</b></h3><hr>
-								{$content = json_decode($package->order_note,true)}
-								{assign var=lang value="_"|explode:$session->get('locale')}
-								{if isset($content[$lang[1]])}{$content[$lang[1]]}{else}{$package->order_note}{/if}
-							{/if} 
-						</div>
-					</div>
-				</div>
-				<style>
-				.form-check-select-stretched .form-check-input:checked[type=checkbox]~.form-check-label,.form-check-select-stretched .form-check-input:checked[type=radio]~.form-check-label {
-					border-color: var(--bs-dark)
-				}
-				</style>
-				<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 mb-3">
-					<h3><b><i class="fa-duotone fa-calendar-days"></i> {$translate->get('BillingCycle')}</b></h3>
-				<div class="row mb-2">	
-					{$options = json_decode($package->price_option,true)}
-					{$p = 0}
-					{foreach $options as $option => $value}
-					{if $option != "topup" }
-					{if isset($value['price']) && $value['price'] !== ""}
-					{$p = $p + 1}
-					<div class="col-xl-4 col-lg-6 col-sm-12 col-md-6 mb-3">
-						<div class="card card-lg border form-check form-check-dark form-check-select-stretched shadow-lg">
-							<div class="card-header text-center rounded">
-								<input type="radio" class="form-check-input form-check-dark" name="plan" id="{$option}" {if $p == 1}checked{/if} value="{$option}" onClick="Billing('{$option}')">
-								<label class="form-check-label" for="{$option}"></label>
-								<p class="card-title text-dark"><b style="font-size:16px">{$currency->symbol_left} {number_format((float)$value['price'], (int){$currency->decimals})} {$currency->symbol_right}</b><br>
-									{if isset($value['price']) && $option == "onetime"}
-										<span> {$translate->get('Onetime')}<br> {$translate->get('NotExpire')}</span>
-									{/if}
-									{if isset($value['price']) && $option == "month"}
-										<span> {$translate->get('Monthly')} <br> 30 {$translate->get('Days')}</span>
-									{/if}
-									{if isset($value['price']) && $option == "quater"}
-										<span>{$translate->get('Quaterly')} <br>90 {$translate->get('Days')}</span>
-									{/if}
-									{if isset($value['price']) && $option == "semiannual" }
-										<span>{$translate->get('SemiAnnually')}<br> 180 {$translate->get('Days')}</span>
-									{/if}
-									{if isset($value['price']) && $option == "annual"}
-										<span>{$translate->get('Annually')} <br> 360 {$translate->get('Days')}</span>
-									{/if}
-									{if isset($value['price']) && $option == "custom"}
-										<span>{$translate->get('Custom')} <br> {$value['expire']} {$translate->get('Days')}</span>
-									{/if}
-								</p>
-							</div>
-						</div>
-					</div>
-					{/if}
-					{/if}		
-					{/foreach} 
-				</div>	
-				</div>
-			</div>
-		</div>
-		<div class="col-xl-4 col-lg-4 col-md-12 col-sm-12">
-			<div class="row">
-				<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 mb-2">
-					<div class="card card-lg card-shadow shadow-lg rounded">
-						<div class="card-header border-bottom">	
-							<div class="row mb-3">
-								<div class="col-8">
-									<input id="coupon" type="text" class="form-control" placeholder="{$translate->get('InputCoupon')}" />
-								</div>
-								<div class="d-grid col-4 text-start">
-									<a class="btn btn-dark redeem" id="redeem">
-										{$translate->get('Redeem')}
-									</a>
-									<a class="btn btn-danger remove" id="remove" onClick="Remove()" hidden>
-										{$translate->get('Remove')}
-									</a>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-				<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 mb-2">
-					<div class="card card-shadow shadow-lg rounded">
-						<div class="card-body">
-							<div class="row">
-								<div class="col-12">
-									<style>
-					#disableactive {
-						width: 3em;
-						height: 1.5em;
-						cursor: pointer;
-						background-color: #dfe3ec;
-						border: 1px solid #8f9bb3;
-						background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23515f7d'/%3e%3c/svg%3e");
-					}
-					#disableactive:checked {
-						background-color: #132144;
-						border-color: #132144;
-						background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23ffffff'/%3e%3c/svg%3e");
-					}
-					#disableactive:focus {
-						border-color: #132144;
-						box-shadow: 0 0 0 0.2rem rgba(19, 33, 68, 0.25);
-					}
-					label[for="disableactive"] {
-						cursor: pointer;
-						font-weight: 600;
-						color: #132144;
-					}
-					</style>
-					<div class="form-check form-check-dark form-switch">
-									  <input type="checkbox" class="form-check-input" id="disableactive" onClick="DisableActive()">
-									  <label class="form-check-label" for="disableactive">{$translate->get('DisableActive')}</label>
-									</div>
-								</div>	
-							</div>
-						</div>
-					</div>
-				</div>
-				<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 mb-3">
-					<div class="card card-lg card-shadow shadow-lg rounded">
-						<div class="card-header card-header-content-between border-bottom">	
-							<h4 class="card-header-title">{$translate->get('Summary')}</h4>
-						</div>
-						<div class="card-body">
-							<div class="mb-3 d-flex justify-content-between">
-								{$translate->get('SubTotal')} :
-								<span>{$currency->symbol_left} <span id="subtotal">{$price} </span> {$currency->symbol_right}</span>
-							</div>
-							<div class="mb-3 d-flex justify-content-between">
-								{$translate->get('Discount')} :
-								<span style="color:red">- {$currency->symbol_left} <span id="discount">{number_format((float)0, (int){$currency->decimals})} </span> {$currency->symbol_right}</span>
-							</div>
-							<div class="mb-3 d-flex justify-content-between">
-								<h3><b>{$translate->get('Total')} :</b></h3>
-								<h4><b>{$currency->symbol_left} <span id="total"> {$price} </span> {$currency->symbol_right}</b></h4>
-							</div>	
-							<div class="d-grid text-center">
-								<button class="btn btn-dark rounded-pill" onClick="Checkout()">
-									<span>{$translate->get('Checkout')}</span>
-								</button>
-							</div>	
-						</div>
-					</div>
-				</div>					
-			</div>		
+			<h1 class="pd-head-title">🛒 {$package->name}</h1>
 		</div>
 	</div>
+
+	<div class="row mb-3">
+		<div class="col-xl-8 col-lg-8 col-md-12 col-sm-12">
+
+			<div class="pd-card">
+				<div class="pd-card-head">
+					<span class="pd-card-emoji">📦</span>
+					<h3 class="pd-card-title">{$translate->get('PlanDetails')}</h3>
+				</div>
+				<div class="pd-card-body">
+					<div class="pd-specs">
+						<div class="pd-spec" style="--soft:rgba(99,102,241,.09)">
+							<span class="pd-spec-emoji">📊</span>
+							<span>
+								<span class="pd-spec-label">{$translate->get('Bandwidth')}</span>
+								<span class="pd-spec-value">{if $package->bandwidth < 10000}{$package->bandwidth} GB{else}{$translate->get('Unlimited')}{/if}</span>
+							</span>
+						</div>
+						<div class="pd-spec" style="--soft:rgba(14,165,233,.09)">
+							<span class="pd-spec-emoji">⚡</span>
+							<span>
+								<span class="pd-spec-label">{$translate->get('PortSpeed')}</span>
+								<span class="pd-spec-value">{$helpers->PortSpd($package->speedlimit)}</span>
+							</span>
+						</div>
+						<div class="pd-spec" style="--soft:rgba(139,92,246,.09)">
+							<span class="pd-spec-emoji">👥</span>
+							<span>
+								<span class="pd-spec-label">{$translate->get('ConnLimit')}</span>
+								<span class="pd-spec-value">{$package->iplimit}</span>
+							</span>
+						</div>
+						<div class="pd-spec" style="--soft:rgba(6,182,212,.09)">
+							<span class="pd-spec-emoji">🌍</span>
+							<span>
+								<span class="pd-spec-label">{$translate->get('ServerGroup')}</span>
+								<span class="pd-spec-value">{str_replace([' | '],[''],$helpers->serveGroup($package->server_group))}</span>
+							</span>
+						</div>
+						<div class="pd-spec" style="--soft:rgba(16,185,129,.09)">
+							<span class="pd-spec-emoji">{if $package->reset_days > 0}🔄{else}🚫{/if}</span>
+							<span>
+								<span class="pd-spec-label">{$translate->get('AllowReset')}</span>
+								<span class="pd-spec-value">{if $package->reset_days > 0}{$translate->get('Every')} {$package->reset_days} {$translate->get('Days')}{else}{$translate->get('None')}{/if}</span>
+							</span>
+						</div>
+					</div>
+
+					{if $package->order_note != null}
+						<div class="pd-note">
+							📋 {$content = json_decode($package->order_note,true)}{assign var=lang value="_"|explode:$session->get('locale')}{if isset($content[$lang[1]])}{$content[$lang[1]]}{else}{$package->order_note}{/if}
+						</div>
+					{/if}
+				</div>
+			</div>
+
+			<div class="pd-card">
+				<div class="pd-card-head">
+					<span class="pd-card-emoji">📅</span>
+					<h3 class="pd-card-title">{$translate->get('BillingCycle')}</h3>
+				</div>
+				<div class="pd-card-body">
+					<div class="pd-cycles">
+						{$options = json_decode($package->price_option,true)}
+						{$p = 0}
+						{foreach $options as $option => $value}
+							{if $option != "topup" && isset($value['price']) && $value['price'] !== ""}
+								{$p = $p + 1}
+								<label class="pd-cycle">
+									<input type="radio" name="plan" id="{$option}" {if $p == 1}checked{/if} value="{$option}" onClick="Billing('{$option}')">
+									<span class="pd-cycle-box">
+										{if $option == "annual"}<span class="pd-cycle-tag">⭐ {$translate->get('BestValue')}</span>{/if}
+										<span class="pd-cycle-price">{$currency->symbol_left} {number_format((float)$value['price'], (int){$currency->decimals})} {$currency->symbol_right}</span>
+										{if $option == "onetime"}
+											<span class="pd-cycle-name">{$translate->get('Onetime')}</span>
+											<span class="pd-cycle-days">♾️ {$translate->get('NotExpire')}</span>
+										{elseif $option == "month"}
+											<span class="pd-cycle-name">{$translate->get('Monthly')}</span>
+											<span class="pd-cycle-days">30 {$translate->get('Days')}</span>
+										{elseif $option == "quater"}
+											<span class="pd-cycle-name">{$translate->get('Quaterly')}</span>
+											<span class="pd-cycle-days">90 {$translate->get('Days')}</span>
+										{elseif $option == "semiannual"}
+											<span class="pd-cycle-name">{$translate->get('SemiAnnually')}</span>
+											<span class="pd-cycle-days">180 {$translate->get('Days')}</span>
+										{elseif $option == "annual"}
+											<span class="pd-cycle-name">{$translate->get('Annually')}</span>
+											<span class="pd-cycle-days">360 {$translate->get('Days')}</span>
+										{elseif $option == "custom"}
+											<span class="pd-cycle-name">{$translate->get('Custom')}</span>
+											<span class="pd-cycle-days">{$value['expire']} {$translate->get('Days')}</span>
+										{/if}
+									</span>
+								</label>
+							{/if}
+						{/foreach}
+					</div>
+				</div>
+			</div>
+
+		</div>
+
+		<div class="col-xl-4 col-lg-4 col-md-12 col-sm-12">
+			<div class="pd-sum">
+
+				{if $Config['allow_coupon_use'] == 1}
+					<div class="pd-card">
+						<div class="pd-card-head">
+							<span class="pd-card-emoji">🎟️</span>
+							<h3 class="pd-card-title">{$translate->get('InputCoupon')}</h3>
+						</div>
+						<div class="pd-card-body">
+							<div class="pd-coupon">
+								<input id="coupon" type="text" placeholder="{$translate->get('InputCoupon')}" autocomplete="off">
+								<button type="button" class="pd-mini" id="redeem">{$translate->get('Redeem')}</button>
+								<button type="button" class="pd-mini pd-mini-off" id="remove" onClick="Remove()" hidden>{$translate->get('Remove')}</button>
+							</div>
+						</div>
+					</div>
+				{/if}
+
+				<div class="pd-card">
+					<div class="pd-card-body">
+						<div class="pd-switch">
+							<input type="checkbox" class="form-check-input" id="disableactive" onClick="DisableActive()">
+							<label for="disableactive">{$translate->get('DisableActive')}</label>
+						</div>
+					</div>
+				</div>
+
+				<div class="pd-card">
+					<div class="pd-card-head">
+						<span class="pd-card-emoji">🧾</span>
+						<h3 class="pd-card-title">{$translate->get('Summary')}</h3>
+					</div>
+					<div class="pd-card-body">
+						<div class="pd-line">
+							<span>{$translate->get('SubTotal')}</span>
+							<span>{$currency->symbol_left} <span id="subtotal">{$price}</span> {$currency->symbol_right}</span>
+						</div>
+						<div class="pd-line pd-line-off">
+							<span>{$translate->get('Discount')}</span>
+							<span>- {$currency->symbol_left} <span id="discount">{number_format((float)0, (int){$currency->decimals})}</span> {$currency->symbol_right}</span>
+						</div>
+						<div class="pd-total">
+							<span class="pd-total-label">{$translate->get('Total')}</span>
+							<span class="pd-total-value">{$currency->symbol_left} <span id="total">{$price}</span> {$currency->symbol_right}</span>
+						</div>
+
+						<button type="button" class="pd-buy" onClick="Checkout()">🛒 {$translate->get('Checkout')}</button>
+						<div class="pd-safe">🔒 {$translate->get('CheckoutSafeNote')}</div>
+					</div>
+				</div>
+
+			</div>
+		</div>
+	</div>
+
 {include file='user/layout/footer.tpl'}
+{include file='common/orderresult.tpl'}
 <script>
 	checkBill();
 	

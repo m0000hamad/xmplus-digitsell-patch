@@ -46,6 +46,7 @@
   </div>
   
 {include file='user/layout/footer.tpl'}
+{include file='common/orderresult.tpl'}
 <script src="/assets/js/jquery.cookie.min.js"></script>
 <script src="/assets/js/apexcharts.js"></script>
 <script>

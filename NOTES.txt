@@ -1,4 +1,4 @@
-A working dialog for the update: an hourglass, five named stages, a progress
-bar, and a result panel with the file counts. The confirmation is now part of
-the same dialog instead of a browser prompt, and a proxy answering with HTML
-is reported with its status code instead of a bare parse error.
+The purchase flow gets the same treatment as the rest of the panel: a step
+strip, spec tiles, cycle and gateway pickers as real cards, and a sticky
+summary. Coming back from a gateway now states the verdict in a card that
+carries the order number, the plan and the amount, and fades on its own.

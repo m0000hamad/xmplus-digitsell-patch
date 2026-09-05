@@ -1,18 +1,37 @@
 {include file='user/layout/header.tpl'}
 
-    <div class="page-header">
-        <div class="row align-items-end">
-			<div class="col-sm mb-2 mb-sm-0">
-				<h1 class="page-header-title">{$translate->get('Orders')}</h1>
-			</div>
-        </div>
-    </div>
+{literal}
+<style>
+.od-head { border: 0; padding: 0; margin-bottom: 18px; }
+.od-head-inner {
+	border-radius: 20px;
+	padding: 20px 22px;
+	background: linear-gradient(135deg, #0f766e, #14b8a6 55%, #0ea5e9);
+	color: #fff;
+	box-shadow: 0 14px 34px rgba(20, 184, 166, .28);
+}
+.od-head-title { font-size: 20px; font-weight: 800; margin: 0 0 5px; color: #fff; }
+.od-head-sub { font-size: 12.5px; margin: 0; color: rgba(255, 255, 255, .86); line-height: 1.8; }
+@media (max-width: 575.98px) {
+	.od-head-inner { padding: 17px; }
+	.od-head-title { font-size: 17.5px; }
+}
+</style>
+{/literal}
+
+	<div class="page-header od-head">
+		<div class="od-head-inner">
+			<h1 class="od-head-title">🧾 {$translate->get('Orders')}</h1>
+			<p class="od-head-sub">{$translate->get('OrdersSubtitle')}</p>
+		</div>
+	</div>
 	  
 	<div class="row match-height">
 		{include file='user/order/datatables.tpl'}
 	</div>
 	{include file='user/order/invoice.tpl'}
 {include file='user/layout/footer.tpl'}
+{include file='common/orderresult.tpl'}
 <script>
     {include file='table/table_storage.tpl'}
 	{include file='table/table_desc.tpl'}
