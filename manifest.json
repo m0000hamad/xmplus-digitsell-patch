@@ -1,5 +1,5 @@
 {
-    "version": "1.1.2",
+    "version": "1.1.3",
     "released": "2026-09-05",
     "notes": "First packaged release. Everything built on the panel through 2026-09-05:\nusage chart, servers page, tickets, affiliate and commission, purchase flow,\nsidebar menu, the panel-wide dark-mode fix, and this updater itself.",
     "migrations": [
@@ -21,7 +21,7 @@
         "localization/en_US.php": "ed6b09f203dda2a741ef38a5e64150378e2628b06a741a890f51fd76366327b5",
         "localization/fa_IR.php": "5d71801a7822fad69a8f5d6b93e92fe200175248a8c4012940120928a78e5f16",
         "localization/zh_CN.php": "efbed4d615eb1eb498f6295a703cf5aea78c1d37898c2ddacab46476a0a310e0",
-        "public/xmplus-patch.php": "1e5c4afdf36db72309f00a7734abde9f64c5fb2ddf8c093dc80d6a5204b70f73",
+        "public/xmplus-patch.php": "3b4c3d69aee9aea367808ace412cff8be3affacd2b7c5a424a8738028bf42efa",
         "view/admin/layout/footer.tpl": "f12b60a0534016ae6875bb22f61a4cc46777820ac4c035ed967e3f67bffec6b0",
         "view/admin/settings/basicsettings.tpl": "1f353147218dbfe19be3c622a488d5e81348c5325101757cdbd9f00df7df89d1",
         "view/admin/settings/patchsettings.tpl": "3522b6b902bb3885e7d300740e9305ebe03fb9c79cae7637fb4898e6b5653f6d",

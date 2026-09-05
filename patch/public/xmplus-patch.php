@@ -19,7 +19,7 @@ declare(strict_types=1);
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
-const PATCH_ENDPOINT_VERSION = '1.1.2';
+const PATCH_ENDPOINT_VERSION = '1.1.3';
 
 /** Where releases come from. Overridable by the `patch_repo` setting. */
 const DEFAULT_REPO = 'm0000hamad/xmplus-digitsell-patch';
@@ -117,11 +117,31 @@ function putSetting(string $name, string $value): void
 
 // -------------------------------------------------------------------- auth
 
+/**
+ * The panel does not use PHP's default session cookie name: its middleware
+ * renames the session to `xmplus`, so a plain session_start() here opened an
+ * empty session and every request looked logged out. Pick the name from the
+ * cookies the browser actually sent.
+ */
+function startPanelSession(): void
+{
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        return;
+    }
+
+    foreach (['xmplus', session_name()] as $name) {
+        if (isset($_COOKIE[$name])) {
+            session_name($name);
+            break;
+        }
+    }
+
+    session_start();
+}
+
 function requireAdmin(): int
 {
-    if (session_status() !== PHP_SESSION_ACTIVE) {
-        session_start();
-    }
+    startPanelSession();
 
     $login = $_SESSION['login_session'] ?? null;
     if (!is_array($login) || empty($login['uid']) || empty($login['is_admin'])) {
