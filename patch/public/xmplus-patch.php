@@ -19,7 +19,7 @@ declare(strict_types=1);
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
-const PATCH_ENDPOINT_VERSION = '1.0.2';
+const PATCH_ENDPOINT_VERSION = '1.1.0';
 
 /** Where releases come from. Overridable by the `patch_repo` setting. */
 const DEFAULT_REPO = 'm0000hamad/xmplus-digitsell-patch';
@@ -226,14 +226,30 @@ function fetch(string $url, ?string $saveTo = null)
     return $saveTo === null ? $body : true;
 }
 
-function remoteManifest(): array
+/**
+ * The commit the branch currently points at.
+ *
+ * Branch-named URLs are served from caches that move at different speeds:
+ * raw.githubusercontent handed back an old manifest while codeload already
+ * served the new archive, and the version guard — correctly — refused the pair.
+ * A commit SHA is immutable, so the manifest and the archive read at one SHA
+ * always belong together.
+ */
+function headCommit(): string
 {
-    // raw.githubusercontent caches for a few minutes, and a stale manifest read
-    // against a fresh archive trips the version guard below. The query string is
-    // part of the cache key, so a changing one always gets the current file.
-    $url = sprintf('https://raw.githubusercontent.com/%s/%s/manifest.json?t=%d',
-        repo(), branch(), time());
+    $url = sprintf('https://api.github.com/repos/%s/commits/%s', repo(), branch());
+    $decoded = json_decode((string) fetch($url), true);
 
+    if (!is_array($decoded) || empty($decoded['sha']) || !preg_match('~^[0-9a-f]{40}$~', $decoded['sha'])) {
+        fail('could not read the current commit from GitHub');
+    }
+
+    return (string) $decoded['sha'];
+}
+
+function remoteManifest(string $commit): array
+{
+    $url = sprintf('https://raw.githubusercontent.com/%s/%s/manifest.json', repo(), $commit);
     $decoded = json_decode((string) fetch($url), true);
 
     if (!is_array($decoded) || empty($decoded['version']) || !is_array($decoded['files'] ?? null)) {
@@ -365,7 +381,8 @@ $action = $_GET['do'] ?? 'status';
 requireAdmin();
 
 if ($action === 'status') {
-    $manifest = remoteManifest();
+    $commit = headCommit();
+    $manifest = remoteManifest($commit);
     $installed = (string) setting('patch_version', '');
 
     // the write actions need this back; a cross-site page cannot read it,
@@ -383,6 +400,7 @@ if ($action === 'status') {
         'released' => (string) ($manifest['released'] ?? ''),
         'repo' => repo(),
         'branch' => branch(),
+        'commit' => substr($commit, 0, 7),
         'uptodate' => $installed === (string) $manifest['version'],
         'endpoint' => PATCH_ENDPOINT_VERSION,
     ]);
@@ -395,7 +413,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 requireToken();
 
 if ($action === 'apply') {
-    $manifest = remoteManifest();
+    $commit = headCommit();
+    $manifest = remoteManifest($commit);
     $stamp = date('Ymd-His');
 
     $work = ROOT . '/storage/patch';
@@ -411,7 +430,7 @@ if ($action === 'apply') {
     }
 
     $archive = $work . '/release-' . $stamp . '.zip';
-    fetch(sprintf('https://codeload.github.com/%s/zip/refs/heads/%s', repo(), branch()), $archive);
+    fetch(sprintf('https://codeload.github.com/%s/zip/%s', repo(), $commit), $archive);
 
     $unpacked = $work . '/unpacked-' . $stamp;
     $zip = new ZipArchive();
@@ -425,7 +444,7 @@ if ($action === 'apply') {
     $zip->close();
     @unlink($archive);
 
-    // GitHub wraps everything in <repo>-<branch>/
+    // GitHub wraps everything in <repo>-<commit>/
     $inner = glob($unpacked . '/*', GLOB_ONLYDIR);
     $source = ($inner && count($inner) === 1) ? $inner[0] : $unpacked;
 
@@ -505,6 +524,7 @@ if ($action === 'apply') {
 
     done([
         'version' => (string) $shipped['version'],
+        'commit' => substr($commit, 0, 7),
         'updated' => $changed,
         'unchanged' => $kept,
         'migrations' => $ran,

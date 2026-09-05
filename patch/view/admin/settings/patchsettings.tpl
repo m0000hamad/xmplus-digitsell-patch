@@ -217,7 +217,8 @@ html[data-hs-theme="dark"] .pt-notes { color: #b9c2d4; background: rgba(99, 102,
 
 			el('ptInstalled').textContent = data.installed || window.PatchWords.never;
 			el('ptLatest').textContent = data.latest;
-			el('ptRepo').textContent = data.repo + ' @ ' + data.branch;
+			el('ptRepo').textContent = data.repo + ' @ ' + data.branch
+				+ (data.commit ? ' (' + data.commit + ')' : '');
 
 			var notes = el('ptNotes');
 			if (data.notes) {
