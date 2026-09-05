@@ -19,7 +19,7 @@ declare(strict_types=1);
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
-const PATCH_ENDPOINT_VERSION = '1.0.0';
+const PATCH_ENDPOINT_VERSION = '1.0.2';
 
 /** Where releases come from. Overridable by the `patch_repo` setting. */
 const DEFAULT_REPO = 'm0000hamad/xmplus-digitsell-patch';
@@ -193,6 +193,7 @@ function fetch(string $url, ?string $saveTo = null)
         CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
         CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
         CURLOPT_USERAGENT => 'xmplus-digitsell-patch/' . PATCH_ENDPOINT_VERSION,
+        CURLOPT_HTTPHEADER => ['Cache-Control: no-cache', 'Pragma: no-cache'],
     ]);
 
     $file = null;
@@ -227,7 +228,12 @@ function fetch(string $url, ?string $saveTo = null)
 
 function remoteManifest(): array
 {
-    $url = sprintf('https://raw.githubusercontent.com/%s/%s/manifest.json', repo(), branch());
+    // raw.githubusercontent caches for a few minutes, and a stale manifest read
+    // against a fresh archive trips the version guard below. The query string is
+    // part of the cache key, so a changing one always gets the current file.
+    $url = sprintf('https://raw.githubusercontent.com/%s/%s/manifest.json?t=%d',
+        repo(), branch(), time());
+
     $decoded = json_decode((string) fetch($url), true);
 
     if (!is_array($decoded) || empty($decoded['version']) || !is_array($decoded['files'] ?? null)) {
@@ -426,8 +432,12 @@ if ($action === 'apply') {
     // the manifest that travelled with the files is the one that counts
     $shipped = json_decode((string) @file_get_contents($source . '/manifest.json'), true);
     if (!is_array($shipped) || ($shipped['version'] ?? null) !== $manifest['version']) {
+        $found = is_array($shipped) ? (string) ($shipped['version'] ?? '?') : 'unreadable';
         removeTree($unpacked);
-        fail('the archive does not match the published manifest');
+        fail(sprintf(
+            'the archive holds version %s but the manifest advertised %s — '
+            . 'if you have just pushed, wait a minute for GitHub to catch up',
+            $found, (string) $manifest['version']));
     }
 
     // ---- verify before touching anything -------------------------------
