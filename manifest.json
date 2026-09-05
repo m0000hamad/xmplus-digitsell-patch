@@ -1,7 +1,7 @@
 {
-    "version": "1.3.2",
+    "version": "1.3.3",
     "released": "2026-09-05",
-    "notes": "Rebuilds the \"disable the current subscription\" toggle on the plan page. The\nredesign had dropped the theme's switch markup, leaving a bare checkbox that\nrendered as an empty white box with no sign of its state.",
+    "notes": "Turns the plan page switch the way round people expect: the knob sits on the\nleft when the option is off and slides right when it is on. The logical inset\nused before flipped with the RTL page and did the opposite.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -53,7 +53,7 @@
         "view/user/pay/cycle.tpl": "dd0fa408f7142db588f59f474915f53b9138890f96237deb1af1e894590c8075",
         "view/user/pay/pay.tpl": "6a186caf8fc891aa92be85db26e9fc3110ca033288d95a5434129d2ed3ea36c1",
         "view/user/pay/summary.tpl": "162cb18218a2cfbcb8eb5b218c63ba57c727bb2bfda35755bdcbb2330017def7",
-        "view/user/plan/plan-details.tpl": "cf78e480ef6c41e1c0591eaac2c3cf567d0b0769d404bee0608f53bbad066724",
+        "view/user/plan/plan-details.tpl": "054bfdaaf97ac6b093d5e54201e86e65446cdb524a27e98f283587ddcf4149aa",
         "view/user/plan/plan.tpl": "779d7a5506996c8bae0e0e38e1e556f2c7341a0443955168b92c40c8c5152afd",
         "view/user/server/server.tpl": "6ae2ec08933c558963019843e09dd13944ade01298a2eb04dbb0fe7c56fcb090",
         "view/user/ticket/open.tpl": "b4ffbf27d1f01d8ff2d5c45a671dbcc5805652ab2a8a633100ecec90cd4b377e",

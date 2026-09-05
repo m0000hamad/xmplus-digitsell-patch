@@ -228,21 +228,21 @@
 	content: "";
 	position: absolute;
 	top: 3px;
-	inset-inline-start: 3px;
+	/* physical left on purpose: the logical inset flips with the RTL page and
+	   put the knob on the left when the switch was on, which reads as off */
+	left: 3px;
 	width: 21px;
 	height: 21px;
 	border-radius: 50%;
 	background: #fff;
 	box-shadow: 0 2px 6px rgba(23, 32, 61, .3);
-	/* an inset moves the right way in both writing directions; a transform
-	   would slide the wrong way once the page is RTL */
-	transition: inset-inline-start .18s ease;
+	transition: left .18s ease;
 }
 .pd-switch-wrap input:checked + .pd-knob {
 	background: linear-gradient(135deg, #d97706, #f59e0b);
 	box-shadow: inset 0 1px 3px rgba(180, 83, 9, .35);
 }
-.pd-switch-wrap input:checked + .pd-knob::after { inset-inline-start: 24px; }
+.pd-switch-wrap input:checked + .pd-knob::after { left: 24px; }
 .pd-switch-wrap input:focus-visible + .pd-knob { outline: 2px solid #6366f1; outline-offset: 2px; }
 
 .pd-switch-text { font-size: 12.5px; font-weight: 700; color: #16203d; margin: 0; line-height: 1.7; }
