@@ -183,18 +183,76 @@
 }
 .pd-mini-off { background: linear-gradient(135deg, #be123c, #f43f5e); }
 
-/* ---- the switch ---- */
+/* ---- the switch ----
+ * Drawn here rather than left to the theme: the redesign dropped the theme's
+ * own switch markup, and a bare .form-check-input rendered as an empty white
+ * box with nothing to show whether it was on. */
 .pd-switch {
 	display: flex;
 	align-items: center;
-	gap: 11px;
+	gap: 12px;
 	border-radius: 14px;
-	padding: 12px 14px;
+	padding: 13px 14px;
 	background: rgba(245, 158, 11, .08);
 	border: 1px solid rgba(245, 158, 11, .28);
+	cursor: pointer;
+	transition: background .16s ease, border-color .16s ease;
 }
-.pd-switch input { width: 2.6em; height: 1.4em; cursor: pointer; flex: 0 0 auto; margin: 0; }
-.pd-switch label { font-size: 12.5px; font-weight: 700; color: #16203d; cursor: pointer; margin: 0; }
+.pd-switch:hover { background: rgba(245, 158, 11, .14); }
+.pd-switch-wrap {
+	position: relative;
+	width: 48px;
+	height: 27px;
+	flex: 0 0 auto;
+	display: inline-block;
+}
+.pd-switch-wrap input {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	opacity: 0;
+	cursor: pointer;
+	z-index: 2;
+}
+.pd-knob {
+	position: absolute;
+	inset: 0;
+	border-radius: 999px;
+	background: #c3cbd9;
+	box-shadow: inset 0 1px 3px rgba(23, 32, 61, .22);
+	transition: background .18s ease;
+}
+.pd-knob::after {
+	content: "";
+	position: absolute;
+	top: 3px;
+	inset-inline-start: 3px;
+	width: 21px;
+	height: 21px;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: 0 2px 6px rgba(23, 32, 61, .3);
+	/* an inset moves the right way in both writing directions; a transform
+	   would slide the wrong way once the page is RTL */
+	transition: inset-inline-start .18s ease;
+}
+.pd-switch-wrap input:checked + .pd-knob {
+	background: linear-gradient(135deg, #d97706, #f59e0b);
+	box-shadow: inset 0 1px 3px rgba(180, 83, 9, .35);
+}
+.pd-switch-wrap input:checked + .pd-knob::after { inset-inline-start: 24px; }
+.pd-switch-wrap input:focus-visible + .pd-knob { outline: 2px solid #6366f1; outline-offset: 2px; }
+
+.pd-switch-text { font-size: 12.5px; font-weight: 700; color: #16203d; margin: 0; line-height: 1.7; }
+.pd-switch-state {
+	font-size: 11px;
+	font-weight: 700;
+	color: #b45309;
+	display: block;
+	margin-top: 2px;
+}
 
 /* ---- the total ---- */
 .pd-sum { position: sticky; top: 84px; }
@@ -257,13 +315,15 @@ html[data-hs-theme="dark"] .pd-card-title,
 html[data-hs-theme="dark"] .pd-spec-value,
 html[data-hs-theme="dark"] .pd-cycle-price,
 html[data-hs-theme="dark"] .pd-total-label,
-html[data-hs-theme="dark"] .pd-switch label { color: #e7eaf3; }
+html[data-hs-theme="dark"] .pd-switch-text { color: #e7eaf3; }
 html[data-hs-theme="dark"] .pd-cycle-box { background: #1c2536; border-color: rgba(255, 255, 255, .1); }
 html[data-hs-theme="dark"] .pd-coupon input { background: #1c2536; border-color: rgba(255, 255, 255, .12); color: #e7eaf3; }
 html[data-hs-theme="dark"] .pd-note { color: #b9c2d4; }
 html[data-hs-theme="dark"] .pd-line span:last-child { color: #e7eaf3; }
 html[data-hs-theme="dark"] .pd-total-value { color: #34d399; }
 html[data-hs-theme="dark"] .pd-total { border-top-color: rgba(255, 255, 255, .14); }
+html[data-hs-theme="dark"] .pd-knob { background: #3d4761; }
+html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 
 @media (max-width: 575.98px) {
 	.pd-head-inner { padding: 17px; }
@@ -408,10 +468,16 @@ html[data-hs-theme="dark"] .pd-total { border-top-color: rgba(255, 255, 255, .14
 
 				<div class="pd-card">
 					<div class="pd-card-body">
-						<div class="pd-switch">
-							<input type="checkbox" class="form-check-input" id="disableactive" onClick="DisableActive()">
-							<label for="disableactive">{$translate->get('DisableActive')}</label>
-						</div>
+						<label class="pd-switch">
+							<span class="pd-switch-wrap">
+								<input type="checkbox" id="disableactive" onClick="DisableActive()">
+								<span class="pd-knob"></span>
+							</span>
+							<span class="pd-switch-text">
+								{$translate->get('DisableActive')}
+								<span class="pd-switch-state" id="disableactiveState">{$translate->get('SwitchOff')}</span>
+							</span>
+						</label>
 					</div>
 				</div>
 
@@ -456,6 +522,12 @@ html[data-hs-theme="dark"] .pd-total { border-top-color: rgba(255, 255, 255, .14
 	{/if}
 	
 	function DisableActive(){
+		var mark = document.getElementById('disableactiveState');
+		if (mark) {
+			mark.textContent = document.getElementById('disableactive').checked
+				? "{$translate->get('SwitchOn')}" : "{$translate->get('SwitchOff')}";
+		}
+
 		if(document.getElementById('disableactive').checked == 1){
 			Swal.fire({
 				title: '',
