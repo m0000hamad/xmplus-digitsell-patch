@@ -14,6 +14,11 @@
 
 declare(strict_types=1);
 
+// the answer is JSON; a stray warning printed ahead of it would make the page
+// unable to parse the response, so warnings go to the log only
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
+
 const PATCH_ENDPOINT_VERSION = '1.0.0';
 
 /** Where releases come from. Overridable by the `patch_repo` setting. */
@@ -31,9 +36,16 @@ header('Cache-Control: no-store');
 
 // ---------------------------------------------------------------- plumbing
 
-function fail(string $message, int $status = 400): void
+/**
+ * nginx here is configured with `error_page 404 /404.html; error_page 502 ...`,
+ * and those pages do not exist, so it hands such responses to index.php and the
+ * caller gets the panel's HTML 404 instead of this JSON. Failures therefore
+ * answer 200 and carry the outcome in the body; only 403 and 405, which nginx
+ * passes through untouched, are used as real status codes.
+ */
+function fail(string $message, int $status = 200): void
 {
-    http_response_code($status);
+    http_response_code(in_array($status, [403, 405], true) ? $status : 200);
     echo json_encode(['ok' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -53,12 +65,12 @@ function db(): PDO
 
     $config = ROOT . '/config/config.php';
     if (!is_file($config)) {
-        fail('config/config.php not found', 500);
+        fail('config/config.php not found');
     }
 
     require $config;
     if (!isset($DB) || !is_array($DB)) {
-        fail('database configuration not readable', 500);
+        fail('database configuration not readable');
     }
 
     $dsn = sprintf('mysql:host=%s;dbname=%s;charset=utf8mb4',
@@ -75,7 +87,7 @@ function db(): PDO
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
     } catch (Throwable $error) {
-        fail('cannot reach the database', 500);
+        fail('cannot reach the database');
     }
 
     return $pdo;
@@ -189,7 +201,7 @@ function fetch(string $url, ?string $saveTo = null)
     } else {
         $file = fopen($saveTo, 'wb');
         if ($file === false) {
-            fail('cannot write to ' . $saveTo, 500);
+            fail('cannot write to ' . $saveTo);
         }
         curl_setopt($handle, CURLOPT_FILE, $file);
     }
@@ -204,10 +216,10 @@ function fetch(string $url, ?string $saveTo = null)
     }
 
     if ($body === false && $saveTo === null) {
-        fail('download failed: ' . $error, 502);
+        fail('download failed: ' . $error);
     }
     if ($status !== 200) {
-        fail('GitHub answered ' . $status . ' for ' . $url, 502);
+        fail('GitHub answered ' . $status . ' for ' . $url);
     }
 
     return $saveTo === null ? $body : true;
@@ -382,7 +394,7 @@ if ($action === 'apply') {
 
     $work = ROOT . '/storage/patch';
     if (!is_dir($work) && !mkdir($work, 0755, true) && !is_dir($work)) {
-        fail('cannot create storage/patch', 500);
+        fail('cannot create storage/patch');
     }
 
     $archive = $work . '/release-' . $stamp . '.zip';
@@ -393,7 +405,7 @@ if ($action === 'apply') {
 
     if ($zip->open($archive) !== true) {
         @unlink($archive);
-        fail('the downloaded release is not a readable zip', 502);
+        fail('the downloaded release is not a readable zip');
     }
 
     $zip->extractTo($unpacked);
@@ -454,7 +466,7 @@ if ($action === 'apply') {
         }
 
         if (!copy($move['from'], $move['to'])) {
-            fail('could not write ' . $relative . ' — check ownership', 500);
+            fail('could not write ' . $relative . ' — check ownership');
         }
 
         ownLikeTheApp($move['to']);

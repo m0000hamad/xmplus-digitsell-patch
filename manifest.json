@@ -21,7 +21,7 @@
         "localization/en_US.php": "6a72c7a89ff2d0ea7d442a2edd6fd9e8add7b4eca6bc9d8470180784627313dd",
         "localization/fa_IR.php": "4fc85fd87374d8be157e0226e9b73c2f2aeeda8f2cae7b52dee03b8d975bb951",
         "localization/zh_CN.php": "0702c3dd2dcfc189393830c544275a2655d2a02861a038e5fca1baab635e4bf8",
-        "public/xmplus-patch.php": "69caddba219faae5c4e5c3d93f6a38e0baecd335cc1113ece9b5d80bf90e9d3a",
+        "public/xmplus-patch.php": "d2d4e3dfba99f5cc78bca665cc677ef3be5a27231b519be7e49dab6c2cdc1d46",
         "view/admin/layout/footer.tpl": "f12b60a0534016ae6875bb22f61a4cc46777820ac4c035ed967e3f67bffec6b0",
         "view/admin/settings/basicsettings.tpl": "1f353147218dbfe19be3c622a488d5e81348c5325101757cdbd9f00df7df89d1",
         "view/admin/settings/patchsettings.tpl": "695ab6479dcd16d73ff85ebf055efe2e3fb2c6dc7d6c58c85e2c7ccc0f332367",
