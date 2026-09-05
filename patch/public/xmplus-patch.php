@@ -1,0 +1,518 @@
+<?php
+/**
+ * In-panel updater for the Digitsell XMPlus patch.
+ *
+ * The panel's controllers and routes are ionCube encoded, so no route can be
+ * added to the application itself. nginx passes any .php under public/ to
+ * php-fpm, so this file is the endpoint: it answers directly, outside Slim.
+ *
+ * Every request must come from a logged-in admin and carry the CSRF token that
+ * the settings page put in the session. Files are only ever written to paths
+ * that the release manifest names, each one checked against its SHA-256 and
+ * confined to the four directories the patch owns.
+ */
+
+declare(strict_types=1);
+
+const PATCH_ENDPOINT_VERSION = '1.0.0';
+
+/** Where releases come from. Overridable by the `patch_repo` setting. */
+const DEFAULT_REPO = 'OWNER/REPO';
+const DEFAULT_BRANCH = 'main';
+
+/** Only these prefixes may be written. Anything else in a manifest is refused. */
+const ALLOWED_PREFIXES = ['app/', 'bin/', 'localization/', 'view/', 'public/xmplus-patch.php'];
+
+const ROOT = __DIR__ . '/..';
+
+header('Content-Type: application/json; charset=utf-8');
+header('X-Content-Type-Options: nosniff');
+header('Cache-Control: no-store');
+
+// ---------------------------------------------------------------- plumbing
+
+function fail(string $message, int $status = 400): void
+{
+    http_response_code($status);
+    echo json_encode(['ok' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function done(array $payload): void
+{
+    echo json_encode(['ok' => true] + $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+function db(): PDO
+{
+    static $pdo = null;
+    if ($pdo instanceof PDO) {
+        return $pdo;
+    }
+
+    $config = ROOT . '/config/config.php';
+    if (!is_file($config)) {
+        fail('config/config.php not found', 500);
+    }
+
+    require $config;
+    if (!isset($DB) || !is_array($DB)) {
+        fail('database configuration not readable', 500);
+    }
+
+    $dsn = sprintf('mysql:host=%s;dbname=%s;charset=utf8mb4',
+        $DB['db_host'] ?? 'localhost', $DB['db_database'] ?? '');
+
+    if (!empty($DB['db_socket'])) {
+        $dsn = sprintf('mysql:unix_socket=%s;dbname=%s;charset=utf8mb4',
+            $DB['db_socket'], $DB['db_database'] ?? '');
+    }
+
+    try {
+        $pdo = new PDO($dsn, $DB['db_username'] ?? '', $DB['db_password'] ?? '', [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
+    } catch (Throwable $error) {
+        fail('cannot reach the database', 500);
+    }
+
+    return $pdo;
+}
+
+function setting(string $name, ?string $fallback = null): ?string
+{
+    $statement = db()->prepare('SELECT value FROM settings WHERE name = ? LIMIT 1');
+    $statement->execute([$name]);
+    $row = $statement->fetch();
+
+    return $row === false ? $fallback : (string) $row['value'];
+}
+
+function putSetting(string $name, string $value): void
+{
+    $exists = db()->prepare('SELECT 1 FROM settings WHERE name = ? LIMIT 1');
+    $exists->execute([$name]);
+
+    if ($exists->fetch() === false) {
+        db()->prepare('INSERT INTO settings (name, value) VALUES (?, ?)')->execute([$name, $value]);
+        return;
+    }
+
+    db()->prepare('UPDATE settings SET value = ? WHERE name = ?')->execute([$value, $name]);
+}
+
+// -------------------------------------------------------------------- auth
+
+function requireAdmin(): int
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        session_start();
+    }
+
+    $login = $_SESSION['login_session'] ?? null;
+    if (!is_array($login) || empty($login['uid']) || empty($login['is_admin'])) {
+        fail('admin session required', 403);
+    }
+
+    if (!empty($login['expire']) && (int) $login['expire'] < time()) {
+        fail('session expired', 403);
+    }
+
+    // the session claim is only believed if the account still says so
+    $statement = db()->prepare('SELECT role FROM user WHERE id = ? LIMIT 1');
+    $statement->execute([(int) $login['uid']]);
+    $row = $statement->fetch();
+
+    if ($row === false || (int) $row['role'] <= 0) {
+        fail('this account is not an administrator', 403);
+    }
+
+    return (int) $login['uid'];
+}
+
+function requireToken(): void
+{
+    $sent = $_POST['token'] ?? ($_SERVER['HTTP_X_PATCH_TOKEN'] ?? '');
+    $held = $_SESSION['patch_csrf'] ?? '';
+
+    if ($held === '' || !is_string($sent) || !hash_equals($held, $sent)) {
+        fail('bad or missing token', 403);
+    }
+}
+
+// ------------------------------------------------------------------ github
+
+function repo(): string
+{
+    $configured = trim((string) setting('patch_repo', ''));
+    $repo = $configured !== '' ? $configured : DEFAULT_REPO;
+
+    if (!preg_match('~^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$~', $repo)) {
+        fail('the configured repository name is not valid');
+    }
+
+    return $repo;
+}
+
+function branch(): string
+{
+    $configured = trim((string) setting('patch_branch', ''));
+    $branch = $configured !== '' ? $configured : DEFAULT_BRANCH;
+
+    if (!preg_match('~^[A-Za-z0-9_./-]{1,80}$~', $branch)) {
+        fail('the configured branch name is not valid');
+    }
+
+    return $branch;
+}
+
+function fetch(string $url, ?string $saveTo = null)
+{
+    $handle = curl_init($url);
+    curl_setopt_array($handle, [
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS => 5,
+        CURLOPT_CONNECTTIMEOUT => 15,
+        CURLOPT_TIMEOUT => 180,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+        CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
+        CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
+        CURLOPT_USERAGENT => 'xmplus-digitsell-patch/' . PATCH_ENDPOINT_VERSION,
+    ]);
+
+    $file = null;
+    if ($saveTo === null) {
+        curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
+    } else {
+        $file = fopen($saveTo, 'wb');
+        if ($file === false) {
+            fail('cannot write to ' . $saveTo, 500);
+        }
+        curl_setopt($handle, CURLOPT_FILE, $file);
+    }
+
+    $body = curl_exec($handle);
+    $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+    $error = curl_error($handle);
+    curl_close($handle);
+
+    if ($file !== null) {
+        fclose($file);
+    }
+
+    if ($body === false && $saveTo === null) {
+        fail('download failed: ' . $error, 502);
+    }
+    if ($status !== 200) {
+        fail('GitHub answered ' . $status . ' for ' . $url, 502);
+    }
+
+    return $saveTo === null ? $body : true;
+}
+
+function remoteManifest(): array
+{
+    $url = sprintf('https://raw.githubusercontent.com/%s/%s/manifest.json', repo(), branch());
+    $decoded = json_decode((string) fetch($url), true);
+
+    if (!is_array($decoded) || empty($decoded['version']) || !is_array($decoded['files'] ?? null)) {
+        fail('the release manifest is malformed');
+    }
+
+    return $decoded;
+}
+
+// ------------------------------------------------------------------ paths
+
+function safeDestination(string $relative): string
+{
+    $relative = str_replace('\\', '/', trim($relative));
+
+    if ($relative === '' || strpos($relative, '..') !== false || $relative[0] === '/') {
+        fail('the manifest names an unsafe path: ' . $relative);
+    }
+
+    $allowed = false;
+    foreach (ALLOWED_PREFIXES as $prefix) {
+        if (strpos($relative, $prefix) === 0) {
+            $allowed = true;
+            break;
+        }
+    }
+
+    if (!$allowed) {
+        fail('the manifest names a path outside the patch: ' . $relative);
+    }
+
+    return ROOT . '/' . $relative;
+}
+
+function removeTree(string $path): void
+{
+    if (!is_dir($path)) {
+        if (is_file($path)) {
+            unlink($path);
+        }
+        return;
+    }
+
+    $items = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST);
+
+    foreach ($items as $item) {
+        $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname());
+    }
+
+    rmdir($path);
+}
+
+function ownLikeTheApp(string $path): void
+{
+    $reference = ROOT . '/public/index.php';
+    if (!function_exists('posix_getpwuid') || !is_file($reference)) {
+        return;
+    }
+
+    $owner = fileowner($reference);
+    $group = filegroup($reference);
+
+    if ($owner !== false) {
+        @chown($path, $owner);
+    }
+    if ($group !== false) {
+        @chgrp($path, $group);
+    }
+    @chmod($path, 0644);
+}
+
+// ------------------------------------------------------------- migrations
+
+function appliedMigrations(): array
+{
+    $raw = (string) setting('patch_migrations', '');
+    return $raw === '' ? [] : array_filter(explode(',', $raw));
+}
+
+function runMigrations(string $source, array $manifest): array
+{
+    $applied = appliedMigrations();
+    $ran = [];
+
+    foreach ($manifest['migrations'] ?? [] as $name) {
+        if (in_array($name, $applied, true)) {
+            continue;
+        }
+
+        $file = $source . '/migrations/' . basename((string) $name);
+        if (!is_file($file)) {
+            continue;
+        }
+
+        $migration = require $file;
+        if (!is_callable($migration)) {
+            continue;
+        }
+
+        $migration(db());
+
+        $applied[] = $name;
+        $ran[] = $name;
+    }
+
+    putSetting('patch_migrations', implode(',', array_unique($applied)));
+
+    return $ran;
+}
+
+function clearCompiledTemplates(): void
+{
+    $compile = ROOT . '/storage/smarty/compile';
+    if (!is_dir($compile)) {
+        return;
+    }
+
+    foreach (glob($compile . '/*') ?: [] as $item) {
+        removeTree($item);
+    }
+}
+
+// --------------------------------------------------------------- the verbs
+
+$action = $_GET['do'] ?? 'status';
+
+requireAdmin();
+
+if ($action === 'status') {
+    $manifest = remoteManifest();
+    $installed = (string) setting('patch_version', '');
+
+    // the write actions need this back; a cross-site page cannot read it,
+    // because reading this response requires being on the panel's own origin
+    if (empty($_SESSION['patch_csrf'])) {
+        $_SESSION['patch_csrf'] = bin2hex(random_bytes(24));
+    }
+
+    done([
+        'token' => $_SESSION['patch_csrf'],
+        'installed' => $installed,
+        'latest' => (string) $manifest['version'],
+        'files' => count($manifest['files']),
+        'notes' => (string) ($manifest['notes'] ?? ''),
+        'released' => (string) ($manifest['released'] ?? ''),
+        'repo' => repo(),
+        'branch' => branch(),
+        'uptodate' => $installed === (string) $manifest['version'],
+        'endpoint' => PATCH_ENDPOINT_VERSION,
+    ]);
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    fail('this action needs POST', 405);
+}
+
+requireToken();
+
+if ($action === 'apply') {
+    $manifest = remoteManifest();
+    $stamp = date('Ymd-His');
+
+    $work = ROOT . '/storage/patch';
+    if (!is_dir($work) && !mkdir($work, 0755, true) && !is_dir($work)) {
+        fail('cannot create storage/patch', 500);
+    }
+
+    $archive = $work . '/release-' . $stamp . '.zip';
+    fetch(sprintf('https://codeload.github.com/%s/zip/refs/heads/%s', repo(), branch()), $archive);
+
+    $unpacked = $work . '/unpacked-' . $stamp;
+    $zip = new ZipArchive();
+
+    if ($zip->open($archive) !== true) {
+        @unlink($archive);
+        fail('the downloaded release is not a readable zip', 502);
+    }
+
+    $zip->extractTo($unpacked);
+    $zip->close();
+    @unlink($archive);
+
+    // GitHub wraps everything in <repo>-<branch>/
+    $inner = glob($unpacked . '/*', GLOB_ONLYDIR);
+    $source = ($inner && count($inner) === 1) ? $inner[0] : $unpacked;
+
+    // the manifest that travelled with the files is the one that counts
+    $shipped = json_decode((string) @file_get_contents($source . '/manifest.json'), true);
+    if (!is_array($shipped) || ($shipped['version'] ?? null) !== $manifest['version']) {
+        removeTree($unpacked);
+        fail('the archive does not match the published manifest');
+    }
+
+    // ---- verify before touching anything -------------------------------
+    $planned = [];
+    foreach ($shipped['files'] as $relative => $expected) {
+        $from = $source . '/patch/' . $relative;
+
+        if (!is_file($from)) {
+            removeTree($unpacked);
+            fail('the release is missing ' . $relative);
+        }
+
+        $actual = hash_file('sha256', $from);
+        if (!is_string($expected) || !hash_equals(strtolower($expected), (string) $actual)) {
+            removeTree($unpacked);
+            fail('checksum mismatch on ' . $relative);
+        }
+
+        $planned[$relative] = ['from' => $from, 'to' => safeDestination($relative)];
+    }
+
+    // ---- keep what is there now ----------------------------------------
+    $backup = $work . '/backup-' . $stamp;
+    $changed = 0;
+    $kept = 0;
+
+    foreach ($planned as $relative => $move) {
+        if (is_file($move['to']) && hash_file('sha256', $move['to']) === hash_file('sha256', $move['from'])) {
+            $kept++;
+            continue;
+        }
+
+        if (is_file($move['to'])) {
+            $target = $backup . '/' . $relative;
+            if (!is_dir(dirname($target))) {
+                mkdir(dirname($target), 0755, true);
+            }
+            copy($move['to'], $target);
+        }
+
+        if (!is_dir(dirname($move['to']))) {
+            mkdir(dirname($move['to']), 0755, true);
+        }
+
+        if (!copy($move['from'], $move['to'])) {
+            fail('could not write ' . $relative . ' — check ownership', 500);
+        }
+
+        ownLikeTheApp($move['to']);
+        $changed++;
+    }
+
+    $ran = runMigrations($source, $shipped);
+
+    clearCompiledTemplates();
+    putSetting('patch_version_before', (string) setting('patch_version', ''));
+    putSetting('patch_version', (string) $shipped['version']);
+    putSetting('patch_applied_at', date('Y-m-d H:i:s'));
+
+    if (is_dir($backup)) {
+        putSetting('patch_last_backup', 'backup-' . $stamp);
+    }
+
+    removeTree($unpacked);
+
+    done([
+        'version' => (string) $shipped['version'],
+        'updated' => $changed,
+        'unchanged' => $kept,
+        'migrations' => $ran,
+        'backup' => is_dir($backup) ? 'backup-' . $stamp : null,
+    ]);
+}
+
+if ($action === 'rollback') {
+    $name = (string) setting('patch_last_backup', '');
+    $backup = ROOT . '/storage/patch/' . basename($name);
+
+    if ($name === '' || !is_dir($backup)) {
+        fail('there is no backup to go back to');
+    }
+
+    $restored = 0;
+    $items = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($backup, FilesystemIterator::SKIP_DOTS));
+
+    foreach ($items as $item) {
+        if ($item->isDir()) {
+            continue;
+        }
+
+        $relative = ltrim(str_replace('\\', '/', substr($item->getPathname(), strlen($backup))), '/');
+        $to = safeDestination($relative);
+
+        if (copy($item->getPathname(), $to)) {
+            ownLikeTheApp($to);
+            $restored++;
+        }
+    }
+
+    clearCompiledTemplates();
+    putSetting('patch_version', (string) setting('patch_version_before', ''));
+
+    done(['restored' => $restored, 'from' => $name]);
+}
+
+fail('unknown action');

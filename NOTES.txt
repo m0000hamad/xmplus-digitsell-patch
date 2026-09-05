@@ -1,0 +1,3 @@
+First packaged release. Everything built on the panel through 2026-09-05:
+usage chart, servers page, tickets, affiliate and commission, purchase flow,
+sidebar menu, the panel-wide dark-mode fix, and this updater itself.
