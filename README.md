@@ -39,9 +39,9 @@ On the panel server:
 
 ```bash
 cd /tmp
-curl -sL https://codeload.github.com/OWNER/REPO/zip/refs/heads/main -o patch.zip
+curl -sL https://codeload.github.com/m0000hamad/xmplus-digitsell-patch/zip/refs/heads/main -o patch.zip
 unzip -q -o patch.zip
-php /tmp/REPO-main/install.php /www/wwwroot/YOUR-PANEL-DIR
+php /tmp/xmplus-digitsell-patch-main/install.php /www/wwwroot/YOUR-PANEL-DIR
 ```
 
 The installer verifies every file against `manifest.json`, backs up anything it

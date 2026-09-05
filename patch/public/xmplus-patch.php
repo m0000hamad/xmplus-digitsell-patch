@@ -22,7 +22,7 @@ error_reporting(E_ALL);
 const PATCH_ENDPOINT_VERSION = '1.0.0';
 
 /** Where releases come from. Overridable by the `patch_repo` setting. */
-const DEFAULT_REPO = 'OWNER/REPO';
+const DEFAULT_REPO = 'm0000hamad/xmplus-digitsell-patch';
 const DEFAULT_BRANCH = 'main';
 
 /** Only these prefixes may be written. Anything else in a manifest is refused. */

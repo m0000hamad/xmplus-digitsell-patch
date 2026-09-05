@@ -3,8 +3,8 @@
  * First-time installer. Run once, from the shell, on the panel server:
  *
  *   cd /www/wwwroot/<panel>
- *   curl -sL https://codeload.github.com/OWNER/REPO/zip/refs/heads/main -o /tmp/patch.zip
- *   unzip -q -o /tmp/patch.zip -d /tmp && php /tmp/REPO-main/install.php /www/wwwroot/<panel>
+ *   curl -sL https://codeload.github.com/m0000hamad/xmplus-digitsell-patch/zip/refs/heads/main -o /tmp/patch.zip
+ *   unzip -q -o /tmp/patch.zip -d /tmp && php /tmp/xmplus-digitsell-patch-main/install.php /www/wwwroot/<panel>
  *
  * After this, every later release is applied from the panel itself:
  * Settings -> Patch updates -> Download and apply.
