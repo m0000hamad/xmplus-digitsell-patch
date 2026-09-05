@@ -73,9 +73,11 @@ foreach ($manifest['files'] as $relative => $expected) {
     $written++;
 }
 
-// keep the ownership the web server needs
-$reference = $target . '/public/index.php';
-if (is_file($reference)) {
+// Keep the ownership the web server needs. The application directory is the
+// reference: files inside it may be root-owned from the original unpacking,
+// while the directories belong to the web user.
+$reference = $target;
+if (is_dir($reference)) {
     $owner = fileowner($reference);
     $group = filegroup($reference);
 
@@ -88,7 +90,7 @@ if (is_file($reference)) {
 
 // the in-panel updater runs as the web user and needs to write here
 $work = $target . '/storage/patch';
-if (is_dir($work) && is_file($reference)) {
+if (is_dir($work) && is_dir($reference)) {
     @chown($work, fileowner($reference));
     @chgrp($work, filegroup($reference));
     @chmod($work, 0755);

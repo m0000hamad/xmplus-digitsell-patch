@@ -19,7 +19,7 @@ declare(strict_types=1);
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
-const PATCH_ENDPOINT_VERSION = '1.1.0';
+const PATCH_ENDPOINT_VERSION = '1.1.2';
 
 /** Where releases come from. Overridable by the `patch_repo` setting. */
 const DEFAULT_REPO = 'm0000hamad/xmplus-digitsell-patch';
@@ -304,10 +304,16 @@ function removeTree(string $path): void
     rmdir($path);
 }
 
+/**
+ * Ownership is taken from the application directory, not from a file inside it:
+ * on this install public/index.php is root-owned while every directory belongs
+ * to the web user, so copying a file's ownership handed files to root and the
+ * next update could no longer write them.
+ */
 function ownLikeTheApp(string $path, int $mode = 0644): void
 {
-    $reference = ROOT . '/public/index.php';
-    if (!is_file($reference)) {
+    $reference = ROOT;
+    if (!is_dir($reference)) {
         return;
     }
 
