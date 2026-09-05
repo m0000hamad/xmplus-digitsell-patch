@@ -86,6 +86,14 @@ if (is_file($reference)) {
     }
 }
 
+// the in-panel updater runs as the web user and needs to write here
+$work = $target . '/storage/patch';
+if (is_dir($work) && is_file($reference)) {
+    @chown($work, fileowner($reference));
+    @chgrp($work, filegroup($reference));
+    @chmod($work, 0755);
+}
+
 printf("\n%d file(s) written, %d already current\n", $written, $same);
 if (is_dir($backup)) {
     echo "previous versions kept in storage/patch/backup-{$stamp}\n";

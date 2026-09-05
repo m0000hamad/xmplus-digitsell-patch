@@ -282,10 +282,10 @@ function removeTree(string $path): void
     rmdir($path);
 }
 
-function ownLikeTheApp(string $path): void
+function ownLikeTheApp(string $path, int $mode = 0644): void
 {
     $reference = ROOT . '/public/index.php';
-    if (!function_exists('posix_getpwuid') || !is_file($reference)) {
+    if (!is_file($reference)) {
         return;
     }
 
@@ -298,7 +298,7 @@ function ownLikeTheApp(string $path): void
     if ($group !== false) {
         @chgrp($path, $group);
     }
-    @chmod($path, 0644);
+    @chmod($path, $mode);
 }
 
 // ------------------------------------------------------------- migrations
@@ -395,6 +395,13 @@ if ($action === 'apply') {
     $work = ROOT . '/storage/patch';
     if (!is_dir($work) && !mkdir($work, 0755, true) && !is_dir($work)) {
         fail('cannot create storage/patch');
+    }
+
+    ownLikeTheApp($work, 0755);
+
+    if (!is_writable($work)) {
+        fail('storage/patch is not writable by the web user — run: '
+            . 'chown -R <web user> ' . $work);
     }
 
     $archive = $work . '/release-' . $stamp . '.zip';
