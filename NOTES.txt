@@ -1,4 +1,3 @@
-The purchase flow gets the same treatment as the rest of the panel: a step
-strip, spec tiles, cycle and gateway pickers as real cards, and a sticky
-summary. Coming back from a gateway now states the verdict in a card that
-carries the order number, the plan and the amount, and fades on its own.
+Fixes a division by zero that took the dashboard down for every account with no
+quota left. transfer_enable comes back from PDO as a string, so the guard's
+strict === never matched "0" and the page divided by it.

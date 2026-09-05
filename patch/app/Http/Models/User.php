@@ -57,7 +57,9 @@ final class User extends Model
 	
 	public function usedTrafficPercent(): float
     {
-        if ($this->transfer_enable === 0) {
+        // PDO hands this back as a string, so === never matched "0" and an
+        // account with no quota divided by zero and took the dashboard down
+        if ((float) $this->transfer_enable <= 0) {
             return 0;
         }
         $percent = ($this->u + $this->d) / $this->transfer_enable;
@@ -67,7 +69,7 @@ final class User extends Model
 	
 	public function unusedTrafficPercent(): float
     {
-        if ($this->transfer_enable == 0) {
+        if ((float) $this->transfer_enable <= 0) {
             return 0;
         }
         $unused = $this->transfer_enable - ($this->u + $this->d);

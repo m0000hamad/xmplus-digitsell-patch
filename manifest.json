@@ -1,7 +1,7 @@
 {
-    "version": "1.3.0",
+    "version": "1.3.1",
     "released": "2026-09-05",
-    "notes": "The purchase flow gets the same treatment as the rest of the panel: a step\nstrip, spec tiles, cycle and gateway pickers as real cards, and a sticky\nsummary. Coming back from a gateway now states the verdict in a card that\ncarries the order number, the plan and the amount, and fades on its own.",
+    "notes": "Fixes a division by zero that took the dashboard down for every account with no\nquota left. transfer_enable comes back from PDO as a string, so the guard's\nstrict === never matched \"0\" and the page divided by it.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -13,7 +13,7 @@
         "app/Http/Models/Order.php": "a560d42000ecf0ded7906972a5de4ca548b29063135e9b0ff4afe35d74fb0849",
         "app/Http/Models/Ticket.php": "2725842f26f84d4f01be5d30001468591221cd7d95571ddbc47304840ee5c2a0",
         "app/Http/Models/TrafficDaily.php": "f67b2efe0fb0a261f17ef7aae4aebe133db2e9b5608288112890d8a28bf75906",
-        "app/Http/Models/User.php": "481f86df3de288f11eb0c8655e6189ab0f4acd2303bd01eeab45325737773385",
+        "app/Http/Models/User.php": "2e4ab908a571b02f00adc61487777e3147677824643a6ffcd0efe87757710ea0",
         "app/Jobs/CommissionJob.php": "84828f5230b9726b5235faaec18de7468e1741be052b34bef7bef0a9f0bffc95",
         "app/Jobs/LogsJob.php": "1226dc5987cd1b81692b3a86347f7fd6ae32ddc84c4f4a2f1f2546d71c340139",
         "app/Jobs/TrafficStatsJob.php": "8cde9d7167ed068664d9f31ce4e25ac43e7884be866d3689d6507c12d34d247e",
