@@ -1,3 +1,4 @@
-First packaged release. Everything built on the panel through 2026-09-05:
-usage chart, servers page, tickets, affiliate and commission, purchase flow,
-sidebar menu, the panel-wide dark-mode fix, and this updater itself.
+A working dialog for the update: an hourglass, five named stages, a progress
+bar, and a result panel with the file counts. The confirmation is now part of
+the same dialog instead of a browser prompt, and a proxy answering with HTML
+is reported with its status code instead of a bare parse error.
