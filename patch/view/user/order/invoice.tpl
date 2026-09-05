@@ -236,29 +236,55 @@ html[data-hs-theme="dark"] .inv-btn-close { color: #cfd8ea; background: rgba(255
 	.inv-totals { max-width: 100%; }
 }
 
-/* ---- on paper ---- */
+/* ---- on paper ----
+ * visibility:hidden leaves the hidden boxes taking up their space, which put a
+ * blank page above the invoice, and a scrollable modal caps its own height so
+ * the rest spilled onto a second sheet. Everything is removed from the flow
+ * instead, and the modal is flattened into an ordinary block. The button moves
+ * the dialog to the end of <body> first, so a single selector can isolate it
+ * wherever the page happens to render it. */
 @media print {
-	body * { visibility: hidden !important; }
-	#InvoiceModal, #InvoiceModal * { visibility: visible !important; }
-
-	#InvoiceModal {
-		position: absolute !important;
-		inset: 0 !important;
-		display: block !important;
+	html, body {
+		height: auto !important;
 		overflow: visible !important;
 		background: #fff !important;
-		padding: 0 !important;
 	}
-	#InvoiceModal .modal-dialog {
+
+	body.inv-printing > *:not(#InvoiceModal) { display: none !important; }
+	.modal-backdrop { display: none !important; }
+
+	#InvoiceModal {
+		position: static !important;
+		display: block !important;
+		overflow: visible !important;
+		height: auto !important;
+		padding: 0 !important;
+		margin: 0 !important;
+		background: #fff !important;
+	}
+	#InvoiceModal .modal-dialog,
+	#InvoiceModal .modal-dialog-centered {
+		position: static !important;
+		display: block !important;
 		max-width: 100% !important;
 		width: 100% !important;
+		min-height: 0 !important;
 		margin: 0 !important;
 		transform: none !important;
 	}
 	#InvoiceModal .modal-content {
+		border: 0 !important;
 		border-radius: 0 !important;
 		box-shadow: none !important;
 		background: #fff !important;
+		max-height: none !important;
+		overflow: visible !important;
+		page-break-inside: avoid;
+		break-inside: avoid;
+	}
+	#InvoiceModal .modal-body {
+		max-height: none !important;
+		overflow: visible !important;
 	}
 
 	/* a colour-managed gradient does not survive most printers */
@@ -266,8 +292,9 @@ html[data-hs-theme="dark"] .inv-btn-close { color: #cfd8ea; background: rgba(255
 		background: #fff !important;
 		color: #16203d !important;
 		border-bottom: 2px solid #16203d;
-		padding-bottom: 14px;
+		padding: 0 0 12px !important;
 	}
+	.inv-body { padding: 14px 0 0 !important; }
 	.inv-shop, .inv-doc { color: #16203d !important; }
 	.inv-shop-sub { color: #56617a !important; }
 	.inv-logo { background: rgba(23, 32, 61, .08) !important; }
@@ -275,8 +302,9 @@ html[data-hs-theme="dark"] .inv-btn-close { color: #cfd8ea; background: rgba(255
 	.inv-grand { background: transparent !important; border: 1.5px solid #16203d !important; }
 	.inv-grand-value, .inv-party-name, .inv-meta-value, .inv-table td { color: #16203d !important; }
 	.inv-status { background: transparent !important; border: 1px solid #047857; }
+	.inv-party, .inv-meta-box { background: transparent !important; border: 1px solid rgba(23, 32, 61, .25) !important; }
 
-	.modal-backdrop { display: none !important; }
+	.inv-parties, .inv-meta, .inv-table, .inv-totals { page-break-inside: avoid; break-inside: avoid; }
 	.inv-noprint { display: none !important; }
 
 	@page { margin: 12mm; }
@@ -390,7 +418,7 @@ html[data-hs-theme="dark"] .inv-btn-close { color: #cfd8ea; background: rgba(255
 				</div>
 
 				<div class="inv-actions inv-noprint">
-					<button type="button" class="inv-btn inv-btn-print" onClick="window.print()">🖨️ {$translate->get('InvoicePrint')}</button>
+					<button type="button" class="inv-btn inv-btn-print" onClick="printInvoice()">🖨️ {$translate->get('InvoicePrint')}</button>
 					<button type="button" class="inv-btn inv-btn-close" data-bs-dismiss="modal">{$translate->get('Close')}</button>
 				</div>
 
@@ -401,6 +429,36 @@ html[data-hs-theme="dark"] .inv-btn-close { color: #cfd8ea; background: rgba(255
 
 {literal}
 <script>
+/*
+ * Printing.
+ *
+ * The dialog is rendered deep inside the page, so nothing above it could be
+ * hidden with one rule. It is moved to the end of <body> for the duration of
+ * the print and put straight back afterwards.
+ */
+function printInvoice() {
+	var modal = document.getElementById('InvoiceModal');
+	if (!modal) { window.print(); return; }
+
+	var parent = modal.parentNode;
+	var next = modal.nextSibling;
+
+	function restore() {
+		document.body.classList.remove('inv-printing');
+		if (parent) { parent.insertBefore(modal, next); }
+		window.removeEventListener('afterprint', restore);
+	}
+
+	document.body.appendChild(modal);
+	document.body.classList.add('inv-printing');
+
+	window.addEventListener('afterprint', restore);
+	window.print();
+
+	// Safari fires nothing; put the page back regardless
+	setTimeout(restore, 1500);
+}
+
 /* The details endpoint sends one subtotal, and the document shows it twice:
    once against the line item and once in the totals. Mirror it rather than
    asking the encoded controller for a second copy. */
