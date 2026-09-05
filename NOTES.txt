@@ -1,3 +1,3 @@
-Fixes the printed invoice: no blank first page, and it fits on one sheet. The
-dialog is moved to the end of the body for the print so a single rule can hide
-the rest of the page, and the modal's scroll cap is lifted so nothing spills.
+Makes the invoice readable on a phone: the dialog gets proper margins, the
+two-column table stacks into labelled blocks, the party and status boxes go
+single-column, and long ids and emails wrap instead of pushing the layout wide.

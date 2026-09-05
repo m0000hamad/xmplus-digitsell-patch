@@ -227,13 +227,69 @@ html[data-hs-theme="dark"] .inv-table th { border-bottom-color: rgba(255, 255, 2
 html[data-hs-theme="dark"] .inv-grand-value { color: #34d399; }
 html[data-hs-theme="dark"] .inv-btn-close { color: #cfd8ea; background: rgba(255, 255, 255, .08); }
 
-@media (max-width: 575.98px) {
-	.inv-top { padding: 17px; }
+.inv-amount-label { display: none; }
+
+@media screen and (max-width: 575.98px) {
+	#InvoiceModal .modal-dialog {
+		margin: 8px;
+		max-width: calc(100% - 16px);
+	}
+
+	.inv-top {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 11px;
+		padding: 16px;
+	}
 	.inv-label { text-align: start; }
-	.inv-body { padding: 18px; }
+	.inv-doc { font-size: 17px; }
+	.inv-body { padding: 17px 16px 18px; }
+
+	.inv-parties, .inv-meta { grid-template-columns: 1fr; }
+	.inv-party-line b, .inv-no { word-break: break-all; }
+
+	/* two columns do not fit a phone, so each row becomes a stacked block and
+	   the amount carries the heading the table header used to give it */
+	.inv-table thead { display: none; }
+	.inv-table, .inv-table tbody, .inv-table tr, .inv-table td {
+		display: block;
+		width: 100%;
+	}
+	.inv-table tr {
+		border-bottom: 1px solid rgba(23, 32, 61, .08);
+		padding: 4px 0 10px;
+	}
+	.inv-table td {
+		border: 0;
+		padding: 5px 0;
+		text-align: start !important;
+	}
+	.inv-amount { white-space: normal; font-size: 15px; }
+	.inv-amount-label {
+		display: block;
+		font-size: 10.5px;
+		font-weight: 700;
+		letter-spacing: .4px;
+		text-transform: uppercase;
+		color: #8c98ab;
+		margin-bottom: 2px;
+	}
+
+	.inv-totals { max-width: 100%; }
+	.inv-grand { flex-wrap: wrap; }
+	.inv-grand-value { font-size: 17px; }
+
 	.inv-actions { flex-wrap: wrap; }
 	.inv-btn, .inv-btn-print { flex: 1 1 100%; }
-	.inv-totals { max-width: 100%; }
+}
+
+@media screen and (max-width: 380px) {
+	.inv-top { padding: 14px; }
+	.inv-body { padding: 15px 14px 16px; }
+	.inv-shop { font-size: 14.5px; }
+	.inv-logo { width: 38px; height: 38px; font-size: 18px; }
+	.inv-grand-value { font-size: 16px; }
+}
 }
 
 /* ---- on paper ----
@@ -388,7 +444,10 @@ html[data-hs-theme="dark"] .inv-btn-close { color: #cfd8ea; background: rgba(255
 								<div class="inv-item-name" id="order_name"></div>
 								<div class="inv-item-sub">{$translate->get('InvoiceItemNote')}</div>
 							</td>
-							<td class="inv-amount" id="order_price"></td>
+							<td class="inv-amount">
+								<span class="inv-amount-label">{$translate->get('InvoiceAmount')}</span>
+								<span id="order_price"></span>
+							</td>
 						</tr>
 					</tbody>
 				</table>

@@ -1,7 +1,7 @@
 {
-    "version": "1.4.1",
+    "version": "1.4.2",
     "released": "2026-09-05",
-    "notes": "Fixes the printed invoice: no blank first page, and it fits on one sheet. The\ndialog is moved to the end of the body for the print so a single rule can hide\nthe rest of the page, and the modal's scroll cap is lifted so nothing spills.",
+    "notes": "Makes the invoice readable on a phone: the dialog gets proper margins, the\ntwo-column table stacks into labelled blocks, the party and status boxes go\nsingle-column, and long ids and emails wrap instead of pushing the layout wide.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -49,7 +49,7 @@
         "view/user/layout/header.tpl": "2f4e3912a1c3dd58eaaa12c729ed6a2d884fd512986ca1e5196413fb8c2ccd8d",
         "view/user/layout/style.tpl": "cf3a7554a267e33bc51dfd2b6b58db2af4e971f05edf83c2259f116e6142380d",
         "view/user/layout/usermenu.tpl": "856dc986f6b208d0737b65299ef155e04a9710a5a5bac1b879c0bcafe9b5997c",
-        "view/user/order/invoice.tpl": "eb0801ad389c5806e7229730ee6f141da3bbe6d9777555cd45bdc49ebdbd0ce6",
+        "view/user/order/invoice.tpl": "6d5d1020127cc41af0fa284ce5507bd11106d00facd164e99809696fbfa8822d",
         "view/user/order/orders.tpl": "5cfdb5dd108071a01beba8025c711974e799275693aefce2b5d0c2b2380781d2",
         "view/user/pay/cycle.tpl": "dd0fa408f7142db588f59f474915f53b9138890f96237deb1af1e894590c8075",
         "view/user/pay/pay.tpl": "6a186caf8fc891aa92be85db26e9fc3110ca033288d95a5434129d2ed3ea36c1",
