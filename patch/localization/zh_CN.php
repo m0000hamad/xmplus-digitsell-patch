@@ -1298,5 +1298,14 @@ $i18n['zh_CN'] = array(
 	'ViewInv'           =>  'View Status',
 	//20240902
 	'IPList'            =>  'Manual IP List',
+	//settings redesign
+	'SettingsSubtitle'          => '在此管理您的账户、登录安全和通知',
+	'MemberSince'               => '注册于',
+	'TelegramSettingsSub'       => '绑定 Telegram 账户以登录和接收提醒',
+	'PasswordSettingsSub'       => '定期更改您的密码以保证账户安全',
+	'EmailSettingsSub'          => '更新账户的电子邮箱地址',
+	'TwoStepSettingsSub'        => '在登录时增加第二重安全验证',
+	'NotificationsSettingsSub'  => '选择您希望收到通知的事件',
+	'DeleteAccountSettingsSub'  => '永久删除您的账户及其所有数据',
 	'IPListNote'        => '<span class="text-danger fw-bold">127.0.0.1|127.0.0.*|127.0/16|127.0.0.1/24|127.0.*.*|127.0.0.0-127.0.0.255|2400:cb00::/32|2606:4700::/32</span>',  
 );

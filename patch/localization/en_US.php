@@ -1297,5 +1297,14 @@ $i18n['en_US'] = array(
 	'ViewInv'           =>  'View Status',
 	//20240902
 	'IPList'            =>  'Manual IP List',
+	//settings redesign
+	'SettingsSubtitle'          => 'Manage your account, sign-in security and notifications from here',
+	'MemberSince'               => 'Member since',
+	'TelegramSettingsSub'       => 'Link your Telegram account for sign-in and alerts',
+	'PasswordSettingsSub'       => 'Change your password periodically to keep the account safe',
+	'EmailSettingsSub'          => 'Update the email address on your account',
+	'TwoStepSettingsSub'        => 'Add a second security layer asked for at sign-in',
+	'NotificationsSettingsSub'  => 'Choose which events you get told about',
+	'DeleteAccountSettingsSub'  => 'Permanently remove your account and all of its data',
 	'IPListNote'        => '<span class="text-danger fw-bold">127.0.0.1|127.0.0.*|127.0/16|127.0.0.1/24|127.0.*.*|127.0.0.0-127.0.0.255|2400:cb00::/32|2606:4700::/32</span>',  
 );
