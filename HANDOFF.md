@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-06 · installed version **1.4.2** · repo
+Last updated: 2026-09-08 · installed version **1.4.2** · latest release **1.4.3** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -153,6 +153,7 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Commission | Automatic payout, popup, ledger, cash/credit routing |
 | Purchase flow | Plans, plan detail, checkout and orders redesigned; a verdict popup states the result and survives the redirect |
 | Invoice | A real document with seller, buyer, line item and totals; prints on one sheet; readable on a phone |
+| Settings (user) | Gradient hero, glass section rail with a colour per section and the current one lit, cards carrying that accent; notification rows became switches; 2FA dialog restyled; every input id, button class and section anchor kept so the encoded controller and page JS are untouched |
 | Menu | Labelled glass toggle, per-item colours, current page marked, works on phones |
 | Themes | Dark mode fixed panel-wide (see above) |
 
@@ -235,3 +236,4 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | 1.4.0 | Make the invoice a document, and printable |
 | 1.4.1 | Print the invoice on one sheet |
 | 1.4.2 | Fit the invoice on a phone |
+| 1.4.3 | Redesign the user settings page to match the rest of the panel |

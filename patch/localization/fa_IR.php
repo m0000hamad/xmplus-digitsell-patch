@@ -1299,5 +1299,14 @@ $i18n['fa_IR'] = array(
 	'ViewInv'           =>  'View Status',
 	//20240902
 	'IPList'            =>  'Manual IP List',
+	//settings redesign
+	'SettingsSubtitle'          => 'حساب کاربری، امنیت ورود و اعلان‌ها را از این‌جا مدیریت کنید',
+	'MemberSince'               => 'عضو از',
+	'TelegramSettingsSub'       => 'اتصال حساب تلگرام برای ورود و دریافت اعلان‌ها',
+	'PasswordSettingsSub'       => 'رمز عبور خود را هر چند وقت یک‌بار تغییر دهید',
+	'EmailSettingsSub'          => 'نشانی ایمیل حساب خود را به‌روز کنید',
+	'TwoStepSettingsSub'        => 'یک لایه امنیتی دوم هنگام ورود اضافه می‌کند',
+	'NotificationsSettingsSub'  => 'انتخاب کنید چه رویدادهایی به شما اطلاع داده شود',
+	'DeleteAccountSettingsSub'  => 'حذف دائمی حساب و تمام داده‌های آن',
 	'IPListNote'        => '<span class="text-danger fw-bold">127.0.0.1|127.0.0.*|127.0/16|127.0.0.1/24|127.0.*.*|127.0.0.0-127.0.0.255|2400:cb00::/32|2606:4700::/32</span>',  
 );

@@ -1,3 +1,8 @@
-Makes the invoice readable on a phone: the dialog gets proper margins, the
-two-column table stacks into labelled blocks, the party and status boxes go
-single-column, and long ids and emails wrap instead of pushing the layout wide.
+Redesigns the user account settings page (/portal/settings) to match the rest
+of the panel: a gradient hero, a glass section rail with a colour per section
+and the current one lit, and cards that carry that same colour as a top accent.
+Notification preferences became switch rows, the two-step dialog was restyled,
+and the profile card was rebuilt. Dark mode is followed throughout. Every input
+id, button class and section anchor the encoded controller and the page JS rely
+on is unchanged, so the redesign is presentation only. Adds eight localization
+keys (subtitles) to en_US, fa_IR and zh_CN.
