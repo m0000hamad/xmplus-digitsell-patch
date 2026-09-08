@@ -1297,6 +1297,21 @@ $i18n['en_US'] = array(
 	'ViewInv'           =>  'View Status',
 	//20240902
 	'IPList'            =>  'Manual IP List',
+	//notices redesign
+	'NoticeEmpty'               => 'No notices have been published yet',
+	'NoticeNew'                 => 'New',
+	'NoticeDontShowAgain'       => 'Do not show this notice again',
+	'NoticeGotIt'               => 'Got it',
+	'NoticeWriteHint'           => 'Write the notice; the preview shows exactly what the user sees',
+	'NoticeSnippets'            => 'Ready-made snippets',
+	'NoticePreviewTitle'        => 'User preview',
+	'NoticePreviewHint'         => 'Live view of the notice popup',
+	'NoticePreviewEmpty'        => 'The notice body will appear here',
+	'SnipWelcome'               => 'Welcome',
+	'SnipMaintenance'           => 'Maintenance',
+	'SnipPrice'                 => 'Price change',
+	'SnipServer'                => 'New server',
+	'SnipOutage'                => 'Brief outage',
 	//settings redesign
 	'SettingsSubtitle'          => 'Manage your account, sign-in security and notifications from here',
 	'MemberSince'               => 'Member since',

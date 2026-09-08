@@ -1,8 +1,20 @@
-Redesigns the user account settings page (/portal/settings) to match the rest
-of the panel: a gradient hero, a glass section rail with a colour per section
-and the current one lit, and cards that carry that same colour as a top accent.
-Notification preferences became switch rows, the two-step dialog was restyled,
-and the profile card was rebuilt. Dark mode is followed throughout. Every input
-id, button class and section anchor the encoded controller and the page JS rely
-on is unchanged, so the redesign is presentation only. Adds eight localization
-keys (subtitles) to en_US, fa_IR and zh_CN.
+Redesigns the notices feature end to end.
+
+User timeline (view/user/notice/notice.tpl): the grey step-rail becomes a stack
+of colour-spined cards that finally show notice.title, carry a date pill and a
+"new" flag for the last three days, follow dark mode, and have an empty state.
+
+Latest-notice popup (dashboard): gradient header, the title shown above the
+body, a scrollable IRANSans body, and the previously unlabelled "don't show
+again" switch now reads as one, next to a "Got it" button. The #noticemodal id
+and the .modal-check[name=modal-check] the cookie JS binds to are unchanged.
+
+Admin add/edit (view/admin/notices/*.tpl): a two-pane card layout, the TinyMCE
+editor set RTL with the panel's own Persian face (IRANSans) for fa_IR, a row of
+one-click ready-made snippets (welcome, maintenance, price change, new server,
+outage) also wired into the editor's template menu, and a live preview pane
+that renders the notice exactly as the user's popup will. The save contract is
+untouched — #title #status #sendmail #content (+ id on edit) POST the same
+fields to /admin/notice/save.
+
+Adds fourteen localization keys to en_US, fa_IR and zh_CN.
