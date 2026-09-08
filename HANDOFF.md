@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-08 · installed version **1.4.2** · latest release **1.4.3** · repo
+Last updated: 2026-09-08 · installed version **1.4.4** · latest release **1.4.4** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -91,6 +91,12 @@ refused.
 **It does not protect against a compromised repository.** Anyone who can push
 here can run code on the server as the web user. Keep write access tight.
 
+**1.4.4 was deployed by hand over SSH**, not through the updater: the manifest
+files were diffed against live, the seven changed files copied in (backup in
+`storage/patch/backup-manual-20260908-181913/`), `storage/smarty/compile`
+cleared, and the `patch_version` setting bumped to 1.4.4. 1.4.3 had already been
+applied through the panel. Live, repo and manifest are in sync at 1.4.4.
+
 ## 5. Environment facts worth knowing before touching anything
 
 | Thing | Value |
@@ -154,6 +160,7 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Purchase flow | Plans, plan detail, checkout and orders redesigned; a verdict popup states the result and survives the redirect |
 | Invoice | A real document with seller, buyer, line item and totals; prints on one sheet; readable on a phone |
 | Settings (user) | Gradient hero, glass section rail with a colour per section and the current one lit, cards carrying that accent; notification rows became switches; 2FA dialog restyled; every input id, button class and section anchor kept so the encoded controller and page JS are untouched |
+| Notices | User timeline shows the title and reads as coloured cards; latest-notice popup restyled with a labelled dismiss switch; admin add/edit got RTL Persian TinyMCE, one-click snippets and a live user-popup preview |
 | Menu | Labelled glass toggle, per-item colours, current page marked, works on phones |
 | Themes | Dark mode fixed panel-wide (see above) |
 
@@ -185,13 +192,17 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 
 ## 8. Open items
 
-- **Notices redesign — requested, not started.** Both sides:
-  `patch/view/user/notice/notice.tpl` (a timeline that **never shows the
-  notice's title**, though `notice.title` exists and is filled) and
-  `patch/view/admin/notices/{add,edit}.tpl` (plain selects, TinyMCE with no
-  Persian defaults). Wanted: colour, better layout, and conveniences for the
-  admin writing them — ready-made text snippets and a live preview of how the
-  notice will look to users were the intended additions.
+- **Notices redesign — done in 1.4.4.** User timeline
+  (`patch/view/user/notice/notice.tpl`) now shows `notice.title`, cards with a
+  colour spine, a date pill and a three-day "new" flag. The latest-notice popup
+  on the dashboard was restyled (gradient header, title shown, labelled
+  "don't show again" switch — `#noticemodal` and `.modal-check[name=modal-check]`
+  kept for the cookie JS). Admin `add/edit` got a two-pane layout, an RTL
+  IRANSans TinyMCE for fa_IR, one-click ready-made snippets (also in the
+  template menu), and a live preview of the user's popup. Save contract
+  unchanged: `#title #status #sendmail #content` (+ id on edit) to
+  `/admin/notice/save`. The `template` plugin was already in the stock plugin
+  list; the snippet HTML is Persian and brace-free so Smarty leaves it alone.
 - **`/portal/switch` crashes.** `switchtoAdmin` dereferences
   `login_session_old`, which is `NULL` in every session on the server. The
   controller is encoded. Proposed fix, **offered and not yet approved**: guard
@@ -237,3 +248,4 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | 1.4.1 | Print the invoice on one sheet |
 | 1.4.2 | Fit the invoice on a phone |
 | 1.4.3 | Redesign the user settings page to match the rest of the panel |
+| 1.4.4 | Redesign notices: user timeline, latest-notice popup, admin editor |

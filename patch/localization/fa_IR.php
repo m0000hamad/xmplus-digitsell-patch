@@ -1299,6 +1299,21 @@ $i18n['fa_IR'] = array(
 	'ViewInv'           =>  'View Status',
 	//20240902
 	'IPList'            =>  'Manual IP List',
+	//notices redesign
+	'NoticeEmpty'               => 'هنوز اطلاعیه‌ای منتشر نشده است',
+	'NoticeNew'                 => 'جدید',
+	'NoticeDontShowAgain'       => 'این اطلاعیه دوباره نشان داده نشود',
+	'NoticeGotIt'               => 'متوجه شدم',
+	'NoticeWriteHint'           => 'متن را بنویسید؛ پیش‌نمایش دقیقاً همان چیزی است که کاربر می‌بیند',
+	'NoticeSnippets'            => 'قالب‌های آماده',
+	'NoticePreviewTitle'        => 'پیش‌نمایش کاربر',
+	'NoticePreviewHint'         => 'نمای زندهٔ پاپ‌آپ اطلاعیه',
+	'NoticePreviewEmpty'        => 'متن اطلاعیه این‌جا نمایش داده می‌شود',
+	'SnipWelcome'               => 'خوش‌آمد',
+	'SnipMaintenance'           => 'تعمیرات',
+	'SnipPrice'                 => 'تغییر قیمت',
+	'SnipServer'                => 'سرور جدید',
+	'SnipOutage'                => 'قطعی موقت',
 	//settings redesign
 	'SettingsSubtitle'          => 'حساب کاربری، امنیت ورود و اعلان‌ها را از این‌جا مدیریت کنید',
 	'MemberSince'               => 'عضو از',

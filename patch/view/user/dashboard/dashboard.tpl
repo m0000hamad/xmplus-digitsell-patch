@@ -18,29 +18,127 @@
 {include file='user/dashboard/servers.tpl'}
 	{include file='user/dashboard/order.tpl'}
 	
-  <div class="modal fade" id="noticemodal" tabindex="-1" aria-labelledby="noticemodal" role="dialog" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  {literal}
+  <style>
+  /* ---- latest-notice popup: was a bold text blob with an unlabelled switch ---- */
+  .ntcpop .modal-content {
+	border: 0;
+	border-radius: 20px;
+	overflow: hidden;
+	box-shadow: 0 26px 64px rgba(23, 32, 61, .32);
+  }
+  .ntcpop .modal-header {
+	background: linear-gradient(135deg, #4f46e5, #7c3aed 55%, #db2777);
+	border: 0;
+	padding: 18px 22px;
+  }
+  .ntcpop .modal-title {
+	color: #fff;
+	font-size: 16.5px;
+	font-weight: 800;
+	display: flex;
+	align-items: center;
+	gap: 9px;
+  }
+  .ntcpop .modal-header .btn-close {
+	filter: brightness(0) invert(1);
+	opacity: .9;
+  }
+  .ntcpop .modal-body { padding: 20px 22px 8px; }
+  .ntcpop-title {
+	font-size: 15px;
+	font-weight: 800;
+	color: #16203d;
+	margin: 0 0 10px;
+	line-height: 1.6;
+  }
+  .ntcpop-body {
+	font-size: 14px;
+	font-weight: 500;
+	color: #3f4a63;
+	line-height: 2.05;
+	max-height: 46vh;
+	overflow-y: auto;
+	padding-inline-end: 4px;
+	word-break: break-word;
+	font-family: 'IRANSans', Tahoma, sans-serif;
+  }
+  .ntcpop-body p:last-child { margin-bottom: 0; }
+  .ntcpop-body img { max-width: 100%; height: auto; border-radius: 10px; }
+  .ntcpop-body a { color: #6366f1; font-weight: 700; }
+  .ntcpop .modal-footer {
+	border: 0;
+	padding: 14px 22px 20px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+  }
+  .ntcpop-dismiss {
+	display: inline-flex;
+	align-items: center;
+	gap: 9px;
+	font-size: 12px;
+	font-weight: 700;
+	color: #56617a;
+	margin: 0;
+	cursor: pointer;
+  }
+  .ntcpop-dismiss .form-check-input {
+	width: 40px;
+	height: 22px;
+	margin: 0;
+	cursor: pointer;
+	box-shadow: none !important;
+  }
+  .ntcpop-dismiss .form-check-input:checked { background-color: #6366f1; border-color: #6366f1; }
+  .ntcpop-ok {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	min-height: 40px;
+	padding: 9px 20px;
+	border: 0;
+	border-radius: 13px;
+	font-size: 12.5px;
+	font-weight: 800;
+	color: #fff;
+	cursor: pointer;
+	background: linear-gradient(135deg, #4f46e5, #7c3aed);
+	box-shadow: 0 6px 16px rgba(99, 102, 241, .32);
+  }
+  .ntcpop-ok:hover { box-shadow: 0 9px 22px rgba(99, 102, 241, .44); color: #fff; }
+  html[data-hs-theme="dark"] .ntcpop .modal-content { background: #1c2536; }
+  html[data-hs-theme="dark"] .ntcpop .modal-body { background: #1c2536; }
+  html[data-hs-theme="dark"] .ntcpop-title { color: #e7eaf3; }
+  html[data-hs-theme="dark"] .ntcpop-body { color: #b9c2d4; }
+  html[data-hs-theme="dark"] .ntcpop .modal-footer { background: #1c2536; }
+  html[data-hs-theme="dark"] .ntcpop-dismiss { color: #b9c2d4; }
+  </style>
+  {/literal}
+  <div class="modal fade ntcpop" id="noticemodal" tabindex="-1" aria-labelledby="noticemodal" role="dialog" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
       <div class="modal-content">
 		<div class="modal-header">
-			<h4 class="modal-title">{$translate->get('LatestNotice')}</h4>
+			<h4 class="modal-title">📢 {$translate->get('LatestNotice')}</h4>
 			<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 		</div>
         <div class="modal-body">
-			<div class="row mb-4">
-				{if $ann != null}
-					<p scrolling="yes"  style="border: none;" class="mb-2"><b>{$ann->content}</b></p>
+			{if $ann != null}
+				{if isset($ann->title) && $ann->title}
+					<h5 class="ntcpop-title">{$ann->title|escape:'html'}</h5>
 				{/if}
-			</div>
-			<div class="row">
-				<div class="col-xl-12 text-end">
-					<div class="form-check form-switch form-check-dark form-switch-between">
-						<input class="form-check-input modal-check text-end" type="checkbox"  name="modal-check">
-						<label class="form-check-label" for="modal-check"></label>
-					</div>
-				</div>
-			</div>
-		</div>
+				<div class="ntcpop-body">{$ann->content}</div>
+			{/if}
         </div>
+		<div class="modal-footer">
+			<label class="ntcpop-dismiss form-check form-switch">
+				<input class="form-check-input modal-check" type="checkbox" name="modal-check">
+				<span>{$translate->get('NoticeDontShowAgain')}</span>
+			</label>
+			<button type="button" class="ntcpop-ok" data-bs-dismiss="modal">👍 {$translate->get('NoticeGotIt')}</button>
+		</div>
       </div>
     </div>
   </div>

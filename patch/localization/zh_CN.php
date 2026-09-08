@@ -1298,6 +1298,21 @@ $i18n['zh_CN'] = array(
 	'ViewInv'           =>  'View Status',
 	//20240902
 	'IPList'            =>  'Manual IP List',
+	//notices redesign
+	'NoticeEmpty'               => '尚未发布任何公告',
+	'NoticeNew'                 => '新',
+	'NoticeDontShowAgain'       => '不再显示此公告',
+	'NoticeGotIt'               => '知道了',
+	'NoticeWriteHint'           => '撰写公告，预览即用户所见效果',
+	'NoticeSnippets'            => '现成片段',
+	'NoticePreviewTitle'        => '用户预览',
+	'NoticePreviewHint'         => '公告弹窗的实时预览',
+	'NoticePreviewEmpty'        => '公告内容将显示在此处',
+	'SnipWelcome'               => '欢迎',
+	'SnipMaintenance'           => '维护',
+	'SnipPrice'                 => '价格调整',
+	'SnipServer'                => '新服务器',
+	'SnipOutage'                => '临时中断',
 	//settings redesign
 	'SettingsSubtitle'          => '在此管理您的账户、登录安全和通知',
 	'MemberSince'               => '注册于',
