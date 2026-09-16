@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-08 · installed version **1.4.4** · latest release **1.4.4** · repo
+Last updated: 2026-09-16 · installed version **1.5.2** (files live; the panel still records 1.4.4 until an update is applied) · latest release **1.5.2** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -231,6 +231,23 @@ Watch out for these:
 - Smarty's `{$x = ...}` assignment rejects ternaries — `edit.tpl` uses `{if}`
   blocks to unpack the marker.
 
+### Limiting a traffic top-up to certain plans
+
+Same idea, different storage. A top-up is saved through the encoded
+`/admin/plan/save`, which rewrites `order_note` on every save, so the marker
+trick would be wiped. The scope lives in one settings row instead:
+
+    timeplan_topup_scope = {"7":[18,19],"8":[]}
+
+package id → the subscription packages it is offered on; missing or empty means
+everyone, which is what every pre-existing top-up is. The page writes it with
+`timeplan.topupscope` right after the encoded save returns, identifying a brand
+new package by name because that save does not report the id.
+
+`Package::topupList()` and `topupAllowed()` do the filtering, and
+`Package::scopeViewer()` deliberately returns null for staff — the admin pages
+list top-ups too and must keep seeing all of them.
+
 ### Commission — money rules already decided. Do not redo without asking.
 
 - Only **new** commission is credited automatically.
@@ -324,3 +341,4 @@ Watch out for these:
 | 1.4.4 | Redesign notices: user timeline, latest-notice popup, admin editor |
 | 1.5.0 | Add the "time" plan type — sell extra days, fixed bundles or per day |
 | 1.5.1 | Hide the rows a per-day purchase generates, and cap time plans per subscription |
+| 1.5.2 | Limit a traffic top-up to chosen subscription plans |

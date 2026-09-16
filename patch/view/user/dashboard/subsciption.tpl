@@ -424,7 +424,8 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 			{/if}
 
 			<div class="sub-actions">
-				{if $topupcount > 0 && $Order->getSubsciption($user->id) && $user->planIsActive()}
+				{* topupCount() already drops the ones this plan is not offered on *}
+				{if $timeplan->topupCount() > 0 && $Order->getSubsciption($user->id) && $user->planIsActive()}
 					<button type="button" class="sub-btn sub-btn-data" onClick="TopupOptions()">📶 {$translate->get('AddData')}</button>
 				{/if}
 				{* buying days only makes sense near the end of the subscription *}

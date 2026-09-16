@@ -8,7 +8,7 @@
 	var timeplanToken = "";
 	var timeplanReady = false;
 
-	function timeplanBoot(selected, mode, days, price, perday, mindays, maxdays, maxbuys, maxtotal) {
+	function timeplanBoot(selected, mode, days, price, perday, mindays, maxdays, maxbuys, maxtotal, topupId) {
 		// a plan this time plan already names stays in the list even if disabled
 		var keep = selected && selected.length ? "&keep=" + selected.join(",") : "";
 
@@ -33,6 +33,20 @@
 						option.attr('selected', 'selected');
 					}
 					box.append(option);
+				} );
+
+				// the same picker for a traffic top-up, filled from the scope map
+				var scopeMap = data.topup_scope || null;
+				var scope = (scopeMap && scopeMap[String(topupId || 0)]) || [];
+				var topupBox = $("#topup_applies");
+				topupBox.html('');
+
+				$.each(data.packages, function (i, pack) {
+					var option = $('<option></option>').attr('value', pack.id).text(pack.name);
+					if (scope.indexOf(parseInt(pack.id, 10)) !== -1) {
+						option.attr('selected', 'selected');
+					}
+					topupBox.append(option);
 				} );
 
 				$("#tp_visible_days").val(data.settings.visible_days);
@@ -107,6 +121,16 @@
 	/* called by pricring() - true when the time plan fields are the ones on show */
 	function timeplanApply() {
 		var isTime = $("#type").val() == 3;
+		var scopeBox = document.getElementById("topupscope");
+
+		// the plan picker belongs to a traffic top-up only
+		if (scopeBox) {
+			if ($("#type").val() == 1) {
+				scopeBox.removeAttribute("hidden");
+			} else {
+				scopeBox.setAttribute("hidden", true);
+			}
+		}
 
 		if (isTime) {
 			document.getElementById("timeplanbox").removeAttribute("hidden");
@@ -131,6 +155,41 @@
 			ids.push($(this).val());
 		} );
 		return ids;
+	}
+
+	function timeplanSelectedTopupPlans() {
+		var ids = [];
+		$("#topup_applies option:selected").each(function () {
+			ids.push($(this).val());
+		} );
+		return ids;
+	}
+
+	/*
+	 * Records which plans a traffic top-up is offered on, after the package
+	 * itself has been saved by the encoded route. On a new package the id is
+	 * not known, so the name identifies it.
+	 */
+	function timeplanSaveTopupScope(id, done) {
+		if (!timeplanReady) {
+			done();
+			return;
+		}
+
+		$.ajax( {
+			type: "POST",
+			url: "/xmplus-patch.php?do=timeplan.topupscope",
+			dataType: "json",
+			data: {
+				token: timeplanToken,
+				id: id,
+				name: $("#name").val(),
+				applies_to: timeplanSelectedTopupPlans()
+			},
+			complete: function () {
+				done();
+			}
+		} );
 	}
 
 	/* saves the plan and the two visibility settings; id 0 creates a new one */

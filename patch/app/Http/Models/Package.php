@@ -119,6 +119,70 @@ final class Package extends Model
 		return (float) ($options['topup']['price'] ?? 0);
 	}
 
+	/*
+	 * ------------------------------------------------------------------
+	 * Which subscription plans a traffic top-up is offered on
+	 * ------------------------------------------------------------------
+	 * Time plans keep this in their own marker, but a traffic package is saved
+	 * through the encoded /admin/plan/save, which rewrites order_note on every
+	 * save and would wipe it. So the scope lives in one settings row instead:
+	 *
+	 *   timeplan_topup_scope = {"7":[18,19],"8":[]}
+	 *
+	 * package id -> the subscription packages it is offered on. Missing or
+	 * empty means every plan, which is what every existing top-up has.
+	 */
+	const TOPUP_SCOPE_SETTING = 'timeplan_topup_scope';
+
+	public static function topupScopes()
+	{
+		static $map = null;
+
+		if ($map === null) {
+			$raw = Settings::where('name', self::TOPUP_SCOPE_SETTING)->value('value');
+			$decoded = json_decode((string) $raw, true);
+			$map = is_array($decoded) ? $decoded : [];
+		}
+
+		return $map;
+	}
+
+	public function topupAllowed($packageId, $user = null)
+	{
+		$map = self::topupScopes();
+		$key = (string) (int) $packageId;
+
+		if (!isset($map[$key]) || !is_array($map[$key]) || $map[$key] === []) {
+			return true;
+		}
+
+		if (!$user || !isset($user->packageid)) {
+			return false;
+		}
+
+		return in_array((int) $user->packageid, array_map('intval', $map[$key]), true);
+	}
+
+	/*
+	 * The signed-in customer, or null. Staff are deliberately not treated as
+	 * customers here: the admin pages list top-ups too, and must keep seeing
+	 * all of them.
+	 */
+	private static function scopeViewer()
+	{
+		try {
+			$user = \App\Services\AuthService::getUser();
+		} catch (\Throwable $error) {
+			return null;
+		}
+
+		if (!$user || !isset($user->id) || (int) $user->role !== 0) {
+			return null;
+		}
+
+		return $user;
+	}
+
 	public function period_sales($id)
     {
         $period = 360 * 24 * 60 * 60;
@@ -137,15 +201,28 @@ final class Package extends Model
 		}
 	}
 
-	/* time plans ride on type 1, so they are kept out of the data top-up list */
+	/*
+	 * Time plans ride on type 1, so they are kept out of the data top-up list,
+	 * and a top-up limited to certain plans is hidden from everyone else.
+	 */
 	public function topupList()
     {
-		return self::where('status', 1)->where('type', 1)
+		$list = self::where('status', 1)->where('type', 1)
 			->where(function ($query) {
 				$query->whereNull('order_note')
 					->orWhere('order_note', 'not like', '%' . self::TIME_MARKER . '%');
 			})
 			->orderBy('sort',"asc")->get();
+
+		$viewer = self::scopeViewer();
+
+		if ($viewer === null) {
+			return $list;
+		}
+
+		return $list->filter(function ($row) use ($viewer) {
+			return $this->topupAllowed($row->id, $viewer);
+		})->values();
 	}
 
 	public function topupCount()
