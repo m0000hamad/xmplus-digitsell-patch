@@ -343,6 +343,7 @@ function timeplanAdminBootstrap(): void
         'plans'     => $plans,
         'packages'  => $packages,
         'generated' => array_map('intval', $generated),
+        'topup_scope' => timeplanTopupScopes(),
         'settings'  => [
             'visible_days' => (int) timeplanSetting('timeplan_visible_days', '7'),
             'grace_hours'  => (int) timeplanSetting('timeplan_grace_hours', '24'),
@@ -475,6 +476,78 @@ function timeplanAdminDelete(): void
     db()->prepare('DELETE FROM package WHERE id = ?')->execute([$id]);
 
     done(['disabled' => false]);
+}
+
+const TIMEPLAN_TOPUP_SCOPE = 'timeplan_topup_scope';
+
+function timeplanTopupScopes(): array
+{
+    $decoded = json_decode((string) setting(TIMEPLAN_TOPUP_SCOPE, '{}'), true);
+
+    return is_array($decoded) ? $decoded : [];
+}
+
+/**
+ * Limits a traffic top-up to certain subscription plans.
+ *
+ * A top-up is saved through the encoded /admin/plan/save, which rewrites
+ * order_note every time, so this cannot ride along in the package row the way
+ * a time plan's settings do. One settings row holds the whole map instead.
+ *
+ * On a new package the id is not known yet - the encoded save does not report
+ * it - so the newest type 1 row with that name is taken.
+ */
+function timeplanAdminTopupScope(): void
+{
+    requireAdmin();
+    requireToken();
+
+    $id = timeplanInt($_POST['id'] ?? 0);
+
+    if ($id <= 0) {
+        $name = trim((string) ($_POST['name'] ?? ''));
+
+        if ($name === '') {
+            fail('the package is not identified');
+        }
+
+        $statement = db()->prepare(
+            'SELECT id FROM package WHERE type = 1 AND name = ? ORDER BY id DESC LIMIT 1');
+        $statement->execute([$name]);
+        $row = $statement->fetch();
+
+        if ($row === false) {
+            fail('that package was not found');
+        }
+
+        $id = (int) $row['id'];
+    }
+
+    $statement = db()->prepare('SELECT type, order_note FROM package WHERE id = ? LIMIT 1');
+    $statement->execute([$id]);
+    $package = $statement->fetch();
+
+    if ($package === false || (int) $package['type'] !== 1) {
+        fail('that package is not a traffic top-up');
+    }
+
+    // a time plan carries its own applies_to and must not be touched here
+    if (timeplanMeta($package['order_note']) !== null) {
+        fail('a time plan keeps its own plan list');
+    }
+
+    $scopes = timeplanTopupScopes();
+    $applies = timeplanAppliesTo($_POST['applies_to'] ?? []);
+
+    if ($applies === []) {
+        unset($scopes[(string) $id]);
+    } else {
+        $scopes[(string) $id] = $applies;
+    }
+
+    putSetting(TIMEPLAN_TOPUP_SCOPE, (string) json_encode($scopes));
+
+    done(['id' => $id, 'applies_to' => $applies]);
 }
 
 function timeplanAdminSettings(): void
@@ -643,7 +716,7 @@ function timeplanUserMint(): void
 
 $timeplanAction = substr((string) ($_GET['do'] ?? ''), strlen('timeplan.'));
 
-$timeplanNeedsPost = ['save', 'delete', 'settings', 'options', 'mint'];
+$timeplanNeedsPost = ['save', 'delete', 'settings', 'topupscope', 'options', 'mint'];
 
 if (in_array($timeplanAction, $timeplanNeedsPost, true) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     fail('this action needs POST', 405);
@@ -656,6 +729,8 @@ switch ($timeplanAction) {
         timeplanAdminSave();
     case 'delete':
         timeplanAdminDelete();
+    case 'topupscope':
+        timeplanAdminTopupScope();
     case 'settings':
         timeplanAdminSettings();
     case 'options':

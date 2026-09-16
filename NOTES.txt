@@ -1,16 +1,13 @@
-Stops per-day purchases from looking like plans, and puts a ceiling on them.
+A traffic top-up can now be limited to chosen subscription plans, the way a
+time plan already could.
 
-A per-day time plan still mints one package row per day count - the encoded
-checkout can only price an order from a real package row, and the pay page and
-order history read the name from it, so the row cannot be deleted afterwards.
-What changed is that those rows no longer read as plans: the admin plans list
-hides them, and opening one refuses to save it. Previously, opening a generated
-row and saving turned it into a priceless "fixed" time plan, which then showed
-up as a real plan - one such row on the live panel has been put back.
+The plan form shows the same picker when the type is set to traffic; leaving it
+empty keeps the top-up open to everyone, which is what every existing one is.
+A customer only sees the top-ups their current plan is on, both in the "add
+data" list and in whether the button appears at all.
 
-Two limits per time plan, both editable in the plan form and both counted per
-subscription: how many times a user may buy it, and how many days they may add
-in total. Zero means no limit, and the count starts again at the user's next
-paid subscription order. A plan with nothing left is not offered at all; a
-per-day plan with some room left narrows its own day range to what remains.
-Both are enforced again server-side at mint time.
+This could not ride in the package row: a top-up is saved through the encoded
+/admin/plan/save, which rewrites order_note on every save and would wipe it. So
+the scope lives in one settings row, timeplan_topup_scope, written by the page
+right after the package itself is saved. On a new package the encoded save does
+not report the id, so the row is found by name.

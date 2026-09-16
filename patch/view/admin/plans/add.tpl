@@ -191,6 +191,8 @@
 							</div>
 						</div>
 
+						{include file='admin/plans/topupscopeform.tpl'}
+
 						{include file='admin/plans/timeplanform.tpl'}
 
 						<div class="row mb-2" id="packnote">
@@ -275,7 +277,7 @@
 			convert_urls : true,
 		});
 
-		timeplanBoot([], null, null, null, null, null, null, null, null);
+		timeplanBoot([], null, null, null, null, null, null, null, null, 0);
 	});
 	
 	function pricring(){
@@ -313,11 +315,20 @@
 			data: $('#formsubmit').serialize(),
 			success: (data) => {
 				layer.closeAll('loading');
-				if (data.ret == 1) { 
+				if (data.ret == 1) {
 					layer.msg(data.msg, {
 						time: 5000,
 						offset:  '100px'
 					});
+
+					// the plan list of a traffic top-up is stored separately
+					if ($("#type").val() == 1) {
+						timeplanSaveTopupScope(0, function () {
+							window.setTimeout("location.href='/admin/plans'", 1200);
+						});
+						return;
+					}
+
 					window.setTimeout("location.href='/admin/plans'", 1500);
 				}else{
 					layer.msg(data.msg, {

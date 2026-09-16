@@ -27,7 +27,7 @@
 
 	// the rows a per-day time plan leaves behind are not plans; hide them
 	$(document).ready(function () {
-		timeplanBoot([], null, null, null, null, null, null, null, null);
+		timeplanBoot([], null, null, null, null, null, null, null, null, 0);
 	});
 </script>
 

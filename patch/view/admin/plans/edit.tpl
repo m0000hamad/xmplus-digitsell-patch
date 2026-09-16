@@ -218,6 +218,8 @@
 							</div>
 						</div>
 
+						{include file='admin/plans/topupscopeform.tpl'}
+
 						{if $tpgenerated}
 							<div class="alert alert-warning">{$translate->get('TimePlanGeneratedRow')}</div>
 						{/if}
@@ -314,7 +316,7 @@
 	
 	pricring();
 
-	timeplanBoot({$tpapplies}, "{$tpmode}", "{$tpdays}", "{$tpamount}", "{$tpperday}", "{$tpmin}", "{$tpmax}", "{$tpmaxbuys}", "{$tpmaxtotal}");
+	timeplanBoot({$tpapplies}, "{$tpmode}", "{$tpdays}", "{$tpamount}", "{$tpperday}", "{$tpmin}", "{$tpmax}", "{$tpmaxbuys}", "{$tpmaxtotal}", {$package->id});
 
 	function pricring(){
 		if($("#type").val() == 1){
@@ -454,6 +456,14 @@
 						time: 5000,
 						offset:  '100px'
 					});
+					// the plan list of a traffic top-up is stored separately
+					if ($("#type").val() == 1) {
+						timeplanSaveTopupScope({$package->id}, function () {
+							window.setTimeout("location.href='/admin/plans'", 800);
+						});
+						return;
+					}
+
 					window.setTimeout("location.href='/admin/plans'", 500);
 				}else{
 					layer.msg(data.msg, {

@@ -53,7 +53,10 @@
 										"hideSearch": true
 									}'>
 									{foreach $topups as $tpackage}
-										<option value="{$tpackage['id']}" >{$tpackage['name']} - {$tpackage['bandwidth']}G</option>
+										{* a top-up can be limited to certain subscription plans *}
+										{if $timeplan->topupAllowed($tpackage['id'], $user)}
+											<option value="{$tpackage['id']}" >{$tpackage['name']} - {$tpackage['bandwidth']}G</option>
+										{/if}
 									{/foreach}
 								</select>
 							</div>
