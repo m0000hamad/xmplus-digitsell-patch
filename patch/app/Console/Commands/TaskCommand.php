@@ -89,6 +89,16 @@ final class TaskCommand extends Command
 			'enabled' => true,
 		));
 
+		// paid time plans are granted here, because the order pipeline that
+		// would normally do it is encoded
+		$scheduler->add('TimePlanJob', array(
+			'command' => 'php '.BASE_PATH.'/bin/timeplans.php',
+			'schedule' => "* * * * *",
+			'output' => BASE_PATH.'/storage/logs/timeplans.log',
+			'lock_dir' => BASE_PATH.'/storage/cron/',
+			'enabled' => true,
+		));
+
 		$scheduler->run();
 		return 0;
     }

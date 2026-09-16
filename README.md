@@ -20,6 +20,7 @@ templates and the localization files — plus one standalone PHP file under
 | Affiliate | Split into an invite tab and a commission tab; per-referral earnings; withdrawal form with card and IBAN; written cash-out rules |
 | Commission | Automatic payout of referral commission with a popup, a log, and cash/credit routing |
 | Purchase flow | Plans and payment pages redesigned; currency shown as ریال in Persian |
+| Time plans | A third plan type that sells days on their own — fixed bundles or a per-day rate, limited to chosen plans, offered near the end of a subscription |
 | Menu | Labelled glass toggle instead of a bar icon, per-item colours, current page marked, works on phones |
 | Themes | Dark mode fixed panel-wide (see the note below) |
 

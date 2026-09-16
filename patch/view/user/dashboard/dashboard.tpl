@@ -748,6 +748,213 @@ var renderUsageCharts = (function () {
 	})	
 
 	
+	/* ---------------------------------------------------------------
+	 * Time plans: buying days instead of gigabytes.
+	 *
+	 * The panel has no route for these, so the list and the day-count
+	 * pricing come from /xmplus-patch.php. What it hands back is an
+	 * ordinary topup package id, which then goes through the panel's own
+	 * checkout exactly like "add data" does.
+	 * --------------------------------------------------------------- */
+
+	var timeplanData = [];
+	var timeplanToken = "";
+
+	function TimeOptions() {
+		layer.load(2);
+		$.ajax({
+			type: "POST",
+			url: "/xmplus-patch.php?do=timeplan.options",
+			dataType: "json",
+			success: (data) => {
+				layer.closeAll('loading');
+
+				if (!data.ok) {
+					layer.msg(data.error, {
+						time: 5000,
+						offset:  '100px'
+					});
+					return;
+				}
+
+				timeplanToken = data.token;
+				timeplanData = data.plans;
+
+				var box = $("#timeplan_select");
+				box.html('');
+
+				if (timeplanData.length == 0) {
+					layer.msg("{$translate->get('TimePlanNone')}", {
+						time: 5000,
+						offset:  '100px'
+					});
+					return;
+				}
+
+				$.each(timeplanData, function (i, plan) {
+					box.append($('<option></option>').attr('value', i).text(plan.name));
+				});
+
+				TimePlanPick();
+				$("#plan_time").modal('show');
+			},
+			error: (jqXHR) => {
+				layer.closeAll('loading');
+				layer.msg(jqXHR.responseText, {
+					time: 5000,
+					offset:  '100px'
+				});
+			}
+		});
+	}
+
+	function TimePlanCurrent() {
+		return timeplanData[parseInt($("#timeplan_select").val(), 10)];
+	}
+
+	function TimePlanDays() {
+		var plan = TimePlanCurrent();
+
+		if (!plan) {
+			return 0;
+		}
+
+		return plan.mode == "perday" ? parseInt($("#timeplan_days").val(), 10) : plan.days;
+	}
+
+	function TimePlanPick() {
+		var plan = TimePlanCurrent();
+
+		if (!plan) {
+			return;
+		}
+
+		if (plan.mode == "perday") {
+			$("#timeplan_days").attr("min", plan.min_days).attr("max", plan.max_days).val(plan.min_days);
+			document.getElementById("timeplan_days_row").removeAttribute("hidden");
+		} else {
+			document.getElementById("timeplan_days_row").setAttribute("hidden", true);
+		}
+
+		TimePlanPrice();
+	}
+
+	function TimePlanPrice() {
+		var plan = TimePlanCurrent();
+		var days = TimePlanDays();
+
+		if (!plan || !days || days < 1) {
+			$("#timeplan_total").text("-");
+			return;
+		}
+
+		var amount = plan.mode == "perday" ? plan.price_per_day * days : plan.price;
+
+		$("#timeplan_total").text("{$Config['default_currency_symbol']} " + amount.toLocaleString()
+			+ " · " + days + " {$translate->get('Days')}");
+	}
+
+	$('.timeplanbuy').click(function(e) {
+		e.preventDefault();
+
+		var plan = TimePlanCurrent();
+
+		if (!plan) {
+			return;
+		}
+
+		layer.load(2);
+
+		$.ajax({
+			type: "POST",
+			url: "/xmplus-patch.php?do=timeplan.mint",
+			dataType: "json",
+			data: {
+				token: timeplanToken,
+				id: plan.id,
+				days: TimePlanDays()
+			},
+			success: (data) => {
+				if (!data.ok) {
+					layer.closeAll('loading');
+					layer.msg(data.error, {
+						time: 5000,
+						offset:  '100px'
+					});
+					return;
+				}
+
+				TimePlanOrder(data.packageid);
+			},
+			error: (jqXHR) => {
+				layer.closeAll('loading');
+				layer.msg(jqXHR.responseText, {
+					time: 5000,
+					offset:  '100px'
+				});
+			}
+		});
+	})
+
+	/* same checkout the data top-up uses - only the package id differs */
+	function TimePlanOrder(packageid) {
+		$.ajax({
+			type: "POST",
+			url: "/portal/order/create",
+			dataType: "json",
+			data: {
+				packageid : packageid,
+				plan: "topup",
+				code: "",
+				renew: 0,
+				upgrade: 0,
+				disableactive: 1
+			},
+			success: (data) => {
+				layer.closeAll('loading');
+
+				if (data.ret == 1) {
+					window.location.href = data.url;
+					return;
+				}
+
+				if (data.ret == -1 || data.ret == -4) {
+					Swal.fire({
+						title: '',
+						html: data.msg,
+						icon: data.ret == -4 ? 'error' : 'info',
+						showCancelButton: false,
+						showConfirmButton:true,
+						confirmButtonText: "{$translate->get('ok')}",
+						allowOutsideClick: false,
+						customClass: {
+						  confirmButton: 'btn btn-secondary ms-1',
+						  cancelButton: 'btn btn-danger ms-1'
+						},
+						buttonsStyling: false
+					}).then(function (result) {
+						if (result.isConfirmed && data.ret == -1) {
+							window.location.href = data.url;
+						}
+					});
+					return;
+				}
+
+				layer.msg(data.msg, {
+					time: 3000,
+					offset:  '100px'
+				});
+			},
+			error: (jqXHR) => {
+				layer.closeAll('loading');
+				layer.msg(jqXHR.responseText, {
+					time: 3000,
+					offset:  '100px'
+				});
+			}
+		});
+	}
+
 	function UpgradeOptions() {
 		$.ajax({
 			type: "POST",
