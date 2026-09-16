@@ -8,7 +8,7 @@
 	var timeplanToken = "";
 	var timeplanReady = false;
 
-	function timeplanBoot(selected, mode, days, price, perday, mindays, maxdays) {
+	function timeplanBoot(selected, mode, days, price, perday, mindays, maxdays, maxbuys, maxtotal) {
 		// a plan this time plan already names stays in the list even if disabled
 		var keep = selected && selected.length ? "&keep=" + selected.join(",") : "";
 
@@ -45,10 +45,53 @@
 					$("#tp_price_per_day").val(perday);
 					$("#tp_min_days").val(mindays);
 					$("#tp_max_days").val(maxdays);
+					$("#tp_max_buys").val(maxbuys);
+					$("#tp_max_total").val(maxtotal);
 					timeplanMode();
 				}
+
+				timeplanHideGenerated(data.generated);
 			}
 		} );
+	}
+
+	/*
+	 * Per-day purchases leave behind one package row per day count, because the
+	 * encoded checkout can only price an order from a real package. Those rows
+	 * are not plans and must not read as plans, but the list that shows them is
+	 * drawn by an encoded endpoint, so they are hidden here after each draw.
+	 *
+	 * Row ids are read from whatever edit or delete control the row carries; a
+	 * row whose id cannot be found is left alone.
+	 */
+	var timeplanGenerated = [];
+
+	function timeplanHideGenerated(ids) {
+		if (!ids || !ids.length || !document.getElementById("pagination")) {
+			return;
+		}
+
+		timeplanGenerated = ids.map(Number);
+
+		timeplanSweepRows();
+		$("#pagination").off("draw.dt.timeplan").on("draw.dt.timeplan", timeplanSweepRows);
+	}
+
+	function timeplanSweepRows() {
+		$("#pagination tbody tr").each(function () {
+			var row = $(this);
+			var found = String(row.html() || "").match(/plan\/edit\/(\d+)|[Pp]lan\((\d+)\)/);
+
+			if (!found) {
+				return;
+			}
+
+			var id = Number(found[1] || found[2]);
+
+			if (timeplanGenerated.indexOf(id) !== -1) {
+				row.hide();
+			}
+		});
 	}
 
 	function timeplanMode() {
@@ -125,6 +168,8 @@
 						price_per_day: $("#tp_price_per_day").val(),
 						min_days: $("#tp_min_days").val(),
 						max_days: $("#tp_max_days").val(),
+						max_buys: $("#tp_max_buys").val(),
+						max_total: $("#tp_max_total").val(),
 						applies_to: timeplanSelectedPlans()
 					},
 					success: function (data) {

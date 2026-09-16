@@ -10,8 +10,14 @@
 {$tpmax = 30}
 {$tpapplies = '[]'}
 {$tpamount = ''}
+{$tpmaxbuys = 0}
+{$tpmaxtotal = 0}
+{$tpgenerated = false}
 {if isset($tpnote.timeplan)}
 	{$tpmeta = $tpnote.timeplan}
+	{if isset($tpmeta.mode) && $tpmeta.mode == 'minted'}{$tpgenerated = true}{/if}
+	{if isset($tpmeta.max_buys)}{$tpmaxbuys = $tpmeta.max_buys}{/if}
+	{if isset($tpmeta.max_total)}{$tpmaxtotal = $tpmeta.max_total}{/if}
 	{if isset($tpmeta.mode)}{$tpmode = $tpmeta.mode}{/if}
 	{if isset($tpmeta.days)}{$tpdays = $tpmeta.days}{/if}
 	{if isset($tpmeta.price_per_day)}{$tpperday = $tpmeta.price_per_day}{/if}
@@ -212,6 +218,10 @@
 							</div>
 						</div>
 
+						{if $tpgenerated}
+							<div class="alert alert-warning">{$translate->get('TimePlanGeneratedRow')}</div>
+						{/if}
+
 						{include file='admin/plans/timeplanform.tpl'}
 
 						<div class="row mb-2" id="packnote">
@@ -304,7 +314,7 @@
 	
 	pricring();
 
-	timeplanBoot({$tpapplies}, "{$tpmode}", "{$tpdays}", "{$tpamount}", "{$tpperday}", "{$tpmin}", "{$tpmax}");
+	timeplanBoot({$tpapplies}, "{$tpmode}", "{$tpdays}", "{$tpamount}", "{$tpperday}", "{$tpmin}", "{$tpmax}", "{$tpmaxbuys}", "{$tpmaxtotal}");
 
 	function pricring(){
 		if($("#type").val() == 1){
@@ -413,6 +423,15 @@
     }
 	
 	function submit(){
+		{if $tpgenerated}
+		// this row was generated to price one purchase, not authored as a plan
+		layer.msg("{$translate->get('TimePlanGeneratedRow')}", {
+			time: 6000,
+			offset:  '100px'
+		});
+		return false;
+		{/if}
+
 		// a time plan is not something /admin/plan/save knows how to store
 		if($("#type").val() == 3){
 			timeplanSave({$package->id}, function () {

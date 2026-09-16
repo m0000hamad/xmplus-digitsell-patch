@@ -1343,6 +1343,10 @@ $i18n['en_US'] = array(
 	'TimePlanTotal'             => 'Total',
 	'TimePlanNone'              => 'No time plan is available for your subscription yet',
 	'TimePlanNote'              => 'Only the expiry date moves; your remaining traffic is untouched.',
+	'TimePlanMaxBuys'           => 'Purchases allowed per subscription',
+	'TimePlanMaxTotal'          => 'Total days allowed per subscription',
+	'TimePlanLimitHint'         => 'Zero means no limit. The count starts again with every new subscription purchase.',
+	'TimePlanGeneratedRow'      => 'This row was generated to price one purchase, not authored as a plan. It cannot be edited — change the per-day plan it came from instead.',
 	'TimePlanSaved'             => 'Time plan saved',
 	'TimePlanDeleted'           => 'Time plan removed',
 );

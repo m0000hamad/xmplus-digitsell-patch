@@ -71,6 +71,22 @@
 	</div>
 
 	<div class="row mb-2">
+		<label class="col-sm-3 col-form-label form-label" for="tp_max_buys">{$translate->get('TimePlanMaxBuys')}</label>
+		<div class="col-sm-9" style="max-width: 60rem">
+			<input type="text" class="form-control shadow-lg" id="tp_max_buys" value="0">
+			<small class="text-muted">{$translate->get('TimePlanLimitHint')}</small>
+		</div>
+	</div>
+
+	<div class="row mb-2">
+		<label class="col-sm-3 col-form-label form-label" for="tp_max_total">{$translate->get('TimePlanMaxTotal')}</label>
+		<div class="col-sm-9" style="max-width: 60rem">
+			<input type="text" class="form-control shadow-lg" id="tp_max_total" value="0">
+			<small class="text-muted">{$translate->get('TimePlanLimitHint')}</small>
+		</div>
+	</div>
+
+	<div class="row mb-2">
 		<label class="col-sm-3 col-form-label form-label" for="tp_visible_days">{$translate->get('TimePlanVisibleDays')}</label>
 		<div class="col-sm-9" style="max-width: 60rem">
 			<input type="text" class="form-control shadow-lg" id="tp_visible_days" value="7">

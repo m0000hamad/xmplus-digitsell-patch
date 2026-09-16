@@ -159,7 +159,64 @@ function timeplanPresent(array $row, array $meta): array
         'price_per_day' => (float) ($meta['price_per_day'] ?? 0),
         'min_days'      => timeplanInt($meta['min_days'] ?? 1, 1),
         'max_days'      => timeplanInt($meta['max_days'] ?? 30, 30),
+        'max_buys'      => timeplanInt($meta['max_buys'] ?? 0),
+        'max_total'     => timeplanInt($meta['max_total'] ?? 0),
         'applies_to'    => array_map('intval', $meta['applies_to'] ?? []),
+    ];
+}
+
+/**
+ * How much of a time plan a user has already taken on the subscription they
+ * are on now.
+ *
+ * The window starts at their last paid data order, so renewing or switching
+ * plan gives them a fresh allowance. Only granted purchases count - an order
+ * left unpaid never reaches timeplan_log.
+ */
+function timeplanUsage(int $userId, int $planId): array
+{
+    $since = db()->prepare(
+        'SELECT pay_date FROM orders
+          WHERE userid = ? AND status = 1 AND packagetype = 2 AND pay_date IS NOT NULL
+          ORDER BY pay_date DESC LIMIT 1');
+    $since->execute([$userId]);
+    $row = $since->fetch();
+    $from = $row === false ? 0 : (int) $row['pay_date'];
+
+    // a minted row is bought in its parent's name, so both count together
+    $statement = db()->prepare(
+        'SELECT COUNT(*) AS buys, COALESCE(SUM(l.days), 0) AS days
+           FROM timeplan_log l
+           JOIN package p ON p.id = l.packageid
+          WHERE l.userid = ? AND l.granted_at >= ?
+            AND (l.packageid = ? OR p.order_note LIKE ?)');
+    $statement->execute([$userId, $from, $planId, '%"parent":' . $planId . '%']);
+    $used = $statement->fetch();
+
+    return [
+        'buys' => (int) ($used['buys'] ?? 0),
+        'days' => (int) ($used['days'] ?? 0),
+    ];
+}
+
+/**
+ * What is still allowed for this user on this plan: how many more purchases,
+ * and how many more days. A limit of 0 means no limit, and is reported as null.
+ */
+function timeplanAllowance(array $meta, int $userId, int $planId): array
+{
+    $maxBuys = timeplanInt($meta['max_buys'] ?? 0);
+    $maxTotal = timeplanInt($meta['max_total'] ?? 0);
+
+    if ($maxBuys <= 0 && $maxTotal <= 0) {
+        return ['buys_left' => null, 'days_left' => null];
+    }
+
+    $used = timeplanUsage($userId, $planId);
+
+    return [
+        'buys_left' => $maxBuys > 0 ? max(0, $maxBuys - $used['buys']) : null,
+        'days_left' => $maxTotal > 0 ? max(0, $maxTotal - $used['days']) : null,
     ];
 }
 
@@ -275,10 +332,17 @@ function timeplanAdminBootstrap(): void
 
     $packages = db()->query($sql . ' ORDER BY sort ASC, id ASC')->fetchAll();
 
+    // the plans list is drawn by an encoded endpoint that lists every package,
+    // so the page hides these rows itself
+    $generated = db()->query(
+        'SELECT id FROM package WHERE type = 1 AND order_note LIKE \'%"mode":"minted"%\'')
+        ->fetchAll(PDO::FETCH_COLUMN);
+
     done([
         'token'     => $_SESSION['patch_csrf'],
         'plans'     => $plans,
         'packages'  => $packages,
+        'generated' => array_map('intval', $generated),
         'settings'  => [
             'visible_days' => (int) timeplanSetting('timeplan_visible_days', '7'),
             'grace_hours'  => (int) timeplanSetting('timeplan_grace_hours', '24'),
@@ -302,6 +366,8 @@ function timeplanAdminSave(): void
     $meta = [
         'mode'       => $mode,
         'applies_to' => timeplanAppliesTo($_POST['applies_to'] ?? []),
+        'max_buys'   => max(0, timeplanInt($_POST['max_buys'] ?? 0)),
+        'max_total'  => max(0, timeplanInt($_POST['max_total'] ?? 0)),
     ];
 
     if ($mode === 'fixed') {
@@ -343,8 +409,18 @@ function timeplanAdminSave(): void
     $sort = timeplanInt($_POST['sort'] ?? 0);
 
     if ($id > 0) {
-        if (timeplanRow($id) === null) {
+        $existing = timeplanRow($id);
+
+        if ($existing === null) {
             fail('that time plan no longer exists');
+        }
+
+        // a minted row belongs to a per-day plan and is priced by the day count
+        // it was made for; editing it as a plan would break the order it backs
+        $existingMeta = timeplanMeta($existing['order_note']);
+
+        if (($existingMeta['mode'] ?? '') === 'minted') {
+            fail('this row was generated for a purchase and cannot be edited as a plan');
         }
 
         $statement = db()->prepare(
@@ -441,7 +517,30 @@ function timeplanUserOptions(): void
         }
 
         $view = timeplanPresent($plan['row'], $plan['meta']);
-        unset($view['applies_to'], $view['status'], $view['sort']);
+        $left = timeplanAllowance($plan['meta'], (int) $user['id'], $view['id']);
+
+        // nothing left on this subscription - do not offer it at all
+        if ($left['buys_left'] === 0 || $left['days_left'] === 0) {
+            continue;
+        }
+
+        // a per-day plan may only offer part of its range now
+        if ($view['mode'] === 'perday' && $left['days_left'] !== null) {
+            $view['max_days'] = min($view['max_days'], $left['days_left']);
+
+            if ($view['max_days'] < $view['min_days']) {
+                continue;
+            }
+        }
+
+        if ($view['mode'] === 'fixed' && $left['days_left'] !== null
+            && $view['days'] > $left['days_left']) {
+            continue;
+        }
+
+        $view += $left;
+        unset($view['applies_to'], $view['status'], $view['sort'],
+            $view['max_buys'], $view['max_total']);
 
         $plans[] = $view;
     }
@@ -476,14 +575,30 @@ function timeplanUserMint(): void
         fail('that time plan does not apply to your subscription');
     }
 
+    $left = timeplanAllowance($meta, (int) $user['id'], $parentId);
+
+    if ($left['buys_left'] === 0) {
+        fail('you have used this time plan as many times as allowed on this subscription');
+    }
+
     // a fixed plan is already buyable as it stands
     if (($meta['mode'] ?? '') !== 'perday') {
-        done(['packageid' => $parentId, 'days' => timeplanInt($meta['days'] ?? 0)]);
+        $fixedDays = timeplanInt($meta['days'] ?? 0);
+
+        if ($left['days_left'] !== null && $fixedDays > $left['days_left']) {
+            fail(sprintf('only %d more day(s) can be added on this subscription', $left['days_left']));
+        }
+
+        done(['packageid' => $parentId, 'days' => $fixedDays]);
     }
 
     $days = timeplanInt($_POST['days'] ?? 0);
     $min = timeplanInt($meta['min_days'] ?? 1, 1);
     $max = timeplanInt($meta['max_days'] ?? 30, 30);
+
+    if ($left['days_left'] !== null) {
+        $max = min($max, $left['days_left']);
+    }
 
     if ($days < $min || $days > $max) {
         fail(sprintf('choose between %d and %d days', $min, $max));

@@ -1344,6 +1344,10 @@ $i18n['zh_CN'] = array(
 	'TimePlanTotal'             => '应付金额',
 	'TimePlanNone'              => '目前没有适用于您套餐的时长包',
 	'TimePlanNote'              => '仅延长到期日期，剩余流量保持不变。',
+	'TimePlanMaxBuys'           => '每个订阅可购买次数',
+	'TimePlanMaxTotal'          => '每个订阅可增加的总天数',
+	'TimePlanLimitHint'         => '填 0 表示不限制。每次购买新订阅后重新计数。',
+	'TimePlanGeneratedRow'      => '此行是为某笔订单定价而自动生成的，并非套餐，无法编辑。请修改其来源的按天计价套餐。',
 	'TimePlanSaved'             => '时长套餐已保存',
 	'TimePlanDeleted'           => '时长套餐已删除',
 );
