@@ -162,6 +162,7 @@ function timeplanPresent(array $row, array $meta): array
         'max_buys'      => timeplanInt($meta['max_buys'] ?? 0),
         'max_total'     => timeplanInt($meta['max_total'] ?? 0),
         'applies_to'    => array_map('intval', $meta['applies_to'] ?? []),
+        'groups'        => array_map('intval', $meta['groups'] ?? []),
     ];
 }
 
@@ -240,7 +241,8 @@ function timeplanRequireUser(): array
         fail('session expired', 403);
     }
 
-    $statement = db()->prepare('SELECT id, packageid, expire_in, plan FROM user WHERE id = ? LIMIT 1');
+    $statement = db()->prepare(
+        'SELECT id, packageid, server_group, expire_in, plan FROM user WHERE id = ? LIMIT 1');
     $statement->execute([(int) $login['uid']]);
     $user = $statement->fetch();
 
@@ -296,11 +298,21 @@ function timeplanUserEligible(array $user): bool
     return $grace > 0 && time() - $expire <= $grace * 3600;
 }
 
+/*
+ * Two independent filters, each one open when its list is empty: the plan the
+ * user is on, and the server group they are in. Both have to pass.
+ */
 function timeplanAllowedForUser(array $meta, array $user): bool
 {
     $applies = timeplanAppliesTo($meta['applies_to'] ?? []);
 
-    return $applies === [] || in_array((int) $user['packageid'], $applies, true);
+    if ($applies !== [] && !in_array((int) $user['packageid'], $applies, true)) {
+        return false;
+    }
+
+    $groups = timeplanAppliesTo($meta['groups'] ?? []);
+
+    return $groups === [] || in_array((int) $user['server_group'], $groups, true);
 }
 
 // ------------------------------------------------------------------- admin
@@ -331,6 +343,7 @@ function timeplanAdminBootstrap(): void
     }
 
     $packages = db()->query($sql . ' ORDER BY sort ASC, id ASC')->fetchAll();
+    $groups = db()->query('SELECT id, name FROM `group` ORDER BY id ASC')->fetchAll();
 
     // the plans list is drawn by an encoded endpoint that lists every package,
     // so the page hides these rows itself
@@ -343,7 +356,9 @@ function timeplanAdminBootstrap(): void
         'plans'     => $plans,
         'packages'  => $packages,
         'generated' => array_map('intval', $generated),
+        'groups'    => $groups,
         'topup_scope' => timeplanTopupScopes(),
+        'topup_groups' => timeplanTopupGroups(),
         'settings'  => [
             'visible_days' => (int) timeplanSetting('timeplan_visible_days', '7'),
             'grace_hours'  => (int) timeplanSetting('timeplan_grace_hours', '24'),
@@ -367,6 +382,7 @@ function timeplanAdminSave(): void
     $meta = [
         'mode'       => $mode,
         'applies_to' => timeplanAppliesTo($_POST['applies_to'] ?? []),
+        'groups'     => timeplanAppliesTo($_POST['groups'] ?? []),
         'max_buys'   => max(0, timeplanInt($_POST['max_buys'] ?? 0)),
         'max_total'  => max(0, timeplanInt($_POST['max_total'] ?? 0)),
     ];
@@ -479,10 +495,18 @@ function timeplanAdminDelete(): void
 }
 
 const TIMEPLAN_TOPUP_SCOPE = 'timeplan_topup_scope';
+const TIMEPLAN_TOPUP_GROUPS = 'timeplan_topup_groups';
 
 function timeplanTopupScopes(): array
 {
     $decoded = json_decode((string) setting(TIMEPLAN_TOPUP_SCOPE, '{}'), true);
+
+    return is_array($decoded) ? $decoded : [];
+}
+
+function timeplanTopupGroups(): array
+{
+    $decoded = json_decode((string) setting(TIMEPLAN_TOPUP_GROUPS, '{}'), true);
 
     return is_array($decoded) ? $decoded : [];
 }
@@ -547,7 +571,18 @@ function timeplanAdminTopupScope(): void
 
     putSetting(TIMEPLAN_TOPUP_SCOPE, (string) json_encode($scopes));
 
-    done(['id' => $id, 'applies_to' => $applies]);
+    $groupMap = timeplanTopupGroups();
+    $groups = timeplanAppliesTo($_POST['groups'] ?? []);
+
+    if ($groups === []) {
+        unset($groupMap[(string) $id]);
+    } else {
+        $groupMap[(string) $id] = $groups;
+    }
+
+    putSetting(TIMEPLAN_TOPUP_GROUPS, (string) json_encode($groupMap));
+
+    done(['id' => $id, 'applies_to' => $applies, 'groups' => $groups]);
 }
 
 function timeplanAdminSettings(): void
@@ -683,6 +718,7 @@ function timeplanUserMint(): void
         'parent'     => $parentId,
         'created'    => time(),
         'applies_to' => timeplanAppliesTo($meta['applies_to'] ?? []),
+        'groups'     => timeplanAppliesTo($meta['groups'] ?? []),
     ];
 
     $price = timeplanMoney((float) ($meta['price_per_day'] ?? 0) * $days);

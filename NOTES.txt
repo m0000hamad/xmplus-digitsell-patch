@@ -1,13 +1,13 @@
-A traffic top-up can now be limited to chosen subscription plans, the way a
-time plan already could.
+Time plans and traffic top-ups can now each be limited by server group as well
+as by subscription plan.
 
-The plan form shows the same picker when the type is set to traffic; leaving it
-empty keeps the top-up open to everyone, which is what every existing one is.
-A customer only sees the top-ups their current plan is on, both in the "add
-data" list and in whether the button appears at all.
+Both pickers sit next to each other in the plan form, and both are open when
+left empty - which is what everything already configured is. They are separate
+filters and both have to pass: a top-up limited to the VIP plan and to the
+Direct group reaches only VIP customers who are also in Direct. The group is
+matched against user.server_group.
 
-This could not ride in the package row: a top-up is saved through the encoded
-/admin/plan/save, which rewrites order_note on every save and would wipe it. So
-the scope lives in one settings row, timeplan_topup_scope, written by the page
-right after the package itself is saved. On a new package the encoded save does
-not report the id, so the row is found by name.
+A time plan keeps its group list in its own marker, alongside applies_to. A
+top-up cannot - the encoded /admin/plan/save rewrites order_note on every save -
+so it gets a second settings row, timeplan_topup_groups, written at the same
+moment as the plan scope.

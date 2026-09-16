@@ -12,3 +12,11 @@
 		<small class="text-muted">{$translate->get('TimePlanAllPlans')}</small>
 	</div>
 </div>
+
+<div class="row mb-2" id="topupgroupscope" hidden>
+	<label class="col-sm-3 col-form-label form-label" for="topup_groups">{$translate->get('TimePlanGroups')}</label>
+	<div class="col-sm-9" style="max-width: 60rem">
+		<select class="form-control shadow-lg" id="topup_groups" multiple size="6"></select>
+		<small class="text-muted">{$translate->get('TimePlanAllGroups')}</small>
+	</div>
+</div>

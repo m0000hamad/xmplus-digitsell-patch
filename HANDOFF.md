@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-16 · installed version **1.5.2** (files live; the panel still records 1.4.4 until an update is applied) · latest release **1.5.2** · repo
+Last updated: 2026-09-16 · installed version **1.6.0** (files live; the panel still records 1.4.4 until an update is applied) · latest release **1.6.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -248,6 +248,20 @@ new package by name because that save does not report the id.
 `Package::scopeViewer()` deliberately returns null for staff — the admin pages
 list top-ups too and must keep seeing all of them.
 
+### Two scoping dimensions, not one
+
+Both a time plan and a top-up can be limited by **subscription plan** and by
+**server group**, independently. Each list is open when empty, and both have to
+pass. The group is matched against `user.server_group` — not `user.user_group`,
+which is the staff permission role and has nothing to do with this.
+
+A time plan keeps `groups` in its marker next to `applies_to`. A top-up cannot,
+for the reason above, so it gets a second settings row alongside the first:
+
+    timeplan_topup_groups = {"7":[3,8]}
+
+Both rows are written by the same `timeplan.topupscope` call.
+
 ### Commission — money rules already decided. Do not redo without asking.
 
 - Only **new** commission is credited automatically.
@@ -342,3 +356,4 @@ list top-ups too and must keep seeing all of them.
 | 1.5.0 | Add the "time" plan type — sell extra days, fixed bundles or per day |
 | 1.5.1 | Hide the rows a per-day purchase generates, and cap time plans per subscription |
 | 1.5.2 | Limit a traffic top-up to chosen subscription plans |
+| 1.6.0 | Scope time plans and top-ups by server group as well as by plan |
