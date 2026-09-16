@@ -1,32 +1,16 @@
-Adds a third plan type, "time", for selling extra days on their own.
+Stops per-day purchases from looking like plans, and puts a ceiling on them.
 
-Until now a plan was either data (type 2) or a traffic top-up (type 1), so a
-user whose gigabytes were fine but whose expiry was days away had to buy a
-whole new subscription. The admin plan form now offers a third type with two
-pricing modes: fixed bundles (7 days at one price, 30 at another) and a per-day
-rate where the user picks the number of days. Each time plan can be limited to
-chosen subscription plans, or left open to all of them.
+A per-day time plan still mints one package row per day count - the encoded
+checkout can only price an order from a real package row, and the pay page and
+order history read the name from it, so the row cannot be deleted afterwards.
+What changed is that those rows no longer read as plans: the admin plans list
+hides them, and opening one refuses to save it. Previously, opening a generated
+row and saving turned it into a priceless "fixed" time plan, which then showed
+up as a real plan - one such row on the live panel has been put back.
 
-The order pipeline is encoded, so a time plan is stored as an ordinary topup
-package (type 1, bandwidth 0) carrying a marker in order_note, and checkout is
-the panel's own - coupon, gateway, invoice and order history all unchanged. The
-days are granted afterwards by bin/timeplans.php, scheduled every minute from
-TaskCommand, and timeplan_log keys on the order id so a grant happens once.
-A per-day purchase first mints a package row priced at N x the daily rate;
-the same row is reused for the same N, so the count stays bounded.
-
-On the user's subscription card an "add time" button appears beside "add data",
-but only near the end of the subscription - within timeplan_visible_days
-(default 7), or up to timeplan_grace_hours (default 24) after it expired. Both
-settings are edited in the time plan form.
-
-The grace window needed one fix elsewhere: UserJob zeroes transfer_enable the
-moment a plan expires, so buying days afterwards would have returned a working
-account with no data. UserJob now records the remaining traffic in
-timeplan_snapshot before wiping it, and the grant puts it back - only when the
-snapshot still matches the expiry being extended.
-
-Admin and user endpoints live in app/Patch/TimePlan.php, dispatched from
-public/xmplus-patch.php (endpoint 1.2.0) ahead of its blanket admin check,
-since the buying half answers ordinary users. Adds twenty-two localization keys
-to en_US, fa_IR and zh_CN, and migration 004 for the two new tables.
+Two limits per time plan, both editable in the plan form and both counted per
+subscription: how many times a user may buy it, and how many days they may add
+in total. Zero means no limit, and the count starts again at the user's next
+paid subscription order. A plan with nothing left is not offered at all; a
+per-day plan with some room left narrows its own day range to what remains.
+Both are enforced again server-side at mint time.

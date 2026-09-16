@@ -190,6 +190,22 @@ Nothing in the paid path knows about days, so `bin/timeplans.php`
 them. `timeplan_log.orderid` is UNIQUE and is claimed **before** the expiry is
 moved, so a grant happens exactly once even if two runs overlap.
 
+**A minted row is not a plan and must never be edited as one.** It is priced
+for the exact day count it was made for, and the pay page
+(`view/user/pay/cycle.tpl`) and order history read the name from it, so it
+cannot be deleted once an order points at it either. The plans list hides these
+rows client-side (`timeplanHideGenerated()` in `timeplanjs.tpl`, re-run on every
+DataTable draw), the edit page refuses to save one, and `timeplanAdminSave()`
+refuses server-side as well. Before that guard existed, opening one and saving
+turned it into a priceless `fixed` plan.
+
+Each plan carries two limits, `max_buys` and `max_total` (days), zero meaning
+none. They are counted per subscription: `timeplanUsage()` sums `timeplan_log`
+since the user's last paid `packagetype = 2` order, so renewing resets the
+allowance. A minted row counts against its parent. `timeplan.options` drops a
+plan with nothing left and narrows a per-day plan's range to what remains;
+`timeplan.mint` checks again, because the browser is not to be trusted.
+
 Watch out for these:
 
 - **`UserJob` zeroes `transfer_enable` the moment a plan expires.** Buying days
@@ -243,10 +259,9 @@ Watch out for these:
 - **A "time" badge in the admin plans list.** The list is a server-side
   DataTable fed by an encoded endpoint, so a time plan shows there with the
   topup type. Opening it shows the type correctly.
-- **A real gateway purchase of a time plan has not been made.** The grant path
-  was proven end to end against a disposable account (active and grace cases,
-  including the traffic restore), but whether `/portal/order/create` accepts a
-  zero-gigabyte package is only knowable from one real checkout.
+- ~~A real gateway purchase of a time plan has not been made.~~ **Done.** On
+  2026-09-16 a customer bought three days through the gateway on a per-day plan
+  and the days landed. `/portal/order/create` accepts a zero-gigabyte package.
 
 ## 8. Open items
 
@@ -308,3 +323,4 @@ Watch out for these:
 | 1.4.3 | Redesign the user settings page to match the rest of the panel |
 | 1.4.4 | Redesign notices: user timeline, latest-notice popup, admin editor |
 | 1.5.0 | Add the "time" plan type — sell extra days, fixed bundles or per day |
+| 1.5.1 | Hide the rows a per-day purchase generates, and cap time plans per subscription |
