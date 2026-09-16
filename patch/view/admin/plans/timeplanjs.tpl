@@ -8,7 +8,28 @@
 	var timeplanToken = "";
 	var timeplanReady = false;
 
-	function timeplanBoot(selected, mode, days, price, perday, mindays, maxdays, maxbuys, maxtotal, topupId) {
+	/* fills a multi-select from rows carrying an id and a name */
+	function timeplanFill(target, rows, chosen) {
+		var box = $(target);
+
+		if (!box.length) {
+			return;
+		}
+
+		box.html('');
+
+		$.each(rows || [], function (i, row) {
+			var option = $('<option></option>').attr('value', row.id).text(row.name);
+
+			if (chosen && chosen.indexOf(parseInt(row.id, 10)) !== -1) {
+				option.attr('selected', 'selected');
+			}
+
+			box.append(option);
+		} );
+	}
+
+	function timeplanBoot(selected, mode, days, price, perday, mindays, maxdays, maxbuys, maxtotal, topupId, groups) {
 		// a plan this time plan already names stays in the list even if disabled
 		var keep = selected && selected.length ? "&keep=" + selected.join(",") : "";
 
@@ -24,30 +45,18 @@
 				timeplanToken = data.token;
 				timeplanReady = true;
 
-				var box = $("#tp_applies");
-				box.html('');
+				timeplanFill("#tp_applies", data.packages, selected);
+				timeplanFill("#tp_groups", data.groups, groups);
 
-				$.each(data.packages, function (i, pack) {
-					var option = $('<option></option>').attr('value', pack.id).text(pack.name);
-					if (selected && selected.indexOf(parseInt(pack.id, 10)) !== -1) {
-						option.attr('selected', 'selected');
-					}
-					box.append(option);
-				} );
-
-				// the same picker for a traffic top-up, filled from the scope map
+				// the same two pickers for a traffic top-up, from the scope maps
+				var key = String(topupId || 0);
 				var scopeMap = data.topup_scope || null;
-				var scope = (scopeMap && scopeMap[String(topupId || 0)]) || [];
-				var topupBox = $("#topup_applies");
-				topupBox.html('');
+				var groupMap = data.topup_groups || null;
 
-				$.each(data.packages, function (i, pack) {
-					var option = $('<option></option>').attr('value', pack.id).text(pack.name);
-					if (scope.indexOf(parseInt(pack.id, 10)) !== -1) {
-						option.attr('selected', 'selected');
-					}
-					topupBox.append(option);
-				} );
+				timeplanFill("#topup_applies", data.packages,
+					(scopeMap && scopeMap[key]) || []);
+				timeplanFill("#topup_groups", data.groups,
+					(groupMap && groupMap[key]) || []);
 
 				$("#tp_visible_days").val(data.settings.visible_days);
 				$("#tp_grace_hours").val(data.settings.grace_hours);
@@ -121,16 +130,22 @@
 	/* called by pricring() - true when the time plan fields are the ones on show */
 	function timeplanApply() {
 		var isTime = $("#type").val() == 3;
-		var scopeBox = document.getElementById("topupscope");
+		var isTopup = $("#type").val() == 1;
 
-		// the plan picker belongs to a traffic top-up only
-		if (scopeBox) {
-			if ($("#type").val() == 1) {
-				scopeBox.removeAttribute("hidden");
-			} else {
-				scopeBox.setAttribute("hidden", true);
+		// the plan and group pickers belong to a traffic top-up only
+		["topupscope", "topupgroupscope"].forEach(function (id) {
+			var node = document.getElementById(id);
+
+			if (!node) {
+				return;
 			}
-		}
+
+			if (isTopup) {
+				node.removeAttribute("hidden");
+			} else {
+				node.setAttribute("hidden", true);
+			}
+		} );
 
 		if (isTime) {
 			document.getElementById("timeplanbox").removeAttribute("hidden");
@@ -149,17 +164,9 @@
 		return isTime;
 	}
 
-	function timeplanSelectedPlans() {
+	function timeplanChosen(target) {
 		var ids = [];
-		$("#tp_applies option:selected").each(function () {
-			ids.push($(this).val());
-		} );
-		return ids;
-	}
-
-	function timeplanSelectedTopupPlans() {
-		var ids = [];
-		$("#topup_applies option:selected").each(function () {
+		$(target + " option:selected").each(function () {
 			ids.push($(this).val());
 		} );
 		return ids;
@@ -184,7 +191,8 @@
 				token: timeplanToken,
 				id: id,
 				name: $("#name").val(),
-				applies_to: timeplanSelectedTopupPlans()
+				applies_to: timeplanChosen("#topup_applies"),
+				groups: timeplanChosen("#topup_groups")
 			},
 			complete: function () {
 				done();
@@ -229,7 +237,8 @@
 						max_days: $("#tp_max_days").val(),
 						max_buys: $("#tp_max_buys").val(),
 						max_total: $("#tp_max_total").val(),
-						applies_to: timeplanSelectedPlans()
+						applies_to: timeplanChosen("#tp_applies"),
+						groups: timeplanChosen("#tp_groups")
 					},
 					success: function (data) {
 						layer.closeAll('loading');

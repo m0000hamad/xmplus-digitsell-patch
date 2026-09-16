@@ -72,6 +72,7 @@ final class Package extends Model
 		}
 
 		$current = (int) $user->packageid;
+		$group = (int) $user->server_group;
 		$list = [];
 
 		foreach (self::timeRows()->where('status', 1)->orderBy('sort', 'asc')->orderBy('id', 'asc')->get() as $row) {
@@ -81,11 +82,20 @@ final class Package extends Model
 				continue;
 			}
 
+			// plan and server group are separate filters, each open when empty
 			$applies = isset($meta['applies_to']) && is_array($meta['applies_to'])
 				? array_map('intval', $meta['applies_to'])
 				: [];
 
 			if ($applies !== [] && !in_array($current, $applies, true)) {
+				continue;
+			}
+
+			$groups = isset($meta['groups']) && is_array($meta['groups'])
+				? array_map('intval', $meta['groups'])
+				: [];
+
+			if ($groups !== [] && !in_array($group, $groups, true)) {
 				continue;
 			}
 
@@ -133,34 +143,51 @@ final class Package extends Model
 	 * empty means every plan, which is what every existing top-up has.
 	 */
 	const TOPUP_SCOPE_SETTING = 'timeplan_topup_scope';
+	const TOPUP_GROUP_SETTING = 'timeplan_topup_groups';
+
+	private static function scopeMap($name)
+	{
+		static $maps = [];
+
+		if (!array_key_exists($name, $maps)) {
+			$raw = Settings::where('name', $name)->value('value');
+			$decoded = json_decode((string) $raw, true);
+			$maps[$name] = is_array($decoded) ? $decoded : [];
+		}
+
+		return $maps[$name];
+	}
 
 	public static function topupScopes()
 	{
-		static $map = null;
-
-		if ($map === null) {
-			$raw = Settings::where('name', self::TOPUP_SCOPE_SETTING)->value('value');
-			$decoded = json_decode((string) $raw, true);
-			$map = is_array($decoded) ? $decoded : [];
-		}
-
-		return $map;
+		return self::scopeMap(self::TOPUP_SCOPE_SETTING);
 	}
 
-	public function topupAllowed($packageId, $user = null)
+	public static function topupGroups()
 	{
-		$map = self::topupScopes();
+		return self::scopeMap(self::TOPUP_GROUP_SETTING);
+	}
+
+	/* an empty or missing list means no restriction on that dimension */
+	private static function scopePasses(array $map, $packageId, $value)
+	{
 		$key = (string) (int) $packageId;
 
 		if (!isset($map[$key]) || !is_array($map[$key]) || $map[$key] === []) {
 			return true;
 		}
 
-		if (!$user || !isset($user->packageid)) {
-			return false;
-		}
+		return $value !== null
+			&& in_array((int) $value, array_map('intval', $map[$key]), true);
+	}
 
-		return in_array((int) $user->packageid, array_map('intval', $map[$key]), true);
+	public function topupAllowed($packageId, $user = null)
+	{
+		$plan = $user && isset($user->packageid) ? $user->packageid : null;
+		$group = $user && isset($user->server_group) ? $user->server_group : null;
+
+		return self::scopePasses(self::topupScopes(), $packageId, $plan)
+			&& self::scopePasses(self::topupGroups(), $packageId, $group);
 	}
 
 	/*

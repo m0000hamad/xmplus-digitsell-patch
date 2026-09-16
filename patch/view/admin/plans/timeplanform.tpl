@@ -71,6 +71,14 @@
 	</div>
 
 	<div class="row mb-2">
+		<label class="col-sm-3 col-form-label form-label" for="tp_groups">{$translate->get('TimePlanGroups')}</label>
+		<div class="col-sm-9" style="max-width: 60rem">
+			<select class="form-control shadow-lg" id="tp_groups" multiple size="6"></select>
+			<small class="text-muted">{$translate->get('TimePlanAllGroups')}</small>
+		</div>
+	</div>
+
+	<div class="row mb-2">
 		<label class="col-sm-3 col-form-label form-label" for="tp_max_buys">{$translate->get('TimePlanMaxBuys')}</label>
 		<div class="col-sm-9" style="max-width: 60rem">
 			<input type="text" class="form-control shadow-lg" id="tp_max_buys" value="0">

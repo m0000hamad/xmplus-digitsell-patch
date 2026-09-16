@@ -9,6 +9,7 @@
 {$tpmin = 1}
 {$tpmax = 30}
 {$tpapplies = '[]'}
+{$tpgroups = '[]'}
 {$tpamount = ''}
 {$tpmaxbuys = 0}
 {$tpmaxtotal = 0}
@@ -24,6 +25,7 @@
 	{if isset($tpmeta.min_days)}{$tpmin = $tpmeta.min_days}{/if}
 	{if isset($tpmeta.max_days)}{$tpmax = $tpmeta.max_days}{/if}
 	{if isset($tpmeta.applies_to)}{$tpapplies = json_encode($tpmeta.applies_to)}{/if}
+	{if isset($tpmeta.groups)}{$tpgroups = json_encode($tpmeta.groups)}{/if}
 {/if}
 {if isset($tpprice.topup.price)}{$tpamount = $tpprice.topup.price}{/if}
 	<script>localStorage.setItem('toggleID', 'transactionMenu'); </script>	
@@ -316,7 +318,7 @@
 	
 	pricring();
 
-	timeplanBoot({$tpapplies}, "{$tpmode}", "{$tpdays}", "{$tpamount}", "{$tpperday}", "{$tpmin}", "{$tpmax}", "{$tpmaxbuys}", "{$tpmaxtotal}", {$package->id});
+	timeplanBoot({$tpapplies}, "{$tpmode}", "{$tpdays}", "{$tpamount}", "{$tpperday}", "{$tpmin}", "{$tpmax}", "{$tpmaxbuys}", "{$tpmaxtotal}", {$package->id}, {$tpgroups});
 
 	function pricring(){
 		if($("#type").val() == 1){
