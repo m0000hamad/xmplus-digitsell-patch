@@ -1,20 +1,32 @@
-Redesigns the notices feature end to end.
+Adds a third plan type, "time", for selling extra days on their own.
 
-User timeline (view/user/notice/notice.tpl): the grey step-rail becomes a stack
-of colour-spined cards that finally show notice.title, carry a date pill and a
-"new" flag for the last three days, follow dark mode, and have an empty state.
+Until now a plan was either data (type 2) or a traffic top-up (type 1), so a
+user whose gigabytes were fine but whose expiry was days away had to buy a
+whole new subscription. The admin plan form now offers a third type with two
+pricing modes: fixed bundles (7 days at one price, 30 at another) and a per-day
+rate where the user picks the number of days. Each time plan can be limited to
+chosen subscription plans, or left open to all of them.
 
-Latest-notice popup (dashboard): gradient header, the title shown above the
-body, a scrollable IRANSans body, and the previously unlabelled "don't show
-again" switch now reads as one, next to a "Got it" button. The #noticemodal id
-and the .modal-check[name=modal-check] the cookie JS binds to are unchanged.
+The order pipeline is encoded, so a time plan is stored as an ordinary topup
+package (type 1, bandwidth 0) carrying a marker in order_note, and checkout is
+the panel's own - coupon, gateway, invoice and order history all unchanged. The
+days are granted afterwards by bin/timeplans.php, scheduled every minute from
+TaskCommand, and timeplan_log keys on the order id so a grant happens once.
+A per-day purchase first mints a package row priced at N x the daily rate;
+the same row is reused for the same N, so the count stays bounded.
 
-Admin add/edit (view/admin/notices/*.tpl): a two-pane card layout, the TinyMCE
-editor set RTL with the panel's own Persian face (IRANSans) for fa_IR, a row of
-one-click ready-made snippets (welcome, maintenance, price change, new server,
-outage) also wired into the editor's template menu, and a live preview pane
-that renders the notice exactly as the user's popup will. The save contract is
-untouched — #title #status #sendmail #content (+ id on edit) POST the same
-fields to /admin/notice/save.
+On the user's subscription card an "add time" button appears beside "add data",
+but only near the end of the subscription - within timeplan_visible_days
+(default 7), or up to timeplan_grace_hours (default 24) after it expired. Both
+settings are edited in the time plan form.
 
-Adds fourteen localization keys to en_US, fa_IR and zh_CN.
+The grace window needed one fix elsewhere: UserJob zeroes transfer_enable the
+moment a plan expires, so buying days afterwards would have returned a working
+account with no data. UserJob now records the remaining traffic in
+timeplan_snapshot before wiping it, and the grant puts it back - only when the
+snapshot still matches the expiry being extended.
+
+Admin and user endpoints live in app/Patch/TimePlan.php, dispatched from
+public/xmplus-patch.php (endpoint 1.2.0) ahead of its blanket admin check,
+since the buying half answers ordinary users. Adds twenty-two localization keys
+to en_US, fa_IR and zh_CN, and migration 004 for the two new tables.

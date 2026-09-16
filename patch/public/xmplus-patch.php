@@ -19,7 +19,7 @@ declare(strict_types=1);
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
-const PATCH_ENDPOINT_VERSION = '1.1.3';
+const PATCH_ENDPOINT_VERSION = '1.2.0';
 
 /** Where releases come from. Overridable by the `patch_repo` setting. */
 const DEFAULT_REPO = 'm0000hamad/xmplus-digitsell-patch';
@@ -403,6 +403,13 @@ function clearCompiledTemplates(): void
 // --------------------------------------------------------------- the verbs
 
 $action = $_GET['do'] ?? 'status';
+
+// Time plans live in their own file and answer ordinary users as well as
+// admins, so they are dispatched before the blanket admin check below.
+if (strpos($action, 'timeplan.') === 0) {
+    require ROOT . '/app/Patch/TimePlan.php';
+    fail('unknown time plan action');
+}
 
 requireAdmin();
 

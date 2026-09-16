@@ -530,6 +530,47 @@ final class User extends Model
 	}
 
 	/* ------------------------------------------------------------------
+	 * Buying extra days ("time plans").
+	 * ------------------------------------------------------------------ */
+
+	/*
+	 * The button only appears once the subscription is close to running out,
+	 * and stays reachable for a short grace window after it has. Both limits
+	 * are settings so the admin can retune them without a release.
+	 */
+	public function timePlanWindowDays()
+	{
+		$days = (int) Settings::where('name', 'timeplan_visible_days')->value('value');
+		return $days > 0 ? $days : 7;
+	}
+
+	public function timePlanGraceHours()
+	{
+		$hours = Settings::where('name', 'timeplan_grace_hours')->value('value');
+		return $hours === null || $hours === '' ? 24 : (int) $hours;
+	}
+
+	public function timePlanVisible()
+	{
+		// a lifetime account has no expiry to extend
+		if ($this->planNeverExpires() || $this->expire_in === null) {
+			return false;
+		}
+
+		if ($this->planIsActive()) {
+			return $this->daysLeft() <= $this->timePlanWindowDays();
+		}
+
+		$grace = $this->timePlanGraceHours();
+
+		if ($grace <= 0) {
+			return false;
+		}
+
+		return time() - strtotime($this->expire_in) <= $grace * 3600;
+	}
+
+	/* ------------------------------------------------------------------
 	 * Referral commission paid straight into the wallet.
 	 * ------------------------------------------------------------------ */
 

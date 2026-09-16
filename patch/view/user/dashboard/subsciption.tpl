@@ -162,6 +162,7 @@
 .sub-btn-main { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff !important; box-shadow: 0 7px 18px rgba(99, 102, 241, .32); }
 .sub-btn-buy { background: linear-gradient(135deg, #059669, #10b981); color: #fff !important; box-shadow: 0 7px 18px rgba(16, 185, 129, .3); }
 .sub-btn-data { background: linear-gradient(135deg, #d97706, #f59e0b); color: #fff !important; box-shadow: 0 7px 18px rgba(245, 158, 11, .3); }
+.sub-btn-time { background: linear-gradient(135deg, #0e7490, #06b6d4); color: #fff !important; box-shadow: 0 7px 18px rgba(6, 182, 212, .3); }
 
 /* ---- the two small tiles ---- */
 .sub-tiles {
@@ -425,6 +426,10 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 			<div class="sub-actions">
 				{if $topupcount > 0 && $Order->getSubsciption($user->id) && $user->planIsActive()}
 					<button type="button" class="sub-btn sub-btn-data" onClick="TopupOptions()">📶 {$translate->get('AddData')}</button>
+				{/if}
+				{* buying days only makes sense near the end of the subscription *}
+				{if $Order->getSubsciption($user->id) && $user->timePlanVisible() && $timeplan->timePlanCount($user) > 0}
+					<button type="button" class="sub-btn sub-btn-time" onClick="TimeOptions()">⏳ {$translate->get('AddTime')}</button>
 				{/if}
 				{if $Order->getSubsciption($user->id) != null && $bought > 0 && $Order->getPackage($user->id) && $Order->getPackage($user->id)->renew_type > 0}
 					<button type="button" class="sub-btn sub-btn-main renew">🔄 {$translate->get('RenewPlan')}</button>

@@ -161,8 +161,59 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Invoice | A real document with seller, buyer, line item and totals; prints on one sheet; readable on a phone |
 | Settings (user) | Gradient hero, glass section rail with a colour per section and the current one lit, cards carrying that accent; notification rows became switches; 2FA dialog restyled; every input id, button class and section anchor kept so the encoded controller and page JS are untouched |
 | Notices | User timeline shows the title and reads as coloured cards; latest-notice popup restyled with a labelled dismiss switch; admin add/edit got RTL Persian TinyMCE, one-click snippets and a live user-popup preview |
+| Time plans | A third plan type selling days only — see the section below |
 | Menu | Labelled glass toggle, per-item colours, current page marked, works on phones |
 | Themes | Dark mode fixed panel-wide (see above) |
+
+### Time plans — how days are sold without touching the order pipeline
+
+A time plan is **not** a new package type. It is an ordinary topup package
+(`package.type = 1`, `bandwidth = 0`) whose `order_note` carries a marker, a
+field nothing renders for type 1:
+
+```json
+{"timeplan":{"v":1,"mode":"fixed","days":7,"applies_to":[2,3]}}
+{"timeplan":{"v":1,"mode":"perday","price_per_day":150000,"min_days":1,"max_days":60,"applies_to":[]}}
+{"timeplan":{"v":1,"mode":"minted","days":12,"parent":41,"created":1789537529,"applies_to":[]}}
+```
+
+That keeps checkout — coupon, gateway, invoice, order history — inside the
+panel's own encoded code: the browser posts `plan: "topup"` with the package id
+to `/portal/order/create`, exactly as "add data" does. `applies_to` empty means
+every plan. A `perday` row is a parent and is never bought directly; picking N
+days calls `timeplan.mint`, which finds or creates a `minted` row priced at
+N × the daily rate, so the row count is bounded by `max_days`. Unsold minted
+rows are switched off after a day and switched back on if the same N comes up.
+
+Nothing in the paid path knows about days, so `bin/timeplans.php`
+(`app/Jobs/TimePlanJob.php`, scheduled every minute from `TaskCommand`) grants
+them. `timeplan_log.orderid` is UNIQUE and is claimed **before** the expiry is
+moved, so a grant happens exactly once even if two runs overlap.
+
+Watch out for these:
+
+- **`UserJob` zeroes `transfer_enable` the moment a plan expires.** Buying days
+  in the grace window afterwards would otherwise return a working account with
+  no data. `UserJob` now writes the remaining traffic to `timeplan_snapshot`
+  before wiping, and the grant restores it — only when the snapshot's
+  `expire_in` still equals the user's, so old traffic can never come back.
+- **A paid order is `orders.status = 1`.** `orders.state` is 0 on essentially
+  every row; `Package::period_sales()`, which filters `state = 1`, counts
+  nothing. Do not copy it.
+- **`Package::topupList()` filters the marker out**, or time plans would show up
+  inside the "add data" modal.
+- The admin and user endpoints are in `app/Patch/TimePlan.php`, dispatched from
+  `public/xmplus-patch.php` **before** its blanket `requireAdmin()`, because the
+  buying half answers ordinary users. It has its own CSRF token,
+  `$_SESSION['timeplan_csrf']`, and re-checks eligibility server-side.
+- Visibility is two settings, `timeplan_visible_days` (7) and
+  `timeplan_grace_hours` (24), edited in the time plan form and read by
+  `User::timePlanVisible()`.
+- If `/portal/order/create` ever refuses a zero-gigabyte package, set the
+  `timeplan_bandwidth` setting to `0.01`; the endpoint reads it when writing the
+  package row.
+- Smarty's `{$x = ...}` assignment rejects ternaries — `edit.tpl` uses `{if}`
+  blocks to unpack the marker.
 
 ### Commission — money rules already decided. Do not redo without asking.
 
@@ -189,6 +240,13 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 - **The payment page could not be render-tested** from the tooling — the
   controller rejects synthetic orders. It is compile-checked only. A real
   click-through is the only proof.
+- **A "time" badge in the admin plans list.** The list is a server-side
+  DataTable fed by an encoded endpoint, so a time plan shows there with the
+  topup type. Opening it shows the type correctly.
+- **A real gateway purchase of a time plan has not been made.** The grant path
+  was proven end to end against a disposable account (active and grace cases,
+  including the traffic restore), but whether `/portal/order/create` accepts a
+  zero-gigabyte package is only knowable from one real checkout.
 
 ## 8. Open items
 
@@ -249,3 +307,4 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | 1.4.2 | Fit the invoice on a phone |
 | 1.4.3 | Redesign the user settings page to match the rest of the panel |
 | 1.4.4 | Redesign notices: user timeline, latest-notice popup, admin editor |
+| 1.5.0 | Add the "time" plan type — sell extra days, fixed bundles or per day |
