@@ -1,13 +1,18 @@
-Time plans and traffic top-ups can now each be limited by server group as well
-as by subscription plan.
+The admin dashboard is rebuilt, and the servers page shows how much traffic
+each server carries.
 
-Both pickers sit next to each other in the plan form, and both are open when
-left empty - which is what everything already configured is. They are separate
-filters and both have to pass: a top-up limited to the VIP plan and to the
-Direct group reaches only VIP customers who are also in Direct. The group is
-matched against user.server_group.
+Dashboard: every number comes from one read-only admin call,
+xmplus-patch.php?do=dashboard.overview. Headline cards with trend lines and
+the change against the previous period; daily revenue split into
+subscription, top-up and time; a 12-month trend (Solar Hijri months in
+Persian); the sales mix with first purchase against renewal, and the
+gateways; top plans; the busiest weekday and hour; users by status; who
+expires over the next 14 days; sign-ups; traffic by day and by server; the
+nodes; the latest paid orders.
 
-A time plan keeps its group list in its own marker, alongside applies_to. A
-top-up cannot - the encoded /admin/plan/save rewrites order_note on every save -
-so it gets a second settings row, timeplan_topup_groups, written at the same
-moment as the plan scope.
+A system health card checks the database, the nodes' heartbeats, the cron
+runner, node traffic reports, the paid rate of the last 24 hours, free disk,
+load, the template cache and any paid time order not yet applied.
+
+Servers: per-server traffic for today, the week and the month, drawn as a
+chart and a ranking, and written next to each server in the list.
