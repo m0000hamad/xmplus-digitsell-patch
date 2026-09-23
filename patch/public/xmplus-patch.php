@@ -19,7 +19,7 @@ declare(strict_types=1);
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
-const PATCH_ENDPOINT_VERSION = '1.2.0';
+const PATCH_ENDPOINT_VERSION = '1.4.0';
 
 /** Where releases come from. Overridable by the `patch_repo` setting. */
 const DEFAULT_REPO = 'm0000hamad/xmplus-digitsell-patch';
@@ -412,6 +412,17 @@ if (strpos($action, 'timeplan.') === 0) {
 }
 
 requireAdmin();
+
+// Read-only reports for admin pages; each file ends in done() or fail().
+if (strpos($action, 'servers.') === 0) {
+    require ROOT . '/app/Patch/ServerUsage.php';
+    fail('unknown servers action');
+}
+
+if (strpos($action, 'dashboard.') === 0) {
+    require ROOT . '/app/Patch/Dashboard.php';
+    fail('unknown dashboard action');
+}
 
 if ($action === 'status') {
     $commit = headCommit();

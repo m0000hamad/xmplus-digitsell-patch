@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-16 · installed version **1.6.0** (files live; the panel still records 1.4.4 until an update is applied) · latest release **1.6.0** · repo
+Last updated: 2026-09-23 · installed version **1.7.0** (files live; the panel still records 1.4.4 until an update is applied) · latest release **1.7.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -158,6 +158,7 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Affiliate | Invite tab and commission tab; per-referral earnings; withdrawal form with card and IBAN; written cash-out rules |
 | Commission | Automatic payout, popup, ledger, cash/credit routing |
 | Purchase flow | Plans, plan detail, checkout and orders redesigned; a verdict popup states the result and survives the redirect |
+| Admin dashboard | Rebuilt on ApexCharts from one read-only call, `xmplus-patch.php?do=dashboard.overview` (`app/Patch/Dashboard.php`): KPI cards with sparklines and deltas, daily revenue by kind, 12-month trend (Solar Hijri months for fa_IR), sales mix and gateways, top plans, weekday x hour heatmap, user status, 14-day expiry pipeline, sign-ups, traffic by day and server, node table, latest paid orders, and a system health card (DB, nodes, cron locks, trafficlog freshness, 24h paid rate, disk, load, cache dir, unapplied time orders, patch version). Released in 1.7.0 |
 | Invoice | A real document with seller, buyer, line item and totals; prints on one sheet; readable on a phone |
 | Settings (user) | Gradient hero, glass section rail with a colour per section and the current one lit, cards carrying that accent; notification rows became switches; 2FA dialog restyled; every input id, button class and section anchor kept so the encoded controller and page JS are untouched |
 | Notices | User timeline shows the title and reads as coloured cards; latest-notice popup restyled with a labelled dismiss switch; admin add/edit got RTL Persian TinyMCE, one-click snippets and a live user-popup preview |
@@ -319,6 +320,16 @@ Both rows are written by the same `timeplan.topupscope` call.
   is `root:root` with mode `0777`.
 - 14 stale session files sit in `/tmp`; harmless, could be swept by cron.
 
+- **Admin dashboard (2026-09-23):** `user` has a column named `d`, so a
+  `SELECT DATE(x) AS d ... GROUP BY d` groups by download bytes, not the day;
+  Dashboard.php aliases days as `day` and groups by the expression. A
+  "renewal" is any subscription bought by a user who paid for one before,
+  because the panel's own `renew` flag is only set by its renew button. The
+  traffic chart drops the days before `traffic_daily` existed. The old
+  `admin/dashboard/{stats,chart,side}.tpl` are no longer included but left on
+  disk; backup of the replaced files: `/root/dash-backup-20260923-121621`.
+  Not yet verified by an admin in a real browser session.
+
 ## 9. Testing rules learned the hard way
 
 - **Render every page as at least two accounts** — a normal one and an edge
@@ -357,3 +368,4 @@ Both rows are written by the same `timeplan.topupscope` call.
 | 1.5.1 | Hide the rows a per-day purchase generates, and cap time plans per subscription |
 | 1.5.2 | Limit a traffic top-up to chosen subscription plans |
 | 1.6.0 | Scope time plans and top-ups by server group as well as by plan |
+| 1.7.0 | Rebuild the admin dashboard with a health card; per-server traffic on the servers page |
