@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-24 · installed version **1.8.1** · latest release **1.8.1** · repo
+Last updated: 2026-09-24 · installed version **1.8.2** · latest release **1.8.2** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -335,6 +335,13 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
   `tgjoin_free_package` (18, "10 GB one month single user").
 - **MySQL `NOW()` runs on UTC here while `expire_in` is local time (+03:30).**
   The free plan's expiry is computed in PHP for that reason.
+- **Bot-link gift (1.8.2):** `TgJoinJob::bindGifts()`, same run. 1-10 GB
+  (50 % 1-2, 30 % 3-5, 15 % 6-8, 5 % 9-10; mean 3.5) once per account and per
+  Telegram id (`tgbind_log`). Needs a running plan AND at least one paid order
+  (a trial plus a fresh Telegram account must not farm it). The first run after
+  `tgbind_gift` = 1 marks every account already linked as `existing`
+  (`tgbind_seeded` = 1 records that it happened). Badge on the dashboard
+  Telegram row: `User::tgBindGiftOpen()`, key `TgBindGift`.
 - Settings rows: `tgjoin_channel_id`, `tgjoin_link`, `tgjoin_free_package`,
   `tgjoin_free_days`. Empty channel id switches everything off.
 
@@ -445,3 +452,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.7.0 | Rebuild the admin dashboard with a health card; per-server traffic on the servers page |
 | 1.8.0 | Invite popup with a personal assistant, share bar, friends-only note; one-time Telegram channel gift; user dashboard night theme and menu lamps |
 | 1.8.1 | Share buttons keep the invite link at the end of the message (Telegram's share page put it first) |
+| 1.8.2 | One-time 1-10 GB gift for linking the Telegram bot (paying customers with a running plan, new links only) |

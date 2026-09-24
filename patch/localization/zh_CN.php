@@ -1485,4 +1485,5 @@ $i18n['zh_CN'] = array(
 	'InsightPerBuy'             => "你带来的每位新好友，<b>每次购买和续费</b>你都固定获得 %percent%%，每次约 <b>%per%</b>。",
 	'InsightIdleAll'            => "如果尚未购买的 <b>%idle% 人</b>各买一个套餐，就有约 <b>%potential%</b> 进入你的钱包。",
 	'InviteSafeNote'            => "邀请链接仅限<b>亲友和熟人</b>使用，请勿发布到公开频道或群组。该链接为你专属、与你的账户绑定，通过它注册的每个人都会记录在你名下。",
+	'TgBindGift'                => "绑定即送 1 至 10 GB",
 );

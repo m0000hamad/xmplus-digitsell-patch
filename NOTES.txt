@@ -1,4 +1,7 @@
-The Telegram and system share buttons now send the invite message with the
-link at the end. Telegram's share page writes its url field above the text,
-so the link came first while the message ended pointing down at it; the whole
-message now travels in one field.
+A one-time gift for linking the Telegram bot: 1 to 10 GB (about 3.5 GB on
+average) for paying customers with a running plan. Accounts linked before the
+release are marked as existing and get nothing; a free trial without a paid
+order gets nothing; someone who links while expired gets it once they buy.
+Exactly once per site account and per Telegram account. The Telegram row on
+the dashboard shows a gift badge while the gift is on offer, and the bot
+tells the customer what they got. Switch: settings tgbind_gift = 1.

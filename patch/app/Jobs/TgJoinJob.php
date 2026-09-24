@@ -4,7 +4,8 @@ namespace App\Jobs;
 use Illuminate\Database\Capsule\Manager as DB;
 
 /**
- * One-time gift for joining the Telegram channel.
+ * One-time gift for joining the Telegram channel - and, in the same run, a
+ * one-time gift for linking the bot (see bindGifts()).
  *
  * The channel is private with join requests, so there is no join event we can
  * hook (the bot's webhook belongs to the encoded panel). Instead this job asks
@@ -52,17 +53,28 @@ class TgJoinJob
 	/** [chance %, min GB, max GB] - the average free plan is about 18 GB */
 	const FREE_TIERS = [[60, 10, 15], [25, 16, 25], [10, 26, 40], [5, 41, 50]];
 
+	/** [chance %, min GB, max GB] for linking the bot - the average is about 3.5 GB */
+	const BIND_TIERS = [[50, 1, 2], [30, 3, 5], [15, 6, 8], [5, 9, 10]];
+
 	public function dispatch()
 	{
-		$channel = trim((string) $this->setting('tgjoin_channel_id'));
 		$token = trim((string) $this->setting('telegramtoken'));
-		if ($channel === '' || $token === '' || $this->setting('telegram') != 1) {
+		if ($token === '' || $this->setting('telegram') != 1) {
 			return 0;
 		}
 
 		$this->ensureTables();
 
 		$granted = 0;
+
+		if ($this->setting('tgbind_gift') == 1) {
+			$granted += $this->bindGifts($token);
+		}
+
+		$channel = trim((string) $this->setting('tgjoin_channel_id'));
+		if ($channel === '') {
+			return $granted;
+		}
 
 		foreach ($this->candidates() as $user) {
 			$status = $this->memberStatus($token, $channel, $user->telegram_id);
@@ -123,6 +135,19 @@ class TgJoinJob
 			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 
 		DB::statement(
+			'CREATE TABLE IF NOT EXISTS tgbind_log (
+				id INT(11) NOT NULL AUTO_INCREMENT,
+				userid INT(11) NOT NULL,
+				telegram_id BIGINT(20) NOT NULL,
+				kind VARCHAR(10) NOT NULL,
+				gb INT(11) NOT NULL DEFAULT 0,
+				granted_at BIGINT(20) NOT NULL,
+				PRIMARY KEY (id),
+				UNIQUE KEY userid (userid),
+				UNIQUE KEY telegram_id (telegram_id)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+		DB::statement(
 			'CREATE TABLE IF NOT EXISTS tgjoin_check (
 				userid INT(11) NOT NULL,
 				telegram_id BIGINT(20) NOT NULL DEFAULT 0,
@@ -130,6 +155,72 @@ class TgJoinJob
 				seen_out TINYINT(1) NOT NULL DEFAULT 0,
 				PRIMARY KEY (userid)
 			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+	}
+
+	/*
+	 * One-time gift for linking the bot (`tgbind_gift` = 1 switches it on).
+	 *
+	 * Only links made after the switch count: the first run writes every account
+	 * already linked into `tgbind_log` as 'existing'. Only paying customers with
+	 * a running plan get it - at least one paid order, so a free trial account
+	 * plus a fresh Telegram account cannot farm it. Someone who links while
+	 * expired stays pending and gets it once they buy. Exactly once per site
+	 * account and per Telegram account, like the channel gift.
+	 */
+	private function bindGifts($token)
+	{
+		if ($this->setting('tgbind_seeded') != 1) {
+			DB::statement(
+				"INSERT IGNORE INTO tgbind_log (userid, telegram_id, kind, gb, granted_at)
+				 SELECT id, telegram_id, 'existing', 0, ? FROM user WHERE telegram_id > 0",
+				[time()]);
+			DB::table('settings')->where('name', 'tgbind_seeded')->delete();
+			DB::table('settings')->insert(['name' => 'tgbind_seeded', 'value' => '1']);
+			echo date('Y-m-d H:i:s') . ' bot-link gift: accounts already linked marked as existing' . PHP_EOL;
+			return 0;
+		}
+
+		$users = DB::table('user')
+			->where('telegram_id', '>', 0)
+			->where('expire_in', '>', date('Y-m-d H:i:s'))
+			->whereNotExists(function ($q) {
+				$q->select(DB::raw(1))->from('tgbind_log')
+					->whereRaw('tgbind_log.userid = user.id OR tgbind_log.telegram_id = user.telegram_id');
+			})
+			->whereExists(function ($q) {
+				$q->select(DB::raw(1))->from('orders')
+					->whereRaw('orders.userid = user.id AND orders.status = 1');
+			})
+			->limit(self::BATCH)
+			->get(['id', 'telegram_id']);
+
+		$granted = 0;
+		foreach ($users as $user) {
+			$gb = $this->draw(self::BIND_TIERS);
+			try {
+				DB::table('tgbind_log')->insert([
+					'userid'      => $user->id,
+					'telegram_id' => $user->telegram_id,
+					'kind'        => 'gb',
+					'gb'          => $gb,
+					'granted_at'  => time(),
+				]);
+			} catch (\Throwable $e) {
+				continue;
+			}
+
+			DB::update('UPDATE user SET transfer_enable = transfer_enable + ? WHERE id = ?',
+				[$gb * 1073741824, $user->id]);
+			echo date('Y-m-d H:i:s') . sprintf(' user %d (tg %s): bot-link gift +%d GB', $user->id, $user->telegram_id, $gb) . PHP_EOL;
+
+			$this->api($token, 'sendMessage', [
+				'chat_id' => $user->telegram_id,
+				'text'    => "🎉 تلگرامت به حساب دیجیتسل وصل شد!\n🎁 به همین مناسبت {$gb} گیگ هدیه به اشتراکت اضافه شد.",
+			]);
+			$granted++;
+		}
+
+		return $granted;
 	}
 
 	/*

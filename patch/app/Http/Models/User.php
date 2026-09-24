@@ -749,6 +749,26 @@ final class User extends Model
 	}
 
 	/*
+	 * Whether linking the bot would earn this account the one-time gift (see
+	 * TgJoinJob::bindGifts): switched on, not linked yet, never gifted or
+	 * marked existing, a running plan and at least one paid order.
+	 */
+	public function tgBindGiftOpen()
+	{
+		try {
+			if ((int) $this->telegram_id > 0 || !$this->planIsActive()
+				|| Settings::where('name', 'tgbind_gift')->value('value') != 1) {
+				return false;
+			}
+
+			return !DB::table('tgbind_log')->where('userid', $this->id)->exists()
+				&& DB::table('orders')->where('userid', $this->id)->where('status', 1)->exists();
+		} catch (\Throwable $e) {
+			return false;
+		}
+	}
+
+	/*
 	 * The Telegram channel gift as the dashboard shows it (see TgJoinJob).
 	 * state: off | done (gifted, or closed as an existing member) | link (no
 	 * Telegram linked) | join. `free` says which gift is on offer: a free plan
