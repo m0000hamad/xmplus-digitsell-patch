@@ -375,6 +375,19 @@ html[data-hs-theme="dark"] .sub-tile-bar span {
 }
 .sub-tg-off .sub-tg-state { color: #be123c; }
 .sub-tg-state b { direction: ltr; unicode-bidi: isolate; }
+.sub-tg-gift {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: 5px;
+	padding: 3px 10px;
+	border-radius: 999px;
+	font-size: 11.5px;
+	font-weight: 700;
+	color: #fff;
+	background: linear-gradient(135deg, #fb923c, #ec4899);
+	box-shadow: 0 4px 12px -4px rgba(236, 72, 153, .6);
+}
 .sub-tg-dot {
 	width: 8px;
 	height: 8px;
@@ -529,6 +542,9 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 									{$translate->get('TelegramNotLinked')}
 								{/if}
 							</div>
+							{if $user->telegram_id <= 0 && $user->tgBindGiftOpen()}
+								<div class="sub-tg-gift"><i class="fa-solid fa-gift"></i> {$translate->get('TgBindGift')}</div>
+							{/if}
 						</div>
 					</div>
 					{if $user->telegram_id > 0}

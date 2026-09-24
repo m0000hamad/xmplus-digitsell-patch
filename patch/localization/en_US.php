@@ -1484,4 +1484,5 @@ If you want a fast, reliable service, sign up with my link 👇",
 	'InsightPerBuy'             => "Every new friend you bring pays you a fixed %percent%% on <b>every purchase and renewal</b> - about <b>%per%</b> each time.",
 	'InsightIdleAll'            => "If the <b>%idle%</b> who have not bought yet each buy a plan, about <b>%potential%</b> lands in your wallet.",
 	'InviteSafeNote'            => "Your invite link is for <b>friends and people you know</b> only - do not post it in public channels or groups. It is personal, tied to your account, and every sign-up through it is recorded under you.",
+	'TgBindGift'                => "1 to 10 GB gift for linking",
 );
