@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-24 · installed version **1.8.5** · latest release **1.8.5** · repo
+Last updated: 2026-09-24 · installed version **1.8.6** · latest release **1.8.6** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -167,6 +167,7 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Time plans | A third plan type selling days only — see the section below |
 | Menu | Labelled glass toggle, per-item colours, current page marked, works on phones |
 | Themes | Dark mode fixed panel-wide (see above) |
+| Sign-in page | `view/auth/login.tpl` redesigned (1.8.6) — see below |
 
 ### Time plans — how days are sold without touching the order pipeline
 
@@ -362,6 +363,33 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 - Settings rows: `tgjoin_channel_id`, `tgjoin_link`, `tgjoin_free_package`,
   `tgjoin_free_days`. Empty channel id switches everything off.
 
+### Sign-in page (1.8.6)
+
+`view/auth/login.tpl` + `view/auth/loginsocial.tpl` (the icon row, included
+twice: side panel on desktop, bottom of the card on phones). Desktop from
+1024 px is a split screen, form on the right; below that only the card shows
+and it fits one screen.
+
+- **Do not edit `patch/view/auth/login.tpl` by hand.** It is built: the source
+  is `tools/login/login.src.tpl`, and `node tools/login/build.js` compiles
+  Tailwind 3 (npx) over it and inlines the CSS at `/*TAILWIND*/`. A class used
+  in the source but not rebuilt simply has no CSS.
+- No outside CDN on purpose: the site sits behind an Iranian CDN and
+  `public/assets` is outside the updater's paths, so fonts (IRANSans, Inter)
+  and Font Awesome come from the panel's own `/assets`, and the CSS is inline.
+  Font Awesome here has no `fa-x-twitter`; X uses `fa-twitter`.
+- Contract kept from the stock template: POST `/login` with `email`, `passwd`,
+  `hcaptcha` / `turnstile`; `ret 1` → `/portal/dashboard`, `ret 2` →
+  `/verify`, anything else shows `msg` under the form. No jQuery: the stock
+  `captcha/*.tpl` partials need `$`, so the page loads the captcha APIs itself.
+- The stock "Google / Telegram bot" quick sign-in and the `/tos` `/privacy`
+  footer links were dropped: those routes do not exist (the last two answer
+  500).
+- Telegram support is `t.me/digitsellshop`; the other social links still point
+  at the networks' home pages until the owner gives real ones.
+- Deployed by hand before the release commit; stock template backed up in
+  `/root/login-backup-20260924-181400/`.
+
 ## 7. Things asked for that could not be done, and why
 
 - **More fields on the invoice** (plan size, wallet credit used). The details
@@ -473,3 +501,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.8.3 | Gift messages state the new total and end date; congratulation popup on the dashboard; channel recheck every 2 minutes |
 | 1.8.4 | Admin chat is told about every new bot link and every Telegram gift |
 | 1.8.5 | Dashboard reloads itself when a Telegram gift lands (tggift.poll) |
+| 1.8.6 | New sign-in page: split screen on desktop, one-screen card on phones, icon-only social row, no outside CDN |
