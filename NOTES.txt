@@ -1,18 +1,9 @@
-New sign-in page.
+Theme switch on the sign-in page.
 
-view/auth/login.tpl is redesigned: a dark glass card with the Digitsell
-header. On a desktop (1024 px and wider) it is a split screen - the form on
-the right, the Network Optimizer features and the social icons on the left,
-all on one screen. On a phone only the form shows, with the social icons at
-the bottom of the card, and it fits one screen without scrolling. Inputs are
-16 px on phones so iOS does not zoom on focus.
-
-The form keeps the panel's own contract: it posts email and passwd (plus the
-hCaptcha or Turnstile response when enabled) to /login and follows ret 1 to
-/portal/dashboard and ret 2 to /verify. Errors show under the fields instead
-of a layer popup. Social links are icons only; Telegram goes to
-t.me/digitsellshop (support).
-
-Everything is served from the panel itself - IRANSans, Inter, Font Awesome
-and the compiled Tailwind CSS inlined in the template - so the page does not
-depend on any outside CDN. Source and build script: tools/login/.
+A three-way switch in the header - night, day, automatic (follows the
+device) - picks the look of view/auth/login.tpl. Night is the default until
+someone chooses. The choice is stored in the same localStorage key the panel
+uses (hs_theme: dark / default / auto), so it carries into the dashboard
+after signing in, and a choice already made inside the panel shows here too.
+The theme is resolved before the first paint, so the page never flashes the
+wrong colours; in automatic mode it follows the device changing live.

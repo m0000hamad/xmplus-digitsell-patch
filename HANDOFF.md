@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-24 · installed version **1.8.6** · latest release **1.8.6** · repo
+Last updated: 2026-09-24 · installed version **1.8.7** · latest release **1.8.7** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -387,8 +387,16 @@ and it fits one screen.
   500).
 - Telegram support is `t.me/digitsellshop`; the other social links still point
   at the networks' home pages until the owner gives real ones.
-- Deployed by hand before the release commit; stock template backed up in
-  `/root/login-backup-20260924-181400/`.
+- **Theme switch (1.8.7):** night / day / automatic in the header. Stored in
+  the panel's own `localStorage['hs_theme']` (`dark` / `default` / `auto`), so
+  the choice carries both ways between this page and the panel. Nothing stored
+  means night on this page. A head script resolves it into
+  `<html data-theme="dark|light">` before paint; the light look is a block of
+  `[data-theme="light"]` overrides on the Tailwind classes in the source (any
+  `text-white` without a `bg-gradient-*` class turns dark ink), so a new
+  element with a new colour class needs its own override.
+- Deployed by hand before each release commit; stock template and the 1.8.6
+  version backed up in `/root/login-backup-20260924-181400/`.
 
 ## 7. Things asked for that could not be done, and why
 
@@ -502,3 +510,4 @@ and it fits one screen.
 | 1.8.4 | Admin chat is told about every new bot link and every Telegram gift |
 | 1.8.5 | Dashboard reloads itself when a Telegram gift lands (tggift.poll) |
 | 1.8.6 | New sign-in page: split screen on desktop, one-screen card on phones, icon-only social row, no outside CDN |
+| 1.8.7 | Night / day / automatic switch on the sign-in page, night by default, shared with the panel's theme |
