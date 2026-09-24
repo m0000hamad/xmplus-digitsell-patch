@@ -200,6 +200,98 @@ html[data-hs-theme="dark"] .usage-server-total { color: #e7eaf3; }
 html[data-hs-theme="dark"] .usage-server { border-bottom-color: rgba(255, 255, 255, .08); }
 html[data-hs-theme="dark"] .usage-server-bar { background: rgba(255, 255, 255, .09); }
 
+html[data-hs-theme="dark"] .usage-kpi-label,
+html[data-hs-theme="dark"] .usage-server-meta { color: #aab6cc; }
+html[data-hs-theme="dark"] .usage-kpi-sub { color: #9aa8c0; }
+html[data-hs-theme="dark"] .usage-empty { color: #aab6cc; }
+/* ---- the server this user is connected to: a Gemini-style halogen line ----
+   The colour lives only inside the bar's own track - no glow or blur
+   spilling outside it. */
+/* a wider track, with halogen packets streaming through the empty part of it
+   to say data is moving right now */
+.usage-server.is-live .usage-server-bar {
+	position: relative;
+	height: 12px;
+	overflow: hidden;
+	isolation: isolate;
+}
+.usage-server.is-live .usage-server-bar::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	background:
+		linear-gradient(90deg, transparent 0 22%, rgba(71, 150, 227, .55) 30%, rgba(145, 119, 199, .65) 36%, transparent 44% 100%),
+		linear-gradient(90deg, transparent 0 60%, rgba(202, 102, 115, .5) 66%, rgba(242, 166, 90, .55) 71%, transparent 78% 100%);
+	/* tile widths equal the distance each moves per loop, so it never jumps */
+	background-size: 110px 100%, 76px 100%;
+	background-repeat: repeat-x;
+	animation: usageStream 1.6s linear infinite;
+}
+.usage-server.is-live .usage-server-bar span {
+	position: relative;
+	z-index: 1;
+	min-width: 18%;
+	overflow: hidden;
+	background: linear-gradient(90deg, #4796e3, #9177c7, #ca6673, #f2a65a, #9177c7, #4796e3) !important;
+	background-size: 300% 100% !important;
+	animation: usageHalogen 4s linear infinite;
+}
+/* a bright packet running along the filled part too, kept inside it */
+.usage-server.is-live .usage-server-bar span::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(90deg, transparent 0 40%, rgba(255, 255, 255, .55) 50%, transparent 60% 100%);
+	background-size: 250% 100%;
+	animation: usageShine 1.4s linear infinite;
+}
+@keyframes usageShine {
+	from { background-position: 100% 0; }
+	to   { background-position: -150% 0; }
+}
+@keyframes usageStream {
+	from { background-position: 0 0, 0 0; }
+	to   { background-position: 110px 0, 76px 0; }
+}
+.usage-server.is-live .usage-server-rank {
+	background: linear-gradient(135deg, #4796e3, #9177c7 55%, #ca6673) !important;
+}
+@keyframes usageHalogen {
+	from { background-position: 0% 50%; }
+	to   { background-position: 300% 50%; }
+}
+.usage-live {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	margin-inline-start: 6px;
+	padding: 2px 8px;
+	border-radius: 999px;
+	font-size: 10.5px;
+	font-weight: 700;
+	vertical-align: 1px;
+	color: #fff;
+	background: linear-gradient(90deg, #4796e3, #9177c7, #ca6673);
+}
+.usage-live i {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: #fff;
+	animation: usageLivePulse 1.6s ease-in-out infinite;
+}
+@keyframes usageLivePulse {
+	0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 255, 255, .7); }
+	50%      { opacity: .6; box-shadow: 0 0 0 4px rgba(255, 255, 255, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.usage-server.is-live .usage-server-bar span,
+	.usage-server.is-live .usage-server-bar span::after,
+	.usage-server.is-live .usage-server-bar::before,
+	.usage-live i { animation: none; }
+}
+
 @media (max-width: 575.98px) {
 	.usage-kpis { grid-template-columns: 1fr; }
 	.usage-range {

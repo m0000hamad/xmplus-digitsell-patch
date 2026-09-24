@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-23 · installed version **1.7.0** (files live; the panel still records 1.4.4 until an update is applied) · latest release **1.7.0** · repo
+Last updated: 2026-09-24 · installed version **1.8.0** · latest release **1.8.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -157,6 +157,8 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Tickets | Paragraphs survive, links clickable, Telegram-style sides, stickers, staff signature; **stored XSS closed** |
 | Affiliate | Invite tab and commission tab; per-referral earnings; withdrawal form with card and IBAN; written cash-out rules |
 | Commission | Automatic payout, popup, ledger, cash/credit routing |
+| Invites | Dashboard invite popup in three stages with an "assistant" quoting the visitor's own numbers; ready-to-send invite message with share buttons on the affiliate page; friends-only note. Released in 1.8.0 — see below |
+| Telegram channel gift | One-time weighted gift for new channel members (GB on a running plan, a free plan otherwise), `TgJoinJob`. Released in 1.8.0 — see below |
 | Purchase flow | Plans, plan detail, checkout and orders redesigned; a verdict popup states the result and survives the redirect |
 | Admin dashboard | Rebuilt on ApexCharts from one read-only call, `xmplus-patch.php?do=dashboard.overview` (`app/Patch/Dashboard.php`): KPI cards with sparklines and deltas, daily revenue by kind, 12-month trend (Solar Hijri months for fa_IR), sales mix and gateways, top plans, weekday x hour heatmap, user status, 14-day expiry pipeline, sign-ups, traffic by day and server, node table, latest paid orders, and a system health card (DB, nodes, cron locks, trafficlog freshness, 24h paid rate, disk, load, cache dir, unapplied time orders, patch version). Released in 1.7.0 |
 | Invoice | A real document with seller, buyer, line item and totals; prints on one sheet; readable on a phone |
@@ -279,6 +281,60 @@ Both rows are written by the same `timeplan.topupscope` call.
   219 expired users (171,144,159 IRR). **Staff keep their commission on
   purpose** — confirmed twice.
 
+### Invites — popup, assistant, share bar (1.8.0)
+
+Files: `view/user/affiliate/invitepopup.tpl` (included at the end of
+`dashboard.tpl` when `rebate` is on), `inviteinsight.tpl` (the assistant
+bubbles), `sharebar.tpl` (message + buttons; `shareEditable=1` on the affiliate
+page, `shareCompact=1` in the popup), `User::referralCount()`,
+`User::inviteInsight()`.
+
+- Stages: 0 offer → dismissed → 12 h → 1 "what is lost" → 2 days → 2
+  "discount on your next plan" → 7 days → back to 1. Any share button = done,
+  quiet for 30 days. State is `localStorage['dsInvitePop:<uid>']` — there is no
+  endpoint for it, and losing it only shows the offer once more.
+- It never stacks: it waits until no `.modal.show`, `.swal2-container` or layer
+  dialog is open, then 2 s of quiet.
+- The owner decided the wording: **no "permanent income"** — the pitch is "your
+  next plan at a discount, and your friends get a quality service". The
+  service features list (fixed-location servers, SSL/encryption, battery, no
+  YouTube ads, speed, 7 years / works in full shutdowns) comes from the owner.
+- Invite only friends and acquaintances, never public channels — a note under
+  the share buttons says so. No penalty is stated because none was decided.
+- `inviteInsight()` estimates with the **real average commission per purchase
+  over the last 90 days** (`affiliate.ref_get`), not a made-up price.
+- Warm palette only (orange/pink/amber); the owner rejected the first
+  indigo design and its heavy font weights. The panel font is IRANSans with
+  weights 200/300/400/500/700/900 — 800 renders as Black.
+
+### Telegram channel gift (1.8.0)
+
+`app/Jobs/TgJoinJob.php`, `bin/tgjoin.php`, scheduled every minute in
+`TaskCommand`. Log: `storage/logs/tgjoin.log`. Card:
+`view/user/dashboard/tgjoin.tpl` under the subscription card, fed by
+`User::tgJoin()`.
+
+- The channel ("دوستان دیجیتسل", `-1001642779233`) is private with join
+  requests. The panel bot (`settings.telegramtoken`) is an admin there and the
+  job calls `getChatMember` for linked accounts (`user.telegram_id`).
+- **New members only:** the account has to be seen outside the channel before
+  it is seen inside. Inside at the first look = closed as `existing`, never
+  gifted. Never-checked accounts are asked first, so a fresh link is looked at
+  within a minute — before an admin approves the request. Loophole nobody can
+  close from the bot: an old member who has not linked yet could leave, link,
+  and rejoin. The admin approval is the only gate for that.
+- **Exactly once:** `tgjoin_log` is UNIQUE on `userid` AND `telegram_id`, and
+  the row is claimed before anything is applied.
+- Gift (owner's ranges, weighting chosen to keep cost down): running plan →
+  1–50 GB added (60 % 1–3, 25 % 4–10, 10 % 11–25, 5 % 26–50; mean ≈ 6.7 GB);
+  no running plan → a free plan of 10–50 GB (mean ≈ 18 GB) for
+  `tgjoin_free_days` (30) copying server group, IP and speed limit from
+  `tgjoin_free_package` (18, "10 GB one month single user").
+- **MySQL `NOW()` runs on UTC here while `expire_in` is local time (+03:30).**
+  The free plan's expiry is computed in PHP for that reason.
+- Settings rows: `tgjoin_channel_id`, `tgjoin_link`, `tgjoin_free_package`,
+  `tgjoin_free_days`. Empty channel id switches everything off.
+
 ## 7. Things asked for that could not be done, and why
 
 - **More fields on the invoice** (plan size, wallet credit used). The details
@@ -330,6 +386,21 @@ Both rows are written by the same `timeplan.topupscope` call.
   disk; backup of the replaced files: `/root/dash-backup-20260923-121621`.
   Not yet verified by an admin in a real browser session.
 
+- **User dashboard night theme (2026-09-23, released in 1.8.0):** the
+  chart code read `data-hs-appearance` on `<html>`, which is never set - the
+  header mirrors the theme into `data-hs-theme` - so charts always drew
+  light-theme ink on dark cards. Fixed in `isDark()`; night palette added.
+  `User::usageStats()` now returns `live`: server ids with an `online_ip` row
+  for this user in the last 5 minutes. That server's bar is taller, Gemini-
+  gradient, with packets streaming through the track. The days-left bar ends
+  in a sparkler (`.sub-fuse`, sparks spawned by a small script, capped by
+  their lifetime, off for reduced motion). The owner asked for **no glow or
+  blur outside the bars** - halogen colour stays inside the tracks.
+  Backup: `/root/userdash-backup-20260923-130021`.
+  Menu items in `layout/style.tpl` light up like a lamp on hover (a bulb of
+  the item's own `--mc` colour behind the icon, a short flicker, light
+  kept inside the pill plus a thin edge halo).
+
 ## 9. Testing rules learned the hard way
 
 - **Render every page as at least two accounts** — a normal one and an edge
@@ -369,3 +440,4 @@ Both rows are written by the same `timeplan.topupscope` call.
 | 1.5.2 | Limit a traffic top-up to chosen subscription plans |
 | 1.6.0 | Scope time plans and top-ups by server group as well as by plan |
 | 1.7.0 | Rebuild the admin dashboard with a health card; per-server traffic on the servers page |
+| 1.8.0 | Invite popup with a personal assistant, share bar, friends-only note; one-time Telegram channel gift; user dashboard night theme and menu lamps |

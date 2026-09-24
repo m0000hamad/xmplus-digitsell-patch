@@ -487,3 +487,94 @@ html[data-hs-theme="dark"] #navbarVerticalMenu .dropdown-header::after {
 }
 </style>
 {/literal}
+
+{literal}
+<style>
+/* ================= menu items light up like a lamp on hover =================
+   Each item already carries its own colour in --mc. On hover a bulb of that
+   colour switches on behind the icon - with the short flicker of a lamp
+   catching - and its light spreads across the pill from the icon's side.
+   The light stays inside the pill; only a thin halo of the same colour sits
+   around its edge. */
+#navbarVerticalMenu .nav-link {
+	position: relative;
+	overflow: hidden;
+	isolation: isolate;
+}
+#navbarVerticalMenu .nav-link > * { position: relative; z-index: 1; }
+/* the light itself, anchored on the icon's side whichever way the page runs */
+#navbarVerticalMenu .nav-link::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	inset-inline-start: -30px;
+	width: 170px;
+	height: 170px;
+	margin-top: -85px;
+	border-radius: 50%;
+	background: radial-gradient(circle, color-mix(in srgb, var(--mc) 60%, #fff) 0%, color-mix(in srgb, var(--mc) 45%, transparent) 28%, transparent 62%);
+	opacity: 0;
+	transform: scale(.55);
+	transition: opacity .22s ease, transform .35s cubic-bezier(.2, .8, .2, 1);
+	pointer-events: none;
+	z-index: 0;
+}
+#navbarVerticalMenu .nav-link:hover::before,
+#navbarVerticalMenu .nav-link:focus-visible::before {
+	opacity: .55;
+	transform: scale(1);
+	animation: navLampOn .45s steps(1, end) 1;
+}
+#navbarVerticalMenu .nav-link:hover,
+#navbarVerticalMenu .nav-link:focus-visible {
+	border-color: var(--mc);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--mc) 35%, transparent), 0 0 14px -2px var(--mc);
+}
+/* the bulb: the icon tile turns into a lit lamp */
+#navbarVerticalMenu .nav-link:hover .nav-icon,
+#navbarVerticalMenu .nav-link:focus-visible .nav-icon {
+	background: radial-gradient(circle at 50% 40%, #fff 0%, color-mix(in srgb, var(--mc) 55%, #fff) 35%, var(--mc) 100%);
+	box-shadow: 0 0 10px 1px var(--mc), inset 0 0 6px rgba(255, 255, 255, .7);
+}
+#navbarVerticalMenu .nav-link:hover .nav-sticker,
+#navbarVerticalMenu .nav-link:focus-visible .nav-sticker {
+	filter: saturate(125%) drop-shadow(0 0 5px rgba(255, 255, 255, .85));
+}
+/* a lamp catching: two quick flickers, then steady */
+@keyframes navLampOn {
+	0%   { opacity: .15; }
+	18%  { opacity: .6; }
+	30%  { opacity: .2; }
+	48%  { opacity: .55; }
+	60%  { opacity: .3; }
+	100% { opacity: .55; }
+}
+
+/* at night the lamp is brighter and the text catches its light */
+html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link:hover::before,
+html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link:focus-visible::before { opacity: .8; }
+html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link:hover,
+html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link:focus-visible {
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--mc) 55%, transparent), 0 0 18px -2px var(--mc);
+}
+html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link:hover .nav-link-title {
+	text-shadow: 0 0 10px color-mix(in srgb, var(--mc) 70%, #fff);
+}
+@keyframes navLampOnNight {
+	0%   { opacity: .2; }
+	18%  { opacity: .85; }
+	30%  { opacity: .25; }
+	48%  { opacity: .8; }
+	60%  { opacity: .4; }
+	100% { opacity: .8; }
+}
+html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link:hover::before { animation-name: navLampOnNight; }
+
+/* the page you are on is already lit; keep its solid pill readable */
+#navbarVerticalMenu .nav-link.nav-here::before { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+	#navbarVerticalMenu .nav-link::before { transition: opacity .2s ease; transform: none; animation: none !important; }
+}
+</style>
+{/literal}

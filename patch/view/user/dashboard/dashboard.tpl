@@ -162,6 +162,7 @@
 	window.usageI18n.month      = "{$translate->get('RangeMonth')|escape:'javascript'}";
 	window.usageI18n.year       = "{$translate->get('RangeYear')|escape:'javascript'}";
 	window.usageI18n.remaining  = "{$translate->get('unUsedData')|escape:'javascript'}";
+	window.usageI18n.live       = "{$translate->get('ConnectedNow')|escape:'javascript'}";
 	window.usageQuota = new Object();
 	window.usageQuota.remaining = parseFloat("{$user->unusedTrafficPercent()}") || 0;
 	window.usageQuota.used      = parseFloat("{$user->usedTrafficPercent()}") || 0;
@@ -170,6 +171,9 @@
 <script>
 var renderUsageCharts = (function () {
 	var PALETTE = ['#6366f1', '#06b6d4', '#8b5cf6', '#f59e0b', '#10b981', '#f43f5e', '#3b82f6', '#ec4899', '#14b8a6', '#a855f7'];
+	/* the same hues lifted for the night theme, so they glow on the dark card
+	   instead of sinking into it */
+	var PALETTE_NIGHT = ['#8b9bff', '#22d3ee', '#b18cff', '#ffc44d', '#34f5b0', '#ff6b8a', '#60a5fa', '#ff7ac8', '#2ee6d0', '#c98bff'];
 	var areaChart = null;
 	var donutChart = null;
 	var quotaChart = null;
@@ -184,9 +188,24 @@ var renderUsageCharts = (function () {
 		return (window.usageI18n && window.usageI18n[key]) ? window.usageI18n[key] : key;
 	}
 
+	/* The header mirrors the theme into data-hs-theme on <html>. This used to
+	   read data-hs-appearance, which is never set on <html>, so the charts
+	   always drew light-theme ink - invisible on the dark cards. */
 	function isDark() {
-		return document.documentElement.getAttribute('data-hs-appearance') === 'dark';
+		var mark = document.documentElement.getAttribute('data-hs-theme');
+		if (mark) { return mark === 'dark'; }
+		try { return HSThemeAppearance.getAppearance() === 'dark'; } catch (e) { return false; }
 	}
+
+	function palette() {
+		return isDark() ? PALETTE_NIGHT : PALETTE;
+	}
+
+	function ink() {
+		return isDark() ? '#f1f4fb' : '#16203d';
+	}
+
+
 
 	function format(mb) {
 		var value = parseFloat(mb);
@@ -212,7 +231,7 @@ var renderUsageCharts = (function () {
 	}
 
 	function axisColor() {
-		return isDark() ? '#9fb0cc' : '#97a4af';
+		return isDark() ? '#c3cde0' : '#97a4af';
 	}
 
 	function paintKpis(range) {
@@ -270,18 +289,23 @@ var renderUsageCharts = (function () {
 				fontFamily: 'inherit',
 				toolbar: { show: false },
 				zoom: { enabled: false },
+				foreColor: axisColor(),
 				animations: { easing: 'easeinout', speed: 450 }
 			},
 			series: [
 				{ name: txt('down'), data: series.down },
 				{ name: txt('up'), data: series.up }
 			],
-			colors: ['#6366f1', '#f59e0b'],
+			colors: dark ? ['#8b9bff', '#ffc44d'] : ['#6366f1', '#f59e0b'],
 			dataLabels: { enabled: false },
 			stroke: { curve: 'smooth', width: 2.5, lineCap: 'round' },
 			fill: {
 				type: 'gradient',
-				gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.02, stops: [0, 90, 100] }
+				// at night the fill stays a faint tint of the line's own colour,
+				// so the glowing line is what the eye follows
+				gradient: dark
+					? { type: 'vertical', shadeIntensity: 0, gradientToColors: ['#8b9bff', '#ffc44d'], opacityFrom: 0.28, opacityTo: 0, stops: [0, 85] }
+					: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.02, stops: [0, 90, 100] }
 			},
 			markers: { size: 0, strokeWidth: 2, hover: { size: 5 } },
 			grid: {
@@ -303,6 +327,7 @@ var renderUsageCharts = (function () {
 				axisBorder: { show: false },
 				axisTicks: { show: false },
 				tooltip: { enabled: false },
+				tickAmount: Math.min(8, Math.max(labels.length - 1, 1)),
 				labels: { rotate: 0, hideOverlappingLabels: true, style: { colors: axisColor(), fontSize: '11px' } }
 			},
 			yaxis: {
@@ -352,10 +377,10 @@ var renderUsageCharts = (function () {
 		}
 
 		donutChart = new ApexCharts(host, {
-			chart: { type: 'donut', height: 270, fontFamily: 'inherit' },
+			chart: { type: 'donut', height: 270, fontFamily: 'inherit', foreColor: axisColor() },
 			series: values,
 			labels: names,
-			colors: PALETTE,
+			colors: palette(),
 			stroke: { width: 0 },
 			legend: { show: false },
 			dataLabels: { enabled: false },
@@ -369,7 +394,7 @@ var renderUsageCharts = (function () {
 							value: {
 								fontSize: '17px',
 								fontWeight: 700,
-								color: dark ? '#e7eaf3' : '#16203d',
+								color: ink(),
 								formatter: function (value) { return format(value); }
 							},
 							total: {
@@ -390,17 +415,22 @@ var renderUsageCharts = (function () {
 		});
 		donutChart.render();
 
+		var live = stats().live || [];
+		var colors = palette();
 		var html = '';
 		for (var j = 0; j < servers.length; j++) {
 			var server = servers[j];
-			var color = PALETTE[j % PALETTE.length];
+			var color = colors[j % colors.length];
 			var width = grand > 0 ? Math.max((server.total / grand) * 100, 1.5) : 0;
+			// the server this user is on right now gets the halogen bar
+			var isLive = live.indexOf(server.id) !== -1;
 
-			html += '<div class="usage-server">'
+			html += '<div class="usage-server' + (isLive ? ' is-live' : '') + '" style="--srv:' + color + '">'
 				+ '<span class="usage-server-rank" style="background:' + color + '">' + (j + 1) + '</span>'
 				+ '<div class="usage-server-body">'
 				+ '<div class="usage-server-head">'
-				+ '<span class="usage-server-name">' + escapeHtml(server.name) + '</span>'
+				+ '<span class="usage-server-name">' + escapeHtml(server.name)
+				+ (isLive ? ' <span class="usage-live"><i></i>' + txt('live') + '</span>' : '') + '</span>'
 				+ '<span class="usage-server-total">' + format(server.total) + '</span>'
 				+ '</div>'
 				+ '<div class="usage-server-bar"><span style="width:' + width.toFixed(1) + '%;background:' + color + '"></span></div>'
@@ -445,7 +475,7 @@ var renderUsageCharts = (function () {
 					enabled: true,
 					top: 4,
 					blur: 8,
-					opacity: dark ? 0.35 : 0.18,
+					opacity: dark ? 0 : 0.18,
 					color: colors[0]
 				}
 			},
@@ -484,7 +514,7 @@ var renderUsageCharts = (function () {
 							offsetY: -14,
 							fontSize: '34px',
 							fontWeight: 700,
-							color: dark ? '#e7eaf3' : '#16203d',
+							color: ink(),
 							formatter: function (value) { return value + '%'; }
 						}
 					}
@@ -1215,4 +1245,8 @@ var renderUsageCharts = (function () {
 		});
 	}, 900);
 </script>
+{/if}
+
+{if $Config['rebate'] != 0}
+	{include file='user/affiliate/invitepopup.tpl'}
 {/if}

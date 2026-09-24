@@ -99,6 +99,15 @@ final class TaskCommand extends Command
 			'enabled' => true,
 		));
 
+		// one-time gift for joining the Telegram channel; asks the Bot API who is a member
+		$scheduler->add('TgJoinJob', array(
+			'command' => 'php '.BASE_PATH.'/bin/tgjoin.php',
+			'schedule' => "* * * * *",
+			'output' => BASE_PATH.'/storage/logs/tgjoin.log',
+			'lock_dir' => BASE_PATH.'/storage/cron/',
+			'enabled' => true,
+		));
+
 		$scheduler->run();
 		return 0;
     }
