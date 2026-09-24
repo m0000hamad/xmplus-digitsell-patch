@@ -38,6 +38,9 @@ use Illuminate\Database\Capsule\Manager as DB;
  *   tgjoin_link          invite link shown to users
  *   tgjoin_free_package  package the free plan copies (default 18)
  *   tgjoin_free_days     length of the free plan in days (default 30)
+ *   tgjoin_admin_chats   comma-separated Telegram chat ids told about every new
+ *                        link and every gift (default: the panel's admin chat,
+ *                        `telegramchatid`)
  */
 class TgJoinJob
 {
@@ -55,6 +58,9 @@ class TgJoinJob
 
 	/** [chance %, min GB, max GB] for linking the bot - the average is about 3.5 GB */
 	const BIND_TIERS = [[50, 1, 2], [30, 3, 5], [15, 6, 8], [5, 9, 10]];
+
+	/** accounts whose bot-link gift was already reported to the admins in this run */
+	private $reported = [];
 
 	public function dispatch()
 	{
@@ -85,6 +91,12 @@ class TgJoinJob
 
 			$member = in_array($status, ['member', 'administrator', 'creator', 'restricted'], true);
 
+			// never looked at before = linked since the last run; the bot-link gift, if
+			// any, has been reported already
+			if ($user->check_tg === null && empty($this->reported[$user->id])) {
+				$this->tellAdmins($token, $user->id, '🔗 اتصال به ربات', '🎁 جایزه‌ی اتصال: ندارد (' . $this->bindReason($user->id) . ')');
+			}
+
 			// a different Telegram account on the same site account starts over
 			$seenOut = $user->check_tg !== null && (string) $user->check_tg === (string) $user->telegram_id
 				&& (int) $user->seen_out === 1;
@@ -100,6 +112,9 @@ class TgJoinJob
 					if ($gift) {
 						$granted++;
 						$this->notify($token, $user->telegram_id, $gift, $user->id);
+						$this->tellAdmins($token, $user->id, '📢 عضویت در کانال', $gift['kind'] === 'free'
+							? "🎁 جایزه: اشتراک رایگان {$gift['gb']} گیگ {$gift['days']} روزه"
+							: "🎁 جایزه: {$gift['gb']} گیگ");
 					}
 				} else {
 					// already inside the first time we looked: an existing member, no gift ever
@@ -233,6 +248,8 @@ class TgJoinJob
 			}
 
 			$this->api($token, 'sendMessage', ['chat_id' => $user->telegram_id, 'text' => $text]);
+			$this->tellAdmins($token, $user->id, '🔗 اتصال به ربات', "🎁 جایزه: {$gb} گیگ");
+			$this->reported[$user->id] = true;
 			$granted++;
 		}
 
@@ -392,10 +409,62 @@ class TgJoinJob
 	}
 
 	/*
+	 * Tells the admin chat(s) about a new link or a gift: who, what for, what
+	 * they got and where their plan stands now. Plain text, no parse mode, so a
+	 * username can never break the message.
+	 */
+	private function tellAdmins($token, $userId, $event, $giftLine)
+	{
+		$chats = trim((string) $this->setting('tgjoin_admin_chats'));
+		if ($chats === '') {
+			$chats = trim((string) $this->setting('telegramchatid'));
+		}
+		if ($chats === '') {
+			return;
+		}
+
+		$u = DB::table('user')->where('id', $userId)->first(['id', 'username', 'email', 'telegram_name']);
+		if (!$u) {
+			return;
+		}
+
+		$who = "👤 {$u->username} (#{$u->id})";
+		if ((string) $u->telegram_name !== '') {
+			$who .= " · @{$u->telegram_name}";
+		}
+
+		$text = "{$event}\n{$who}\n{$giftLine}\n" . $this->balanceLine($userId, true);
+
+		foreach (preg_split('~[\s,]+~', $chats, -1, PREG_SPLIT_NO_EMPTY) as $chat) {
+			$this->api($token, 'sendMessage', ['chat_id' => $chat, 'text' => $text]);
+		}
+	}
+
+	/*
+	 * Why a newly linked account got no bot-link gift, for the admin note.
+	 */
+	private function bindReason($userId)
+	{
+		if ($this->setting('tgbind_gift') != 1) {
+			return 'جایزه‌ی اتصال خاموش است';
+		}
+		if (DB::table('tgbind_log')->where('userid', $userId)->exists()) {
+			return 'قبلاً جایزه گرفته یا از قبل وصل بوده';
+		}
+		if (!DB::table('user')->where('id', $userId)->where('expire_in', '>', date('Y-m-d H:i:s'))->exists()) {
+			return 'اشتراک فعال ندارد؛ بعد از خرید می‌گیرد';
+		}
+		if (!DB::table('orders')->where('userid', $userId)->where('status', 1)->exists()) {
+			return 'هنوز خریدی نکرده';
+		}
+		return 'همین آیدی تلگرام قبلاً جایزه گرفته';
+	}
+
+	/*
 	 * "You now have N GB in total, usable until <date> (D days)" - read after
 	 * the gift was applied, so it is the figure the customer will see on the site.
 	 */
-	private function balanceLine($userId)
+	private function balanceLine($userId, $forAdmin = false)
 	{
 		$u = DB::table('user')->where('id', $userId)->first(['transfer_enable', 'u', 'd', 'expire_in']);
 		if (!$u) {
@@ -406,6 +475,12 @@ class TgJoinJob
 		$left = rtrim(rtrim(number_format($left, 1, '.', ''), '0'), '.');
 		$until = strtotime((string) $u->expire_in);
 		$days = max(0, (int) floor(($until - time()) / 86400));
+
+		if ($forAdmin) {
+			return $until > time()
+				? "📦 حجم باقی‌مانده: {$left} گیگ · تا " . "\u{200E}" . date('Y-m-d', $until) . "\u{200E}" . " ({$days} روز)"
+				: '📦 اشتراک فعال ندارد';
+		}
 
 		return "📦 حالا مجموعاً {$left} گیگ حجم داری که تا پایان اشتراکت، "
 			// LRM marks keep the date reading left to right inside the Persian sentence

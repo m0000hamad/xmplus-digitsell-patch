@@ -1,13 +1,7 @@
-Telegram gifts now say more, on Telegram and on the site.
+The admins hear about every new Telegram link and every gift.
 
-The bot's message states what was won and the plan's total traffic after it,
-usable until the plan ends (date and days left). After the bot-link gift it
-also points at the channel gift (up to 50 GB) while that is still open.
-
-A congratulation popup on the dashboard (giftpopup.tpl, User::newGifts())
-shows each gift not yet seen - amount, reason, total traffic and end date,
-the channel nudge - with confetti. Reading it marks it seen (not for an admin
-previewing a portal). tgjoin_log and tgbind_log gained a seen column.
-
-A linked account that has not joined yet is asked again every 2 minutes
-instead of 10, so the channel card goes soon after an approval.
+TgJoinJob sends a note to the panel's admin chat (telegramchatid, or the
+chats listed in tgjoin_admin_chats): who linked the bot and what they got -
+or why they got nothing (no running plan yet, no purchase yet, already
+gifted) - and who joined the channel and what they won, with the plan's
+remaining traffic and end date.
