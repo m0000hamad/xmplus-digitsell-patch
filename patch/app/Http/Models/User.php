@@ -769,7 +769,8 @@ final class User extends Model
 					$out[] = [
 						'source' => $source,
 						'kind'   => $row->kind,
-						'gb'     => (int) $row->gb,
+						'gb'     => (float) $row->gb,
+						'mb'     => (int) round((float) $row->gb * 1024),
 						'days'   => isset($row->days) ? (int) $row->days : 0,
 					];
 				}
@@ -788,6 +789,11 @@ final class User extends Model
 	/*
 	 * Traffic left on the plan in GB, one decimal, for the gift popup.
 	 */
+	public function giftTrafficLeftMb()
+	{
+		return (int) round(max(0, (float) $this->transfer_enable - (float) $this->u - (float) $this->d) / 1048576);
+	}
+
 	public function giftTrafficLeft()
 	{
 		$left = max(0, ((float) $this->transfer_enable - (float) $this->u - (float) $this->d) / 1073741824);

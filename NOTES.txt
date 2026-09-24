@@ -1,16 +1,6 @@
-Gift card redeem, redesigned - and a Telegram message when it lands.
-
-The redeem dialog on the dashboard (view/user/dashboard/order.tpl, #redeem_modal)
-is a warm gift card: gradient header with the gift badge, the code field drawn
-as a ticket with a paste button, errors under the field with a shake, and a
-success view with the result, the new wallet balance and "another card". The
-request is still the panel's own POST /portal/redeem; Redeem() in
-dashboard.tpl now shows the outcome inside the dialog instead of a layer popup.
-Night theme follows html[data-hs-theme="dark"].
-
-New GiftCardNotifyJob (bin/giftcards.php, every minute from TaskCommand) reads
-giftcard_logs and sends the customer, through the panel bot, the amount added
-and the wallet balance, and tells the admin chat who used which card. The
-redeem endpoint is encoded, so the job works from the log. The first run marks
-every existing redemption as already reported (giftcard_notify_last_id); set
-giftcard_notify to 0 to switch it off.
+The channel gift for an account without a running plan is now a free plan of
+100 MB to 1 GB (about 360 MB on average) instead of 10 to 50 GB; members with
+a running plan still get 1 to 50 GB added. Sizes below a gigabyte read in MB
+everywhere - the bot, the admin note, the dashboard popup and the remaining
+traffic line - and the channel card offers up to 1 GB to those without a
+plan. tgjoin_log.gb becomes DECIMAL(10,4) on the job's next run.
