@@ -1248,6 +1248,7 @@ var renderUsageCharts = (function () {
 {/if}
 
 {include file='user/dashboard/giftpopup.tpl'}
+{include file='user/dashboard/tgpoll.tpl'}
 
 {if $Config['rebate'] != 0}
 	{include file='user/affiliate/invitepopup.tpl'}

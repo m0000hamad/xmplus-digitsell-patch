@@ -411,6 +411,12 @@ if (strpos($action, 'timeplan.') === 0) {
     fail('unknown time plan action');
 }
 
+// The dashboard asking whether a Telegram gift has arrived - ordinary users too.
+if (strpos($action, 'tggift.') === 0) {
+    require ROOT . '/app/Patch/TgGift.php';
+    fail('unknown gift action');
+}
+
 requireAdmin();
 
 // Read-only reports for admin pages; each file ends in done() or fail().
