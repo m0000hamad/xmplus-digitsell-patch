@@ -1,7 +1,7 @@
 {
-    "version": "1.8.0",
+    "version": "1.8.1",
     "released": "2026-09-24",
-    "notes": "Invite nudges on the user side, and a one-time gift for joining the Telegram\nchannel.\n\nInvite popup (dashboard): three messages in turn - the offer, what is lost\nwithout the link, the discount on the next plan - each only after the previous\nwas dismissed (12 hours, then 2 days, then every 7 days). Any share button\nsilences it for 30 days. It waits for the notice and commission popups to\nclose first, opens as a bottom sheet on phones and as two columns on wide\nscreens. An \"assistant\" talks through the visitor's own numbers: how many they\ninvited, how many bought, what it earned, what the ones who have not bought\nyet would bring, and the real average commission of one purchase over the last\n90 days. The service's features are listed for the friend's sake, and a note\nasks to invite friends and acquaintances only, never public channels.\n\nAffiliate page: the same assistant, plus a ready-to-send invite message with\nthe features and the visitor's own link, editable and remembered per browser,\nwith Telegram, WhatsApp, system share and copy buttons.\n\nTelegram channel gift: TgJoinJob (bin/tgjoin.php, every minute) asks the Bot\nAPI whether linked accounts have joined the channel. New members only - the\naccount must be seen outside the channel before it is seen inside; one already\ninside at the first look is closed without a gift. Exactly once per site\naccount and per Telegram account (both UNIQUE in tgjoin_log), so leaving and\nrejoining or relinking gets nothing. The gift is a weighted draw: 1-50 GB on a\nrunning plan (about 6.7 GB on average), or a free 10-50 GB plan for 30 days on\npackage 18 when there is none (about 18 GB on average). The bot tells the\nmember what they won. Settings: tgjoin_channel_id, tgjoin_link,\ntgjoin_free_package, tgjoin_free_days.",
+    "notes": "The Telegram and system share buttons now send the invite message with the\nlink at the end. Telegram's share page writes its url field above the text,\nso the link came first while the message ended pointing down at it; the whole\nmessage now travels in one field.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -59,7 +59,7 @@
         "view/user/affiliate/datatable.tpl": "b8ac4e86bebdc699aeacf26d93f68a846d3a356c96d69a8b953d2adf43e4addd",
         "view/user/affiliate/inviteinsight.tpl": "3550e6f5bc5f87e19a5e844a854076a50981336eed36e1a2547b8ad29e458124",
         "view/user/affiliate/invitepopup.tpl": "19fa115544239e83fb88a3608024b05b4b2151a8ec9b190db176a688729767d3",
-        "view/user/affiliate/sharebar.tpl": "f643628667d179644c891a2d7eb9c690edd97b7e9eb07178fb64428a8987d1db",
+        "view/user/affiliate/sharebar.tpl": "2cb65c4fbddc59c8e713f65fbf979c8e640efe1232f759d85e43bc137b183bbc",
         "view/user/affiliate/stats.tpl": "29b9ba28c071ea963e83f4b0f1b57b26e2909c56f8998fb4be823ae335ea6410",
         "view/user/affiliate/widthdraw.tpl": "186900dc998b81478bf96ce093a9abc7f807f6b0425378cddc93fe7ee1e219ec",
         "view/user/dashboard/application.tpl": "56cdecde3f1076d604992622e4336efe19649cc7a5dd9caf09368c23813880d5",

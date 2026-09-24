@@ -227,13 +227,15 @@ html[data-hs-theme="dark"] .ivs-mini > *:hover { background: rgba(255, 255, 255,
 			var full = text + '\n' + link;
 
 			if (kind === 'tg') {
-				// t.me/share puts the url above the text, so the link leads the message
-				button.href = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(text);
+				// t.me/share writes `url` above `text`, which put the link on top while the
+				// message ends pointing down at it - so the whole message goes in `url`
+				button.href = 'https://t.me/share/url?url=' + encodeURIComponent(full);
 			} else if (kind === 'wa') {
 				button.href = 'https://wa.me/?text=' + encodeURIComponent(full);
 			} else if (kind === 'more') {
 				event.preventDefault();
-				navigator.share({ text: text, url: link }).catch(function () {});
+				// the link travels inside the text: apps given a separate url put it first
+				navigator.share({ text: full }).catch(function () {});
 			} else if (kind === 'copy') {
 				event.preventDefault();
 				copy(full).then(function () {
