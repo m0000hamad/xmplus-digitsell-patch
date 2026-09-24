@@ -1,7 +1,7 @@
 {
-    "version": "1.8.6",
+    "version": "1.8.7",
     "released": "2026-09-25",
-    "notes": "New sign-in page.\n\nview/auth/login.tpl is redesigned: a dark glass card with the Digitsell\nheader. On a desktop (1024 px and wider) it is a split screen - the form on\nthe right, the Network Optimizer features and the social icons on the left,\nall on one screen. On a phone only the form shows, with the social icons at\nthe bottom of the card, and it fits one screen without scrolling. Inputs are\n16 px on phones so iOS does not zoom on focus.\n\nThe form keeps the panel's own contract: it posts email and passwd (plus the\nhCaptcha or Turnstile response when enabled) to /login and follows ret 1 to\n/portal/dashboard and ret 2 to /verify. Errors show under the fields instead\nof a layer popup. Social links are icons only; Telegram goes to\nt.me/digitsellshop (support).\n\nEverything is served from the panel itself - IRANSans, Inter, Font Awesome\nand the compiled Tailwind CSS inlined in the template - so the page does not\ndepend on any outside CDN. Source and build script: tools/login/.",
+    "notes": "Theme switch on the sign-in page.\n\nA three-way switch in the header - night, day, automatic (follows the\ndevice) - picks the look of view/auth/login.tpl. Night is the default until\nsomeone chooses. The choice is stored in the same localStorage key the panel\nuses (hs_theme: dark / default / auto), so it carries into the dashboard\nafter signing in, and a choice already made inside the panel shows here too.\nThe theme is resolved before the first paint, so the page never flashes the\nwrong colours; in automatic mode it follows the device changing live.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -51,7 +51,7 @@
         "view/admin/settings/settings.tpl": "a9a4deed79725fa51b536c9640a7d042c5a23800bc329a903ff68c3d56f16770",
         "view/admin/tickets/index.tpl": "18c9d5d95b50eee05d4640bca49893cebcd3a77e695800fee331bbf4c7a7445b",
         "view/admin/tickets/view.tpl": "804c43bfcc1cb3e1117b710552e4767048dd1d99c94111e723a98bbfac715ea4",
-        "view/auth/login.tpl": "ce427cfd60b3464020b84d39d7352efa8246fabac2318230bfc4b33dcfa36823",
+        "view/auth/login.tpl": "8e3d023bbde0ab8546ba0a126a82dfcc6f9fa6dcad24c9891835fcae5c169046",
         "view/auth/loginsocial.tpl": "b44928ee2d7b207ef79542afddc989329ac09a25d3f4940774d2baa175515b7f",
         "view/common/copy.tpl": "36c6512dfbced246104d9d1585d67fd19e912e6994354aa107a40bb8362a373a",
         "view/common/orderresult.tpl": "1383136e8b1dfef82c73fc10568a1334972d17321e822df51630a68821e26bcf",

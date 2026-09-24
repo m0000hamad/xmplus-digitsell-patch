@@ -6,6 +6,20 @@
   <meta name="theme-color" content="#0b0f19">
   <title>{$Config['appName']} - {$translate->get('SignIn')}</title>
   <link rel="shortcut icon" href="{$Config['logo_path']}">
+{literal}
+  <script>
+    (function () {
+      var pref = null;
+      try { pref = localStorage.getItem('hs_theme'); } catch (e) {}
+      if (pref !== 'dark' && pref !== 'default' && pref !== 'auto') pref = 'dark';
+      var mode = pref === 'auto'
+        ? (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        : (pref === 'default' ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.setAttribute('data-theme-pref', pref);
+    })();
+  </script>
+{/literal}
   <link rel="stylesheet" href="/assets/css/inter.css?family=Inter:wght@400;600&amp;display=swap">
   <link rel="stylesheet" href="/assets/css/iransans.css">
   <link rel="stylesheet" href="/assets/fonts/fontawesome/css/all.min.css">
@@ -43,6 +57,42 @@
     .form-msg.ok { color: #34d399; }
     .form-msg.err { color: #fb7185; }
 
+    /* theme switch */
+    .theme-switch { display: inline-flex; gap: 2px; padding: 3px; border-radius: 9999px; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .14); }
+    .theme-switch button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: #cbd5e1; font: inherit; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 9999px; cursor: pointer; transition: background .2s, color .2s; }
+    .theme-switch button:hover { color: #fff; }
+    .theme-switch button[aria-checked="true"] { background: linear-gradient(135deg, #ec4899, #8b5cf6); color: #fff; box-shadow: 0 4px 14px -4px rgba(236, 72, 153, .6); }
+    .theme-switch button:focus-visible { outline: 2px solid #ec4899; outline-offset: 1px; }
+
+    /* light theme */
+    html[data-theme="light"], html[data-theme="light"] body { background-color: #f4f1fb; }
+    [data-theme="light"] body { color: #1e293b; }
+    [data-theme="light"] .anim-aurora, [data-theme="light"] .anim-glow { opacity: .18; }
+    [data-theme="light"] .glass-panel { background: rgba(255, 255, 255, .78); border-color: rgba(15, 23, 42, .08); box-shadow: 0 25px 50px -20px rgba(76, 29, 149, .25), 0 0 35px -10px rgba(236, 72, 153, .18); }
+    [data-theme="light"] .glass-input { background: rgba(255, 255, 255, .9); border-color: rgba(15, 23, 42, .14); }
+    [data-theme="light"] .feature-card { background: rgba(255, 255, 255, .6); border-color: rgba(15, 23, 42, .08); }
+    [data-theme="light"] .feature-card:hover { background: rgba(255, 255, 255, .85); border-color: rgba(15, 23, 42, .16); }
+    [data-theme="light"] .bg-slate-950\/40 { background-color: rgba(255, 255, 255, .6); }
+    [data-theme="light"] .bg-white\/10, [data-theme="light"] .bg-white\/5 { background-color: rgba(15, 23, 42, .05); }
+    [data-theme="light"] .border-white\/10, [data-theme="light"] .border-white\/15 { border-color: rgba(15, 23, 42, .1); }
+    [data-theme="light"] .text-white:not([class*="bg-gradient"]) { color: #0f172a; }
+    [data-theme="light"] .text-slate-200 { color: #334155; }
+    [data-theme="light"] .text-slate-300 { color: #475569; }
+    [data-theme="light"] .text-slate-400 { color: #64748b; }
+    [data-theme="light"] .hover\:text-white:hover { color: #0f172a; }
+    [data-theme="light"] .text-pink-300, [data-theme="light"] .text-pink-400 { color: #db2777; }
+    [data-theme="light"] .text-violet-200 { color: #6d28d9; }
+    [data-theme="light"] .text-cyan-300 { color: #0e7490; }
+    [data-theme="light"] .text-emerald-300, [data-theme="light"] .text-emerald-400 { color: #059669; }
+    [data-theme="light"] .text-purple-300 { color: #7e22ce; }
+    [data-theme="light"] .grad-title { background-image: linear-gradient(to right, #0891b2, #c026d3, #ea580c); }
+    [data-theme="light"] .form-msg.ok { color: #059669; }
+    [data-theme="light"] .form-msg.err { color: #e11d48; }
+    [data-theme="light"] .theme-switch { background: rgba(15, 23, 42, .05); border-color: rgba(15, 23, 42, .1); }
+    [data-theme="light"] .theme-switch button { color: #475569; }
+    [data-theme="light"] .theme-switch button:hover { color: #0f172a; }
+    [data-theme="light"] .theme-switch button[aria-checked="true"] { color: #fff; }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition: none !important; }
     }
@@ -74,6 +124,12 @@
         شبکه پرسرعت نسل جدید ⚡
       </span>
     </a>
+
+    <div class="theme-switch" role="radiogroup" aria-label="تم">
+      <button type="button" role="radio" data-pref="dark" aria-checked="false" title="شب"><i class="fa-solid fa-moon" aria-hidden="true"></i><span class="hidden sm:inline">شب</span></button>
+      <button type="button" role="radio" data-pref="default" aria-checked="false" title="روز"><i class="fa-solid fa-sun" aria-hidden="true"></i><span class="hidden sm:inline">روز</span></button>
+      <button type="button" role="radio" data-pref="auto" aria-checked="false" title="خودکار (مطابق دستگاه)"><i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i><span class="hidden sm:inline">خودکار</span></button>
+    </div>
   </header>
 
   <main class="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 px-4 sm:px-6 lg:px-12 py-4 items-center max-w-[1680px] mx-auto w-full lg:overflow-hidden">
@@ -170,7 +226,7 @@
           </div>
           <h2 class="text-4xl font-black tracking-tight leading-tight font-latin m-0" dir="ltr" style="text-align:right">
             <span class="text-white">Network</span>
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-amber-300">Optimizer</span>
+            <span class="grad-title text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-amber-300">Optimizer</span>
           </h2>
           <p class="text-sm text-slate-300 mt-1 mb-0 max-w-xl leading-relaxed">
             دسترسی فوق‌سریع و نامحدود به سراسر اینترنت با پینگ فوق‌العاده پایین و بدون قطعی
@@ -237,6 +293,36 @@
 {/if}
 {literal}
   <script>
+  (function () {
+    var root = document.documentElement;
+    var media = window.matchMedia ? matchMedia('(prefers-color-scheme: light)') : null;
+    var buttons = document.querySelectorAll('.theme-switch button');
+    var metaColor = document.querySelector('meta[name="theme-color"]');
+
+    function applyTheme(pref) {
+      var mode = pref === 'auto' ? (media && media.matches ? 'light' : 'dark') : (pref === 'default' ? 'light' : 'dark');
+      root.setAttribute('data-theme', mode);
+      root.setAttribute('data-theme-pref', pref);
+      if (metaColor) metaColor.setAttribute('content', mode === 'light' ? '#f4f1fb' : '#0b0f19');
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].setAttribute('aria-checked', String(buttons[i].getAttribute('data-pref') === pref));
+      }
+    }
+
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener('click', function () {
+        var pref = this.getAttribute('data-pref');
+        try { localStorage.setItem('hs_theme', pref); } catch (e) {}
+        applyTheme(pref);
+      });
+    }
+    if (media) {
+      var onChange = function () { if (root.getAttribute('data-theme-pref') === 'auto') applyTheme('auto'); };
+      media.addEventListener ? media.addEventListener('change', onChange) : media.addListener(onChange);
+    }
+    applyTheme(root.getAttribute('data-theme-pref') || 'dark');
+  })();
+
   (function () {
     var form = document.getElementById('formsubmit');
     var email = document.getElementById('email');
