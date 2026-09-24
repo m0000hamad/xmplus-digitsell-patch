@@ -1,7 +1,13 @@
-A one-time gift for linking the Telegram bot: 1 to 10 GB (about 3.5 GB on
-average) for paying customers with a running plan. Accounts linked before the
-release are marked as existing and get nothing; a free trial without a paid
-order gets nothing; someone who links while expired gets it once they buy.
-Exactly once per site account and per Telegram account. The Telegram row on
-the dashboard shows a gift badge while the gift is on offer, and the bot
-tells the customer what they got. Switch: settings tgbind_gift = 1.
+Telegram gifts now say more, on Telegram and on the site.
+
+The bot's message states what was won and the plan's total traffic after it,
+usable until the plan ends (date and days left). After the bot-link gift it
+also points at the channel gift (up to 50 GB) while that is still open.
+
+A congratulation popup on the dashboard (giftpopup.tpl, User::newGifts())
+shows each gift not yet seen - amount, reason, total traffic and end date,
+the channel nudge - with confetti. Reading it marks it seen (not for an admin
+previewing a portal). tgjoin_log and tgbind_log gained a seen column.
+
+A linked account that has not joined yet is asked again every 2 minutes
+instead of 10, so the channel card goes soon after an approval.

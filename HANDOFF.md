@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-24 · installed version **1.8.2** · latest release **1.8.2** · repo
+Last updated: 2026-09-24 · installed version **1.8.3** · latest release **1.8.3** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -321,7 +321,7 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
   requests. The panel bot (`settings.telegramtoken`) is an admin there and the
   job calls `getChatMember` for linked accounts (`user.telegram_id`).
 - **New members only:** the account has to be seen outside the channel before
-  it is seen inside. Inside at the first look = closed as `existing`, never
+  it is seen inside (rechecked every 2 minutes). Inside at the first look = closed as `existing`, never
   gifted. Never-checked accounts are asked first, so a fresh link is looked at
   within a minute — before an admin approves the request. Loophole nobody can
   close from the bot: an old member who has not linked yet could leave, link,
@@ -342,6 +342,13 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
   `tgbind_gift` = 1 marks every account already linked as `existing`
   (`tgbind_seeded` = 1 records that it happened). Badge on the dashboard
   Telegram row: `User::tgBindGiftOpen()`, key `TgBindGift`.
+- **Telling the customer (1.8.3):** the bot's message and the dashboard popup
+  (`view/user/dashboard/giftpopup.tpl`, `User::newGifts()`) state the gift,
+  the plan's total traffic after it and the end date. `seen` on both logs
+  drives the popup; reading marks it seen unless `adminview`. Dates inside
+  Persian text need LRM marks (bot) or `<bdi dir=ltr>` (site), or they read
+  backwards. One gift per SITE account: linking several Telegram accounts to
+  one panel account earns nothing extra (UNIQUE userid).
 - Settings rows: `tgjoin_channel_id`, `tgjoin_link`, `tgjoin_free_package`,
   `tgjoin_free_days`. Empty channel id switches everything off.
 
@@ -453,3 +460,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.8.0 | Invite popup with a personal assistant, share bar, friends-only note; one-time Telegram channel gift; user dashboard night theme and menu lamps |
 | 1.8.1 | Share buttons keep the invite link at the end of the message (Telegram's share page put it first) |
 | 1.8.2 | One-time 1-10 GB gift for linking the Telegram bot (paying customers with a running plan, new links only) |
+| 1.8.3 | Gift messages state the new total and end date; congratulation popup on the dashboard; channel recheck every 2 minutes |
