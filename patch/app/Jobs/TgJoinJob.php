@@ -45,7 +45,7 @@ class TgJoinJob
 	const BATCH = 60;
 
 	/** an account that is not a member yet is asked again after this long */
-	const RECHECK = 600;
+	const RECHECK = 120;
 
 	/** [chance %, min GB, max GB] - the average gift is about 6.7 GB */
 	const GB_TIERS = [[60, 1, 3], [25, 4, 10], [10, 11, 25], [5, 26, 50]];
@@ -99,7 +99,7 @@ class TgJoinJob
 					$gift = $this->grant($user);
 					if ($gift) {
 						$granted++;
-						$this->notify($token, $user->telegram_id, $gift);
+						$this->notify($token, $user->telegram_id, $gift, $user->id);
 					}
 				} else {
 					// already inside the first time we looked: an existing member, no gift ever
@@ -146,6 +146,13 @@ class TgJoinJob
 				UNIQUE KEY userid (userid),
 				UNIQUE KEY telegram_id (telegram_id)
 			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+		foreach (['tgjoin_log', 'tgbind_log'] as $table) {
+			$has = DB::select("SHOW COLUMNS FROM {$table} LIKE 'seen'");
+			if (!$has) {
+				DB::statement("ALTER TABLE {$table} ADD COLUMN seen TINYINT(1) NOT NULL DEFAULT 0");
+			}
+		}
 
 		DB::statement(
 			'CREATE TABLE IF NOT EXISTS tgjoin_check (
@@ -213,10 +220,19 @@ class TgJoinJob
 				[$gb * 1073741824, $user->id]);
 			echo date('Y-m-d H:i:s') . sprintf(' user %d (tg %s): bot-link gift +%d GB', $user->id, $user->telegram_id, $gb) . PHP_EOL;
 
-			$this->api($token, 'sendMessage', [
-				'chat_id' => $user->telegram_id,
-				'text'    => "🎉 تلگرامت به حساب دیجیتسل وصل شد!\n🎁 به همین مناسبت {$gb} گیگ هدیه به اشتراکت اضافه شد.",
-			]);
+			$text = "🎉 تلگرامت به حساب دیجیتسل وصل شد و {$gb} گیگ جایزه بردی!\n\n"
+				. $this->balanceLine($user->id);
+
+			// point at the channel gift when it is still open to this account
+			$link = trim((string) $this->setting('tgjoin_link'));
+			$channelOpen = trim((string) $this->setting('tgjoin_channel_id')) !== '' && $link !== ''
+				&& !DB::table('tgjoin_log')->where('userid', $user->id)
+					->orWhere('telegram_id', $user->telegram_id)->exists();
+			if ($channelOpen) {
+				$text .= "\n\n📢 حالا اگر عضو کانال «دوستان دیجیتسل» هم بشی، ممکن است تا ۵۰ گیگ دیگر هم ببری:\n{$link}";
+			}
+
+			$this->api($token, 'sendMessage', ['chat_id' => $user->telegram_id, 'text' => $text]);
 			$granted++;
 		}
 
@@ -363,17 +379,37 @@ class TgJoinJob
 		return ['kind' => 'free', 'gb' => $gb, 'days' => $days];
 	}
 
-	private function notify($token, $telegramId, array $gift)
+	private function notify($token, $telegramId, array $gift, $userId)
 	{
 		if ($gift['kind'] === 'free') {
 			$text = "🎉 ممنون که عضو کانال شدی!\n"
-				. "🎁 جایزه‌ی تو: اشتراک رایگان {$gift['gb']} گیگ {$gift['days']} روزه، همین الان فعال شد.";
+				. "🎁 جایزه‌ات یک اشتراک رایگان {$gift['gb']} گیگ {$gift['days']} روزه است که همین الان فعال شد.\n\n";
 		} else {
-			$text = "🎉 ممنون که عضو کانال شدی!\n"
-				. "🎁 جایزه‌ی تو: {$gift['gb']} گیگ هدیه که به اشتراکت اضافه شد.";
+			$text = "🎉 ممنون که عضو کانال شدی و {$gift['gb']} گیگ جایزه بردی!\n\n";
 		}
 
-		$this->api($token, 'sendMessage', ['chat_id' => $telegramId, 'text' => $text]);
+		$this->api($token, 'sendMessage', ['chat_id' => $telegramId, 'text' => $text . $this->balanceLine($userId)]);
+	}
+
+	/*
+	 * "You now have N GB in total, usable until <date> (D days)" - read after
+	 * the gift was applied, so it is the figure the customer will see on the site.
+	 */
+	private function balanceLine($userId)
+	{
+		$u = DB::table('user')->where('id', $userId)->first(['transfer_enable', 'u', 'd', 'expire_in']);
+		if (!$u) {
+			return '';
+		}
+
+		$left = max(0, ((float) $u->transfer_enable - (float) $u->u - (float) $u->d) / 1073741824);
+		$left = rtrim(rtrim(number_format($left, 1, '.', ''), '0'), '.');
+		$until = strtotime((string) $u->expire_in);
+		$days = max(0, (int) floor(($until - time()) / 86400));
+
+		return "📦 حالا مجموعاً {$left} گیگ حجم داری که تا پایان اشتراکت، "
+			// LRM marks keep the date reading left to right inside the Persian sentence
+			. "\u{200E}" . date('Y-m-d', $until) . "\u{200E}" . " ({$days} روز دیگر)، قابل استفاده است.";
 	}
 
 	private function api($token, $method, array $params)

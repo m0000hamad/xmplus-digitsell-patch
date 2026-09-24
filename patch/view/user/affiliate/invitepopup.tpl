@@ -383,7 +383,7 @@ html[data-hs-theme="dark"] .ivp-foot { background: linear-gradient(to bottom, rg
 
 	// never stack on top of the notice modal or a Swal message - wait until the page is quiet
 	function busy() {
-		return document.querySelector('.modal.show, .swal2-container, .layui-layer-dialog') !== null;
+		return document.querySelector('.modal.show, .swal2-container, .layui-layer-dialog, .gfp-back:not([hidden])') !== null;
 	}
 
 	var quietSince = 0;

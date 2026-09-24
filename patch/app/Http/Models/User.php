@@ -749,6 +749,52 @@ final class User extends Model
 	}
 
 	/*
+	 * Telegram gifts (bot link, channel) this account has not been shown yet,
+	 * for the congratulation popup on the dashboard. Reading them marks them
+	 * seen - except for an admin previewing someone's portal, same as
+	 * newCommissions(). Each row: source (bind|channel), kind (gb|free), gb, days.
+	 */
+	public function newGifts()
+	{
+		$out = [];
+
+		try {
+			$preview = !empty($_SESSION['adminview']);
+
+			foreach (['bind' => 'tgbind_log', 'channel' => 'tgjoin_log'] as $source => $table) {
+				$rows = DB::table($table)->where('userid', $this->id)->where('seen', 0)
+					->whereIn('kind', ['gb', 'free'])->get();
+
+				foreach ($rows as $row) {
+					$out[] = [
+						'source' => $source,
+						'kind'   => $row->kind,
+						'gb'     => (int) $row->gb,
+						'days'   => isset($row->days) ? (int) $row->days : 0,
+					];
+				}
+
+				if (count($rows) > 0 && !$preview) {
+					DB::table($table)->where('userid', $this->id)->where('seen', 0)->update(['seen' => 1]);
+				}
+			}
+		} catch (\Throwable $e) {
+			// the tables or the seen column do not exist before TgJoinJob's first run
+		}
+
+		return $out;
+	}
+
+	/*
+	 * Traffic left on the plan in GB, one decimal, for the gift popup.
+	 */
+	public function giftTrafficLeft()
+	{
+		$left = max(0, ((float) $this->transfer_enable - (float) $this->u - (float) $this->d) / 1073741824);
+		return rtrim(rtrim(number_format($left, 1, '.', ''), '0'), '.');
+	}
+
+	/*
 	 * Whether linking the bot would earn this account the one-time gift (see
 	 * TgJoinJob::bindGifts): switched on, not linked yet, never gifted or
 	 * marked existing, a running plan and at least one paid order.

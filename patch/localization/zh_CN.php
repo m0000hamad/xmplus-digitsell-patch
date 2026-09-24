@@ -1486,4 +1486,11 @@ $i18n['zh_CN'] = array(
 	'InsightIdleAll'            => "如果尚未购买的 <b>%idle% 人</b>各买一个套餐，就有约 <b>%potential%</b> 进入你的钱包。",
 	'InviteSafeNote'            => "邀请链接仅限<b>亲友和熟人</b>使用，请勿发布到公开频道或群组。该链接为你专属、与你的账户绑定，通过它注册的每个人都会记录在你名下。",
 	'TgBindGift'                => "绑定即送 1 至 10 GB",
+	'GiftPopTitle'              => "恭喜，你中奖了！🎉",
+	'GiftPopBind'               => "因为将 Telegram 绑定到账户",
+	'GiftPopChannel'            => "因为加入 Telegram 频道",
+	'GiftPopFree'               => "%gb% GB %days% 天免费套餐",
+	'GiftPopTotal'              => "你现在共有 <b>%left% GB</b> 流量，可用至套餐结束 <b>%until%</b>（还有 %days% 天）。",
+	'GiftPopChannelHint'        => "再加入我们的 Telegram 频道，还可能赢得<b>最多 50 GB</b>！",
+	'GiftPopOk'                 => "太棒了！",
 );
