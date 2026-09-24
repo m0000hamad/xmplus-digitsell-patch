@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-24 · installed version **1.8.0** · latest release **1.8.0** · repo
+Last updated: 2026-09-24 · installed version **1.8.1** · latest release **1.8.1** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -299,6 +299,9 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
   next plan at a discount, and your friends get a quality service". The
   service features list (fixed-location servers, SSL/encryption, battery, no
   YouTube ads, speed, 7 years / works in full shutdowns) comes from the owner.
+- Telegram's `t.me/share/url` writes `url` ABOVE `text`. The whole message
+  (pitch + link) goes in `url` alone, and the system share sheet gets it as
+  `text` only, so the link stays at the end where the message points to it.
 - Invite only friends and acquaintances, never public channels — a note under
   the share buttons says so. No penalty is stated because none was decided.
 - `inviteInsight()` estimates with the **real average commission per purchase
@@ -441,3 +444,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.6.0 | Scope time plans and top-ups by server group as well as by plan |
 | 1.7.0 | Rebuild the admin dashboard with a health card; per-server traffic on the servers page |
 | 1.8.0 | Invite popup with a personal assistant, share bar, friends-only note; one-time Telegram channel gift; user dashboard night theme and menu lamps |
+| 1.8.1 | Share buttons keep the invite link at the end of the message (Telegram's share page put it first) |
