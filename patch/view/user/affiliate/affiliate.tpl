@@ -265,6 +265,20 @@ html[data-hs-theme="dark"] .af-btn-cash[disabled] { background: rgba(255, 255, 2
 		</div>
 	</div>
 
+	<div class="row mb-3">
+		<div class="col-12">
+			<div class="card card-shadow shadow-lg rounded">
+				<div class="card-header card-header-content-between border-bottom">
+					<h4 class="card-header-title mb-0">📣 {$translate->get('InviteShareTitle')}</h4>
+				</div>
+				<div class="card-body">
+					{include file='user/affiliate/inviteinsight.tpl'}
+					{include file='user/affiliate/sharebar.tpl' shareEditable=1}
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<div class="row match-height">
 		{include file='user/affiliate/datatable.tpl'}
 	</div>

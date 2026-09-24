@@ -248,6 +248,79 @@ html[data-hs-theme="dark"] .sub-status {
 html[data-hs-theme="dark"] .sub-days { color: var(--sub-b, #34d399); }
 html[data-hs-theme="dark"] .sub-until { color: #9fb0cc; }
 
+/* ---- the days-left bar burns down like a sparkler ----
+   The fill is the time that is left, so its far end is where the day is
+   burning: a white-hot tip there, and sparks thrown off it by the script
+   below. The bar may not clip, or the sparks would be cut off. */
+.sub-bar-fuse { overflow: visible; position: relative; }
+.sub-bar-fuse span { position: relative; }
+.sub-bar-fuse span::after {
+	content: "";
+	position: absolute;
+	inset-block: 0;
+	inset-inline-end: 0;
+	width: 34px;
+	max-width: 100%;
+	border-radius: inherit;
+	background: linear-gradient(to var(--fuse-end, left), transparent, rgba(255, 214, 120, .9));
+	pointer-events: none;
+}
+.sub-fuse {
+	position: absolute;
+	top: 50%;
+	inset-inline-end: -6px;
+	width: 12px;
+	height: 12px;
+	margin-top: -6px;
+	border-radius: 50%;
+	background: radial-gradient(circle, #ffffff 0%, #fff4c4 30%, #ffc44d 58%, rgba(255, 140, 40, 0) 72%);
+	box-shadow: 0 0 6px 2px rgba(255, 210, 110, .9), 0 0 16px 5px rgba(255, 140, 40, .45);
+	animation: subFuseFlicker .11s ease-in-out infinite alternate;
+	z-index: 2;
+}
+.sub-spark {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 3.5px;
+	height: 3.5px;
+	margin: -1.75px 0 0 -1.75px;
+	border-radius: 50%;
+	background: var(--c, #ffd36b);
+	box-shadow: 0 0 4px 1px var(--c, #ffd36b);
+	pointer-events: none;
+	animation: subSpark var(--t, .7s) cubic-bezier(.15, .6, .35, 1) forwards;
+}
+/* some sparks are streaks: a short tail pointing back at the tip */
+.sub-spark.is-streak {
+	width: 11px;
+	height: 1.8px;
+	margin: -.9px 0 0 -5.5px;
+	border-radius: 2px;
+	background: linear-gradient(90deg, rgba(255, 255, 255, 0), var(--c, #ffd36b));
+	transform-origin: center;
+}
+@keyframes subFuseFlicker {
+	from { transform: scale(.82); opacity: .85; }
+	to   { transform: scale(1.18); opacity: 1; }
+}
+@keyframes subSpark {
+	0%   { transform: translate(0, 0) rotate(var(--r, 0deg)) scale(1); opacity: 1; }
+	65%  { opacity: 1; }
+	100% { transform: translate(var(--x, 10px), calc(var(--y, 0px) + var(--g, 10px))) rotate(var(--r, 0deg)) scale(.2); opacity: 0; }
+}
+html[data-hs-theme="dark"] .sub-fuse {
+	box-shadow: 0 0 8px 3px rgba(255, 220, 130, 1), 0 0 22px 8px rgba(255, 150, 50, .6), 0 0 40px 12px rgba(255, 90, 40, .25);
+}
+@media (prefers-reduced-motion: reduce) {
+	.sub-fuse { animation: none; }
+}
+
+/* ---- night theme: halogen colour inside the existing bar tracks only ---- */
+html[data-hs-theme="dark"] .sub-tile-bar span {
+	background: linear-gradient(90deg, #4796e3, #9177c7, #ca6673);
+}
+
 @media (max-width: 400px) {
 	.sub-tiles { grid-template-columns: 1fr; }
 	.sub-btn { flex: 1 1 100%; }
@@ -408,7 +481,7 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 						<span class="sub-days"><b>{$user->daysLeft()}</b> {$translate->get('DaysLeft')}</span>
 						<span class="sub-until">{$translate->get('Until')} <time>{date("Y-m-d H:i",strtotime($user->expire_in))}</time></span>
 					</div>
-					<div class="sub-bar"><span style="width:{$user->planTimePercent()}%"></span></div>
+					<div class="sub-bar sub-bar-fuse"><span style="width:{$user->planTimePercent()}%"><i class="sub-fuse" aria-hidden="true"></i></span></div>
 					<div class="sub-mood"><span>{$moodEmoji}</span> {$moodText}</div>
 				</div>
 			{elseif $user->planNeverExpires()}
@@ -466,6 +539,8 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 				</div>
 			{/if}
 
+			{include file='user/dashboard/tgjoin.tpl'}
+
 		</div>
 	</div>
 
@@ -494,3 +569,51 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 	</div>
 
 </div>
+
+{literal}
+<script>
+/* Sparks for the days-left bar. Each one is a tiny element thrown off the
+   tip with its own angle, speed and colour, pulled down a little as if by
+   gravity, and removed when its animation ends - so there are never more
+   than a couple of dozen on the page. Stops while the tab is hidden and does
+   nothing for people who asked for reduced motion. */
+(function () {
+	var fuse = document.querySelector('.sub-fuse');
+	if (!fuse) { return; }
+	if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
+
+	var colors = ['#ffffff', '#fff4c4', '#ffe08a', '#ffc44d', '#ff9f3d', '#ffd36b'];
+	var bar = fuse.closest('.sub-bar');
+	// the empty side of the bar: sparks mostly fly that way
+	var away = getComputedStyle(bar).direction === 'rtl' ? -1 : 1;
+	// the hot glow on the fill leans toward the tip, whichever side that is
+	bar.style.setProperty('--fuse-end', away < 0 ? 'left' : 'right');
+
+	function spark() {
+		var el = document.createElement('b');
+		var streak = Math.random() < 0.45;
+		// an arc centred on the empty side, wide enough to spray up and down
+		var angle = (away > 0 ? 0 : Math.PI) + (Math.random() - 0.5) * Math.PI * 1.5;
+		var dist = 14 + Math.random() * 34;
+		var x = Math.cos(angle) * dist;
+		var y = Math.sin(angle) * dist - 4;
+
+		el.className = 'sub-spark' + (streak ? ' is-streak' : '');
+		el.style.setProperty('--x', x.toFixed(1) + 'px');
+		el.style.setProperty('--y', y.toFixed(1) + 'px');
+		el.style.setProperty('--g', (6 + Math.random() * 10).toFixed(1) + 'px');
+		el.style.setProperty('--r', (angle * 180 / Math.PI).toFixed(0) + 'deg');
+		el.style.setProperty('--t', (0.45 + Math.random() * 0.5).toFixed(2) + 's');
+		el.style.setProperty('--c', colors[Math.floor(Math.random() * colors.length)]);
+		el.addEventListener('animationend', function () { el.remove(); });
+		fuse.appendChild(el);
+	}
+
+	setInterval(function () {
+		if (document.hidden) { return; }
+		var n = 2 + Math.floor(Math.random() * 3);
+		for (var i = 0; i < n; i++) { spark(); }
+	}, 70);
+})();
+</script>
+{/literal}

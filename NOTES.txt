@@ -1,18 +1,28 @@
-The admin dashboard is rebuilt, and the servers page shows how much traffic
-each server carries.
+Invite nudges on the user side, and a one-time gift for joining the Telegram
+channel.
 
-Dashboard: every number comes from one read-only admin call,
-xmplus-patch.php?do=dashboard.overview. Headline cards with trend lines and
-the change against the previous period; daily revenue split into
-subscription, top-up and time; a 12-month trend (Solar Hijri months in
-Persian); the sales mix with first purchase against renewal, and the
-gateways; top plans; the busiest weekday and hour; users by status; who
-expires over the next 14 days; sign-ups; traffic by day and by server; the
-nodes; the latest paid orders.
+Invite popup (dashboard): three messages in turn - the offer, what is lost
+without the link, the discount on the next plan - each only after the previous
+was dismissed (12 hours, then 2 days, then every 7 days). Any share button
+silences it for 30 days. It waits for the notice and commission popups to
+close first, opens as a bottom sheet on phones and as two columns on wide
+screens. An "assistant" talks through the visitor's own numbers: how many they
+invited, how many bought, what it earned, what the ones who have not bought
+yet would bring, and the real average commission of one purchase over the last
+90 days. The service's features are listed for the friend's sake, and a note
+asks to invite friends and acquaintances only, never public channels.
 
-A system health card checks the database, the nodes' heartbeats, the cron
-runner, node traffic reports, the paid rate of the last 24 hours, free disk,
-load, the template cache and any paid time order not yet applied.
+Affiliate page: the same assistant, plus a ready-to-send invite message with
+the features and the visitor's own link, editable and remembered per browser,
+with Telegram, WhatsApp, system share and copy buttons.
 
-Servers: per-server traffic for today, the week and the month, drawn as a
-chart and a ranking, and written next to each server in the list.
+Telegram channel gift: TgJoinJob (bin/tgjoin.php, every minute) asks the Bot
+API whether linked accounts have joined the channel. New members only - the
+account must be seen outside the channel before it is seen inside; one already
+inside at the first look is closed without a gift. Exactly once per site
+account and per Telegram account (both UNIQUE in tgjoin_log), so leaving and
+rejoining or relinking gets nothing. The gift is a weighted draw: 1-50 GB on a
+running plan (about 6.7 GB on average), or a free 10-50 GB plan for 30 days on
+package 18 when there is none (about 18 GB on average). The bot tells the
+member what they won. Settings: tgjoin_channel_id, tgjoin_link,
+tgjoin_free_package, tgjoin_free_days.

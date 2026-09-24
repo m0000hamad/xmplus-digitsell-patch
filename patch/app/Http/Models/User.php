@@ -401,6 +401,23 @@ final class User extends Model
 				: $this->serverList($this->historyByServer($froms[$range]));
 		}
 
+		/* ---- servers this user is connected to right now ---- */
+		$stats['live'] = [];
+		try {
+			// nodes report online IPs about once a minute; five minutes of
+			// silence means the connection is gone
+			$stats['live'] = DB::table('online_ip')
+				->where('userid', $this->id)
+				->where('datetime', '>=', time() - 300)
+				->distinct()
+				->pluck('serverid')
+				->map(function ($id) { return (int) $id; })
+				->values()
+				->all();
+		} catch (\Throwable $e) {
+			$stats['live'] = [];
+		}
+
 		return $stats;
 	}
 
@@ -669,6 +686,107 @@ final class User extends Model
 				->get();
 		} catch (\Throwable $e) {
 			return [];
+		}
+	}
+
+	/*
+	 * How many accounts signed up through this user's invite link - the invite
+	 * popup shows it so the nudge talks about the visitor's own numbers.
+	 */
+	public function referralCount()
+	{
+		try {
+			return (int) self::where('ref_by', $this->id)->count();
+		} catch (\Throwable $e) {
+			return 0;
+		}
+	}
+
+	/*
+	 * The visitor's own invite numbers, for the invite popup and the affiliate
+	 * page to talk about: who they brought in, who bought, what it earned, and
+	 * what the ones who have not bought yet would bring. `per_buy` is the real
+	 * average commission of one purchase over the last 90 days (falling back to
+	 * the commission rate on the average paid amount), so the estimate follows
+	 * actual prices instead of a made-up figure. `ask` is the handful of idle
+	 * referrals the estimate is phrased around - five, or fewer if that is all.
+	 */
+	public function inviteInsight()
+	{
+		static $perBuy = null;
+
+		$out = ['invited' => 0, 'buyers' => 0, 'earned' => 0.0, 'idle' => 0, 'per_buy' => 0.0, 'ask' => 0, 'potential' => 0.0];
+
+		try {
+			$out['invited'] = $this->referralCount();
+
+			$mine = DB::connection('default')->table('affiliate')->where('ref_by', $this->id)
+				->selectRaw('COUNT(DISTINCT userid) AS buyers, COALESCE(SUM(ref_get), 0) AS earned')
+				->first();
+			$out['buyers'] = (int) ($mine ? $mine->buyers : 0);
+			$out['earned'] = (float) ($mine ? $mine->earned : 0);
+
+			if ($perBuy === null) {
+				$avg = DB::connection('default')->table('affiliate')
+					->where('datetime', '>', time() - 90 * 86400)
+					->selectRaw('AVG(ref_get) AS per_buy, AVG(paid_amount) AS paid')
+					->first();
+				$perBuy = (float) ($avg ? $avg->per_buy : 0);
+				if ($perBuy <= 0 && $avg && $avg->paid > 0) {
+					$rate = (float) (new \App\Provider\ConfigProvider)->get('commission');
+					$perBuy = $avg->paid * $rate / 100;
+				}
+			}
+			$out['per_buy'] = $perBuy;
+
+			$out['idle'] = max(0, $out['invited'] - $out['buyers']);
+			$out['ask'] = min(5, $out['idle']);
+			$out['potential'] = $out['ask'] * $perBuy;
+		} catch (\Throwable $e) {
+		}
+
+		return $out;
+	}
+
+	/*
+	 * The Telegram channel gift as the dashboard shows it (see TgJoinJob).
+	 * state: off | done (gifted, or closed as an existing member) | link (no
+	 * Telegram linked) | join. `free` says which gift is on offer: a free plan
+	 * when there is no running subscription, otherwise gigabytes.
+	 */
+	public function tgJoin()
+	{
+		$off = ['state' => 'off'];
+
+		try {
+			$rows = Settings::whereIn('name', ['tgjoin_channel_id', 'tgjoin_link'])
+				->pluck('value', 'name');
+
+			if (trim((string) ($rows['tgjoin_channel_id'] ?? '')) === '' || trim((string) ($rows['tgjoin_link'] ?? '')) === '') {
+				return $off;
+			}
+
+			$done = DB::table('tgjoin_log')->where('userid', $this->id)
+				->orWhere(function ($q) {
+					$q->where('telegram_id', '>', 0)->where('telegram_id', (int) $this->telegram_id);
+				})->exists();
+
+			if ($done) {
+				$state = 'done';
+			} elseif ((int) $this->telegram_id <= 0) {
+				$state = 'link';
+			} else {
+				$state = 'join';
+			}
+
+			return [
+				'state' => $state,
+				'link'  => trim($rows['tgjoin_link']),
+				'free'  => !$this->planIsActive(),
+			];
+		} catch (\Throwable $e) {
+			// tgjoin_log does not exist until the job's first run
+			return $off;
 		}
 	}
 
