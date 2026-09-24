@@ -26,9 +26,9 @@ use Illuminate\Database\Capsule\Manager as DB;
  * given again. The row is written before the gift is applied, so two runs at
  * once cannot both grant.
  *
- * The gift is a draw, weighted towards the small end (see GB_TIERS/FREE_TIERS):
+ * The gift is a draw, weighted towards the small end (see GB_TIERS/FREE_TIERS_MB):
  *   running subscription     -> 1 to 50 GB added to it
- *   no running subscription  -> a free plan of 10 to 50 GB, built on the
+ *   no running subscription  -> a free plan of 100 MB to 1 GB, built on the
  *                               package in `tgjoin_free_package` (its server
  *                               group, IP and speed limits) for `tgjoin_free_days`
  *
@@ -53,8 +53,8 @@ class TgJoinJob
 	/** [chance %, min GB, max GB] - the average gift is about 6.7 GB */
 	const GB_TIERS = [[60, 1, 3], [25, 4, 10], [10, 11, 25], [5, 26, 50]];
 
-	/** [chance %, min GB, max GB] - the average free plan is about 18 GB */
-	const FREE_TIERS = [[60, 10, 15], [25, 16, 25], [10, 26, 40], [5, 41, 50]];
+	/** [chance %, min MB, max MB] for the free plan - the average is about 355 MB */
+	const FREE_TIERS_MB = [[60, 100, 300], [25, 301, 600], [10, 601, 900], [5, 901, 1024]];
 
 	/** [chance %, min GB, max GB] for linking the bot - the average is about 3.5 GB */
 	const BIND_TIERS = [[50, 1, 2], [30, 3, 5], [15, 6, 8], [5, 9, 10]];
@@ -113,7 +113,7 @@ class TgJoinJob
 						$granted++;
 						$this->notify($token, $user->telegram_id, $gift, $user->id);
 						$this->tellAdmins($token, $user->id, '📢 عضویت در کانال', $gift['kind'] === 'free'
-							? "🎁 جایزه: اشتراک رایگان {$gift['gb']} گیگ {$gift['days']} روزه"
+							? '🎁 جایزه: اشتراک رایگان ' . $this->size($gift['gb']) . " {$gift['days']} روزه"
 							: "🎁 جایزه: {$gift['gb']} گیگ");
 					}
 				} else {
@@ -161,6 +161,11 @@ class TgJoinJob
 				UNIQUE KEY userid (userid),
 				UNIQUE KEY telegram_id (telegram_id)
 			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+		$type = DB::select("SHOW COLUMNS FROM tgjoin_log LIKE 'gb'");
+		if ($type && strtolower((string) $type[0]->Type) !== 'decimal(10,4)') {
+			DB::statement('ALTER TABLE tgjoin_log MODIFY gb DECIMAL(10,4) NOT NULL DEFAULT 0');
+		}
 
 		foreach (['tgjoin_log', 'tgbind_log'] as $table) {
 			$has = DB::select("SHOW COLUMNS FROM {$table} LIKE 'seen'");
@@ -375,7 +380,8 @@ class TgJoinJob
 			return null;
 		}
 
-		$gb = $this->draw(self::FREE_TIERS);
+		$mb = $this->draw(self::FREE_TIERS_MB);
+		$gb = round($mb / 1024, 4);
 		if (!$this->claim($user, 'free', $gb, $days)) {
 			return null;
 		}
@@ -389,10 +395,10 @@ class TgJoinJob
 				expire_in = ?
 			 WHERE id = ?',
 			[$package->id, 'month', $package->server_group, $package->iplimit, $package->speedlimit,
-				$gb * 1073741824, date('Y-m-d H:i:s', time() + $days * 86400), $user->id]);
+				$mb * 1048576, date('Y-m-d H:i:s', time() + $days * 86400), $user->id]);
 
-		echo date('Y-m-d H:i:s') . sprintf(' user %d (tg %s): free plan %d GB / %d days (package %d)',
-			$user->id, $user->telegram_id, $gb, $days, $package->id) . PHP_EOL;
+		echo date('Y-m-d H:i:s') . sprintf(' user %d (tg %s): free plan %d MB / %d days (package %d)',
+			$user->id, $user->telegram_id, $mb, $days, $package->id) . PHP_EOL;
 		return ['kind' => 'free', 'gb' => $gb, 'days' => $days];
 	}
 
@@ -400,7 +406,7 @@ class TgJoinJob
 	{
 		if ($gift['kind'] === 'free') {
 			$text = "🎉 ممنون که عضو کانال شدی!\n"
-				. "🎁 جایزه‌ات یک اشتراک رایگان {$gift['gb']} گیگ {$gift['days']} روزه است که همین الان فعال شد.\n\n";
+				. "🎁 جایزه‌ات یک اشتراک رایگان " . $this->size($gift['gb']) . " {$gift['days']} روزه است که همین الان فعال شد.\n\n";
 		} else {
 			$text = "🎉 ممنون که عضو کانال شدی و {$gift['gb']} گیگ جایزه بردی!\n\n";
 		}
@@ -461,6 +467,18 @@ class TgJoinJob
 	}
 
 	/*
+	 * "350 مگ" below a gigabyte, "2 گیگ" / "1.5 گیگ" from there on.
+	 */
+	private function size($gb)
+	{
+		$gb = (float) $gb;
+		if ($gb < 1) {
+			return (int) round($gb * 1024) . ' مگ';
+		}
+		return rtrim(rtrim(number_format($gb, 2, '.', ''), '0'), '.') . ' گیگ';
+	}
+
+	/*
 	 * "You now have N GB in total, usable until <date> (D days)" - read after
 	 * the gift was applied, so it is the figure the customer will see on the site.
 	 */
@@ -471,18 +489,17 @@ class TgJoinJob
 			return '';
 		}
 
-		$left = max(0, ((float) $u->transfer_enable - (float) $u->u - (float) $u->d) / 1073741824);
-		$left = rtrim(rtrim(number_format($left, 1, '.', ''), '0'), '.');
+		$left = $this->size(max(0, ((float) $u->transfer_enable - (float) $u->u - (float) $u->d) / 1073741824));
 		$until = strtotime((string) $u->expire_in);
 		$days = max(0, (int) floor(($until - time()) / 86400));
 
 		if ($forAdmin) {
 			return $until > time()
-				? "📦 حجم باقی‌مانده: {$left} گیگ · تا " . "\u{200E}" . date('Y-m-d', $until) . "\u{200E}" . " ({$days} روز)"
+				? "📦 حجم باقی‌مانده: {$left} · تا " . "\u{200E}" . date('Y-m-d', $until) . "\u{200E}" . " ({$days} روز)"
 				: '📦 اشتراک فعال ندارد';
 		}
 
-		return "📦 حالا مجموعاً {$left} گیگ حجم داری که تا پایان اشتراکت، "
+		return "📦 حالا مجموعاً {$left} حجم داری که تا پایان اشتراکت، "
 			// LRM marks keep the date reading left to right inside the Persian sentence
 			. "\u{200E}" . date('Y-m-d', $until) . "\u{200E}" . " ({$days} روز دیگر)، قابل استفاده است.";
 	}

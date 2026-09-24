@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-24 · installed version **1.8.9** · latest release **1.8.9** · repo
+Last updated: 2026-09-24 · installed version **1.9.0** · latest release **1.9.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -332,7 +332,7 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
   the row is claimed before anything is applied.
 - Gift (owner's ranges, weighting chosen to keep cost down): running plan →
   1–50 GB added (60 % 1–3, 25 % 4–10, 10 % 11–25, 5 % 26–50; mean ≈ 6.7 GB);
-  no running plan → a free plan of 10–50 GB (mean ≈ 18 GB) for
+  no running plan → a free plan of 100 MB–1 GB (mean ≈ 360 MB; 10–50 GB until 1.9.0) for
   `tgjoin_free_days` (30) copying server group, IP and speed limit from
   `tgjoin_free_package` (18, "10 GB one month single user").
 - **MySQL `NOW()` runs on UTC here while `expire_in` is local time (+03:30).**
@@ -536,3 +536,4 @@ and it fits one screen.
 | 1.8.7 | Night / day / automatic switch on the sign-in page, night by default, shared with the panel's theme |
 | 1.8.8 | Sign-in page: the light next to the logo is green |
 | 1.8.9 | Gift card redeem dialog redesigned; Telegram message to the customer (and the admins) when a card is applied |
+| 1.9.0 | Channel gift without a running plan: a free 100 MB-1 GB plan (was 10-50 GB); MB shown below a gigabyte |

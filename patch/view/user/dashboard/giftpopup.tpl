@@ -182,7 +182,8 @@ html[data-hs-theme="dark"] .gfp-hint b { color: #7dd3fc; }
 			<div class="gfp-win">
 				{foreach $gifts as $g}
 					{if $g['kind'] == 'free'}
-						<span class="gfp-amount">{str_replace(['%gb%','%days%'],[$g['gb'],$g['days']],$translate->get('GiftPopFree'))}</span>
+						{if $g['mb'] < 1024}{$gSize = str_replace(['%n%'],[$g['mb']],$translate->get('SizeMB'))}{else}{$gSize = str_replace(['%n%'],[$g['mb'] / 1024],$translate->get('SizeGB'))}{/if}
+						<span class="gfp-amount">{str_replace(['%size%','%days%'],[$gSize,$g['days']],$translate->get('GiftPopFree'))}</span>
 					{else}
 						<span class="gfp-amount">+{$g['gb']} <small>GB</small></span>
 					{/if}
@@ -191,7 +192,9 @@ html[data-hs-theme="dark"] .gfp-hint b { color: #7dd3fc; }
 			</div>
 		</div>
 		<div class="gfp-body">
-			<p class="gfp-total">{str_replace(['%left%','%until%','%days%'],[$user->giftTrafficLeft(),"<bdi dir=\"ltr\">{date('Y-m-d', $gfUntil)}</bdi>",$gfDays],$translate->get('GiftPopTotal'))}</p>
+			{$gLeftMb = $user->giftTrafficLeftMb()}
+			{if $gLeftMb < 1024}{$gLeft = str_replace(['%n%'],[$gLeftMb],$translate->get('SizeMB'))}{else}{$gLeft = str_replace(['%n%'],[$user->giftTrafficLeft()],$translate->get('SizeGB'))}{/if}
+			<p class="gfp-total">{str_replace(['%left%','%until%','%days%'],[$gLeft,"<bdi dir=\"ltr\">{date('Y-m-d', $gfUntil)}</bdi>",$gfDays],$translate->get('GiftPopTotal'))}</p>
 			{if $gfJoin['state'] == 'join'}
 				<div class="gfp-hint">
 					<span>{$translate->get('GiftPopChannelHint')}</span>
