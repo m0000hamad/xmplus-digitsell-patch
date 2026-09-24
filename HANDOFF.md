@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-24 · installed version **1.8.7** · latest release **1.8.7** · repo
+Last updated: 2026-09-24 · installed version **1.8.8** · latest release **1.8.8** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -511,3 +511,4 @@ and it fits one screen.
 | 1.8.5 | Dashboard reloads itself when a Telegram gift lands (tggift.poll) |
 | 1.8.6 | New sign-in page: split screen on desktop, one-screen card on phones, icon-only social row, no outside CDN |
 | 1.8.7 | Night / day / automatic switch on the sign-in page, night by default, shared with the panel's theme |
+| 1.8.8 | Sign-in page: the light next to the logo is green |
