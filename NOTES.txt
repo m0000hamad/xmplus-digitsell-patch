@@ -1,7 +1,9 @@
-The admins hear about every new Telegram link and every gift.
+The dashboard notices a Telegram gift on its own.
 
-TgJoinJob sends a note to the panel's admin chat (telegramchatid, or the
-chats listed in tgjoin_admin_chats): who linked the bot and what they got -
-or why they got nothing (no running plan yet, no purchase yet, already
-gifted) - and who joined the channel and what they won, with the plan's
-remaining traffic and end date.
+While a gift could still arrive - Telegram not linked yet, the channel card
+showing, or the bot-link gift on offer - the page asks
+xmplus-patch.php?do=tggift.poll every 15 seconds while the tab is visible,
+for up to 30 minutes, and reloads once a gift has landed (the congratulation
+popup and the new traffic then show) or the Telegram link changed. Coming
+back to the tab, usually from Telegram, asks at once and moves the account to
+the front of the next channel check. It never reloads over an open dialog.

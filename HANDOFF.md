@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-24 · installed version **1.8.4** · latest release **1.8.4** · repo
+Last updated: 2026-09-24 · installed version **1.8.5** · latest release **1.8.5** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -353,6 +353,12 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
   (comma list) or, if empty, the panel's `telegramchatid`. A new link is
   detected as the first `tgjoin_check` row for the account; the bot-link gift
   is reported from `bindGifts()` and not repeated (`$reported`).
+- **No manual refresh (1.8.5):** `view/user/dashboard/tgpoll.tpl` polls
+  `xmplus-patch.php?do=tggift.poll` (`app/Patch/TgGift.php`, dispatched before
+  `requireAdmin()` because users call it) every 15 s while visible, max 30 min,
+  and reloads on an unseen gift or a changed link - never over an open dialog.
+  `nudge=1` on returning to the tab sets `tgjoin_check.checked_at = 0` (at most
+  every 30 s per session) so the next cron run checks that account first.
 - Settings rows: `tgjoin_channel_id`, `tgjoin_link`, `tgjoin_free_package`,
   `tgjoin_free_days`. Empty channel id switches everything off.
 
@@ -466,3 +472,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.8.2 | One-time 1-10 GB gift for linking the Telegram bot (paying customers with a running plan, new links only) |
 | 1.8.3 | Gift messages state the new total and end date; congratulation popup on the dashboard; channel recheck every 2 minutes |
 | 1.8.4 | Admin chat is told about every new bot link and every Telegram gift |
+| 1.8.5 | Dashboard reloads itself when a Telegram gift lands (tggift.poll) |
