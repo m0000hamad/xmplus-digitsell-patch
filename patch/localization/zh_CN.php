@@ -1493,4 +1493,11 @@ $i18n['zh_CN'] = array(
 	'GiftPopTotal'              => "你现在共有 <b>%left% GB</b> 流量，可用至套餐结束 <b>%until%</b>（还有 %days% 天）。",
 	'GiftPopChannelHint'        => "再加入我们的 Telegram 频道，还可能赢得<b>最多 50 GB</b>！",
 	'GiftPopOk'                 => "太棒了！",
+	'GiftRedeemTitle'           => "有礼品卡吗？",
+	'GiftRedeemSub'             => "输入卡号，钱包立即充值。",
+	'GiftRedeemPaste'           => "粘贴",
+	'GiftRedeemBtn'             => "兑换礼品卡",
+	'GiftRedeemBalance'         => "钱包余额",
+	'GiftRedeemEmpty'           => "请输入礼品卡代码。",
+	'GiftRedeemAgain'           => "再兑换一张",
 );

@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-24 · installed version **1.8.8** · latest release **1.8.8** · repo
+Last updated: 2026-09-24 · installed version **1.8.9** · latest release **1.8.9** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -167,6 +167,7 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Time plans | A third plan type selling days only — see the section below |
 | Menu | Labelled glass toggle, per-item colours, current page marked, works on phones |
 | Themes | Dark mode fixed panel-wide (see above) |
+| Gift cards | Redeem dialog redesigned, Telegram notice on redemption (1.8.9) - see below |
 | Sign-in page | `view/auth/login.tpl` redesigned (1.8.6) — see below |
 
 ### Time plans — how days are sold without touching the order pipeline
@@ -398,6 +399,28 @@ and it fits one screen.
 - Deployed by hand before each release commit; stock template and the 1.8.6
   version backed up in `/root/login-backup-20260924-181400/`.
 
+### Gift card redeem (1.8.9)
+
+- **Dialog:** `#redeem_modal` in `view/user/dashboard/order.tpl`, opened by
+  `RedeemCard()` from the subscription card. `Redeem()`, `RedeemReset()`,
+  `RedeemFail()` are in `dashboard.tpl`; the request is unchanged (POST
+  `/portal/redeem`, `code`), `ret 1` switches the dialog to its success view
+  and writes `data.money` into `#money` as before. Keys `GiftRedeem*` in all
+  three locales.
+- The code input is `dir=ltr` monospace with letter-spacing, but only once
+  something is typed: the Persian placeholder gets RTL and IRANSans, because
+  letter-spacing or a monospace fallback breaks Persian letter joining.
+- **Telegram notice:** `app/Jobs/GiftCardNotifyJob.php`, `bin/giftcards.php`,
+  every minute in `TaskCommand`, log `storage/logs/giftcards.log`. The redeem
+  endpoint is encoded, so the job reads `giftcard_logs` above the watermark
+  `giftcard_notify_last_id` (seeded at 78 on the first run, so nothing older
+  was announced). The watermark moves before sending: at most once, never
+  twice. Customer gets amount + wallet balance if `user.telegram_id` is set;
+  the admin chat (`tgjoin_admin_chats`, else `telegramchatid`) gets user, card
+  and code. `giftcard_notify` = 0 switches it off.
+- Not verified with a real redemption yet - the first real one is the test.
+  Backup of the replaced files: `/root/giftcard-backup-20260924-201335/`.
+
 ## 7. Things asked for that could not be done, and why
 
 - **More fields on the invoice** (plan size, wallet credit used). The details
@@ -512,3 +535,4 @@ and it fits one screen.
 | 1.8.6 | New sign-in page: split screen on desktop, one-screen card on phones, icon-only social row, no outside CDN |
 | 1.8.7 | Night / day / automatic switch on the sign-in page, night by default, shared with the panel's theme |
 | 1.8.8 | Sign-in page: the light next to the logo is green |
+| 1.8.9 | Gift card redeem dialog redesigned; Telegram message to the customer (and the admins) when a card is applied |
