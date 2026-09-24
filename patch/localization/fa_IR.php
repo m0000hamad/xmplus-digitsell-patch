@@ -1494,4 +1494,11 @@ $i18n['fa_IR'] = array(
 	'GiftPopTotal'              => "حالا مجموعاً <b>%left% گیگ</b> حجم داری که تا پایان اشتراکت، <b>%until%</b> (%days% روز دیگر)، قابل استفاده است.",
 	'GiftPopChannelHint'        => "اگر عضو کانال «دوستان دیجیتسل» هم بشی، ممکن است <b>تا ۵۰ گیگ دیگر</b> ببری!",
 	'GiftPopOk'                 => "عالیه!",
+	'GiftRedeemTitle'           => "کارت هدیه داری؟",
+	'GiftRedeemSub'             => "کد کارت را وارد کن تا کیف پولت همین حالا شارژ شود.",
+	'GiftRedeemPaste'           => "چسباندن",
+	'GiftRedeemBtn'             => "ثبت کارت هدیه",
+	'GiftRedeemBalance'         => "موجودی کیف پول",
+	'GiftRedeemEmpty'           => "کد کارت هدیه را وارد کن.",
+	'GiftRedeemAgain'           => "یک کارت دیگر",
 );

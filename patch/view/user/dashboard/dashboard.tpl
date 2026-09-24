@@ -1184,40 +1184,75 @@ var renderUsageCharts = (function () {
     }	
 	
 	function RedeemCard(){
+		RedeemReset();
 		$('#redeem_modal').modal('show');
+		setTimeout(function () { $('#code').trigger('focus'); }, 350);
 	}
-	
+
+	/* back to the empty form - on open and from "another card" */
+	function RedeemReset(){
+		$('#redeem_modal').removeClass('grd-success');
+		$('#code').val('');
+		$('#redeem_msg').text('');
+		$('#redeem_btn').prop('disabled', false);
+		$('#code').trigger('focus');
+	}
+
+	function RedeemFail(text){
+		$('#redeem_msg').text(text || '');
+		var ticket = $('#redeem_modal .grd-ticket');
+		ticket.removeClass('grd-shake');
+		void ticket[0].offsetWidth;
+		ticket.addClass('grd-shake');
+		$('#redeem_btn').prop('disabled', false);
+	}
+
+	$(function () {
+		if (navigator.clipboard && navigator.clipboard.readText) {
+			$('#redeem_paste').prop('hidden', false).on('click', function () {
+				navigator.clipboard.readText().then(function (text) {
+					$('#code').val($.trim(text)).trigger('focus');
+				}).catch(function () { });
+			});
+		}
+	});
+
 	function Redeem(){
+		var code = $.trim($('#code').val());
+		if (code === '') {
+			RedeemFail('{$translate->get("GiftRedeemEmpty")}');
+			$('#code').trigger('focus');
+			return;
+		}
+		$('#redeem_msg').text('');
+		$('#redeem_btn').prop('disabled', true);
 		$.ajax({
 			type: "POST",
 			url: "/portal/redeem",
 			dataType: "json",
 			data: {
-				code: $('#code').val()
+				code: code
 			},
 			success: (data) => {
 				layer.closeAll('loading');
 				if (data.ret == 1) {
-					layer.msg(data.msg, {
-						time: 2000,
-						offset:  '100px'
-					});
-					$('#redeem_modal').modal('hide');
 					$('#money').html(data.money);
+					$('#redeem_done_msg').text(data.msg || '');
+					if (data.money !== undefined && data.money !== null && data.money !== '') {
+						$('#redeem_balance_val').html(data.money);
+						$('#redeem_balance').prop('hidden', false);
+					} else {
+						$('#redeem_balance').prop('hidden', true);
+					}
+					$('#redeem_modal').addClass('grd-success');
 				}
 				else{
-					layer.msg(data.msg, {
-						time: 3000,
-						offset:  '100px'
-					});
+					RedeemFail(data.msg);
 				}
 			},
 			error: (jqXHR) => {
 				layer.closeAll('loading');
-				layer.msg(jqXHR.responseText, {
-					time: 5000,
-					offset:  '100px'
-				});
+				RedeemFail(jqXHR.responseText);
 			}
 		});
 	}

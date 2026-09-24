@@ -108,6 +108,16 @@ final class TaskCommand extends Command
 			'enabled' => true,
 		));
 
+		// tells the customer on Telegram that a redeemed gift card was applied;
+		// /portal/redeem is encoded, so this reads giftcard_logs
+		$scheduler->add('GiftCardNotifyJob', array(
+			'command' => 'php '.BASE_PATH.'/bin/giftcards.php',
+			'schedule' => "* * * * *",
+			'output' => BASE_PATH.'/storage/logs/giftcards.log',
+			'lock_dir' => BASE_PATH.'/storage/cron/',
+			'enabled' => true,
+		));
+
 		$scheduler->run();
 		return 0;
     }
