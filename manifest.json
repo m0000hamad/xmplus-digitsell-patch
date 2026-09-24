@@ -1,7 +1,7 @@
 {
-    "version": "1.8.3",
+    "version": "1.8.4",
     "released": "2026-09-24",
-    "notes": "Telegram gifts now say more, on Telegram and on the site.\n\nThe bot's message states what was won and the plan's total traffic after it,\nusable until the plan ends (date and days left). After the bot-link gift it\nalso points at the channel gift (up to 50 GB) while that is still open.\n\nA congratulation popup on the dashboard (giftpopup.tpl, User::newGifts())\nshows each gift not yet seen - amount, reason, total traffic and end date,\nthe channel nudge - with confetti. Reading it marks it seen (not for an admin\npreviewing a portal). tgjoin_log and tgbind_log gained a seen column.\n\nA linked account that has not joined yet is asked again every 2 minutes\ninstead of 10, so the channel card goes soon after an approval.",
+    "notes": "The admins hear about every new Telegram link and every gift.\n\nTgJoinJob sends a note to the panel's admin chat (telegramchatid, or the\nchats listed in tgjoin_admin_chats): who linked the bot and what they got -\nor why they got nothing (no running plan yet, no purchase yet, already\ngifted) - and who joined the channel and what they won, with the plan's\nremaining traffic and end date.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -18,7 +18,7 @@
         "app/Http/Models/User.php": "a65db66d33ee7d230b0ab59458b128f480efa1c69e3b4055b39792fc18b6316d",
         "app/Jobs/CommissionJob.php": "84828f5230b9726b5235faaec18de7468e1741be052b34bef7bef0a9f0bffc95",
         "app/Jobs/LogsJob.php": "1226dc5987cd1b81692b3a86347f7fd6ae32ddc84c4f4a2f1f2546d71c340139",
-        "app/Jobs/TgJoinJob.php": "a84baebc2408e98d4d07f420af5c85694214807306c9f408de15c8745a48fd7c",
+        "app/Jobs/TgJoinJob.php": "0daeac87391d6e5c4e8376e36b6556e5e34f3550b5bf9713ae74267817e6f845",
         "app/Jobs/TimePlanJob.php": "c57874260c2f41f269091eef30b4b746f4783295dd43fabab55f523173a414ea",
         "app/Jobs/TrafficStatsJob.php": "8cde9d7167ed068664d9f31ce4e25ac43e7884be866d3689d6507c12d34d247e",
         "app/Jobs/UserJob.php": "622ce66f3fe2987ec01917ab3cbc050d9023aa96d440ec9d80a091d5353c4428",

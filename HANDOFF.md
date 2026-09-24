@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-24 · installed version **1.8.3** · latest release **1.8.3** · repo
+Last updated: 2026-09-24 · installed version **1.8.4** · latest release **1.8.4** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -349,6 +349,10 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
   Persian text need LRM marks (bot) or `<bdi dir=ltr>` (site), or they read
   backwards. One gift per SITE account: linking several Telegram accounts to
   one panel account earns nothing extra (UNIQUE userid).
+- **Admin notes (1.8.4):** `tellAdmins()` writes to `tgjoin_admin_chats`
+  (comma list) or, if empty, the panel's `telegramchatid`. A new link is
+  detected as the first `tgjoin_check` row for the account; the bot-link gift
+  is reported from `bindGifts()` and not repeated (`$reported`).
 - Settings rows: `tgjoin_channel_id`, `tgjoin_link`, `tgjoin_free_package`,
   `tgjoin_free_days`. Empty channel id switches everything off.
 
@@ -461,3 +465,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.8.1 | Share buttons keep the invite link at the end of the message (Telegram's share page put it first) |
 | 1.8.2 | One-time 1-10 GB gift for linking the Telegram bot (paying customers with a running plan, new links only) |
 | 1.8.3 | Gift messages state the new total and end date; congratulation popup on the dashboard; channel recheck every 2 minutes |
+| 1.8.4 | Admin chat is told about every new bot link and every Telegram gift |
