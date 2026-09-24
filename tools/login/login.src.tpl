@@ -114,8 +114,8 @@
         <span class="absolute -inset-1 bg-gradient-to-r from-red-600 via-pink-600 to-orange-500 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-300"></span>
         <span class="relative flex items-center gap-2.5 px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 rounded-xl text-white font-black font-latin text-sm tracking-wide shadow-lg border border-red-400/40">
           <span class="flex h-2.5 w-2.5 relative">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-300"></span>
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-400 shadow-[0_0_6px_#4ade80]"></span>
           </span>
           <span>Digitsell Shop</span>
         </span>
