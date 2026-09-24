@@ -1,9 +1,18 @@
-The dashboard notices a Telegram gift on its own.
+New sign-in page.
 
-While a gift could still arrive - Telegram not linked yet, the channel card
-showing, or the bot-link gift on offer - the page asks
-xmplus-patch.php?do=tggift.poll every 15 seconds while the tab is visible,
-for up to 30 minutes, and reloads once a gift has landed (the congratulation
-popup and the new traffic then show) or the Telegram link changed. Coming
-back to the tab, usually from Telegram, asks at once and moves the account to
-the front of the next channel check. It never reloads over an open dialog.
+view/auth/login.tpl is redesigned: a dark glass card with the Digitsell
+header. On a desktop (1024 px and wider) it is a split screen - the form on
+the right, the Network Optimizer features and the social icons on the left,
+all on one screen. On a phone only the form shows, with the social icons at
+the bottom of the card, and it fits one screen without scrolling. Inputs are
+16 px on phones so iOS does not zoom on focus.
+
+The form keeps the panel's own contract: it posts email and passwd (plus the
+hCaptcha or Turnstile response when enabled) to /login and follows ret 1 to
+/portal/dashboard and ret 2 to /verify. Errors show under the fields instead
+of a layer popup. Social links are icons only; Telegram goes to
+t.me/digitsellshop (support).
+
+Everything is served from the panel itself - IRANSans, Inter, Font Awesome
+and the compiled Tailwind CSS inlined in the template - so the page does not
+depend on any outside CDN. Source and build script: tools/login/.
