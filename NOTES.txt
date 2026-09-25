@@ -1,6 +1,5 @@
-The channel gift for an account without a running plan is now a free plan of
-100 MB to 1 GB (about 360 MB on average) instead of 10 to 50 GB; members with
-a running plan still get 1 to 50 GB added. Sizes below a gigabyte read in MB
-everywhere - the bot, the admin note, the dashboard popup and the remaining
-traffic line - and the channel card offers up to 1 GB to those without a
-plan. tgjoin_log.gb becomes DECIMAL(10,4) on the job's next run.
+The sign-up page gets the sign-in page's design: same background, glass card
+and night/day/automatic switch, with the site's benefits beside the form on
+desktop and a short list under it on phones. The form sends what the stock
+page sent (username, email, password, invite code, captcha); a repeat-password
+check and a strength bar are added in the page.
