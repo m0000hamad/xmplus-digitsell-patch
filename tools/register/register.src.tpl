@@ -54,6 +54,8 @@
     .btn-submit .spin { display: none; width: 1rem; height: 1rem; border: 2px solid rgba(255, 255, 255, .4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
     .btn-submit[disabled] .spin { display: inline-block; }
     .btn-submit[disabled] .fa-arrow-left { display: none; }
+    .suffix-select { background: transparent; border: 0; outline: 0; padding: 4px 0 4px 6px; max-width: 55%; }
+    .suffix-select option { color: #0f172a; }
     .form-msg.ok { color: #34d399; }
     .form-msg.err { color: #fb7185; }
 
@@ -152,13 +154,40 @@
           <span class="text-xl anim-float select-none" aria-hidden="true">🚀</span>
         </div>
 
-        <p id="affNote" class="hidden text-[11px] font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 rounded-xl px-3 py-2 mb-3 mt-0">
+        {if $aff}
+        <p class="text-[11px] font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 rounded-xl px-3 py-2 mb-3 mt-0">
           <i class="fa-solid fa-gift ml-1" aria-hidden="true"></i> با لینک دعوت یکی از دوستانتان آمده‌اید
         </p>
+        {/if}
 
         <form id="formsubmit" class="space-y-3" novalidate>
+          <input type="hidden" id="aff" value="{$aff|escape}">
+
+          <div>
+            <label for="username" class="block text-xs font-bold text-slate-200 mb-1.5 mr-1">{$translate->get('Username')}</label>
+            <div class="glass-input rounded-2xl flex items-center px-3.5 py-2">
+              <span class="w-8 h-8 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-300 ml-2.5 flex-shrink-0" aria-hidden="true">
+                <i class="fa-solid fa-user text-sm"></i>
+              </span>
+              <input id="username" name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="مثلاً ali" required
+                     class="w-full text-base lg:text-sm text-white placeholder-slate-400">
+            </div>
+          </div>
+
           <div>
             <label for="email" class="block text-xs font-bold text-slate-200 mb-1.5 mr-1">{$translate->get('LoginEmail')}</label>
+            {if $Config['enable_restrict_email_list'] == 1}
+            <div class="glass-input rounded-2xl flex items-center px-3.5 py-2" dir="ltr">
+              <input id="email" name="email_prefix" type="text" dir="ltr" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="name" required
+                     class="w-full min-w-0 text-base lg:text-sm text-white placeholder-slate-400 font-latin">
+              <select id="suffix" name="suffix" class="suffix-select font-latin text-sm text-white flex-shrink-0 cursor-pointer" aria-label="دامنه ایمیل">
+                {$suffixes = explode(',',$Config['restrict_email_list'])}
+                {foreach $suffixes as $suffix}
+                <option value="{$suffix|escape}">{$suffix|escape}</option>
+                {/foreach}
+              </select>
+            </div>
+            {else}
             <div class="glass-input rounded-2xl flex items-center px-3.5 py-2">
               <span class="w-8 h-8 rounded-xl bg-pink-500/15 flex items-center justify-center text-pink-400 ml-2.5 flex-shrink-0" aria-hidden="true">
                 <i class="fa-solid fa-envelope text-sm"></i>
@@ -166,18 +195,7 @@
               <input id="email" name="email" type="email" dir="ltr" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="name@domain.com" required
                      class="w-full text-base lg:text-sm text-white placeholder-slate-400 font-latin">
             </div>
-          </div>
-
-          <div id="codeRow" class="hidden">
-            <label for="emailcode" class="block text-xs font-bold text-slate-200 mb-1.5 mr-1">{$translate->get('VerificationCode')}</label>
-            <div class="glass-input rounded-2xl flex items-center px-3.5 py-2">
-              <span class="w-8 h-8 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-300 ml-2.5 flex-shrink-0" aria-hidden="true">
-                <i class="fa-solid fa-key text-sm"></i>
-              </span>
-              <input id="emailcode" name="emailcode" type="text" dir="ltr" inputmode="numeric" autocomplete="one-time-code" placeholder="------"
-                     class="w-full text-base lg:text-sm text-white placeholder-slate-400 font-latin tracking-wider">
-              <button type="button" id="sendCode" class="whitespace-nowrap text-[11px] font-bold text-pink-400 hover:text-pink-300 bg-transparent border-0 p-1 mr-1 cursor-pointer">ارسال کد</button>
-            </div>
+            {/if}
           </div>
 
           <div>
@@ -198,6 +216,9 @@
               <span class="pw-bar flex-1 h-1 rounded-full bg-white/10"></span>
               <span class="pw-bar flex-1 h-1 rounded-full bg-white/10"></span>
             </div>
+            {if $Config['passwordmode'] == 1}
+            <p class="text-[11px] text-slate-400 mt-1.5 mb-0 mx-1 leading-relaxed">حداقل ۸ کاراکتر، شامل حرف کوچک، حرف بزرگ و عدد یا نماد</p>
+            {/if}
           </div>
 
           <div>
@@ -377,13 +398,13 @@
     var email = document.getElementById('email');
     var pass = document.getElementById('password');
     var repass = document.getElementById('repassword');
-    var code = document.getElementById('emailcode');
+    var user = document.getElementById('username');
+    var suffix = document.getElementById('suffix');
     var toggle = document.getElementById('togglePassword');
     var btn = document.getElementById('sign-up');
     var msg = document.getElementById('formMsg');
     var bars = document.querySelectorAll('.pw-bar');
-    var aff = new URLSearchParams(location.search).get('aff') || '';
-    if (aff) document.getElementById('affNote').classList.remove('hidden');
+    var aff = document.getElementById('aff').value;
 
     function say(text, ok) {
       msg.textContent = text || '';
@@ -427,22 +448,24 @@
 
     form.addEventListener('submit', function (e) {
       e.preventDefault();
+      var name = user.value.trim();
       var em = email.value.trim();
-      if (!em || !pass.value || !repass.value) {
-        say('لطفاً ایمیل و کلمه عبور را کامل وارد کنید.', false);
-        (!em ? email : (!pass.value ? pass : repass)).focus();
+      var empty = !name ? user : (!em ? email : (!pass.value ? pass : (!repass.value ? repass : null)));
+      if (empty) {
+        say('لطفاً همه فیلدها را کامل کنید.', false);
+        empty.focus();
         return;
       }
+      if (suffix) em += suffix.value;
       if (pass.value !== repass.value) {
         say('رمز عبور و تکرار آن یکسان نیستند.', false);
         repass.focus();
         return;
       }
       var body = new URLSearchParams();
+      body.append('name', name);
       body.append('email', em);
       body.append('passwd', pass.value);
-      body.append('repasswd', repass.value);
-      body.append('emailcode', code.value.trim());
       body.append('aff', aff);
       if (document.querySelector('.h-captcha') && window.hcaptcha) body.append('hcaptcha', window.hcaptcha.getResponse());
       if (document.querySelector('.cf-turnstile') && window.turnstile) body.append('turnstile', window.turnstile.getResponse());
