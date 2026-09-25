@@ -1,7 +1,7 @@
 {
-    "version": "1.9.0",
+    "version": "1.9.1",
     "released": "2026-09-25",
-    "notes": "The channel gift for an account without a running plan is now a free plan of\n100 MB to 1 GB (about 360 MB on average) instead of 10 to 50 GB; members with\na running plan still get 1 to 50 GB added. Sizes below a gigabyte read in MB\neverywhere - the bot, the admin note, the dashboard popup and the remaining\ntraffic line - and the channel card offers up to 1 GB to those without a\nplan. tgjoin_log.gb becomes DECIMAL(10,4) on the job's next run.",
+    "notes": "User::sendMail now hands the template its values (it passed an empty array, so\nmails went out without their code, link or name), queues a mail as JSON the\nway UserJob does (the raw array failed to save, so a queued mail was never\nwritten), and returns false and logs to the PHP error log when a send fails\ninstead of reporting it as sent.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -15,7 +15,7 @@
         "app/Http/Models/Package.php": "8970a31dfe5bcbc6f536d258dcafe18cacc0705f9b431aee28a42841b22a2d2b",
         "app/Http/Models/Ticket.php": "2725842f26f84d4f01be5d30001468591221cd7d95571ddbc47304840ee5c2a0",
         "app/Http/Models/TrafficDaily.php": "f67b2efe0fb0a261f17ef7aae4aebe133db2e9b5608288112890d8a28bf75906",
-        "app/Http/Models/User.php": "a53a288ca52fac59b1e3a039625582970b2c878b8a9a47ccdf0ecbbdf96be663",
+        "app/Http/Models/User.php": "8121939d52f14b7e292d6c4681680a7b54305bf44dcb75923a3330377df8c7fb",
         "app/Jobs/CommissionJob.php": "84828f5230b9726b5235faaec18de7468e1741be052b34bef7bef0a9f0bffc95",
         "app/Jobs/GiftCardNotifyJob.php": "8b9d1d517e33c2e5ac515649fc26b1910879c69f5eb202f454f71296a0ea45b0",
         "app/Jobs/LogsJob.php": "1226dc5987cd1b81692b3a86347f7fd6ae32ddc84c4f4a2f1f2546d71c340139",

@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-24 · installed version **1.9.0** · latest release **1.9.0** · repo
+Last updated: 2026-09-25 · installed version **1.9.0** · latest release **1.9.1** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---

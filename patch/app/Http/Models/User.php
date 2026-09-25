@@ -124,33 +124,42 @@ final class User extends Model
 	
     public function sendMail(string $subject, string $template, array $arr = [], array $files = [], $is_queue = false): bool
     {
-        $result = false;
         if ($is_queue) {
-            $new_emailqueue = new Queue();
-            $new_emailqueue->to_email 	= $this->email;
-            $new_emailqueue->subject 	= $subject;
-            $new_emailqueue->template 	= $template;
-			$new_emailqueue->array 		= $arr;
-            $new_emailqueue->time 		= time();
-            $new_emailqueue->save();
+            // the column holds JSON (UserJob writes it the same way) - assigning
+            // the raw array through the model failed with "Array to string
+            // conversion" and the mail was never queued
+            Queue::insert([
+                'to_email'   => $this->email,
+                'subject'    => $subject,
+                'telegramid' => $this->telegram_id,
+                'template'   => $template,
+                'array'      => \json_encode($arr),
+                'time'       => time()
+            ]);
             return true;
         }
 
-        if (filter_var($this->email, FILTER_VALIDATE_EMAIL)) {
-            try {
-                (new MailService)->send(
-                    $this->email,
-                    $subject,
-                    $template,
-                    [],
-                    $files
-                );
-                $result = true;
-            } catch (\Throwable $e) {
-                $result = $e->getMessage();
-            }
+        if (!filter_var($this->email, FILTER_VALIDATE_EMAIL)) {
+            return false;
         }
-        return $result;
+
+        try {
+            // $arr was dropped here and [] passed instead, so every template
+            // went out without its code, link or name
+            (new MailService)->send(
+                $this->email,
+                $subject,
+                $template,
+                $arr,
+                $files
+            );
+            return true;
+        } catch (\Throwable $e) {
+            // this used to return the message, which a bool return turns into
+            // true - a failed send was reported as sent and nothing was logged
+            error_log('sendMail to ' . $this->email . ' failed: ' . $e->getMessage());
+            return false;
+        }
     }	
 	
 	public function trafficChart()

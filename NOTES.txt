@@ -1,6 +1,5 @@
-The channel gift for an account without a running plan is now a free plan of
-100 MB to 1 GB (about 360 MB on average) instead of 10 to 50 GB; members with
-a running plan still get 1 to 50 GB added. Sizes below a gigabyte read in MB
-everywhere - the bot, the admin note, the dashboard popup and the remaining
-traffic line - and the channel card offers up to 1 GB to those without a
-plan. tgjoin_log.gb becomes DECIMAL(10,4) on the job's next run.
+User::sendMail now hands the template its values (it passed an empty array, so
+mails went out without their code, link or name), queues a mail as JSON the
+way UserJob does (the raw array failed to save, so a queued mail was never
+written), and returns false and logs to the PHP error log when a send fails
+instead of reporting it as sent.
