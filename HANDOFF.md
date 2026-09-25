@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-25 · installed version **1.9.0** · latest release **1.9.1** · repo
+Last updated: 2026-09-25 · installed version **1.9.0** · latest release **1.9.2** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -169,6 +169,7 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Themes | Dark mode fixed panel-wide (see above) |
 | Gift cards | Redeem dialog redesigned, Telegram notice on redemption (1.8.9) - see below |
 | Sign-in page | `view/auth/login.tpl` redesigned (1.8.6) — see below |
+| Sign-up page | `view/auth/register.tpl` in the sign-in page's design (1.9.1) — see below |
 
 ### Time plans — how days are sold without touching the order pipeline
 
@@ -399,6 +400,26 @@ and it fits one screen.
 - Deployed by hand before each release commit; stock template and the 1.8.6
   version backed up in `/root/login-backup-20260924-181400/`.
 
+### Sign-up page (1.9.1)
+
+`view/auth/register.tpl`, same design, theme switch and breakpoints as the
+sign-in page; the side panel lists the site's benefits instead (no "free
+start" and no daily plans: the owner asked for neither).
+
+- **Built, not hand-edited:** source `tools/register/register.src.tpl`,
+  `node tools/register/build.js` inlines the Tailwind CSS, as for login.
+- Contract kept from the stock template (copy supplied by the owner on
+  2026-09-25): POST `/register` with `name` (username), `email`, `passwd`,
+  `aff` (from the controller's `{$aff}`), `hcaptcha` / `turnstile`; `ret 1` →
+  `/portal/dashboard`, anything else shows `msg`. With
+  `enable_restrict_email_list` = 1 the email is a local part plus a suffix
+  from `restrict_email_list`, joined before sending, as stock does.
+- Additions are client-side only: repeat-password check, strength bar, the
+  `passwordmode` hint, and an "invited by a friend" note when `{$aff}` is set.
+- Dropped: the terms checkbox (client-side only in stock, and it linked to
+  `/terms`, a route like `/tos` that the panel does not serve), the language
+  selector (as on the sign-in page), and the WeChat block.
+
 ### Gift card redeem (1.8.9)
 
 - **Dialog:** `#redeem_modal` in `view/user/dashboard/order.tpl`, opened by
@@ -537,3 +558,4 @@ and it fits one screen.
 | 1.8.8 | Sign-in page: the light next to the logo is green |
 | 1.8.9 | Gift card redeem dialog redesigned; Telegram message to the customer (and the admins) when a card is applied |
 | 1.9.0 | Channel gift without a running plan: a free 100 MB-1 GB plan (was 10-50 GB); MB shown below a gigabyte |
+| 1.9.1 | Sign-up page in the sign-in page's design, with a benefits column |
