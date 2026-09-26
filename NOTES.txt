@@ -1,8 +1,9 @@
-Promotions can be posted in a Telegram channel. Settings gets a "promotion
-channel" card: the channel's numeric id, a save button and a test message
-button. Each promotion has a "post in the channel" switch; when it is on, the
-site bot posts the plan like its card on the site: the discount / special /
-prize tags, list price struck through next to the promo price for every
-cycle, traffic and users, the prize range, occasion, deadline and how many
-are left, with a buy button. The post is edited when the promotion changes or
-stock drops, and marked as ended (button removed) when the promotion closes.
+A prize won with a promoted plan now shows on the site, not only on Telegram.
+Back on the dashboard after paying, a gold note says the prize is being
+drawn; the page keeps asking and, as soon as it lands (about a minute), the
+congratulation popup shows it: +N GB or +N days, for buying which plan.
+
+The prize also shows in the numbers, in gold: a chip on the subscription card
+(+N GB / +N days prize), a gold inner ring and a "prize left" line on the
+statistics card, and a note that the prize is used first - the prize figure
+runs down to zero before the plan's own traffic does.

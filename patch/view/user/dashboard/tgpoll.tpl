@@ -5,12 +5,15 @@
  * lands - the congratulation popup and the new traffic figures then show
  * without a manual refresh. Linking the bot also reloads, so the cards move on.
  *
+ * A purchase prize still being drawn (User::promoPrizePending) keeps it asking
+ * too, so the prize popup appears by itself after paying.
+ *
  * Coming back to the tab (usually from Telegram) asks at once and nudges the
  * account to the front of the next channel check. Polling only runs while the
  * tab is visible, every 15 s, and stops for good after 30 minutes.
  *}
 {$tgpState = $user->tgJoin()}
-{if $tgpState['state'] == 'link' || $tgpState['state'] == 'join' || $user->telegram_id <= 0 || $user->tgBindGiftOpen()}
+{if $tgpState['state'] == 'link' || $tgpState['state'] == 'join' || $user->telegram_id <= 0 || $user->tgBindGiftOpen() || $user->promoPrizePending()}
 <script>
 	window.dsGiftPoll = { linked: {if $user->telegram_id > 0}true{else}false{/if} };
 </script>
