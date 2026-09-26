@@ -1,3 +1,2 @@
-The expiry countdown in the top bar now looks like an old LCD watch face:
-segment digits on a grey-green screen, with a frame that turns green, yellow,
-orange or pulsing red as the subscription runs out.
+Fix: on phones the expiry countdown shrank to a dot; it now keeps its full
+width and shows the LCD clock.
