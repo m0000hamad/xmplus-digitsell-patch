@@ -230,6 +230,9 @@ function promoSave(): void
         'ends_at'    => $endsAt,
         'max_sales'  => $maxSales,
         'show_left'  => !empty($_POST['show_left']) && $_POST['show_left'] !== '0' ? 1 : 0,
+        // tell every customer once (PromoJob, promo_broadcast); an edit does not repeat it
+        'announce'   => !empty($_POST['announce']) && $_POST['announce'] !== '0' ? 1 : 0,
+        'broadcast_done' => $wasOpen ? (int) ($previous['broadcast_done'] ?? 0) : 0,
         // a promotion that is still running keeps counting from where it began
         'started_at' => $wasOpen ? (int) ($previous['started_at'] ?? $now) : $now,
         'start_told' => $wasOpen ? (int) ($previous['start_told'] ?? 0) : 0,

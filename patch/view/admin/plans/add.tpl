@@ -281,6 +281,10 @@
 		});
 
 		timeplanBoot([], null, null, null, null, null, null, null, null, 0, []);
+
+		// "subscription plan" is selected on load, and only a change of type ran
+		// pricring(), so the promotion box stayed hidden until then
+		promoApply();
 	});
 	
 	function pricring(){
