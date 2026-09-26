@@ -109,6 +109,11 @@
                      <i class="fa-solid fa-bandage nav-icon"></i> {$translate->get('PatchSettings')}
                   </a>
                 </li>
+				<li class="nav-item">
+                  <a class="nav-link" href="#PromoChannelSettings"  data-scroll="PromoChannelSettings">
+                     <i class="fa-brands fa-telegram nav-icon"></i> {$translate->get('PromoChannelTitle')}
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
@@ -129,6 +134,7 @@
 			{include file='admin/settings/captchasettings.tpl'}
 			{include file='admin/settings/restrictsettings.tpl'} 
 			{include file='admin/settings/patchsettings.tpl'}
+			{include file='admin/settings/promochannel.tpl'}
           </div>
           <div id="stickyBlockEndPoint"></div>
         </div>
