@@ -1,9 +1,3 @@
-A prize won with a promoted plan now shows on the site, not only on Telegram.
-Back on the dashboard after paying, a gold note says the prize is being
-drawn; the page keeps asking and, as soon as it lands (about a minute), the
-congratulation popup shows it: +N GB or +N days, for buying which plan.
-
-The prize also shows in the numbers, in gold: a chip on the subscription card
-(+N GB / +N days prize), a gold inner ring and a "prize left" line on the
-statistics card, and a note that the prize is used first - the prize figure
-runs down to zero before the plan's own traffic does.
+The expiry countdown in the top bar is now a bright neon digital clock whose
+colour follows the time left: green with a week or more, yellow under a week,
+orange under three days, and a pulsing red in the last day (red once expired).
