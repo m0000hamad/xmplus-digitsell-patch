@@ -233,6 +233,10 @@ function promoSave(): void
         // tell every customer once (PromoJob, promo_broadcast); an edit does not repeat it
         'announce'   => !empty($_POST['announce']) && $_POST['announce'] !== '0' ? 1 : 0,
         'broadcast_done' => $wasOpen ? (int) ($previous['broadcast_done'] ?? 0) : 0,
+        // post it in the promotion channel (promo_channel_id); PromoJob keeps the post up to date
+        'channel'    => !empty($_POST['channel']) && $_POST['channel'] !== '0' ? 1 : 0,
+        'channel_msg'  => $wasOpen ? (int) ($previous['channel_msg'] ?? 0) : 0,
+        'channel_hash' => $wasOpen ? (string) ($previous['channel_hash'] ?? '') : '',
         // a promotion that is still running keeps counting from where it began
         'started_at' => $wasOpen ? (int) ($previous['started_at'] ?? $now) : $now,
         'start_told' => $wasOpen ? (int) ($previous['start_told'] ?? 0) : 0,
@@ -264,16 +268,108 @@ function promoSave(): void
     done(['packageid' => $id, 'running' => true, 'prices' => $options]);
 }
 
+// ------------------------------------------------------- the channel setting
+
+const PROMO_CHANNEL_SETTING = 'promo_channel_id';
+
+/** "-1001234567890", or "@name" for a public channel */
+function promoChannelId(string $raw): string
+{
+    $raw = trim($raw);
+
+    if ($raw !== '' && !preg_match('~^(-?\d{5,20}|@[A-Za-z0-9_]{5,32})$~', $raw)) {
+        fail('the channel id must be the numeric id (for example -1001234567890) or @name');
+    }
+
+    return $raw;
+}
+
+function promoTelegram(string $method, array $params): ?array
+{
+    $token = trim((string) setting('telegramtoken', ''));
+
+    if ($token === '') {
+        fail('the panel has no Telegram bot token (Settings → Telegram)');
+    }
+
+    $handle = curl_init('https://api.telegram.org/bot' . $token . '/' . $method);
+    curl_setopt_array($handle, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => http_build_query($params),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_TIMEOUT        => 10,
+    ]);
+    $body = curl_exec($handle);
+    curl_close($handle);
+
+    return $body === false ? null : json_decode((string) $body, true);
+}
+
+/* the settings card: current value, and the token its buttons need */
+function promoChannelState(): void
+{
+    if (empty($_SESSION['patch_csrf'])) {
+        $_SESSION['patch_csrf'] = bin2hex(random_bytes(24));
+    }
+
+    done([
+        'token'   => $_SESSION['patch_csrf'],
+        'channel' => (string) setting(PROMO_CHANNEL_SETTING, ''),
+    ]);
+}
+
+function promoChannelSave(): void
+{
+    requireToken();
+
+    $channel = promoChannelId((string) ($_POST['channel'] ?? ''));
+    putSetting(PROMO_CHANNEL_SETTING, $channel);
+
+    done(['channel' => $channel]);
+}
+
+/* one message to the channel, so the admin sees the bot may post there */
+function promoChannelTest(): void
+{
+    requireToken();
+
+    $channel = promoChannelId((string) ($_POST['channel'] ?? setting(PROMO_CHANNEL_SETTING, '')));
+
+    if ($channel === '') {
+        fail('enter the channel id first');
+    }
+
+    $reply = promoTelegram('sendMessage', [
+        'chat_id' => $channel,
+        'text'    => "✅ ربات سایت می‌تواند در این کانال پیام بفرستد.\nپروموشن‌هایی که «ارسال به کانال» دارند اینجا منتشر می‌شوند.",
+    ]);
+
+    if (!is_array($reply) || empty($reply['ok'])) {
+        fail('Telegram refused: ' . (is_array($reply) ? (string) ($reply['description'] ?? 'unknown error') : 'no answer')
+            . ' — the bot must be an admin of the channel with the right to post');
+    }
+
+    done(['sent' => true]);
+}
+
 // ---------------------------------------------------------------- dispatch
 
 $promoAction = substr((string) ($_GET['do'] ?? ''), strlen('promo.'));
 
-if ($promoAction === 'save') {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        fail('this action needs POST', 405);
-    }
+if (in_array($promoAction, ['save', 'channelsave', 'channeltest'], true) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    fail('this action needs POST', 405);
+}
 
-    promoSave();
+switch ($promoAction) {
+    case 'save':
+        promoSave();
+    case 'channel':
+        promoChannelState();
+    case 'channelsave':
+        promoChannelSave();
+    case 'channeltest':
+        promoChannelTest();
 }
 
 fail('unknown promotion action');

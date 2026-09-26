@@ -1556,4 +1556,13 @@ $i18n['zh_CN'] = array(
 	'PromoAnnounce'             => "通知所有用户",
 	'PromoAnnounceHint'         => "通过 Telegram 和邮件通知所有用户一次（已关闭通知的用户除外）。编辑促销不会重复发送。",
 	'PromoStickerOff'           => "折扣",
+	'PromoChannel'              => "发布到频道",
+	'PromoChannelHint'          => "此促销将发布到设置中的 Telegram 频道；内容或库存变化时更新，结束时标注。",
+	'PromoChannelTitle'         => "促销 Telegram 频道",
+	'PromoChannelIntro'         => "勾选“发布到频道”的促销会连同标签、原价与折扣价、奖励、截止时间和购买按钮发布到此频道。网站机器人必须是频道管理员并有发帖权限。",
+	'PromoChannelId'            => "频道 ID",
+	'PromoChannelIdHint'        => "例如 -1001234567890（公开频道可用 @name）。留空则关闭频道发布。",
+	'PromoChannelTest'          => "发送测试消息",
+	'PromoChannelSaved'         => "频道已保存",
+	'PromoChannelSent'          => "测试消息已发送到频道",
 );
