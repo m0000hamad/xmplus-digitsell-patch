@@ -59,7 +59,7 @@
         "view/admin/settings/settings.tpl": "a9a4deed79725fa51b536c9640a7d042c5a23800bc329a903ff68c3d56f16770",
         "view/admin/tickets/index.tpl": "18c9d5d95b50eee05d4640bca49893cebcd3a77e695800fee331bbf4c7a7445b",
         "view/admin/tickets/view.tpl": "804c43bfcc1cb3e1117b710552e4767048dd1d99c94111e723a98bbfac715ea4",
-        "view/auth/login.tpl": "45b4cbbc3309fe13574b94b313896d793f2b6decdd241e7fe6c3a5bf3372c60f",
+        "view/auth/login.tpl": "6f3894f0afe82b8cda5725cb73590cb224af788b0a395b9c9b5cbe8e3f744a58",
         "view/auth/loginsocial.tpl": "b44928ee2d7b207ef79542afddc989329ac09a25d3f4940774d2baa175515b7f",
         "view/auth/register.tpl": "e65c46a4ae2f33bacedc2c714fcff7f659c829e3387434c45d049751c28687d6",
         "view/common/copy.tpl": "36c6512dfbced246104d9d1585d67fd19e912e6994354aa107a40bb8362a373a",

@@ -20,27 +20,28 @@
     })();
   </script>
 {/literal}
-  <link rel="stylesheet" href="/assets/css/inter.css?family=Inter:wght@400;600&amp;display=swap">
-  <link rel="stylesheet" href="/assets/css/iransans.css">
-  <link rel="stylesheet" href="/assets/fonts/fontawesome/css/all.min.css">
+  <link rel="preload" href="/assets/fonts/webfonts/fonts/woff2/IRANSansWeb.woff2" as="font" type="font/woff2" crossorigin>
 {literal}
   <style>
 /*TAILWIND*/
+/*ICONS*/
+    @font-face { font-family: IRANSans; font-style: normal; font-weight: 400; font-display: swap; src: url('/assets/fonts/webfonts/fonts/woff2/IRANSansWeb.woff2') format('woff2'); }
+    @font-face { font-family: IRANSans; font-style: normal; font-weight: 700; font-display: swap; src: url('/assets/fonts/webfonts/fonts/woff2/IRANSansWeb_Bold.woff2') format('woff2'); }
     html, body { min-height: 100vh; min-height: 100dvh; margin: 0; background-color: #0b0f19; }
+    .backdrop { background:
+      radial-gradient(38rem 38rem at 8% -8%, rgba(147, 51, 234, .38), transparent 70%),
+      radial-gradient(36rem 36rem at 105% 55%, rgba(37, 99, 235, .30), transparent 70%),
+      radial-gradient(32rem 32rem at 45% 115%, rgba(244, 63, 94, .22), transparent 70%); }
     body { font-family: IRANSans, Tahoma, sans-serif; }
-    .font-latin { font-family: Inter, IRANSans, sans-serif; }
+    .font-latin { font-family: system-ui, -apple-system, "Segoe UI", Roboto, IRANSans, sans-serif; }
     @media (min-width: 1024px) { html, body { height: 100dvh; overflow: hidden; } }
 
-    @keyframes aurora { 0% { transform: scale(1) translate(0, 0); } 50% { transform: scale(1.15) translate(-4%, 3%); } 100% { transform: scale(1) translate(3%, -3%); } }
     @keyframes floaty { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-10px) rotate(3deg); } }
-    @keyframes pulseGlow { 0%, 100% { opacity: .45; transform: scale(1); } 50% { opacity: .8; transform: scale(1.08); } }
     @keyframes shimmer { 0% { transform: translateX(-150%) rotate(30deg); } 100% { transform: translateX(150%) rotate(30deg); } }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .anim-aurora { animation: aurora 18s ease-in-out infinite alternate; }
     .anim-float { animation: floaty 5s ease-in-out infinite; }
-    .anim-glow { animation: pulseGlow 3s ease-in-out infinite; }
 
-    .glass-panel { background: rgba(18, 24, 38, .72); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .65), 0 0 35px -5px rgba(124, 58, 237, .25); }
+    .glass-panel { background: rgba(18, 24, 38, .72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .65), 0 0 35px -5px rgba(124, 58, 237, .25); }
     .glass-input { background: rgba(13, 17, 28, .65); border: 1.5px solid rgba(255, 255, 255, .12); transition: border-color .2s, box-shadow .2s; }
     .glass-input:focus-within { border-color: #ec4899; box-shadow: 0 0 20px -3px rgba(236, 72, 153, .45); }
     .glass-input input { background: transparent; border: 0; outline: 0; box-shadow: none; }
@@ -67,7 +68,10 @@
     /* light theme */
     html[data-theme="light"], html[data-theme="light"] body { background-color: #f4f1fb; }
     [data-theme="light"] body { color: #1e293b; }
-    [data-theme="light"] .anim-aurora, [data-theme="light"] .anim-glow { opacity: .18; }
+    [data-theme="light"] .backdrop { background:
+      radial-gradient(38rem 38rem at 8% -8%, rgba(168, 85, 247, .16), transparent 70%),
+      radial-gradient(36rem 36rem at 105% 55%, rgba(59, 130, 246, .13), transparent 70%),
+      radial-gradient(32rem 32rem at 45% 115%, rgba(244, 63, 94, .10), transparent 70%); }
     [data-theme="light"] .glass-panel { background: rgba(255, 255, 255, .78); border-color: rgba(15, 23, 42, .08); box-shadow: 0 25px 50px -20px rgba(76, 29, 149, .25), 0 0 35px -10px rgba(236, 72, 153, .18); }
     [data-theme="light"] .glass-input { background: rgba(255, 255, 255, .9); border-color: rgba(15, 23, 42, .14); }
     [data-theme="light"] .feature-card { background: rgba(255, 255, 255, .6); border-color: rgba(15, 23, 42, .08); }
@@ -102,13 +106,11 @@
 <body class="text-slate-100 flex flex-col relative selection:bg-pink-500 selection:text-white">
 
   <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
-    <div class="absolute -top-[25%] -left-[10%] w-[650px] h-[650px] rounded-full bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 blur-[130px] opacity-40 anim-aurora"></div>
-    <div class="absolute top-[35%] -right-[15%] w-[600px] h-[600px] rounded-full bg-gradient-to-tl from-cyan-500 via-blue-600 to-violet-600 blur-[140px] opacity-35 anim-aurora"></div>
-    <div class="hidden lg:block absolute -bottom-[20%] left-[30%] w-[550px] h-[550px] rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-fuchsia-600 blur-[150px] opacity-30 anim-glow"></div>
+    <div class="backdrop absolute inset-0"></div>
     <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#8b5cf6_1px,transparent_1px)] [background-size:28px_28px]"></div>
   </div>
 
-  <header class="relative z-20 w-full px-4 sm:px-6 lg:px-12 py-3 flex items-center justify-between border-b border-white/10 backdrop-blur-md bg-slate-950/40">
+  <header class="relative z-20 w-full px-4 sm:px-6 lg:px-12 py-3 flex items-center justify-between border-b border-white/10 bg-slate-950/40">
     <a href="/" class="flex items-center gap-3 no-underline" aria-label="Digitsell Shop">
       <span class="relative group">
         <span class="absolute -inset-1 bg-gradient-to-r from-red-600 via-pink-600 to-orange-500 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-300"></span>
@@ -277,7 +279,7 @@
     </section>
   </main>
 
-  <footer class="relative z-20 w-full px-4 sm:px-6 lg:px-12 py-2 flex items-center justify-between text-[11px] text-slate-400 border-t border-white/10 bg-slate-950/40 backdrop-blur-md">
+  <footer class="relative z-20 w-full px-4 sm:px-6 lg:px-12 py-2 flex items-center justify-between text-[11px] text-slate-400 border-t border-white/10 bg-slate-950/40">
     <span class="flex items-center gap-1.5 text-emerald-400 font-medium">
       <span class="h-2 w-2 rounded-full bg-emerald-400 animate-ping" aria-hidden="true"></span>
       سرورها آنلاین
