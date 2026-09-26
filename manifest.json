@@ -1,7 +1,7 @@
 {
-    "version": "1.10.6",
+    "version": "1.10.7",
     "released": "2026-09-26",
-    "notes": "The expiry countdown in the top bar is now a bright neon digital clock whose\ncolour follows the time left: green with a week or more, yellow under a week,\norange under three days, and a pulsing red in the last day (red once expired).",
+    "notes": "The expiry countdown in the top bar now looks like an old LCD watch face:\nsegment digits on a grey-green screen, with a frame that turns green, yellow,\norange or pulsing red as the subscription runs out.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -91,8 +91,8 @@
         "view/user/knowledgebase/index.tpl": "56734909a2273153f33e7eef3078075a77a9570ca1390a6ac8ce9f809bd400f3",
         "view/user/knowledgebase/show.tpl": "30eb542a241bad2678750e9e432ddc26d17fa952ee999b1c4ae98624bd3007ba",
         "view/user/layout/footer.tpl": "af2fa1a5d01278f2fb77117afa5f6c9fe129dde6361cb879d98a58d633d2a2c5",
-        "view/user/layout/header.tpl": "1a2eb0adc42b9304e47f5fd81de3f8c7eb41e7931f1fd76d22e1ccb4e385917d",
-        "view/user/layout/style.tpl": "01790ec02e36c496dd06559f749fd041a213ae035d64619bedf93de0611b7219",
+        "view/user/layout/header.tpl": "97a881a4d9344737ecd0422d302a454438e5ac1700badb7923b1a8d80abbe678",
+        "view/user/layout/style.tpl": "cc98135400d10a8e41eff573c0847960ba3a8ca7144ac3571315d37da01e3e7c",
         "view/user/layout/usermenu.tpl": "856dc986f6b208d0737b65299ef155e04a9710a5a5bac1b879c0bcafe9b5997c",
         "view/user/notice/notice.tpl": "f6409604fc8916676346395d67b23092bdd6136541db415a81438bf03d936da2",
         "view/user/order/invoice.tpl": "6d5d1020127cc41af0fa284ce5507bd11106d00facd164e99809696fbfa8822d",
