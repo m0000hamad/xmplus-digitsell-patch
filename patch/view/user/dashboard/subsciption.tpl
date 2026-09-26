@@ -227,6 +227,12 @@ html[data-hs-theme="dark"] .sub-clock {
 	background: rgba(255, 255, 255, .05);
 	border-color: rgba(255, 255, 255, .08);
 }
+.sub-chip.sub-chip-prize {
+	color: #5a2d00;
+	background: linear-gradient(135deg, #fde68a, #fbbf24);
+	box-shadow: 0 4px 12px -4px rgba(245, 158, 11, .7), inset 0 0 0 1px rgba(255, 255, 255, .5);
+	font-weight: 800;
+}
 html[data-hs-theme="dark"] .sub-bar,
 html[data-hs-theme="dark"] .sub-tile-bar { background: rgba(255, 255, 255, .1); }
 html[data-hs-theme="dark"] .sub-tile {
@@ -485,6 +491,9 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 					<span class="sub-chip">⚡ {$helpers->PortSpd($user->speedlimit)}</span>
 					<span class="sub-chip">🌍 {str_replace([' | '],[' '],$helpers->serveGroup($user->server_group))}</span>
 					<span class="sub-chip">📶 {$user->enableTraffic()}</span>
+					{$uPrize = $user->promoPrize()}
+					{if $uPrize.gb > 0}<span class="sub-chip sub-chip-prize">🎁 {$translate->get('PromoPrizeChipGb')|replace:'%n%':$uPrize.gb}</span>{/if}
+					{if $uPrize.days > 0}<span class="sub-chip sub-chip-prize">🎁 {$translate->get('PromoPrizeChipDays')|replace:'%n%':$uPrize.days}</span>{/if}
 				</div>
 			{/if}
 

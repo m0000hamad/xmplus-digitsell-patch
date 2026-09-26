@@ -145,6 +145,12 @@ class PromoJob
 				KEY packageid (packageid)
 			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 
+		// the dashboard's prize popup (User::newGifts); rows from before it existed
+		// count as seen, so nobody gets a popup for an old prize
+		if (count(DB::select("SHOW COLUMNS FROM promo_log LIKE 'seen'")) === 0) {
+			DB::statement('ALTER TABLE promo_log ADD COLUMN seen TINYINT(1) NOT NULL DEFAULT 1');
+		}
+
 		DB::statement(
 			'CREATE TABLE IF NOT EXISTS promo_broadcast (
 				id BIGINT(20) NOT NULL AUTO_INCREMENT,
@@ -222,6 +228,8 @@ class PromoJob
 				'expire_before' => $user->expire_in,
 				'expire_after'  => null,
 				'created_at'    => time(),
+				// a drawn prize waits for its popup on the dashboard
+				'seen'          => $prize ? 0 : 1,
 			]);
 		} catch (\Throwable $error) {
 			return false;
