@@ -1,5 +1,8 @@
-Every promotion mark is big now. The prize gets its own starburst sticker on
-the plan card (purple, with a gift), the same size as the "special" and
-discount ones; a plan with both shows the two side by side, tilted opposite
-ways, and the card makes room so they cover neither the price nor the
-features. The badges on the plan page banner are larger as well.
+Promotions can be posted in a Telegram channel. Settings gets a "promotion
+channel" card: the channel's numeric id, a save button and a test message
+button. Each promotion has a "post in the channel" switch; when it is on, the
+site bot posts the plan like its card on the site: the discount / special /
+prize tags, list price struck through next to the promo price for every
+cycle, traffic and users, the prize range, occasion, deadline and how many
+are left, with a buy button. The post is edited when the promotion changes or
+stock drops, and marked as ended (button removed) when the promotion closes.

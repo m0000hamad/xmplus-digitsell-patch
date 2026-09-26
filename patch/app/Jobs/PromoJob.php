@@ -22,6 +22,11 @@ use Illuminate\Database\Capsule\Manager as DB;
  *  3. The customer (Telegram and e-mail) and the admin chats hear about each
  *     promoted purchase and prize; the admin chats also hear about a
  *     promotion starting and ending.
+ *  5. A promotion saved with "channel" is posted in the Telegram channel set
+ *     in `promo_channel_id`, like the plan card: tags, list and promo price
+ *     per cycle, prize, occasion, deadline, stock, and a buy button. The post
+ *     is edited when the promotion changes (or its stock drops) and marked as
+ *     ended when it closes.
  *  4. A promotion saved with "announce" is sent to every customer, BROADCAST
  *     per run, each one claimed in `promo_broadcast` first so nobody gets it
  *     twice. Customers who switched notices off in their settings are skipped.
@@ -77,6 +82,12 @@ class PromoJob
 		foreach ($this->map() as $key => $entry) {
 			if (is_array($entry) && !empty($entry['announce']) && empty($entry['broadcast_done'])) {
 				$this->broadcast((int) $key, $entry);
+			}
+		}
+
+		foreach ($this->map() as $key => $entry) {
+			if (is_array($entry) && (!empty($entry['channel']) || !empty($entry['channel_msg']))) {
+				$this->channel((int) $key, $entry);
 			}
 		}
 
@@ -369,6 +380,193 @@ class PromoJob
 
 			$this->tellAdmins($text);
 		}
+	}
+
+	// ------------------------------------------------------------ the channel
+
+	const CYCLE_NAMES = [
+		'onetime' => 'یکبار', 'month' => 'ماهانه', 'quater' => 'سه‌ماهه',
+		'semiannual' => 'شش‌ماهه', 'annual' => 'سالانه', 'custom' => 'دوره‌ی ویژه',
+	];
+
+	private function channel($packageId, array $entry)
+	{
+		$chat = trim((string) $this->setting('promo_channel_id'));
+
+		if ($chat === '' || $this->token === '') {
+			return;
+		}
+
+		$posted = (int) ($entry['channel_msg'] ?? 0);
+
+		// closed: the post says so and loses its button, once
+		if (!empty($entry['closed_at'])) {
+			if ($posted > 0 && empty($entry['channel_closed'])) {
+				$this->patchEntry($packageId, ['channel_closed' => 1]);
+				$this->api('editMessageText', [
+					'chat_id'    => $chat,
+					'message_id' => $posted,
+					'text'       => "⛔️ <b>این پروموشن به پایان رسید</b>\n\n" . $this->channelText($packageId, $entry),
+					'parse_mode' => 'HTML',
+				]);
+			}
+			return;
+		}
+
+		// run out but not closed yet: the next run closes it and handles the post
+		if (empty($entry['channel']) || !Package::promoRunning($entry + ['packageid' => $packageId])) {
+			return;
+		}
+
+		$text = $this->channelText($packageId, $entry);
+		$hash = md5($text);
+
+		if ($posted > 0 && $hash === (string) ($entry['channel_hash'] ?? '')) {
+			return;
+		}
+
+		$site = rtrim(trim((string) $this->setting('promo_site_url')) ?: 'https://p.digitsell-shop.ir', '/');
+		$params = [
+			'chat_id'      => $chat,
+			'text'         => $text,
+			'parse_mode'   => 'HTML',
+			'reply_markup' => json_encode(['inline_keyboard' => [[[
+				'text' => '🛒 خرید همین پکیج',
+				'url'  => "{$site}/portal/plan/details?id={$packageId}",
+			]]]], JSON_UNESCAPED_UNICODE),
+		];
+
+		if ($posted > 0) {
+			$reply = $this->api('editMessageText', $params + ['message_id' => $posted]);
+			// "message is not modified" is fine: the text on Telegram is already right
+			$this->patchEntry($packageId, ['channel_hash' => $hash]);
+			return;
+		}
+
+		$reply = $this->api('sendMessage', $params);
+
+		if (is_array($reply) && !empty($reply['ok']) && !empty($reply['result']['message_id'])) {
+			$this->patchEntry($packageId, ['channel_msg' => (int) $reply['result']['message_id'], 'channel_hash' => $hash]);
+			echo date('Y-m-d H:i:s') . " promotion on package {$packageId} posted in the channel" . PHP_EOL;
+		} else {
+			echo date('Y-m-d H:i:s') . " channel post for package {$packageId} refused: "
+				. (is_array($reply) ? (string) ($reply['description'] ?? '?') : 'no answer') . PHP_EOL;
+		}
+	}
+
+	/* the plan card, in Telegram's HTML */
+	private function channelText($packageId, array $entry)
+	{
+		$package = DB::table('package')->where('id', $packageId)->first();
+
+		if (!$package) {
+			return '';
+		}
+
+		$e = function ($text) {
+			return htmlspecialchars((string) $text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+		};
+
+		$tags = [];
+		if (($entry['kind'] ?? '') === 'discount') {
+			$tags[] = '🔥 <b>' . (int) $entry['percent'] . '٪ تخفیف</b>';
+		} elseif (($entry['kind'] ?? '') === 'special') {
+			$tags[] = '⭐ <b>ویژه</b>';
+		}
+		if (!empty($entry['prize']['on'])) {
+			$tags[] = '🎁 <b>جایزه‌دار</b>';
+		}
+
+		$lines = [];
+		if ($tags) {
+			$lines[] = implode('  ·  ', $tags);
+			$lines[] = '━━━━━━━━━━━━━━';
+		}
+		$lines[] = '📦 <b>' . $e($package->name) . '</b>';
+
+		$now = json_decode((string) $package->price_option, true);
+		$now = is_array($now) ? $now : [];
+		$list = ($entry['kind'] ?? '') === 'discount' && isset($entry['original']) && is_array($entry['original'])
+			? $entry['original'] : $now;
+		$unit = $this->currencyUnit();
+
+		foreach (self::CYCLE_NAMES as $cycle => $label) {
+			if (!isset($now[$cycle]['price']) || $now[$cycle]['price'] === '' || $now[$cycle]['price'] === null) {
+				continue;
+			}
+
+			if ($cycle === 'custom' && !empty($now['custom']['expire'])) {
+				$label = (int) $now['custom']['expire'] . ' روزه';
+			}
+
+			$price = (float) $now[$cycle]['price'];
+			$was = isset($list[$cycle]['price']) ? (float) $list[$cycle]['price'] : $price;
+			$line = "💰 {$label}: ";
+
+			if ($was > $price) {
+				$line .= '<s>' . number_format($was) . '</s> ⬅️ ';
+			}
+
+			$lines[] = $line . '<b>' . number_format($price) . '</b>' . ($unit !== '' ? " {$unit}" : '');
+		}
+
+		$specs = [];
+		if ((float) $package->bandwidth > 0) {
+			$specs[] = '📶 ' . ((float) $package->bandwidth >= 10000 ? 'نامحدود' : rtrim(rtrim(number_format((float) $package->bandwidth, 2, '.', ''), '0'), '.') . ' گیگ');
+		}
+		if ((int) $package->iplimit > 0) {
+			$specs[] = '👥 ' . (int) $package->iplimit . ' کاربر همزمان';
+		}
+		if ($specs) {
+			$lines[] = implode('  ·  ', $specs);
+		}
+
+		$extra = [];
+		if (!empty($entry['prize']['on'])) {
+			$p = $entry['prize'];
+			$gb = (int) ($p['gb_min'] ?? 0) . ' تا ' . (int) ($p['gb_max'] ?? 0) . ' گیگ';
+			$days = (int) ($p['days_min'] ?? 0) . ' تا ' . (int) ($p['days_max'] ?? 0) . ' روز';
+			$mode = $p['mode'] ?? 'either';
+			$extra[] = '🎁 هر خرید جایزه دارد: <b>' . ($mode === 'gb' ? $gb : ($mode === 'days' ? $days : "{$gb} یا {$days}")) . '</b>';
+		}
+		if (trim((string) ($entry['occasion'] ?? '')) !== '') {
+			$extra[] = '📣 ' . $e(trim((string) $entry['occasion']));
+		}
+		if (!empty($entry['ends_at'])) {
+			$extra[] = '⏳ مهلت: تا ' . $this->date((int) $entry['ends_at'], true);
+		}
+		$max = (int) ($entry['max_sales'] ?? 0);
+		if ($max > 0 && !empty($entry['show_left'])) {
+			$left = max(0, $max - $this->sold($packageId, $entry));
+			$extra[] = "🔢 فقط <b>{$left}</b> عدد باقی مانده";
+		}
+
+		if ($extra) {
+			$lines[] = '';
+			$lines = array_merge($lines, $extra);
+		}
+
+		return implode("\n", $lines);
+	}
+
+	/* "تومان" / "ریال" as the site shows it, or nothing */
+	private function currencyUnit()
+	{
+		static $unit = null;
+
+		if ($unit === null) {
+			$unit = '';
+			try {
+				$row = \App\Http\Models\Currency::where('currency', $this->setting('default_currency'))->first();
+				if ($row) {
+					$unit = trim((string) $row->symbol_right) !== '' ? trim((string) $row->symbol_right) : trim((string) $row->symbol_left);
+				}
+			} catch (\Throwable $error) {
+				$unit = '';
+			}
+		}
+
+		return $unit;
 	}
 
 	// ------------------------------------------------------------ announcing

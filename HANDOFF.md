@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-26 · installed version **1.9.2** · latest release **1.10.3** · repo
+Last updated: 2026-09-26 · installed version **1.9.2** · latest release **1.10.4** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -496,6 +496,18 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
   JSON has `sendnotices` = 0 (the "notices" switch on their settings page) are
   skipped. Only a running promotion is announced. The link's host is the
   `promo_site_url` setting, default `https://p.digitsell-shop.ir`.
+- **Channel posts (1.10.4):** setting `promo_channel_id` (numeric id or
+  `@name`), edited in the "promotion channel" card that
+  `view/admin/settings/promochannel.tpl` adds under the patch updater
+  (`promo.channel` / `promo.channelsave` / `promo.channeltest`, the last one
+  sends a real test message so the admin sees whether the bot may post). A
+  promotion with its `channel` switch on is posted by `PromoJob::channel()` in
+  Telegram HTML: tags, list price struck through next to the promo price per
+  cycle, traffic and users, prize range, occasion, deadline, "N left", and a
+  buy button. `channel_msg` / `channel_hash` in the entry: the post is edited
+  only when its text changes; on close it gets an "ended" header and loses
+  the button (`channel_closed`). The stickers themselves are not images -
+  Telegram gets the same tags as emoji.
 - **E-mail** goes through the panel's own queue (`App\Http\Models\Queue`,
   exactly like `UserJob`), so it uses the SMTP settings under Settings → Mail
   and is sent only while `maildriver` = 1. The queue row carries
@@ -649,3 +661,4 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
 | 1.10.1 | Promotion box visible on the add-plan page from the start (it only appeared after changing the type); announce a promotion to every customer on Telegram and by e-mail |
 | 1.10.2 | Plan cards: "special" / discount shown as a big tilted starburst sticker poking out of the coloured cap, animated |
 | 1.10.3 | Prize shown as a big sticker too; two stickers side by side when a plan has both; larger badges on the plan page banner |
+| 1.10.4 | Promotions posted in a Telegram channel (id in settings, switch per promotion), post kept up to date and marked when it ends |

@@ -117,7 +117,8 @@
 				ends_at: $("#promo_ends_at").val(),
 				max_sales: $("#promo_max_sales").val(),
 				show_left: $("#promo_show_left").is(":checked") ? 1 : 0,
-				announce: $("#promo_announce").is(":checked") ? 1 : 0
+				announce: $("#promo_announce").is(":checked") ? 1 : 0,
+				channel: $("#promo_channel").is(":checked") ? 1 : 0
 			},
 			success: function (data) {
 				if (!data.ok) {
