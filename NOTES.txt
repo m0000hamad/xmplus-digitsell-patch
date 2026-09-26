@@ -1,13 +1,14 @@
-Lighter sign-in page.
+Promotions on subscription plans. The plan form gets a promotion box: a real
+percentage discount (the discounted price is what the checkout charges; the
+list price is kept aside and put back when it ends), a "special" badge, and a
+prize switch that gives every buyer a random amount of traffic or days from a
+range, about a minute after payment, exactly once per order. Optional occasion
+text, end date with a live countdown, and a sales limit with a "N left"
+counter; the promotion closes itself when either runs out. Plan cards and the
+plan page show animated badges, the struck-through list price and the
+discount, in night and day and on phones. Buyers hear about their purchase and
+prize on Telegram and by e-mail; the admin chats hear about every purchase and
+every start and end.
 
-The page no longer loads Font Awesome (67 KB of CSS plus about 375 KB of
-webfonts) for its 17 icons: tools/login/icons.py subsets them into two tiny
-fonts (about 3 KB) inlined in the template. Inter is gone (system font for the
-few Latin words) and IRANSans is declared in two weights only, with
-font-display: swap and the regular weight preloaded. The three animated
-600 px background glows under a 130-150 px blur filter are one static
-gradient, and the glass blur is lighter (12 px, none on the header and
-footer bars), which is what made weaker phones stutter.
-
-Before: about 520 KB over five requests. After: 16 KB of HTML and two
-28 KB fonts.
+Also: User::sendMail hands the template its values, queues a mail as JSON the
+way UserJob does, and reports a failed send instead of calling it sent.

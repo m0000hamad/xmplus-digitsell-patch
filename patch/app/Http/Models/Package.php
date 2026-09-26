@@ -210,6 +210,182 @@ final class Package extends Model
 		return $user;
 	}
 
+	/*
+	 * ------------------------------------------------------------------
+	 * Promotions on subscription plans
+	 * ------------------------------------------------------------------
+	 * A subscription plan's order_note is shown to customers, so a promotion
+	 * cannot ride in it the way a time plan does. It lives in one settings row
+	 * instead, keyed by package id:
+	 *
+	 *   promo_plans = {"12":{"kind":"discount","percent":20,
+	 *                        "original":{"month":{"price":"1500000"},...},
+	 *                        "prize":{"on":1,"mode":"either","gb_min":1,...},
+	 *                        "occasion":"...","ends_at":1790000000,
+	 *                        "max_sales":10,"show_left":1,
+	 *                        "started_at":1789000000,"closed_at":0,...}}
+	 *
+	 * A discount is real: the discounted prices are written into price_option,
+	 * which is what the encoded checkout charges, and `original` keeps the list
+	 * price until bin/promos.php (PromoJob) puts it back. Written by
+	 * app/Patch/Promo.php.
+	 */
+	const PROMO_SETTING = 'promo_plans';
+
+	/** the billing cycles a promotion can discount, in the order they are shown */
+	const PROMO_CYCLES = ['onetime', 'month', 'quater', 'semiannual', 'annual', 'custom'];
+
+	public static function promoMap()
+	{
+		static $map = null;
+
+		if ($map === null) {
+			$decoded = json_decode((string) Settings::where('name', self::PROMO_SETTING)->value('value'), true);
+			$map = is_array($decoded) ? $decoded : [];
+		}
+
+		return $map;
+	}
+
+	/* paid orders on a package inside a promotion's window */
+	public static function promoSold($packageId, $since, $until = 0)
+	{
+		static $counts = [];
+
+		$key = $packageId . ':' . $since . ':' . $until;
+
+		if (!array_key_exists($key, $counts)) {
+			$query = Order::where('packageid', (int) $packageId)
+				->where('status', 1)
+				->where('pay_date', '>=', (int) $since);
+
+			if ($until > 0) {
+				$query->where('pay_date', '<=', (int) $until);
+			}
+
+			$counts[$key] = $query->count();
+		}
+
+		return $counts[$key];
+	}
+
+	/*
+	 * Whether an entry is running right now. The cron closes a finished one
+	 * within a minute; until then the pages must already stop showing it.
+	 */
+	public static function promoRunning($entry, $now = null)
+	{
+		$now = $now ?: time();
+
+		if (!is_array($entry) || !empty($entry['closed_at'])) {
+			return false;
+		}
+
+		$kind = $entry['kind'] ?? 'none';
+		$prize = !empty($entry['prize']['on']);
+
+		if ($kind === 'none' && !$prize) {
+			return false;
+		}
+
+		if (!empty($entry['ends_at']) && (int) $entry['ends_at'] <= $now) {
+			return false;
+		}
+
+		$max = (int) ($entry['max_sales'] ?? 0);
+
+		if ($max > 0 && self::promoSold($entry['packageid'] ?? 0, (int) ($entry['started_at'] ?? 0)) >= $max) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/*
+	 * What the plan pages need to draw a running promotion, or null. `original`
+	 * is the list price per cycle, only present for a discount.
+	 */
+	public function promo($packageId)
+	{
+		$map = self::promoMap();
+		$key = (string) (int) $packageId;
+
+		if (!isset($map[$key]) || !is_array($map[$key])) {
+			return null;
+		}
+
+		$entry = $map[$key] + ['packageid' => (int) $packageId];
+
+		if (!self::promoRunning($entry)) {
+			return null;
+		}
+
+		$kind = in_array($entry['kind'] ?? 'none', ['discount', 'special'], true) ? $entry['kind'] : 'none';
+		$max = (int) ($entry['max_sales'] ?? 0);
+
+		$view = [
+			'kind'     => $kind,
+			'percent'  => $kind === 'discount' ? (int) ($entry['percent'] ?? 0) : 0,
+			'original' => [],
+			'prize'    => !empty($entry['prize']['on']) ? $this->promoPrizeRange($entry['prize']) : '',
+			'occasion' => trim((string) ($entry['occasion'] ?? '')),
+			'ends_at'  => (int) ($entry['ends_at'] ?? 0),
+			'left'     => null,
+			'now'      => time(),
+		];
+
+		if ($kind === 'discount' && isset($entry['original']) && is_array($entry['original'])) {
+			foreach ($entry['original'] as $cycle => $value) {
+				if (is_array($value) && isset($value['price']) && $value['price'] !== '') {
+					$view['original'][$cycle] = (float) $value['price'];
+				}
+			}
+		}
+
+		if ($max > 0 && !empty($entry['show_left'])) {
+			$view['left'] = max(0, $max - self::promoSold($packageId, (int) ($entry['started_at'] ?? 0)));
+		}
+
+		return $view;
+	}
+
+	/*
+	 * The whole entry for the admin form, running or not, with its sales so
+	 * far. The form shows list prices, so it reads `original` from here.
+	 */
+	public function promoAdmin($packageId)
+	{
+		$map = self::promoMap();
+		$key = (string) (int) $packageId;
+
+		if (!isset($map[$key]) || !is_array($map[$key])) {
+			return null;
+		}
+
+		$entry = $map[$key] + ['packageid' => (int) $packageId];
+		$entry['running'] = self::promoRunning($entry);
+		$entry['sold'] = self::promoSold($packageId, (int) ($entry['started_at'] ?? 0), (int) ($entry['closed_at'] ?? 0));
+
+		return $entry;
+	}
+
+	/* "1 to 5 GB or 3 to 7 days", in the viewer's language */
+	private function promoPrizeRange(array $prize)
+	{
+		$t = new \App\Library\Localization\Localization;
+		$gb = str_replace(['%min%', '%max%'], [(int) ($prize['gb_min'] ?? 0), (int) ($prize['gb_max'] ?? 0)], $t->get('PromoPrizeGbRange'));
+		$days = str_replace(['%min%', '%max%'], [(int) ($prize['days_min'] ?? 0), (int) ($prize['days_max'] ?? 0)], $t->get('PromoPrizeDaysRange'));
+
+		switch ($prize['mode'] ?? 'either') {
+			case 'gb':
+				return $gb;
+			case 'days':
+				return $days;
+			default:
+				return $gb . ' ' . $t->get('PromoOr') . ' ' . $days;
+		}
+	}
+
 	public function period_sales($id)
     {
         $period = 360 * 24 * 60 * 60;
