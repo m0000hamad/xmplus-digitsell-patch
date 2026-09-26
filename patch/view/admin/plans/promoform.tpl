@@ -9,7 +9,7 @@
 *}
 {$pk = 'none'}{$ppct = 20}{$pprize = 0}{$pmode = 'either'}
 {$pgbmin = 1}{$pgbmax = 5}{$pdmin = 1}{$pdmax = 7}
-{$pocc = ''}{$pends = ''}{$pmax = ''}{$pleft = 0}{$pannounce = 1}
+{$pocc = ''}{$pends = ''}{$pmax = ''}{$pleft = 0}{$pannounce = 1}{$pchannel = 1}
 {if isset($promoedit) && $promoedit && empty($promoedit.closed_at)}
 	{$pk = $promoedit.kind}
 	{if $promoedit.percent > 0}{$ppct = $promoedit.percent}{/if}
@@ -26,6 +26,7 @@
 	{if $promoedit.max_sales > 0}{$pmax = $promoedit.max_sales}{/if}
 	{$pleft = $promoedit.show_left}
 	{$pannounce = !empty($promoedit.announce)}
+	{$pchannel = !empty($promoedit.channel)}
 {/if}
 <span id="promobox" hidden>
 
@@ -151,6 +152,15 @@
 				<div class="form-check form-switch mt-2">
 					<input class="form-check-input" type="checkbox" role="switch" id="promo_announce" {if $pannounce}checked{/if}>
 					<label class="form-check-label small text-muted" for="promo_announce">{$translate->get('PromoAnnounceHint')}</label>
+				</div>
+			</div>
+		</div>
+		<div class="row mb-2">
+			<label class="col-sm-3 col-form-label form-label" for="promo_channel">📣 {$translate->get('PromoChannel')}</label>
+			<div class="col-sm-9" style="max-width: 60rem">
+				<div class="form-check form-switch mt-2">
+					<input class="form-check-input" type="checkbox" role="switch" id="promo_channel" {if $pchannel}checked{/if}>
+					<label class="form-check-label small text-muted" for="promo_channel">{$translate->get('PromoChannelHint')}</label>
 				</div>
 			</div>
 		</div>
