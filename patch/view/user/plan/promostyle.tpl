@@ -15,9 +15,9 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 5px;
-	padding: 4px 11px 4px 10px;
+	padding: 6px 15px 6px 14px;
 	border-radius: 999px;
-	font-size: 10.5px;
+	font-size: 13px;
 	font-weight: 900;
 	line-height: 1.35;
 	white-space: nowrap;
@@ -47,7 +47,7 @@
 .promo-star {
 	position: absolute;
 	z-index: 1;
-	font-size: 8px;
+	font-size: 10px;
 	line-height: 1;
 	color: #fff;
 	opacity: 0;
@@ -94,8 +94,19 @@
 	height: 96px;
 	pointer-events: none;
 	filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .28)) drop-shadow(0 0 10px var(--st-glow));
+	--st-rot: -12deg;
 	animation: promoWobble 3.2s ease-in-out infinite, promoGlowSticker 2.2s ease-in-out infinite;
 }
+/* the second sticker sits beside the first, tilted the other way and a beat behind */
+.promo-sticker-slot2 {
+	inset-inline-end: 100px;
+	width: 88px;
+	height: 88px;
+	bottom: -30px;
+	--st-rot: 10deg;
+	animation-delay: -1.6s, -1.1s;
+}
+.promo-sticker-prize { --st-bg: radial-gradient(circle at 35% 30%, #f5d0fe, #c026d3 42%, #7c3aed 80%, #5b21b6); --st-ink: #fff; --st-glow: rgba(192, 38, 211, .7); }
 .promo-sticker-special { --st-bg: radial-gradient(circle at 35% 30%, #fff7cc, #fcd34d 38%, #f59e0b 75%, #d97706); --st-ink: #5a2d00; --st-glow: rgba(252, 211, 77, .75); }
 .promo-sticker-discount { --st-bg: radial-gradient(circle at 35% 30%, #ffd1dc, #ff5c85 40%, #e11d48 78%, #9f1239); --st-ink: #fff; --st-glow: rgba(255, 61, 110, .7); }
 .promo-sticker-burst {
@@ -113,7 +124,8 @@
 	clip-path: polygon(50.0% 0.0%, 59.1% 10.0%, 71.7% 5.0%, 75.6% 17.9%, 89.1% 18.8%, 86.9% 32.2%, 98.7% 38.9%, 91.0% 50.0%, 98.7% 61.1%, 86.9% 67.8%, 89.1% 81.2%, 75.6% 82.1%, 71.7% 95.0%, 59.1% 90.0%, 50.0% 100.0%, 40.9% 90.0%, 28.3% 95.0%, 24.4% 82.1%, 10.9% 81.2%, 13.1% 67.8%, 1.3% 61.1%, 9.0% 50.0%, 1.3% 38.9%, 13.1% 32.2%, 10.9% 18.8%, 24.4% 17.9%, 28.3% 5.0%, 40.9% 10.0%);
 	text-shadow: 0 1px 0 rgba(255, 255, 255, .35);
 }
-.promo-sticker-discount .promo-sticker-burst { text-shadow: 0 1px 2px rgba(0, 0, 0, .3); }
+.promo-sticker-discount .promo-sticker-burst,
+.promo-sticker-prize .promo-sticker-burst { text-shadow: 0 1px 2px rgba(0, 0, 0, .3); }
 /* a dashed ring inside the burst, like a printed seal */
 .promo-sticker-burst::before {
 	content: "";
@@ -135,6 +147,7 @@
 .promo-sticker-icon { font-size: 17px; line-height: 1; }
 .promo-sticker-big { position: relative; font-size: 20px; font-weight: 900; line-height: 1.1; letter-spacing: -.3px; }
 .promo-sticker-discount .promo-sticker-big { font-size: 23px; }
+.promo-sticker-mid { position: relative; font-size: 14.5px; font-weight: 900; line-height: 1.15; }
 .promo-sticker-small { position: relative; font-size: 11.5px; font-weight: 900; line-height: 1.1; }
 .promo-sticker-spark {
 	position: absolute;
@@ -149,14 +162,19 @@
 .promo-sticker-spark:nth-of-type(2) { bottom: 4px; inset-inline-end: -8px; font-size: 10px; animation-delay: .6s; }
 .promo-sticker-spark:nth-of-type(3) { top: 10px; inset-inline-end: -10px; font-size: 9px; animation-delay: 1.2s; }
 @keyframes promoWobble {
-	0%, 100% { transform: rotate(-12deg) scale(1); }
-	50% { transform: rotate(-4deg) scale(1.07); }
+	0%, 100% { transform: rotate(var(--st-rot)) scale(1); }
+	50% { transform: rotate(calc(var(--st-rot) + 8deg)) scale(1.07); }
 }
 @keyframes promoGlowSticker {
 	0%, 100% { filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .28)) drop-shadow(0 0 6px var(--st-glow)); }
 	50% { filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .28)) drop-shadow(0 0 16px var(--st-glow)); }
 }
 .plan-card.is-promo .plan-body { position: relative; z-index: 1; }
+/* room for the part of a sticker that hangs over onto the card */
+.plan-card.has-sticker .plan-body { padding-top: 26px; }
+/* two stickers: the price moves up so the second one does not cover it */
+.plan-card.has-two-stickers .plan-top { padding-bottom: 62px; }
+.plan-card.has-two-stickers .plan-body { padding-top: 36px; }
 .promo-over .promo-sticker { display: none; }
 
 /* ---------- prices ---------- */
@@ -283,9 +301,10 @@ html[data-hs-theme="dark"] .pd-cycle-price .promo-off { background: rgba(255, 61
 
 @media (max-width: 575.98px) {
 	.promo-sticker { width: 86px; height: 86px; bottom: -30px; }
+	.promo-sticker-slot2 { width: 80px; height: 80px; inset-inline-end: 92px; bottom: -28px; }
 	.promo-sticker-big { font-size: 18px; }
 	.promo-sticker-discount .promo-sticker-big { font-size: 21px; }
-	.promo-badge { font-size: 10px; padding: 3px 9px; }
+	.promo-badge { font-size: 12px; padding: 5px 12px; }
 	.promo-strip { margin: 0 14px 4px; font-size: 11.5px; }
 	.promo-banner { padding: 14px; }
 	.promo-banner .promo-banner-line { font-size: 12.5px; }
@@ -294,7 +313,7 @@ html[data-hs-theme="dark"] .pd-cycle-price .promo-off { background: rgba(255, 61
 @media (prefers-reduced-motion: reduce) {
 	.promo-badge, .promo-badge::after, .promo-star, .plan-card.is-promo, .promo-banner::after,
 	.promo-sticker, .promo-sticker-burst::after, .promo-sticker-spark { animation: none !important; }
-	.promo-sticker { transform: rotate(-12deg); }
+	.promo-sticker { transform: rotate(var(--st-rot)); }
 	.promo-star { opacity: .8; }
 }
 </style>
