@@ -332,6 +332,8 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 }
 </style>
 {/literal}
+{include file='user/plan/promostyle.tpl'}
+{$promo = $timeplan->promo($package->id)}
 
 	<div class="page-header pd-head">
 		<div class="pd-head-inner">
@@ -346,8 +348,20 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 		</div>
 	</div>
 
-	<div class="row mb-3">
+	<div class="row mb-3"{if $promo} data-promo-scope{/if}>
 		<div class="col-xl-8 col-lg-8 col-md-12 col-sm-12">
+
+			{if $promo}
+				<div class="promo-banner promo-only">
+					<div class="promo-banner-badges">{include file='user/plan/promobadges.tpl'}</div>
+					{if $promo.kind == 'discount'}
+						<div class="promo-banner-line">🏷️ {$translate->get('PromoBannerDiscount')|replace:'%n%':"<b>{$promo.percent}</b>"}</div>
+					{elseif $promo.kind == 'special'}
+						<div class="promo-banner-line">⭐ {$translate->get('PromoBannerSpecial')}</div>
+					{/if}
+					{include file='user/plan/promostrip.tpl'}
+				</div>
+			{/if}
 
 			<div class="pd-card">
 				<div class="pd-card-head">
@@ -417,7 +431,15 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 									<input type="radio" name="plan" id="{$option}" {if $p == 1}checked{/if} value="{$option}" onClick="Billing('{$option}')">
 									<span class="pd-cycle-box">
 										{if $option == "annual"}<span class="pd-cycle-tag">⭐ {$translate->get('BestValue')}</span>{/if}
-										<span class="pd-cycle-price">{$currency->symbol_left} {number_format((float)$value['price'], (int){$currency->decimals})} {$currency->symbol_right}</span>
+										<span class="pd-cycle-price">
+											{if $promo && $promo.kind == 'discount' && isset($promo.original[$option]) && $promo.original[$option] > (float)$value['price']}
+												<span class="promo-was promo-only">{number_format((float)$promo.original[$option], (int){$currency->decimals})}</span>
+											{/if}
+											{$currency->symbol_left} {number_format((float)$value['price'], (int){$currency->decimals})} {$currency->symbol_right}
+											{if $promo && $promo.kind == 'discount' && isset($promo.original[$option]) && $promo.original[$option] > (float)$value['price']}
+												<span class="promo-off promo-only">{$translate->get('PromoOffLabel')|replace:'%n%':$promo.percent}</span>
+											{/if}
+										</span>
 										{if $option == "onetime"}
 											<span class="pd-cycle-name">{$translate->get('Onetime')}</span>
 											<span class="pd-cycle-days">♾️ {$translate->get('NotExpire')}</span>

@@ -430,6 +430,12 @@ if (strpos($action, 'dashboard.') === 0) {
     fail('unknown dashboard action');
 }
 
+// Promotions on subscription plans, saved from the plan form.
+if (strpos($action, 'promo.') === 0) {
+    require ROOT . '/app/Patch/Promo.php';
+    fail('unknown promotion action');
+}
+
 if ($action === 'status') {
     $commit = headCommit();
     $manifest = remoteManifest($commit);
