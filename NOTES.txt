@@ -2,3 +2,9 @@ The promotion box now shows on the "add plan" page as soon as it opens. The
 page only ran its type switch when the type was changed, and a new plan starts
 as a subscription plan, so the box stayed hidden until the type was changed
 away and back. The edit page was not affected.
+
+A promotion can now be announced to every customer: a switch in the promotion
+box (on by default) sends one Telegram message and one e-mail per customer,
+with the offer and a link to the plan, a batch every minute. Customers who
+switched notices off in their settings are skipped, and editing a running
+promotion does not send it again.
