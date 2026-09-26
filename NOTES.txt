@@ -1,5 +1,14 @@
-User::sendMail now hands the template its values (it passed an empty array, so
-mails went out without their code, link or name), queues a mail as JSON the
-way UserJob does (the raw array failed to save, so a queued mail was never
-written), and returns false and logs to the PHP error log when a send fails
-instead of reporting it as sent.
+Promotions on subscription plans. The plan form gets a promotion box: a real
+percentage discount (the discounted price is what the checkout charges; the
+list price is kept aside and put back when it ends), a "special" badge, and a
+prize switch that gives every buyer a random amount of traffic or days from a
+range, about a minute after payment, exactly once per order. Optional occasion
+text, end date with a live countdown, and a sales limit with a "N left"
+counter; the promotion closes itself when either runs out. Plan cards and the
+plan page show animated badges, the struck-through list price and the
+discount, in night and day and on phones. Buyers hear about their purchase and
+prize on Telegram and by e-mail; the admin chats hear about every purchase and
+every start and end.
+
+Also: User::sendMail hands the template its values, queues a mail as JSON the
+way UserJob does, and reports a failed send instead of calling it sent.

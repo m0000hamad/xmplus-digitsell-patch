@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-25 · installed version **1.9.0** · latest release **1.9.2** · repo
+Last updated: 2026-09-26 · installed version **1.9.0** · latest release **1.10.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -170,6 +170,7 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Gift cards | Redeem dialog redesigned, Telegram notice on redemption (1.8.9) - see below |
 | Sign-in page | `view/auth/login.tpl` redesigned (1.8.6) — see below |
 | Sign-up page | `view/auth/register.tpl` in the sign-in page's design (1.9.1) — see below |
+| Promotions | Discount / special / prize on subscription plans, with occasion text, countdown and sales limit (1.10.0) — see below |
 
 ### Time plans — how days are sold without touching the order pipeline
 
@@ -420,6 +421,66 @@ start" and no daily plans: the owner asked for neither).
   `/terms`, a route like `/tos` that the panel does not serve), the language
   selector (as on the sign-in page), and the WeChat block.
 
+### Promotions on subscription plans (1.10.0)
+
+Files: `app/Patch/Promo.php` (the save, `promo.save`, admin only, after
+`requireAdmin()`), `app/Jobs/PromoJob.php` + `bin/promos.php` (every minute from
+`TaskCommand`, log `storage/logs/promos.log`), `Package::promo()` /
+`promoAdmin()` / `promoRunning()`, admin `view/admin/plans/promoform.tpl` +
+`promojs.tpl` (included by `add.tpl` and `edit.tpl`, shown for type 2 only),
+user `view/user/plan/promostyle.tpl`, `promobadges.tpl`, `promostrip.tpl`
+(included by `plan.tpl` and `plan-details.tpl`), mail `view/email/promo.tpl`,
+migration `005_promo.php`, keys `Promo*` in all three locales.
+
+- **Storage:** one settings row, `promo_plans` = `{"<package id>": {...}}`.
+  A subscription plan's `order_note` is shown to customers, so the time-plan
+  marker trick is not available here.
+- **A discount is real.** The form always shows and posts the **list** prices
+  to the encoded `/admin/plan/save`; then `promo.save` reads `price_option`
+  back as the list prices, keeps them in `original`, and writes the discounted
+  prices (rounded to a whole unit) over `price_option` — the field the encoded
+  checkout charges. `edit.tpl` swaps `original` into the price fields while a
+  discount is open. `promoListPrices()` refuses to discount a discount: if
+  `price_option` still equals exactly what the running discount produced, the
+  stored list prices are used instead.
+- **Kinds:** `none` / `discount` / `special` (a badge, price untouched), plus an
+  independent **prize** switch: `gb`, `days` or `either` (a coin toss, then a
+  whole number in the admin's min–max range). Optional: occasion text, end
+  date (a `datetime-local`, read in the server's time zone), sales limit and
+  whether customers see how many are left.
+- **Counting:** a sale is `orders.status = 1` with `pay_date` (epoch) at or
+  after `started_at` (and at or before `closed_at` once closed). Saving a
+  running promotion keeps its `started_at`; a closed one restarts from zero.
+  A closed promotion is not loaded back into the form, so saving never
+  silently reopens it.
+- **Prizes, exactly once:** `promo_log.orderid` is UNIQUE and claimed before
+  the prize is applied. Orders are picked up only **60 s after payment**
+  (`PRIZE_DELAY`): the encoded pipeline sets traffic and expiry on payment and
+  would overwrite a prize added earlier. GB are added to `transfer_enable`;
+  days extend `expire_in` from the later of its value and now, **computed in
+  PHP** (MySQL `NOW()` is UTC here, `expire_in` is local).
+- **Ending:** when the end date passes or the limit is reached, the job writes
+  `original` back into `price_option` and sets `closed_at` / `closed_reason`
+  (`time`, `sold_out`, `admin`, `deleted`). The pages stop showing a promotion
+  the moment it is over (`promoRunning()` checks the date and the count), and
+  the countdown hides the promo parts at zero (`.promo-over`), so the minute
+  until the cron runs does not promise anything. A sale or two can still land
+  in that minute at the discounted price — the sales limit is not a hard lock.
+  Renewals and upgrades of the same plan also go through `price_option`, so
+  they get the discount while it runs.
+- **Messages:** every promoted purchase and every prize → the customer on
+  Telegram (`user.telegram_id`) and by e-mail, and the admin chats
+  (`tgjoin_admin_chats`, else `telegramchatid`). Start and end of a promotion →
+  admin chats only (see §8: announcing to every customer was not built without
+  asking). Plain text, LRM marks around dates, like `TgJoinJob`.
+- **E-mail** goes through the panel's own queue (`App\Http\Models\Queue`,
+  exactly like `UserJob`), so it uses the SMTP settings under Settings → Mail
+  and is sent only while `maildriver` = 1. The queue row carries
+  `telegramid = 0` on purpose — the Telegram message is sent by the job. The
+  template is `promo.tpl`, shipped as `view/email/promo.tpl`; **it has to be in
+  the folder that holds the stock `expired.tpl`** — not verified yet (§8). The
+  name can be changed with the `promo_mail_template` setting.
+
 ### Gift card redeem (1.8.9)
 
 - **Dialog:** `#redeem_modal` in `view/user/dashboard/order.tpl`, opened by
@@ -508,6 +569,12 @@ start" and no daily plans: the owner asked for neither).
   the item's own `--mc` colour behind the icon, a short flicker, light
   kept inside the pill plus a thin edge halo).
 
+- **Promotions (1.10.0), to confirm on the server:** where the mail queue
+  reads its templates (`find view -name expired.tpl`); `view/email/promo.tpl`
+  goes next to it. Also whether announcing a new promotion to every customer
+  is wanted — the owner asked to be consulted first, so only the admin chats
+  hear about a start today.
+
 ## 9. Testing rules learned the hard way
 
 - **Render every page as at least two accounts** — a normal one and an edge
@@ -559,3 +626,4 @@ start" and no daily plans: the owner asked for neither).
 | 1.8.9 | Gift card redeem dialog redesigned; Telegram message to the customer (and the admins) when a card is applied |
 | 1.9.0 | Channel gift without a running plan: a free 100 MB-1 GB plan (was 10-50 GB); MB shown below a gigabyte |
 | 1.9.1 | Sign-up page in the sign-in page's design, with a benefits column |
+| 1.10.0 | Promotions on subscription plans: real percentage discount (list price kept aside), special badge, random GB/day prize per purchase, occasion text, countdown, sales limit, animated badges, Telegram and e-mail notices. Also: `User::sendMail` passes the template its values, queues as JSON and reports failures |
