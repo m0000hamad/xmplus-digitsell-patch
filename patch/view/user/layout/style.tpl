@@ -290,7 +290,18 @@ html[data-hs-theme="dark"] .navbar-nav-wrap-content-start {
 	font: 700 12px/1 Tahoma, sans-serif;
 	transition: border-color .4s, box-shadow .4s;
 }
-.countdown-pill .cd-g { display: inline-flex; align-items: baseline; gap: 2px; }
+/* on phones the theme stacks and squeezes .navbar-nav, which left only the frame (a dot) */
+.navbar-nav-wrap-content-end:has(.countdown-pill) { flex-shrink: 0; min-width: max-content; }
+.countdown-pill {
+	flex-direction: row !important;
+	flex-wrap: nowrap !important;
+	flex-shrink: 0;
+	min-width: max-content;
+	white-space: nowrap;
+	overflow: visible;
+}
+.countdown-pill .cd-g { display: inline-flex !important; align-items: baseline; gap: 2px; visibility: visible; }
+.countdown-pill .cd-n, .countdown-pill .cd-u { display: inline-block !important; }
 .countdown-pill .cd-n { position: relative; font: 700 17px/1 "cd-seg", monospace; }
 .countdown-pill .cd-off { position: absolute; inset: 0; color: rgba(0, 0, 0, .09); }
 .countdown-pill .cd-u { font: 800 9px/1 Tahoma, sans-serif; opacity: .8; }
