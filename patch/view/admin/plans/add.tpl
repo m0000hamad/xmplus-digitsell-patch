@@ -195,6 +195,8 @@
 
 						{include file='admin/plans/timeplanform.tpl'}
 
+						{include file='admin/plans/promoform.tpl'}
+
 						<div class="row mb-2" id="packnote">
 							<label for="" class="col-sm-3 col-form-label form-label">{$translate->get('OrderNote')}</label> 
 							<div class="col-sm-9 tom-select-custom">
@@ -246,6 +248,7 @@
       </div>	
 {include file='admin/layout/footer.tpl'}
 {include file='admin/plans/timeplanjs.tpl'}
+{include file='admin/plans/promojs.tpl'}
 <script src="/assets/plugins/tinymce/tinymce.min.js"></script>
 <script>
 	$(document).ready(function () {
@@ -295,6 +298,9 @@
 
 		// type 3 is a time plan: it hides everything above and shows its own box
 		timeplanApply();
+
+		// a subscription plan can carry a promotion
+		promoApply();
 	}
 
 	function submit(){
@@ -329,7 +335,11 @@
 						return;
 					}
 
-					window.setTimeout("location.href='/admin/plans'", 1500);
+					// the promotion is saved after the list prices, see promojs.tpl;
+					// a new plan has no id yet, so the endpoint finds it by name
+					promoSave(0, function () {
+						location.href = '/admin/plans';
+					});
 				}else{
 					layer.msg(data.msg, {
 						time: 5000,

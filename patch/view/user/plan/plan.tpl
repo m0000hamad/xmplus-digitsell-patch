@@ -201,6 +201,7 @@ html[data-hs-theme="dark"] .plan-btn-out { background: rgba(255, 255, 255, .09) 
 }
 </style>
 {/literal}
+{include file='user/plan/promostyle.tpl'}
 
 <div class="plans-head">
 	<h1>🛒 {$translate->get('Plans')}</h1>
@@ -226,20 +227,40 @@ html[data-hs-theme="dark"] .plan-btn-out { background: rgba(255, 255, 255, .09) 
 
 		{$option = json_decode($package->price_option,true)}
 		{$outofstock = ($package->stocks == 1 && $package->stockcount <= 0)}
+		{$promo = $timeplan->promo($package->id)}
+
+		{* the cycle whose price the card shows: the first one that has a price *}
+		{$cyc = ''}
+		{foreach ['onetime', 'month', 'quater', 'semiannual', 'annual', 'custom'] as $c}
+			{if $cyc == '' && isset($option[$c]['price']) && $option[$c]['price'] != ""}{$cyc = $c}{/if}
+		{/foreach}
+		{$was = false}
+		{if $promo && $promo.kind == 'discount' && $cyc != '' && isset($promo.original[$cyc]) && $promo.original[$cyc] > (float)$option[$cyc]['price']}
+			{$was = $promo.original[$cyc]}
+		{/if}
 
 		<div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 mb-4">
-			<div class="plan-card{if $outofstock} plan-out{/if}" style="{$plan}">
+			<div class="plan-card{if $outofstock} plan-out{/if}{if $promo} is-promo{/if}" style="{$plan}"{if $promo} data-promo-scope{/if}>
 
-				<div class="plan-badges">
+				{capture name=badges}
 					{if $package->bandwidth >= 10000}
 						<span class="plan-badge plan-badge-inf">♾️ {$translate->get('Unlimited')}</span>
 					{/if}
 					{if $package->stocks == 1 && $package->stockcount > 0 && $package->stockcount <= 5}
 						<span class="plan-badge plan-badge-hot">🔥 {$package->stockcount} {$translate->get('LeftInStock')}</span>
 					{/if}
-				</div>
+					{if $promo}{include file='user/plan/promobadges.tpl'}{/if}
+				{/capture}
+
+				{if !$promo}
+					<div class="plan-badges">{$smarty.capture.badges}</div>
+				{/if}
 
 				<div class="plan-top">
+					{* with a promotion the badges line up above the name instead of floating over it *}
+					{if $promo}
+						<div class="plan-badges plan-badges-flow">{$smarty.capture.badges}</div>
+					{/if}
 					<span class="plan-cycle">
 						{if isset($option['onetime']['price']) && $option['onetime']['price'] != ""}{$translate->get('Onetime')}
 						{elseif isset($option['month']['price']) && $option['month']['price'] != ""}{$translate->get('Monthly')}
@@ -250,23 +271,15 @@ html[data-hs-theme="dark"] .plan-btn-out { background: rgba(255, 255, 255, .09) 
 						{/if}
 					</span>
 					<h6 class="plan-name">{$package->name}</h6>
-					<div class="plan-price">
+					{if $was}
+						<div class="plan-price plan-price-was">
+							<span class="promo-was">{$currency->symbol_left} {number_format((float)$was, (int){$currency->decimals})} {$currency->symbol_right}</span>
+							<span class="promo-off promo-only">{$translate->get('PromoOffLabel')|replace:'%n%':$promo.percent}</span>
+						</div>
+					{/if}
+					<div class="plan-price{if $was} promo-only{/if}">
 						{if $currency->symbol_left != ""}<span class="plan-cur">{$currency->symbol_left}</span>{/if}
-						<b>
-							{if isset($option['onetime']['price']) && $option['onetime']['price'] != ""}
-								{number_format((float)$option['onetime']['price'], (int){$currency->decimals})}
-							{else if isset($option['month']['price']) && $option['month']['price'] != ""}
-								{number_format((float)$option['month']['price'], (int){$currency->decimals})}
-							{else if isset($option['quater']['price']) && $option['quater']['price'] != ""}
-								{number_format((float)$option['quater']['price'], (int){$currency->decimals})}
-							{else if isset($option['semiannual']['price']) && $option['semiannual']['price'] != ""}
-								{number_format((float)$option['semiannual']['price'], (int){$currency->decimals})}
-							{else if isset($option['annual']['price']) && $option['annual']['price'] != ""}
-								{number_format((float)$option['annual']['price'], (int){$currency->decimals})}
-							{else if isset($option['custom']['price']) && $option['custom']['price'] != ""}
-								{number_format((float)$option['custom']['price'], (int){$currency->decimals})}
-							{/if}
-						</b>
+						<b>{if $cyc != ''}{number_format((float)$option[$cyc]['price'], (int){$currency->decimals})}{/if}</b>
 						{if $currency->symbol_right != ""}<span class="plan-cur">{$currency->symbol_right}</span>{/if}
 					</div>
 				</div>
@@ -300,6 +313,12 @@ html[data-hs-theme="dark"] .plan-btn-out { background: rgba(255, 255, 255, .09) 
 						</div>
 					{/if}
 				</div>
+
+				{if $promo && ($promo.occasion != '' || $promo.prize != '' || $promo.ends_at > 0 || $promo.left !== null)}
+					<div class="promo-strip promo-only">
+						{include file='user/plan/promostrip.tpl'}
+					</div>
+				{/if}
 
 				<div class="plan-foot">
 					{if $outofstock}

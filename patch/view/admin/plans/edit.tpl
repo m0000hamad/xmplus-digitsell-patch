@@ -156,6 +156,11 @@
 							
 							<h4>{$translate->get('Pricing')}</h4>
 							{$options = json_decode($package->price_option, true)}
+							{* a running discount keeps the list prices aside: the fields show those *}
+							{$promoedit = $timeplan->promoAdmin($package->id)}
+							{if $promoedit && empty($promoedit.closed_at) && $promoedit.kind == 'discount' && is_array($promoedit.original)}
+								{$options = $promoedit.original}
+							{/if}
 							
 							<div class="row mb-2" id="sub" {if $package->type == 1}hidden{/if}>
 								<label for="sub" class="col-sm-3 col-form-label form-label"></label>
@@ -228,6 +233,8 @@
 
 						{include file='admin/plans/timeplanform.tpl'}
 
+						{include file='admin/plans/promoform.tpl'}
+
 						<div class="row mb-2" id="packnote">
 							<label for="" class="col-sm-3 col-form-label form-label">{$translate->get('OrderNote')}</label> 
 							<div class="col-sm-9 tom-select-custom">
@@ -284,6 +291,7 @@
       </div>	
 {include file='admin/layout/footer.tpl'}
 {include file='admin/plans/timeplanjs.tpl'}
+{include file='admin/plans/promojs.tpl'}
 <script src="/assets/plugins/tinymce/tinymce.min.js"></script>
 <script>
 	$(document).ready(function () {
@@ -335,6 +343,9 @@
 
 		// type 3 is a time plan: it hides everything above and shows its own box
 		timeplanApply();
+
+		// a subscription plan can carry a promotion
+		promoApply();
 	}
 
     function deletePlan() {
@@ -466,7 +477,10 @@
 						return;
 					}
 
-					window.setTimeout("location.href='/admin/plans'", 500);
+					// the promotion is saved after the list prices, see promojs.tpl
+					promoSave({$package->id}, function () {
+						location.href = '/admin/plans';
+					});
 				}else{
 					layer.msg(data.msg, {
 						time: 5000,
