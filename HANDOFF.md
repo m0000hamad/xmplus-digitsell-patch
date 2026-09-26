@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-26 · installed version **1.9.2** · latest release **1.10.1** · repo
+Last updated: 2026-09-26 · installed version **1.9.2** · latest release **1.10.2** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -441,7 +441,8 @@ Files: `app/Patch/Promo.php` (the save, `promo.save`, admin only, after
 `TaskCommand`, log `storage/logs/promos.log`), `Package::promo()` /
 `promoAdmin()` / `promoRunning()`, admin `view/admin/plans/promoform.tpl` +
 `promojs.tpl` (included by `add.tpl` and `edit.tpl`, shown for type 2 only),
-user `view/user/plan/promostyle.tpl`, `promobadges.tpl`, `promostrip.tpl`
+user `view/user/plan/promostyle.tpl`, `promobadges.tpl`, `promostrip.tpl`,
+`promosticker.tpl` (the big starburst on a card, 1.10.2)
 (included by `plan.tpl` and `plan-details.tpl`), mail `view/email/promo.tpl`,
 migration `005_promo.php`, keys `Promo*` in all three locales.
 
@@ -646,3 +647,4 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
 | 1.9.2 | Lighter sign-in page: icon subset instead of Font Awesome, two font weights, static background (~520 KB to ~72 KB) |
 | 1.10.0 | Promotions on subscription plans: real percentage discount (list price kept aside), special badge, random GB/day prize per purchase, occasion text, countdown, sales limit, animated badges, Telegram and e-mail notices. Also: `User::sendMail` passes the template its values, queues as JSON and reports failures |
 | 1.10.1 | Promotion box visible on the add-plan page from the start (it only appeared after changing the type); announce a promotion to every customer on Telegram and by e-mail |
+| 1.10.2 | Plan cards: "special" / discount shown as a big tilted starburst sticker poking out of the coloured cap, animated |
