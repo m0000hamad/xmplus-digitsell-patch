@@ -265,26 +265,39 @@ html[data-hs-theme="dark"] .navbar-nav-wrap-content-start {
 	border-inline-start-color: rgba(255, 255, 255, .13);
 }
 
-/* the countdown used .text-dark, which vanished on the dark bar */
+/* countdown: bright neon digital clock, tone follows the time left (like the traffic bar) */
 .countdown-pill {
+	--cd: #39ff88;
+	--cd-rgb: 57, 255, 136;
 	display: inline-flex;
 	align-items: center;
-	padding: 7px 13px;
-	border-radius: 12px;
-	font-size: 13px;
-	font-weight: 800;
-	letter-spacing: .3px;
+	padding: 6px 14px;
+	border-radius: 10px;
+	font-family: "DS-Digital", "Share Tech Mono", "Consolas", "Menlo", "Courier New", monospace;
+	font-variant-numeric: tabular-nums;
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 1.5px;
 	direction: ltr;
 	unicode-bidi: isolate;
-	color: #b45309;
-	background: rgba(245, 158, 11, .14);
-	border: 1px solid rgba(245, 158, 11, .3);
+	color: #fff;
+	background: #05070d;
+	border: 1.5px solid var(--cd);
+	/* crisp white core with a tight coloured halo: bright, not blurry */
+	text-shadow: 0 0 1px #fff, 0 0 3px var(--cd), 0 0 6px var(--cd), 0 0 12px rgba(var(--cd-rgb), .75);
+	box-shadow: 0 0 6px rgba(var(--cd-rgb), .8), 0 0 14px rgba(var(--cd-rgb), .45), inset 0 0 8px rgba(var(--cd-rgb), .35);
+	transition: color .4s, border-color .4s, box-shadow .4s;
 }
-html[data-hs-theme="dark"] .countdown-pill {
-	color: #fcd34d;
-	background: rgba(245, 158, 11, .17);
-	border-color: rgba(245, 158, 11, .34);
+.countdown-pill.cd-ok   { --cd: #39ff88; --cd-rgb: 57, 255, 136; }
+.countdown-pill.cd-mid  { --cd: #ffe93b; --cd-rgb: 255, 233, 59; }
+.countdown-pill.cd-low  { --cd: #ff8a1f; --cd-rgb: 255, 138, 31; }
+.countdown-pill.cd-crit,
+.countdown-pill.cd-dead { --cd: #ff2d4a; --cd-rgb: 255, 45, 74; }
+.countdown-pill.cd-crit { animation: cd-pulse 1.1s ease-in-out infinite; }
+@keyframes cd-pulse {
+	50% { box-shadow: 0 0 10px rgba(var(--cd-rgb), 1), 0 0 24px rgba(var(--cd-rgb), .7), inset 0 0 10px rgba(var(--cd-rgb), .5); }
 }
+@media (prefers-reduced-motion: reduce) { .countdown-pill.cd-crit { animation: none; } }
 
 @media (max-width: 575.98px) {
 	.navbar-nav-wrap-content-start { margin-inline-start: 9px; padding-inline-start: 9px; }
