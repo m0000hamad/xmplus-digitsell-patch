@@ -9,7 +9,7 @@
 *}
 {$pk = 'none'}{$ppct = 20}{$pprize = 0}{$pmode = 'either'}
 {$pgbmin = 1}{$pgbmax = 5}{$pdmin = 1}{$pdmax = 7}
-{$pocc = ''}{$pends = ''}{$pmax = ''}{$pleft = 0}
+{$pocc = ''}{$pends = ''}{$pmax = ''}{$pleft = 0}{$pannounce = 1}
 {if isset($promoedit) && $promoedit && empty($promoedit.closed_at)}
 	{$pk = $promoedit.kind}
 	{if $promoedit.percent > 0}{$ppct = $promoedit.percent}{/if}
@@ -25,6 +25,7 @@
 	{if $promoedit.ends_at > 0}{$pends = $promoedit.ends_at|date_format:"%Y-%m-%dT%H:%M"}{/if}
 	{if $promoedit.max_sales > 0}{$pmax = $promoedit.max_sales}{/if}
 	{$pleft = $promoedit.show_left}
+	{$pannounce = !empty($promoedit.announce)}
 {/if}
 <span id="promobox" hidden>
 
@@ -141,6 +142,15 @@
 				<div class="form-check mt-2">
 					<input class="form-check-input" type="checkbox" id="promo_show_left" {if $pleft}checked{/if}>
 					<label class="form-check-label" for="promo_show_left">{$translate->get('PromoShowLeft')}</label>
+				</div>
+			</div>
+		</div>
+		<div class="row mb-2">
+			<label class="col-sm-3 col-form-label form-label" for="promo_announce">📢 {$translate->get('PromoAnnounce')}</label>
+			<div class="col-sm-9" style="max-width: 60rem">
+				<div class="form-check form-switch mt-2">
+					<input class="form-check-input" type="checkbox" role="switch" id="promo_announce" {if $pannounce}checked{/if}>
+					<label class="form-check-label small text-muted" for="promo_announce">{$translate->get('PromoAnnounceHint')}</label>
 				</div>
 			</div>
 		</div>

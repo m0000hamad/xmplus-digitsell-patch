@@ -484,8 +484,17 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
 - **Messages:** every promoted purchase and every prize → the customer on
   Telegram (`user.telegram_id`) and by e-mail, and the admin chats
   (`tgjoin_admin_chats`, else `telegramchatid`). Start and end of a promotion →
-  admin chats only (see §8: announcing to every customer was not built without
-  asking). Plain text, LRM marks around dates, like `TgJoinJob`.
+  admin chats. Plain text, LRM marks around dates, like `TgJoinJob`.
+- **Announcing to every customer (1.10.1, the owner said yes):** the
+  "📢 announce" switch (on by default) makes `PromoJob::broadcast()` send the
+  offer and a link to `/portal/plan/details?id=` to every `role = 0` account,
+  150 a run: Telegram if linked, e-mail through the queue. `promo_broadcast`
+  is UNIQUE on (`promo`, `userid`) with `promo` = `<package>:<started_at>`, and
+  the row is claimed before sending, so an edit never repeats it while a
+  reopened promotion is announced afresh. Accounts whose `notification`
+  JSON has `sendnotices` = 0 (the "notices" switch on their settings page) are
+  skipped. Only a running promotion is announced. The link's host is the
+  `promo_site_url` setting, default `https://p.digitsell-shop.ir`.
 - **E-mail** goes through the panel's own queue (`App\Http\Models\Queue`,
   exactly like `UserJob`), so it uses the SMTP settings under Settings → Mail
   and is sent only while `maildriver` = 1. The queue row carries
@@ -582,10 +591,6 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
   the item's own `--mc` colour behind the icon, a short flicker, light
   kept inside the pill plus a thin edge halo).
 
-- **Promotions (1.10.0):** whether announcing a new promotion to every
-  customer is wanted — the owner asked to be consulted first, so only the
-  admin chats hear about a start today. (The mail template location is
-  settled: the stock templates live in `view/email/`.)
 
 ## 9. Testing rules learned the hard way
 
@@ -640,4 +645,4 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
 | 1.9.1 | Sign-up page in the sign-in page's design, with a benefits column |
 | 1.9.2 | Lighter sign-in page: icon subset instead of Font Awesome, two font weights, static background (~520 KB to ~72 KB) |
 | 1.10.0 | Promotions on subscription plans: real percentage discount (list price kept aside), special badge, random GB/day prize per purchase, occasion text, countdown, sales limit, animated badges, Telegram and e-mail notices. Also: `User::sendMail` passes the template its values, queues as JSON and reports failures |
-| 1.10.1 | Promotion box visible on the add-plan page from the start (it only appeared after changing the type) |
+| 1.10.1 | Promotion box visible on the add-plan page from the start (it only appeared after changing the type); announce a promotion to every customer on Telegram and by e-mail |

@@ -1552,4 +1552,6 @@ If you want a fast, reliable service, sign up with my link 👇",
 	'PromoLeft'                 => "Only %n% left",
 	'PromoBannerDiscount'       => "This plan is %n%% off right now.",
 	'PromoBannerSpecial'        => "This is one of our special plans.",
+	'PromoAnnounce'             => "Announce to all customers",
+	'PromoAnnounceHint'         => "Every customer is told once on Telegram and by e-mail (those who switched notices off are skipped). Editing the promotion does not send it again.",
 );
