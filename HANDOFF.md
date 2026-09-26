@@ -490,9 +490,9 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
   exactly like `UserJob`), so it uses the SMTP settings under Settings → Mail
   and is sent only while `maildriver` = 1. The queue row carries
   `telegramid = 0` on purpose — the Telegram message is sent by the job. The
-  template is `promo.tpl`, shipped as `view/email/promo.tpl`; **it has to be in
-  the folder that holds the stock `expired.tpl`** — not verified yet (§8). The
-  name can be changed with the `promo_mail_template` setting.
+  template is `promo.tpl`, shipped as `view/email/promo.tpl`, next to the
+  stock `expired.tpl` and `dataused.tpl` (confirmed on the server 2026-09-26).
+  The name can be changed with the `promo_mail_template` setting.
 
 ### Gift card redeem (1.8.9)
 
@@ -582,11 +582,10 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
   the item's own `--mc` colour behind the icon, a short flicker, light
   kept inside the pill plus a thin edge halo).
 
-- **Promotions (1.10.0), to confirm on the server:** where the mail queue
-  reads its templates (`find view -name expired.tpl`); `view/email/promo.tpl`
-  goes next to it. Also whether announcing a new promotion to every customer
-  is wanted — the owner asked to be consulted first, so only the admin chats
-  hear about a start today.
+- **Promotions (1.10.0):** whether announcing a new promotion to every
+  customer is wanted — the owner asked to be consulted first, so only the
+  admin chats hear about a start today. (The mail template location is
+  settled: the stock templates live in `view/email/`.)
 
 ## 9. Testing rules learned the hard way
 
