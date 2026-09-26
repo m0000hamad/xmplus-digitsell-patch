@@ -83,6 +83,82 @@
 @property --promo-turn { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
 @keyframes promoTurn { to { --promo-turn: 360deg; } }
 
+/* ---------- the big sticker on a plan card ---------- */
+.plan-card.is-promo .plan-top { overflow: visible; z-index: 2; }
+.promo-sticker {
+	position: absolute;
+	z-index: 4;
+	inset-inline-end: 14px;
+	bottom: -34px;
+	width: 96px;
+	height: 96px;
+	pointer-events: none;
+	filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .28)) drop-shadow(0 0 10px var(--st-glow));
+	animation: promoWobble 3.2s ease-in-out infinite, promoGlowSticker 2.2s ease-in-out infinite;
+}
+.promo-sticker-special { --st-bg: radial-gradient(circle at 35% 30%, #fff7cc, #fcd34d 38%, #f59e0b 75%, #d97706); --st-ink: #5a2d00; --st-glow: rgba(252, 211, 77, .75); }
+.promo-sticker-discount { --st-bg: radial-gradient(circle at 35% 30%, #ffd1dc, #ff5c85 40%, #e11d48 78%, #9f1239); --st-ink: #fff; --st-glow: rgba(255, 61, 110, .7); }
+.promo-sticker-burst {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1px;
+	overflow: hidden;
+	color: var(--st-ink);
+	background: var(--st-bg);
+	clip-path: polygon(50.0% 0.0%, 59.1% 10.0%, 71.7% 5.0%, 75.6% 17.9%, 89.1% 18.8%, 86.9% 32.2%, 98.7% 38.9%, 91.0% 50.0%, 98.7% 61.1%, 86.9% 67.8%, 89.1% 81.2%, 75.6% 82.1%, 71.7% 95.0%, 59.1% 90.0%, 50.0% 100.0%, 40.9% 90.0%, 28.3% 95.0%, 24.4% 82.1%, 10.9% 81.2%, 13.1% 67.8%, 1.3% 61.1%, 9.0% 50.0%, 1.3% 38.9%, 13.1% 32.2%, 10.9% 18.8%, 24.4% 17.9%, 28.3% 5.0%, 40.9% 10.0%);
+	text-shadow: 0 1px 0 rgba(255, 255, 255, .35);
+}
+.promo-sticker-discount .promo-sticker-burst { text-shadow: 0 1px 2px rgba(0, 0, 0, .3); }
+/* a dashed ring inside the burst, like a printed seal */
+.promo-sticker-burst::before {
+	content: "";
+	position: absolute;
+	inset: 17%;
+	border-radius: 50%;
+	border: 1.5px dashed currentColor;
+	opacity: .35;
+}
+/* the moving band of light */
+.promo-sticker-burst::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .75) 48%, transparent 64%);
+	transform: translateX(-130%);
+	animation: promoShine 2.6s ease-in-out infinite;
+}
+.promo-sticker-icon { font-size: 17px; line-height: 1; }
+.promo-sticker-big { position: relative; font-size: 20px; font-weight: 900; line-height: 1.1; letter-spacing: -.3px; }
+.promo-sticker-discount .promo-sticker-big { font-size: 23px; }
+.promo-sticker-small { position: relative; font-size: 11.5px; font-weight: 900; line-height: 1.1; }
+.promo-sticker-spark {
+	position: absolute;
+	font-style: normal;
+	font-size: 13px;
+	color: #fff;
+	text-shadow: 0 0 6px var(--st-glow);
+	opacity: 0;
+	animation: promoTwinkle 1.8s ease-in-out infinite;
+}
+.promo-sticker-spark:nth-of-type(1) { top: -6px; inset-inline-start: 6px; }
+.promo-sticker-spark:nth-of-type(2) { bottom: 4px; inset-inline-end: -8px; font-size: 10px; animation-delay: .6s; }
+.promo-sticker-spark:nth-of-type(3) { top: 10px; inset-inline-end: -10px; font-size: 9px; animation-delay: 1.2s; }
+@keyframes promoWobble {
+	0%, 100% { transform: rotate(-12deg) scale(1); }
+	50% { transform: rotate(-4deg) scale(1.07); }
+}
+@keyframes promoGlowSticker {
+	0%, 100% { filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .28)) drop-shadow(0 0 6px var(--st-glow)); }
+	50% { filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .28)) drop-shadow(0 0 16px var(--st-glow)); }
+}
+.plan-card.is-promo .plan-body { position: relative; z-index: 1; }
+.promo-over .promo-sticker { display: none; }
+
 /* ---------- prices ---------- */
 .promo-was {
 	font-size: 13px;
@@ -206,6 +282,9 @@ html[data-hs-theme="dark"] .pd-cycle-price .promo-was { color: #8b9ab5; }
 html[data-hs-theme="dark"] .pd-cycle-price .promo-off { background: rgba(255, 61, 110, .2); color: #ff9fb5; }
 
 @media (max-width: 575.98px) {
+	.promo-sticker { width: 86px; height: 86px; bottom: -30px; }
+	.promo-sticker-big { font-size: 18px; }
+	.promo-sticker-discount .promo-sticker-big { font-size: 21px; }
 	.promo-badge { font-size: 10px; padding: 3px 9px; }
 	.promo-strip { margin: 0 14px 4px; font-size: 11.5px; }
 	.promo-banner { padding: 14px; }
@@ -213,7 +292,9 @@ html[data-hs-theme="dark"] .pd-cycle-price .promo-off { background: rgba(255, 61
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.promo-badge, .promo-badge::after, .promo-star, .plan-card.is-promo, .promo-banner::after { animation: none !important; }
+	.promo-badge, .promo-badge::after, .promo-star, .plan-card.is-promo, .promo-banner::after,
+	.promo-sticker, .promo-sticker-burst::after, .promo-sticker-spark { animation: none !important; }
+	.promo-sticker { transform: rotate(-12deg); }
 	.promo-star { opacity: .8; }
 }
 </style>

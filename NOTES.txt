@@ -1,10 +1,6 @@
-The promotion box now shows on the "add plan" page as soon as it opens. The
-page only ran its type switch when the type was changed, and a new plan starts
-as a subscription plan, so the box stayed hidden until the type was changed
-away and back. The edit page was not affected.
-
-A promotion can now be announced to every customer: a switch in the promotion
-box (on by default) sends one Telegram message and one e-mail per customer,
-with the offer and a link to the plan, a batch every minute. Customers who
-switched notices off in their settings are skipped, and editing a running
-promotion does not send it again.
+The "special" and discount marks on a plan card are now a big starburst
+sticker on the empty side of the coloured cap, tilted and poking out over its
+lower edge onto the card: gold with a star for "special", red with the
+percentage for a discount. It sways slowly, glows, has a band of light moving
+across it and sparkles around it; still with reduced motion. The prize badge
+stays in the row above the name.
