@@ -5,6 +5,42 @@
  * while the channel gift is still open to them, a nudge towards it.
  *}
 {$gifts = $user->newGifts()}
+{* a purchase prize still being drawn: a gold note until it lands (tgpoll.tpl reloads) *}
+{if count($gifts) == 0 && $user->promoPrizePending()}
+{literal}
+<style>
+.gfp-wait {
+	position: fixed;
+	z-index: 1060;
+	left: 50%;
+	bottom: 22px;
+	transform: translateX(-50%);
+	display: flex;
+	align-items: center;
+	gap: 11px;
+	max-width: calc(100vw - 28px);
+	padding: 12px 18px;
+	border-radius: 18px;
+	color: #4a2a00;
+	font-size: 13px;
+	font-weight: 700;
+	line-height: 1.8;
+	background: linear-gradient(135deg, #fde68a, #fbbf24 55%, #f59e0b);
+	box-shadow: 0 14px 34px -10px rgba(245, 158, 11, .75), inset 0 0 0 1.5px rgba(255, 255, 255, .55);
+	animation: gfp-wait-in .5s cubic-bezier(.2, .9, .3, 1.3);
+}
+.gfp-wait-gift { font-size: 24px; animation: gfp-pop 1.4s ease-in-out infinite; }
+.gfp-wait small { display: block; font-weight: 500; opacity: .85; }
+@keyframes gfp-wait-in { from { opacity: 0; transform: translate(-50%, 20px); } }
+@keyframes gfp-pop { 0%, 100% { transform: scale(1) rotate(-6deg); } 50% { transform: scale(1.15) rotate(6deg); } }
+@media (prefers-reduced-motion: reduce) { .gfp-wait, .gfp-wait-gift { animation: none; } }
+</style>
+{/literal}
+<div class="gfp-wait" role="status">
+	<span class="gfp-wait-gift">🎁</span>
+	<span>{$translate->get('PromoPrizeWait')}<small>{$translate->get('PromoPrizeWaitHint')}</small></span>
+</div>
+{/if}
 {if count($gifts) > 0}
 {$gfUntil = strtotime($user->expire_in)}
 {$gfDays = max(0, floor(($gfUntil - time()) / 86400))}
@@ -181,13 +217,15 @@ html[data-hs-theme="dark"] .gfp-hint b { color: #7dd3fc; }
 			<h5 class="gfp-title" id="gfpTitle">{$translate->get('GiftPopTitle')}</h5>
 			<div class="gfp-win">
 				{foreach $gifts as $g}
-					{if $g['kind'] == 'free'}
+					{if $g['kind'] == 'days'}
+						<span class="gfp-amount">+{$g['days']} <small>{$translate->get('Days')}</small></span>
+					{elseif $g['kind'] == 'free'}
 						{if $g['mb'] < 1024}{$gSize = str_replace(['%n%'],[$g['mb']],$translate->get('SizeMB'))}{else}{$gSize = str_replace(['%n%'],[$g['mb'] / 1024],$translate->get('SizeGB'))}{/if}
 						<span class="gfp-amount">{str_replace(['%size%','%days%'],[$gSize,$g['days']],$translate->get('GiftPopFree'))}</span>
 					{else}
 						<span class="gfp-amount">+{$g['gb']} <small>GB</small></span>
 					{/if}
-					<span class="gfp-why">{if $g['source'] == 'bind'}{$translate->get('GiftPopBind')}{else}{$translate->get('GiftPopChannel')}{/if}</span>
+					<span class="gfp-why">{if $g['source'] == 'promo'}{$gPlan = $g['plan']|escape:'html'}{$translate->get('GiftPopPromo')|replace:'%plan%':$gPlan}{elseif $g['source'] == 'bind'}{$translate->get('GiftPopBind')}{else}{$translate->get('GiftPopChannel')}{/if}</span>
 				{/foreach}
 			</div>
 		</div>

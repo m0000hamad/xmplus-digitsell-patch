@@ -1566,4 +1566,12 @@ $i18n['fa_IR'] = array(
 	'PromoChannelTest'          => "ارسال پیام آزمایشی",
 	'PromoChannelSaved'         => "آیدی کانال ذخیره شد",
 	'PromoChannelSent'          => "پیام آزمایشی در کانال ارسال شد",
+	'PromoPrizeWait'            => "جایزه‌ی خریدت در راه است!",
+	'PromoPrizeWaitHint'        => "قرعه تا حدود یک دقیقه‌ی دیگر کشیده می‌شود و همین‌جا نشانت می‌دهیم.",
+	'GiftPopPromo'              => "جایزه‌ی خرید «%plan%»",
+	'PromoPrizeLeftLabel'       => "جایزه‌ی باقی‌مانده",
+	'PromoPrizeOfTotal'         => "%gb% از حجمت جایزه است و اول مصرف می‌شود",
+	'PromoPlanLeftLabel'        => "حجم اصلی باقی‌مانده:",
+	'PromoPrizeChipGb'          => "%n% گیگ جایزه",
+	'PromoPrizeChipDays'        => "%n% روز جایزه",
 );

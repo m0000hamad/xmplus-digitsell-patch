@@ -166,6 +166,9 @@
 	window.usageQuota = new Object();
 	window.usageQuota.remaining = parseFloat("{$user->unusedTrafficPercent()}") || 0;
 	window.usageQuota.used      = parseFloat("{$user->usedTrafficPercent()}") || 0;
+	/* the part of what is left that is a purchase prize (used up first) */
+	window.usageQuota.prize     = parseFloat("{$user->promoPrizeLeftPercent()}") || 0;
+	window.usageQuota.prizeWord = "{$translate->get('PromoPrizeLeftLabel')|escape:'javascript'}";
 </script>
 {literal}
 <script>
@@ -479,15 +482,17 @@ var renderUsageCharts = (function () {
 					color: colors[0]
 				}
 			},
-			series: [Math.round(remaining * 10) / 10],
-			labels: [txt('remaining')],
-			colors: [colors[0]],
+			series: quota.prize > 0
+				? [Math.round(remaining * 10) / 10, Math.round(Math.min(100, quota.prize) * 10) / 10]
+				: [Math.round(remaining * 10) / 10],
+			labels: quota.prize > 0 ? [txt('remaining'), quota.prizeWord] : [txt('remaining')],
+			colors: quota.prize > 0 ? [colors[0], '#f5b301'] : [colors[0]],
 			fill: {
 				type: 'gradient',
 				gradient: {
 					shade: 'dark',
 					type: 'horizontal',
-					gradientToColors: [colors[1]],
+					gradientToColors: quota.prize > 0 ? [colors[1], '#fde047'] : [colors[1]],
 					stops: [0, 100]
 				}
 			},
@@ -516,6 +521,14 @@ var renderUsageCharts = (function () {
 							fontWeight: 700,
 							color: ink(),
 							formatter: function (value) { return value + '%'; }
+						},
+						/* two rings: the middle keeps showing what is left in all */
+						total: {
+							show: quota.prize > 0,
+							label: txt('remaining'),
+							fontSize: '12.5px',
+							color: axisColor(),
+							formatter: function () { return (Math.round(remaining * 10) / 10) + '%'; }
 						}
 					}
 				}
