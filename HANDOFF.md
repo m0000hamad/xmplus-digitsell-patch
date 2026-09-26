@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-25 · installed version **1.9.0** · latest release **1.9.1** · repo
+Last updated: 2026-09-25 · installed version **1.9.2** · latest release **1.9.2** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -380,6 +380,19 @@ and it fits one screen.
   `public/assets` is outside the updater's paths, so fonts (IRANSans, Inter)
   and Font Awesome come from the panel's own `/assets`, and the CSS is inline.
   Font Awesome here has no `fa-x-twitter`; X uses `fa-twitter`.
+- **Icons are a subset (1.9.2).** The page does not load Font Awesome. A new
+  `fa-*` class in the source needs `python tools/login/icons.py` (fonttools +
+  brotlicffi; the panel's FA css and webfonts copied into `tools/login/fa/`,
+  which is gitignored) before `node tools/login/build.js`, or it shows as a
+  blank box. Only `fa-solid` and `fa-brands` exist on this page.
+- IRANSans is declared in the page itself, 400 and 700 only - `font-black`
+  renders as Bold and `font-medium` as Regular on purpose. No `iransans.css`,
+  no Inter. The background is one static gradient (`.backdrop`); keep big
+  animated blur filters off this page, they were what made it heavy.
+- What is left is the server: the encoded controller takes ~0.48 s to answer
+  `/login` at the origin, ~1 s through the CDN. PHP 7.4 here runs **without
+  OPcache** (`opcache.so` exists but is not loaded in `php.ini`); it loads fine
+  next to ionCube (checked with the CLI).
 - Contract kept from the stock template: POST `/login` with `email`, `passwd`,
   `hcaptcha` / `turnstile`; `ret 1` → `/portal/dashboard`, `ret 2` →
   `/verify`, anything else shows `msg` under the form. No jQuery: the stock
@@ -559,3 +572,4 @@ start" and no daily plans: the owner asked for neither).
 | 1.8.9 | Gift card redeem dialog redesigned; Telegram message to the customer (and the admins) when a card is applied |
 | 1.9.0 | Channel gift without a running plan: a free 100 MB-1 GB plan (was 10-50 GB); MB shown below a gigabyte |
 | 1.9.1 | Sign-up page in the sign-in page's design, with a benefits column |
+| 1.9.2 | Lighter sign-in page: icon subset instead of Font Awesome, two font weights, static background (~520 KB to ~72 KB) |
