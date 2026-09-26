@@ -80,6 +80,29 @@
 	vertical-align: middle;
 }
 
+.quota-legend-prize b { color: #b45309; }
+.quota-prize {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	margin: 4px auto 8px;
+	padding: 8px 16px;
+	border-radius: 14px;
+	text-align: center;
+	line-height: 1.8;
+	width: fit-content;
+	max-width: 100%;
+	font-size: 12px;
+	font-weight: 700;
+	color: #7c4a03;
+	background: linear-gradient(135deg, rgba(253, 230, 138, .55), rgba(251, 191, 36, .35));
+	box-shadow: inset 0 0 0 1px rgba(245, 158, 11, .45);
+}
+.quota-prize b { direction: ltr; unicode-bidi: isolate; color: #92400e; }
+html[data-hs-theme="dark"] .quota-legend-prize b { color: #fcd34d; }
+html[data-hs-theme="dark"] .quota-prize { color: #fde68a; background: rgba(245, 158, 11, .16); box-shadow: inset 0 0 0 1px rgba(252, 211, 77, .4); }
+html[data-hs-theme="dark"] .quota-prize b { color: #fcd34d; }
 html[data-hs-theme="dark"] .quota-legend-item { color: #9fb0cc; }
 html[data-hs-theme="dark"] .quota-legend-item b,
 html[data-hs-theme="dark"] .quota-stat-value { color: #e7eaf3; }
@@ -107,7 +130,21 @@ html[data-hs-theme="dark"] .quota-stat-label { color: #8b9ab5; }
 					<span class="quota-legend-dot" style="--dot:#f43f5e"></span>
 					{$translate->get('UsedData')} <b>{$user->usedTraffic()}</b>
 				</span>
+				{$uPrize = $user->promoPrize()}
+				{if $uPrize.gb > 0}
+					<span class="quota-legend-item quota-legend-prize">
+						<span class="quota-legend-dot" style="--dot:#f5b301"></span>
+						🎁 {$translate->get('PromoPrizeLeftLabel')} <b>{$user->promoPrizeLeft()}</b>
+					</span>
+				{/if}
 			</div>
+			{if $uPrize.gb > 0}
+				{* the prize is used first, so this falls to zero before the plan's own traffic does *}
+				<div class="quota-prize">
+					<span>🎁 {$translate->get('PromoPrizeOfTotal')|replace:'%gb%':"<b>{$uPrize.gb} GB</b>"}</span>
+					<span>{$translate->get('PromoPlanLeftLabel')} <b>{$user->promoPlanLeft()}</b></span>
+				</div>
+			{/if}
 		</div>
 
 		<div class="quota-stats">

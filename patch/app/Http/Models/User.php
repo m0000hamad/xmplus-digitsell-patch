@@ -792,7 +792,142 @@ final class User extends Model
 			// the tables or the seen column do not exist before TgJoinJob's first run
 		}
 
+		// a prize won with a promoted plan (PromoJob)
+		try {
+			$rows = DB::table('promo_log')
+				->leftJoin('package', 'package.id', '=', 'promo_log.packageid')
+				->where('promo_log.userid', $this->id)->where('promo_log.seen', 0)
+				->where('promo_log.applied', 1)->whereIn('promo_log.prize_kind', ['gb', 'days'])
+				->select('promo_log.id', 'promo_log.prize_kind', 'promo_log.prize_amount', 'package.name')
+				->get();
+
+			foreach ($rows as $row) {
+				$out[] = [
+					'source' => 'promo',
+					'kind'   => $row->prize_kind,
+					'gb'     => $row->prize_kind === 'gb' ? (float) $row->prize_amount : 0,
+					'mb'     => $row->prize_kind === 'gb' ? (int) $row->prize_amount * 1024 : 0,
+					'days'   => $row->prize_kind === 'days' ? (int) $row->prize_amount : 0,
+					'plan'   => (string) $row->name,
+				];
+			}
+
+			if (count($rows) > 0 && empty($_SESSION['adminview'])) {
+				DB::table('promo_log')->whereIn('id', $rows->pluck('id')->all())->update(['seen' => 1]);
+			}
+		} catch (\Throwable $e) {
+			// promo_log or its seen column is created by PromoJob's first run
+		}
+
 		return $out;
+	}
+
+	/*
+	 * ------------------------------------------------------------------
+	 * Prizes won with a promoted plan (PromoJob, promo_log)
+	 * ------------------------------------------------------------------
+	 * The prizes that belong to the running subscription: those drawn for
+	 * orders paid since the last subscription purchase. A renewal starts a new
+	 * plan, and the prize of the old one is gone with its traffic.
+	 */
+	private $promoPrizeCache = null;
+
+	public function promoPrize()
+	{
+		if ($this->promoPrizeCache !== null) {
+			return $this->promoPrizeCache;
+		}
+
+		$prize = ['gb' => 0, 'days' => 0];
+
+		try {
+			if ($this->planIsActive()) {
+				$since = (int) DB::table('orders')->where('userid', $this->id)->where('status', 1)
+					->where('packagetype', 2)->max('pay_date');
+
+				$rows = DB::table('promo_log')
+					->join('orders', 'orders.id', '=', 'promo_log.orderid')
+					->where('promo_log.userid', $this->id)
+					->where('promo_log.applied', 1)
+					->where('orders.pay_date', '>=', $since)
+					->selectRaw('promo_log.prize_kind AS kind, SUM(promo_log.prize_amount) AS amount')
+					->groupBy('promo_log.prize_kind')
+					->get();
+
+				foreach ($rows as $row) {
+					if ($row->kind === 'gb' || $row->kind === 'days') {
+						$prize[$row->kind] = (int) $row->amount;
+					}
+				}
+			}
+		} catch (\Throwable $e) {
+			// promo_log is created by PromoJob's first run
+		}
+
+		return $this->promoPrizeCache = $prize;
+	}
+
+	/* prize traffic still unused: usage eats the prize first, then the plan's own */
+	public function promoPrizeLeftBytes()
+	{
+		$prize = (float) $this->promoPrize()['gb'] * 1073741824;
+
+		return max(0, $prize - ((float) $this->u + (float) $this->d));
+	}
+
+	public function promoPrizeLeft()
+	{
+		return (new Helpers)->trafficConvert($this->promoPrizeLeftBytes());
+	}
+
+	/* the plan's own traffic still unused, the prize not counted */
+	public function promoPlanLeft()
+	{
+		$prize = (float) $this->promoPrize()['gb'] * 1073741824;
+		$used = (float) $this->u + (float) $this->d;
+
+		return (new Helpers)->trafficConvert(max(0, (float) $this->transfer_enable - max($used, $prize)));
+	}
+
+	public function promoPrizeLeftPercent()
+	{
+		if ((float) $this->transfer_enable <= 0) {
+			return 0;
+		}
+
+		return round($this->promoPrizeLeftBytes() / (float) $this->transfer_enable * 100, 1);
+	}
+
+	/*
+	 * A prize is on its way: a paid order on a plan whose running promotion has
+	 * a prize, in the last half hour, not drawn yet. The dashboard shows a
+	 * "being drawn" note and keeps asking until it lands.
+	 */
+	public function promoPrizePending()
+	{
+		try {
+			$ids = [];
+			foreach (Package::promoMap() as $id => $entry) {
+				if (is_array($entry) && !empty($entry['prize']['on'])) {
+					$ids[] = (int) $id;
+				}
+			}
+
+			if ($ids === []) {
+				return false;
+			}
+
+			return DB::table('orders')
+				->leftJoin('promo_log', 'promo_log.orderid', '=', 'orders.id')
+				->where('orders.userid', $this->id)
+				->where('orders.status', 1)
+				->whereIn('orders.packageid', $ids)
+				->where('orders.pay_date', '>=', time() - 1800)
+				->whereNull('promo_log.id')
+				->exists();
+		} catch (\Throwable $e) {
+			return false;
+		}
 	}
 
 	/*

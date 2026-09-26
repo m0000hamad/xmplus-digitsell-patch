@@ -51,6 +51,16 @@ if ($action === 'tggift.poll') {
         }
     }
 
+    // a prize won with a promoted plan, waiting for its popup
+    try {
+        $count = db()->prepare(
+            "SELECT COUNT(*) AS n FROM promo_log WHERE userid = ? AND seen = 0 AND applied = 1 AND prize_kind IN ('gb', 'days')");
+        $count->execute([$uid]);
+        $gifts += (int) $count->fetch()['n'];
+    } catch (Throwable $error) {
+        // promo_log and its seen column come with PromoJob's first run
+    }
+
     // at most one nudge per half minute, so a busy tab cannot starve the others
     if (!empty($_GET['nudge']) && time() - (int) ($_SESSION['tggift_nudged'] ?? 0) >= 30) {
         $_SESSION['tggift_nudged'] = time();

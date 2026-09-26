@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-26 · installed version **1.9.2** · latest release **1.10.4** · repo
+Last updated: 2026-09-26 · installed version **1.9.2** · latest release **1.10.5** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -508,6 +508,21 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
   only when its text changes; on close it gets an "ended" header and loses
   the button (`channel_closed`). The stickers themselves are not images -
   Telegram gets the same tags as emoji.
+- **Prizes on the site (1.10.5):** `promo_log.seen` (added by the job and
+  by migration 007; older rows count as seen) feeds `User::newGifts()`, so the
+  dashboard's gift popup (`giftpopup.tpl`) shows a purchase prize as
+  `source = promo`, GB or days, with the plan's name. The buyer lands on the
+  dashboard after paying; while `User::promoPrizePending()` (a paid order on a
+  prize plan in the last 30 min with no `promo_log` row yet) a gold toast says
+  the draw is coming, `tgpoll.tpl` keeps polling and `tggift.poll` counts unseen
+  prizes, so the page reloads into the popup. `User::promoPrize()` sums the
+  prizes of the running subscription (orders paid since the last `packagetype
+  = 2` purchase); usage is counted against the prize first
+  (`promoPrizeLeft()` = prize - used, `promoPlanLeft()` = total - max(used,
+  prize)). Shown in gold: chips on the subscription card, an inner ring and a
+  line on the statistics card. Display only - the panel still holds one
+  `transfer_enable`. Smarty 3 cannot index a method call
+  (`$user->promoPrize()['gb']` fails to compile), hence `$uPrize`.
 - **E-mail** goes through the panel's own queue (`App\Http\Models\Queue`,
   exactly like `UserJob`), so it uses the SMTP settings under Settings → Mail
   and is sent only while `maildriver` = 1. The queue row carries
@@ -662,3 +677,4 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
 | 1.10.2 | Plan cards: "special" / discount shown as a big tilted starburst sticker poking out of the coloured cap, animated |
 | 1.10.3 | Prize shown as a big sticker too; two stickers side by side when a plan has both; larger badges on the plan page banner |
 | 1.10.4 | Promotions posted in a Telegram channel (id in settings, switch per promotion), post kept up to date and marked when it ends |
+| 1.10.5 | Purchase prizes shown on the site: "being drawn" note and popup after paying; prize share in gold on the subscription and statistics cards, used first |

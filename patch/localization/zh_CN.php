@@ -1565,4 +1565,12 @@ $i18n['zh_CN'] = array(
 	'PromoChannelTest'          => "发送测试消息",
 	'PromoChannelSaved'         => "频道已保存",
 	'PromoChannelSent'          => "测试消息已发送到频道",
+	'PromoPrizeWait'            => "您的购买奖励即将到账！",
+	'PromoPrizeWaitHint'        => "约一分钟内开奖，并在此处显示。",
+	'GiftPopPromo'              => "购买“%plan%”的奖励",
+	'PromoPrizeLeftLabel'       => "剩余奖励",
+	'PromoPrizeOfTotal'         => "其中 %gb% 为奖励流量，优先使用",
+	'PromoPlanLeftLabel'        => "套餐剩余：",
+	'PromoPrizeChipGb'          => "奖励 %n% GB",
+	'PromoPrizeChipDays'        => "奖励 %n% 天",
 );
