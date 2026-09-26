@@ -22,6 +22,9 @@ use Illuminate\Database\Capsule\Manager as DB;
  *  3. The customer (Telegram and e-mail) and the admin chats hear about each
  *     promoted purchase and prize; the admin chats also hear about a
  *     promotion starting and ending.
+ *  4. A promotion saved with "announce" is sent to every customer, BROADCAST
+ *     per run, each one claimed in `promo_broadcast` first so nobody gets it
+ *     twice. Customers who switched notices off in their settings are skipped.
  *
  * Times are compared in PHP: MySQL's NOW() runs on UTC on this server while
  * expire_in is stored in local time (+03:30), and pay_date is an epoch.
@@ -33,6 +36,9 @@ class PromoJob
 
 	/** orders handled per run */
 	const BATCH = 100;
+
+	/** customers told about a new promotion per run - Telegram allows ~30/s */
+	const BROADCAST = 150;
 
 	private $token = '';
 
@@ -66,6 +72,12 @@ class PromoJob
 			}
 
 			$this->announce((int) $key, $entry);
+		}
+
+		foreach ($this->map() as $key => $entry) {
+			if (is_array($entry) && !empty($entry['announce']) && empty($entry['broadcast_done'])) {
+				$this->broadcast((int) $key, $entry);
+			}
 		}
 
 		return $logged;
@@ -120,6 +132,16 @@ class PromoJob
 				UNIQUE KEY orderid (orderid),
 				KEY userid (userid),
 				KEY packageid (packageid)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+		DB::statement(
+			'CREATE TABLE IF NOT EXISTS promo_broadcast (
+				id BIGINT(20) NOT NULL AUTO_INCREMENT,
+				promo VARCHAR(32) NOT NULL,
+				userid INT(11) NOT NULL,
+				sent_at BIGINT(20) NOT NULL,
+				PRIMARY KEY (id),
+				UNIQUE KEY promo_user (promo, userid)
 			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 	}
 
@@ -347,6 +369,76 @@ class PromoJob
 
 			$this->tellAdmins($text);
 		}
+	}
+
+	// ------------------------------------------------------------ announcing
+
+	/*
+	 * Tells every customer about a running promotion, a batch per run. The key
+	 * is package + start time, so a promotion reopened later is announced
+	 * again but one that is only edited is not.
+	 */
+	private function broadcast($packageId, array $entry)
+	{
+		if (!empty($entry['closed_at']) || !Package::promoRunning($entry + ['packageid' => $packageId])) {
+			return;
+		}
+
+		$promo = $packageId . ':' . (int) $entry['started_at'];
+
+		$users = DB::table('user')
+			->leftJoin('promo_broadcast', function ($join) use ($promo) {
+				$join->on('promo_broadcast.userid', '=', 'user.id')->where('promo_broadcast.promo', '=', $promo);
+			})
+			->where('user.role', 0)
+			->whereNull('promo_broadcast.id')
+			->select('user.id', 'user.username', 'user.email', 'user.telegram_id', 'user.notification')
+			->orderBy('user.id', 'asc')
+			->limit(self::BROADCAST)
+			->get();
+
+		if (count($users) === 0) {
+			$this->patchEntry($packageId, ['broadcast_done' => 1]);
+			echo date('Y-m-d H:i:s') . " promotion on package {$packageId} announced to every customer" . PHP_EOL;
+			return;
+		}
+
+		$text = $this->announcement($packageId, $entry);
+		$sent = 0;
+
+		foreach ($users as $user) {
+			try {
+				DB::table('promo_broadcast')->insert(['promo' => $promo, 'userid' => $user->id, 'sent_at' => time()]);
+			} catch (\Throwable $error) {
+				continue;
+			}
+
+			// the "notices" switch on the settings page; unset means on
+			$prefs = json_decode((string) $user->notification, true);
+			if (is_array($prefs) && isset($prefs['sendnotices']) && (int) $prefs['sendnotices'] === 0) {
+				continue;
+			}
+
+			if ($this->token !== '' && !empty($user->telegram_id)) {
+				$this->api('sendMessage', ['chat_id' => $user->telegram_id, 'text' => $text]);
+				usleep(40000);
+			}
+
+			$this->mail($user, '🔥 پروموشن جدید', $text);
+			$sent++;
+		}
+
+		echo date('Y-m-d H:i:s') . " promotion on package {$packageId}: announced to {$sent} customer(s)" . PHP_EOL;
+	}
+
+	private function announcement($packageId, array $entry)
+	{
+		$name = (string) DB::table('package')->where('id', $packageId)->value('name');
+		$site = rtrim(trim((string) $this->setting('promo_site_url')) ?: 'https://p.digitsell-shop.ir', '/');
+
+		return "🔥 پروموشن جدید: «{$name}»\n"
+			. $this->describe($entry)
+			. "\n\n👉 خرید: {$site}/portal/plan/details?id={$packageId}";
 	}
 
 	// ------------------------------------------------------------ messages

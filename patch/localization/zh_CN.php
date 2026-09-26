@@ -1553,4 +1553,6 @@ $i18n['zh_CN'] = array(
 	'PromoLeft'                 => "仅剩 %n% 份",
 	'PromoBannerDiscount'       => "此套餐当前立减 %n%%。",
 	'PromoBannerSpecial'        => "这是我们的特别推荐套餐。",
+	'PromoAnnounce'             => "通知所有用户",
+	'PromoAnnounceHint'         => "通过 Telegram 和邮件通知所有用户一次（已关闭通知的用户除外）。编辑促销不会重复发送。",
 );
