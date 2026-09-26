@@ -249,7 +249,7 @@ html[data-hs-theme="dark"] .plan-btn-out { background: rgba(255, 255, 255, .09) 
 					{if $package->stocks == 1 && $package->stockcount > 0 && $package->stockcount <= 5}
 						<span class="plan-badge plan-badge-hot">🔥 {$package->stockcount} {$translate->get('LeftInStock')}</span>
 					{/if}
-					{if $promo}{include file='user/plan/promobadges.tpl'}{/if}
+					{if $promo}{include file='user/plan/promobadges.tpl' nokind=1}{/if}
 				{/capture}
 
 				{if !$promo}
@@ -259,7 +259,10 @@ html[data-hs-theme="dark"] .plan-btn-out { background: rgba(255, 255, 255, .09) 
 				<div class="plan-top">
 					{* with a promotion the badges line up above the name instead of floating over it *}
 					{if $promo}
-						<div class="plan-badges plan-badges-flow">{$smarty.capture.badges}</div>
+						{if trim($smarty.capture.badges) != ''}
+							<div class="plan-badges plan-badges-flow">{$smarty.capture.badges}</div>
+						{/if}
+						{include file='user/plan/promosticker.tpl'}
 					{/if}
 					<span class="plan-cycle">
 						{if isset($option['onetime']['price']) && $option['onetime']['price'] != ""}{$translate->get('Onetime')}
