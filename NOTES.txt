@@ -1,5 +1,13 @@
-The sign-up page gets the sign-in page's design: same background, glass card
-and night/day/automatic switch, with the site's benefits beside the form on
-desktop and a short list under it on phones. The form sends what the stock
-page sent (username, email, password, invite code, captcha); a repeat-password
-check and a strength bar are added in the page.
+Lighter sign-in page.
+
+The page no longer loads Font Awesome (67 KB of CSS plus about 375 KB of
+webfonts) for its 17 icons: tools/login/icons.py subsets them into two tiny
+fonts (about 3 KB) inlined in the template. Inter is gone (system font for the
+few Latin words) and IRANSans is declared in two weights only, with
+font-display: swap and the regular weight preloaded. The three animated
+600 px background glows under a 130-150 px blur filter are one static
+gradient, and the glass blur is lighter (12 px, none on the header and
+footer bars), which is what made weaker phones stutter.
+
+Before: about 520 KB over five requests. After: 16 KB of HTML and two
+28 KB fonts.
