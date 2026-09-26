@@ -111,6 +111,12 @@
 		var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 		var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
 		var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+		// neon tone by time left: green > 7d, yellow > 3d, orange > 1d, red (pulsing) under a day
+		var cdEl = document.getElementById("countdown");
+		if (cdEl) {
+			var cdTone = distance <= 0 ? "cd-dead" : days >= 7 ? "cd-ok" : days >= 3 ? "cd-mid" : days >= 1 ? "cd-low" : "cd-crit";
+			cdEl.className = cdEl.className.replace(/\s*cd-(ok|mid|low|crit|dead)\b/g, "") + " " + cdTone;
+		}
 		{if $session->get('locale') == "zh_CN"}
 			if (distance > 0) {
 				document.getElementById("countdown").innerHTML = Zero(days) + "天 " + Zero(hours) + "小时 "
