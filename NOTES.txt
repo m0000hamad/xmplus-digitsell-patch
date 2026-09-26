@@ -1,3 +1,3 @@
-The expiry countdown in the top bar is now a bright neon digital clock whose
-colour follows the time left: green with a week or more, yellow under a week,
-orange under three days, and a pulsing red in the last day (red once expired).
+The expiry countdown in the top bar now looks like an old LCD watch face:
+segment digits on a grey-green screen, with a frame that turns green, yellow,
+orange or pulsing red as the subscription runs out.

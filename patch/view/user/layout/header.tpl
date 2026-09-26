@@ -102,6 +102,12 @@
 		mytime = setTimeout('display_expt()',refresh);
 	}
 	
+	// one LCD group: lit digits over faint "unlit" 8s, unit in a plain font (the segment font has no M)
+	function cdSeg(n, unit) {
+		var ghost = String(n).replace(/\d/g, "8");
+		return '<span class="cd-g"><span class="cd-n"><span class="cd-off">' + ghost + '</span>' + n + '</span><span class="cd-u">' + unit + '</span></span>';
+	}
+
     function display_expt()
     {
 		var countDownDate = new Date("{date("M d, Y H:i:s",strtotime($user->expire_in))} {$gmt}").getTime();
@@ -119,16 +125,14 @@
 		}
 		{if $session->get('locale') == "zh_CN"}
 			if (distance > 0) {
-				document.getElementById("countdown").innerHTML = Zero(days) + "天 " + Zero(hours) + "小时 "
-				+ Zero(minutes) + "分 " ; //+ Zero(seconds) + "秒 ";
+				document.getElementById("countdown").innerHTML = cdSeg(Zero(days), "天") + cdSeg(Zero(hours), "小时") + cdSeg(Zero(minutes), "分");
 			}
 			if (distance < 0) {
 				document.getElementById("countdown").innerHTML = "过期了";
 			}
 		{else}
 			if (distance > 0) {
-				document.getElementById("countdown").innerHTML = Zero(days) + "D " + Zero(hours) + "H "
-				+ Zero(minutes) + "M "; // + Zero(seconds) + "S "
+				document.getElementById("countdown").innerHTML = cdSeg(Zero(days), "D") + cdSeg(Zero(hours), "H") + cdSeg(Zero(minutes), "M");
 			}
 			if (distance < 0) {
 				document.getElementById("countdown").innerHTML = "Expired";
