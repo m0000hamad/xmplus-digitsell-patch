@@ -1,7 +1,7 @@
 {
-    "version": "1.10.0",
+    "version": "1.10.1",
     "released": "2026-09-26",
-    "notes": "Promotions on subscription plans. The plan form gets a promotion box: a real\npercentage discount (the discounted price is what the checkout charges; the\nlist price is kept aside and put back when it ends), a \"special\" badge, and a\nprize switch that gives every buyer a random amount of traffic or days from a\nrange, about a minute after payment, exactly once per order. Optional occasion\ntext, end date with a live countdown, and a sales limit with a \"N left\"\ncounter; the promotion closes itself when either runs out. Plan cards and the\nplan page show animated badges, the struck-through list price and the\ndiscount, in night and day and on phones. Buyers hear about their purchase and\nprize on Telegram and by e-mail; the admin chats hear about every purchase and\nevery start and end.\n\nAlso: User::sendMail hands the template its values, queues a mail as JSON the\nway UserJob does, and reports a failed send instead of calling it sent.",
+    "notes": "The promotion box now shows on the \"add plan\" page as soon as it opens. The\npage only ran its type switch when the type was changed, and a new plan starts\nas a subscription plan, so the box stayed hidden until the type was changed\naway and back. The edit page was not affected.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -45,7 +45,7 @@
         "view/admin/layout/footer.tpl": "f12b60a0534016ae6875bb22f61a4cc46777820ac4c035ed967e3f67bffec6b0",
         "view/admin/notices/add.tpl": "0bd96d3acf9f98507fd2e7a96e829d52a72d389930e5c8a03083cfc2ec6c2281",
         "view/admin/notices/edit.tpl": "5ff03374141bc7562d33f44f8978a52a8a7f180bb429278d0c4330336e028cf5",
-        "view/admin/plans/add.tpl": "ef8585e9c35554e7bbb9374230a7bd1c26f14b7015b6697b73e3e899df915a7d",
+        "view/admin/plans/add.tpl": "90f93d9bdfb100a11417e43a16eb8097dc93cf9347cc029303cbadf0b7d51200",
         "view/admin/plans/edit.tpl": "8fe54bb02257ec08c0e8f3fd74309f7b7d554e22387e1150d958b8006e02ab27",
         "view/admin/plans/index.tpl": "c83999fd6953243fb531d72b9cc25c8fa5e4fad9fc355bc0e6d97c817f423c24",
         "view/admin/plans/promoform.tpl": "3ecdef8b9968ff6cf3fa6283eafbd5b29575405347d57978f3ce45e1d4e22a43",
