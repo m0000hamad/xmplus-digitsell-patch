@@ -18,7 +18,11 @@
 		unreachable: "{$translate->get('PromoUnreachable')|escape:'javascript'}",
 		endsPast: "{$translate->get('PromoEndsPast')|escape:'javascript'}",
 		endsIs: "{$translate->get('PromoEndsIs')|escape:'javascript'}",
-		endsBad: "{$translate->get('PromoEndsBad')|escape:'javascript'}"
+		endsBad: "{$translate->get('PromoEndsBad')|escape:'javascript'}",
+		calToday: "{$translate->get('PromoCalToday')|escape:'javascript'}",
+		calClear: "{$translate->get('PromoCalClear')|escape:'javascript'}",
+		calDone: "{$translate->get('PromoCalDone')|escape:'javascript'}",
+		calTime: "{$translate->get('PromoCalTime')|escape:'javascript'}"
 	};
 	/* the occasion line an occasion theme fills in when the field is still empty */
 	var promoThemeText = new Object();
@@ -30,6 +34,29 @@
 	promoThemeText.girl      = "{$translate->get('PromoOccasionGirl')|escape:'javascript'}";
 	promoThemeText.boy       = "{$translate->get('PromoOccasionBoy')|escape:'javascript'}";
 </script>
+{literal}
+<style>
+	.promo-ends-wrap { position: relative; max-width: 22rem; }
+	.promo-cal { position: absolute; z-index: 1060; top: calc(100% + 6px); inset-inline-start: 0; width: 19rem; background: var(--bs-body-bg, #fff); border: 1px solid rgba(127,127,127,.25); border-radius: 14px; padding: 10px; direction: rtl; }
+	.promo-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-weight: 700; }
+	.promo-cal-head button { border: 0; background: transparent; font-size: 20px; line-height: 1; padding: 2px 10px; border-radius: 8px; color: inherit; }
+	.promo-cal-head button:hover { background: rgba(99,102,241,.12); }
+	.promo-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
+	.promo-cal-grid .wd { font-size: 11px; opacity: .6; padding: 2px 0; }
+	.promo-cal-grid button { border: 0; background: transparent; border-radius: 8px; padding: 6px 0; font-size: 13px; color: inherit; }
+	.promo-cal-grid button:hover:not([disabled]) { background: rgba(99,102,241,.14); }
+	.promo-cal-grid button[disabled] { opacity: .3; cursor: not-allowed; }
+	.promo-cal-grid button.is-fri { color: #e11d48; }
+	.promo-cal-grid button.is-today { box-shadow: inset 0 0 0 1.5px #6366f1; }
+	.promo-cal-grid button.is-sel, .promo-cal-grid button.is-sel:hover { background: #6366f1; color: #fff; font-weight: 700; }
+	.promo-cal-foot { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; font-size: 13px; }
+	.promo-cal-foot select { width: auto; padding: 2px 6px; }
+	.promo-cal-foot .promo-cal-btns { margin-inline-start: auto; display: flex; gap: 4px; }
+	.promo-ends-span { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; }
+	.promo-ends-span input[type=number] { width: 5rem; }
+	.promo-ends-span input[type=time] { width: 7.5rem; }
+</style>
+{/literal}
 {literal}
 <script>
 	var promoCycles = ["onetime", "month", "quater", "semiannual", "annual", "custom"];
@@ -179,6 +206,214 @@
 
 		return !past;
 	}
+
+	/* ---- Solar Hijri calendar and "N days until HH:MM" for the end date ---- */
+	var promoMonths = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+		"مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+	var promoWeekdays = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
+	var promoCal = null;
+
+	function promoFa(n) {
+		return String(n).replace(/[0-9]/g, function (d) { return "۰۱۲۳۴۵۶۷۸۹".charAt(+d); });
+	}
+
+	function promoPad(n) {
+		return (n < 10 ? "0" : "") + n;
+	}
+
+	/* Gregorian -> Solar Hijri [y, m, d] (the same arithmetic as Package::jalaliParts) */
+	function promoGregorianToJalali(gy, gm, gd) {
+		var days = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+		var gy2 = gm > 2 ? gy + 1 : gy;
+		var total = 355666 + 365 * gy + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100)
+			+ Math.floor((gy2 + 399) / 400) + gd + days[gm - 1];
+		var jy = -1595 + 33 * Math.floor(total / 12053);
+		total %= 12053;
+		jy += 4 * Math.floor(total / 1461);
+		total %= 1461;
+		if (total > 365) {
+			jy += Math.floor((total - 1) / 365);
+			total = (total - 1) % 365;
+		}
+		var jm = total < 186 ? 1 + Math.floor(total / 31) : 7 + Math.floor((total - 186) / 30);
+		var jd = 1 + (total < 186 ? total % 31 : (total - 186) % 30);
+		return [jy, jm, jd];
+	}
+
+	function promoJalaliMonthDays(jy, jm) {
+		if (jm <= 6) {
+			return 31;
+		}
+		if (jm <= 11) {
+			return 30;
+		}
+		return String(promoJalaliToGregorian(jy, 12, 30)) === String(promoJalaliToGregorian(jy + 1, 1, 1)) ? 29 : 30;
+	}
+
+	/* an epoch (ms) as Solar Hijri parts on Tehran time */
+	function promoTehranParts(ms) {
+		var t = new Date(ms + 3.5 * 3600 * 1000);
+		var j = promoGregorianToJalali(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate());
+		return { y: j[0], m: j[1], d: j[2], h: t.getUTCHours(), mi: t.getUTCMinutes() };
+	}
+
+	function promoSetEnds(y, m, d, h, mi) {
+		$("#promo_ends_at").val(y + "/" + promoPad(m) + "/" + promoPad(d) + " " + promoPad(h) + ":" + promoPad(mi));
+		promoEndsCheck();
+	}
+
+	function promoCalToggle() {
+		var box = document.getElementById("promo_cal");
+		if (!box.hidden) {
+			box.hidden = true;
+			return;
+		}
+
+		var stamp = promoEndsStamp($("#promo_ends_at").val());
+		var today = promoTehranParts(Date.now());
+		var at = stamp !== null ? promoTehranParts(stamp) : null;
+
+		promoCal = {
+			y: at ? at.y : today.y,
+			m: at ? at.m : today.m,
+			sel: at ? [at.y, at.m, at.d] : null,
+			h: at ? at.h : 23,
+			mi: at ? at.mi : 59,
+			today: today
+		};
+		box.hidden = false;
+		promoCalDraw();
+	}
+
+	function promoCalDraw() {
+		var c = promoCal;
+		var box = $("#promo_cal").empty();
+		var head = $('<div class="promo-cal-head"></div>');
+		head.append($('<button type="button" data-cal="prev">‹</button>'));
+		head.append($("<span></span>").text(promoMonths[c.m - 1] + " " + promoFa(c.y)));
+		head.append($('<button type="button" data-cal="next">›</button>'));
+		box.append(head);
+
+		var grid = $('<div class="promo-cal-grid"></div>');
+		$.each(promoWeekdays, function (i, w) {
+			grid.append($('<span class="wd"></span>').text(w));
+		});
+
+		// Saturday first: the column of day 1 comes from the Gregorian weekday
+		var g = promoJalaliToGregorian(c.y, c.m, 1);
+		var first = (new Date(Date.UTC(g[0], g[1] - 1, g[2])).getUTCDay() + 1) % 7;
+		for (var i = 0; i < first; i++) {
+			grid.append("<span></span>");
+		}
+
+		var total = promoJalaliMonthDays(c.y, c.m);
+		var todayKey = c.today.y * 10000 + c.today.m * 100 + c.today.d;
+		for (var d = 1; d <= total; d++) {
+			var key = c.y * 10000 + c.m * 100 + d;
+			var btn = $('<button type="button"></button>').text(promoFa(d)).attr("data-day", d);
+			if ((first + d - 1) % 7 === 6) {
+				btn.addClass("is-fri");
+			}
+			if (key === todayKey) {
+				btn.addClass("is-today");
+			}
+			if (key < todayKey) {
+				btn.prop("disabled", true);
+			}
+			if (c.sel && c.sel[0] === c.y && c.sel[1] === c.m && c.sel[2] === d) {
+				btn.addClass("is-sel");
+			}
+			grid.append(btn);
+		}
+		box.append(grid);
+
+		var foot = $('<div class="promo-cal-foot"></div>');
+		var hour = $('<select class="form-select form-select-sm" data-cal="h" dir="ltr"></select>');
+		for (var h = 0; h < 24; h++) {
+			hour.append($("<option></option>").val(h).text(promoPad(h)).prop("selected", h === c.h));
+		}
+		var minute = $('<select class="form-select form-select-sm" data-cal="mi" dir="ltr"></select>');
+		var minutes = [0, 15, 30, 45, 59];
+		if (minutes.indexOf(c.mi) < 0) {
+			minutes.push(c.mi);
+			minutes.sort(function (a, b) { return a - b; });
+		}
+		$.each(minutes, function (i, mi) {
+			minute.append($("<option></option>").val(mi).text(promoPad(mi)).prop("selected", mi === c.mi));
+		});
+		var clock = $('<span dir="ltr" class="d-inline-flex align-items-center gap-1"></span>').append(hour, $("<b>:</b>"), minute);
+		foot.append($("<span></span>").text("🕒 " + promoText.calTime), clock);
+		var btns = $('<span class="promo-cal-btns"></span>');
+		btns.append($('<button type="button" class="btn btn-sm btn-soft-secondary" data-cal="today"></button>').text(promoText.calToday));
+		btns.append($('<button type="button" class="btn btn-sm btn-soft-danger" data-cal="clear"></button>').text(promoText.calClear));
+		btns.append($('<button type="button" class="btn btn-sm btn-primary" data-cal="done"></button>').text(promoText.calDone));
+		foot.append(btns);
+		box.append(foot);
+	}
+
+	$(document).on("click", "#promo_cal [data-cal=prev], #promo_cal [data-cal=next]", function () {
+		var step = $(this).data("cal") === "next" ? 1 : -1;
+		promoCal.m += step;
+		if (promoCal.m > 12) { promoCal.m = 1; promoCal.y++; }
+		if (promoCal.m < 1) { promoCal.m = 12; promoCal.y--; }
+		promoCalDraw();
+	});
+
+	$(document).on("click", "#promo_cal [data-day]", function () {
+		promoCal.sel = [promoCal.y, promoCal.m, +$(this).data("day")];
+		$("#promo_ends_days").val("");
+		promoSetEnds(promoCal.sel[0], promoCal.sel[1], promoCal.sel[2], promoCal.h, promoCal.mi);
+		promoCalDraw();
+	});
+
+	$(document).on("change", "#promo_cal select", function () {
+		promoCal[$(this).data("cal")] = +$(this).val();
+		if (promoCal.sel) {
+			promoSetEnds(promoCal.sel[0], promoCal.sel[1], promoCal.sel[2], promoCal.h, promoCal.mi);
+		}
+	});
+
+	$(document).on("click", "#promo_cal [data-cal=today]", function () {
+		var t = promoTehranParts(Date.now());
+		promoCal.y = t.y; promoCal.m = t.m; promoCal.sel = [t.y, t.m, t.d];
+		promoSetEnds(t.y, t.m, t.d, promoCal.h, promoCal.mi);
+		promoCalDraw();
+	});
+
+	$(document).on("click", "#promo_cal [data-cal=clear]", function () {
+		$("#promo_ends_at").val("");
+		$("#promo_ends_days").val("");
+		promoEndsCheck();
+		document.getElementById("promo_cal").hidden = true;
+	});
+
+	$(document).on("click", "#promo_cal [data-cal=done]", function () {
+		document.getElementById("promo_cal").hidden = true;
+	});
+
+	// a click anywhere else closes the calendar
+	$(document).on("mousedown", function (e) {
+		var box = document.getElementById("promo_cal");
+		if (box && !box.hidden && !$(e.target).closest("#promo_cal, #promo_cal_open").length) {
+			box.hidden = true;
+		}
+	});
+
+	/* "2 days from today, until 18:00" -> the end date, on Tehran time */
+	function promoEndsFromSpan() {
+		var days = $("#promo_ends_days").val();
+		if (days === "" || isNaN(days)) {
+			return;
+		}
+		var time = String($("#promo_ends_hour").val() || "23:59").split(":");
+		var t = new Date(Date.now() + 3.5 * 3600 * 1000);
+		var at = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate() + Math.max(0, parseInt(days, 10))));
+		var j = promoGregorianToJalali(at.getUTCFullYear(), at.getUTCMonth() + 1, at.getUTCDate());
+		promoSetEnds(j[0], j[1], j[2], parseInt(time[0], 10) || 0, parseInt(time[1], 10) || 0);
+		document.getElementById("promo_cal").hidden = true;
+	}
+
+	$(document).on("input change", "#promo_ends_days, #promo_ends_hour", promoEndsFromSpan);
 
 	/* list price -> price after the discount, for every cycle that has a price */
 	function promoPreview() {

@@ -1,6 +1,6 @@
-Promotion dates are now in the Solar Hijri calendar, on Tehran time:
-- the end date in the plan form is typed as 1405/07/30 23:59 (Persian digits
-  work; no time means 23:59), and read back in words under the field;
-- Telegram, channel and e-mail messages show the deadline and the plan's
-  validity as "۳۰ مهر ۱۴۰۵ ساعت ۲۳:۵۹" instead of a Gregorian date;
-- the "ended" note on the plan form is Solar Hijri too.
+Promotion end date is easier to set:
+- a 📅 button opens a Solar Hijri calendar (Saturday first, Fridays in red,
+  past days greyed out) with hour and minute, "today" and "no deadline";
+- or type a number of days and a time: "2 days from today, until 18:00".
+Both fill the end-date field; it is still shown in words underneath and
+counted on Tehran time.
