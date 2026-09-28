@@ -159,7 +159,20 @@
 		<div class="row mb-2">
 			<label class="col-sm-3 col-form-label form-label" for="promo_ends_at">⏳ {$translate->get('PromoEndsAt')}</label>
 			<div class="col-sm-9" style="max-width: 60rem">
-				<input type="text" inputmode="numeric" maxlength="16" class="form-control shadow-lg" id="promo_ends_at" value="{$pends}" placeholder="1405/07/30 23:59" dir="ltr" autocomplete="off">
+				<div class="promo-ends-wrap">
+					<div class="input-group">
+						<input type="text" inputmode="numeric" maxlength="16" class="form-control shadow-lg" id="promo_ends_at" value="{$pends}" placeholder="1405/07/30 23:59" dir="ltr" autocomplete="off">
+						<button type="button" class="btn btn-soft-primary" id="promo_cal_open" onclick="promoCalToggle()" title="{$translate->get('PromoCalOpen')}">📅</button>
+					</div>
+					{* the Solar Hijri calendar (promojs.tpl draws it) *}
+					<div id="promo_cal" class="promo-cal shadow-lg" hidden></div>
+				</div>
+				<div class="promo-ends-span mt-2">
+					<span>⏱️ {$translate->get('PromoEndsOr')}</span>
+					<input type="number" min="0" max="365" class="form-control form-control-sm" id="promo_ends_days" placeholder="2" dir="ltr">
+					<span>{$translate->get('PromoEndsDaysUntil')}</span>
+					<input type="time" class="form-control form-control-sm" id="promo_ends_hour" value="23:59" dir="ltr">
+				</div>
 				<div id="promo_ends_note" class="small fw-semibold mt-1" hidden></div>
 				<small class="text-muted">{$translate->get('PromoEndsAtHint')}</small>
 			</div>
