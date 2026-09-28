@@ -255,6 +255,60 @@ final class Package extends Model
 		'boy'       => '🧢',
 	];
 
+	/** Promotion dates are written in the Solar Hijri calendar, on Tehran time. */
+	const PROMO_ZONE = 'Asia/Tehran';
+
+	const JALALI_MONTHS = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+		'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+
+	/** [jy, jm, jd, hour, minute] of an epoch, on Tehran time. */
+	public static function jalaliParts($stamp)
+	{
+		$at = (new \DateTime('@' . (int) $stamp))->setTimezone(new \DateTimeZone(self::PROMO_ZONE));
+		$gy = (int) $at->format('Y');
+		$gm = (int) $at->format('n');
+		$gd = (int) $at->format('j');
+
+		$days = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+		$gy2 = $gm > 2 ? $gy + 1 : $gy;
+		$total = 355666 + 365 * $gy + intdiv($gy2 + 3, 4) - intdiv($gy2 + 99, 100)
+			+ intdiv($gy2 + 399, 400) + $gd + $days[$gm - 1];
+
+		$jy = -1595 + 33 * intdiv($total, 12053);
+		$total %= 12053;
+		$jy += 4 * intdiv($total, 1461);
+		$total %= 1461;
+		if ($total > 365) {
+			$jy += intdiv($total - 1, 365);
+			$total = ($total - 1) % 365;
+		}
+		$jm = $total < 186 ? 1 + intdiv($total, 31) : 7 + intdiv($total - 186, 30);
+		$jd = 1 + ($total < 186 ? $total % 31 : ($total - 186) % 30);
+
+		return [$jy, $jm, $jd, (int) $at->format('G'), (int) $at->format('i')];
+	}
+
+	/** "۱۰ مهر ۱۴۰۵ ساعت ۲۳:۵۹" (Tehran time) for messages and pages. */
+	public static function jalaliText($stamp, $withTime = true)
+	{
+		[$jy, $jm, $jd, $h, $i] = self::jalaliParts($stamp);
+		$text = $jd . ' ' . self::JALALI_MONTHS[$jm - 1] . ' ' . $jy;
+		if ($withTime) {
+			$text .= ' ساعت ' . sprintf('%02d:%02d', $h, $i);
+		}
+
+		return strtr($text, ['0' => '۰', '1' => '۱', '2' => '۲', '3' => '۳', '4' => '۴',
+			'5' => '۵', '6' => '۶', '7' => '۷', '8' => '۸', '9' => '۹']);
+	}
+
+	/** "1405/07/10 23:59" (Tehran time), the value the admin form's end-date field holds. */
+	public static function jalaliField($stamp)
+	{
+		[$jy, $jm, $jd, $h, $i] = self::jalaliParts($stamp);
+
+		return sprintf('%04d/%02d/%02d %02d:%02d', $jy, $jm, $jd, $h, $i);
+	}
+
 	/* the Iranian season on a date: spring from 1 Farvardin (~21 Mar) and so on */
 	public static function promoSeason($stamp = null)
 	{
@@ -416,6 +470,10 @@ final class Package extends Model
 		$entry = $map[$key] + ['packageid' => (int) $packageId];
 		$entry['running'] = self::promoRunning($entry);
 		$entry['sold'] = self::promoSold($packageId, (int) ($entry['started_at'] ?? 0), (int) ($entry['closed_at'] ?? 0));
+		// the form writes and reads dates in the Solar Hijri calendar, on Tehran time
+		$ends = (int) ($entry['ends_at'] ?? 0);
+		$entry['ends_field'] = $ends > time() ? self::jalaliField($ends) : '';
+		$entry['closed_text'] = !empty($entry['closed_at']) ? self::jalaliText((int) $entry['closed_at']) : '';
 
 		return $entry;
 	}

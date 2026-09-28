@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-28 · installed version **1.9.2** · latest release **1.10.10** · repo
+Last updated: 2026-09-28 · installed version **1.9.2** · latest release **1.10.11** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -521,6 +521,13 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
   1300-1599 is taken as Solar Hijri (`promoJalaliToGregorian`). The form does not
   prefill an `ends_at` in the past (it was the cause of "the end date has already
   passed" when a promotion was re-used after its time ran out).
+- **Solar Hijri dates (1.10.11):** `Package::jalaliParts/jalaliText/jalaliField`
+  format an epoch on `Package::PROMO_ZONE` (Asia/Tehran) whatever PHP's zone is;
+  `PromoJob::date()` uses `jalaliText`. The end-date field is a text input
+  holding `1405/07/30 23:59` (`promoAdmin` gives `ends_field` / `closed_text`);
+  `promoEndsAt()` (Promo.php) and `promoEndsStamp()` (promojs.tpl) parse it the
+  same way on Tehran time (+03:30), reject 30 Esfand outside leap years, and
+  still take a Gregorian date.
 - **Prizes on the site (1.10.5):** `promo_log.seen` (added by the job and
   by migration 007; older rows count as seen) feeds `User::newGifts()`, so the
   dashboard's gift popup (`giftpopup.tpl`) shows a purchase prize as
@@ -696,3 +703,4 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
 | 1.10.8 | Countdown keeps its full width on phones |
 | 1.10.9 | Promotion stickers about 30% smaller; sticker theme per promotion (auto = current season, spring/summer/autumn/winter, Nowruz, Yalda, Christmas, Mother/Father/Girl/Boy day, classic) with its colours, ornament and falling particles; an occasion theme fills the occasion text |
 | 1.10.10 | Promotion end date: read in the panel time zone, a Solar Hijri date typed into the field (1405-07-10, Persian digits too) is converted, an end time already passed is no longer prefilled, and the form shows the date in the Solar Hijri calendar and warns before saving a past one |
+| 1.10.11 | Promotion dates in the Solar Hijri calendar on Tehran time everywhere: the admin end-date field (1405/07/30 23:59), the ended note, and the Telegram, channel and e-mail texts (۳۰ مهر ۱۴۰۵ ساعت ۲۳:۵۹) |
