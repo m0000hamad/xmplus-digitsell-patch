@@ -1,6 +1,5 @@
-Promotion stickers are about 30% smaller, and each promotion now has a
-sticker theme: automatic (follows the current season), spring, summer,
-autumn, winter, Nowruz, Yalda, Christmas, Mother day, Father day, Girl day,
-Boy day or classic. Each theme has its own colours, corner ornament and
-falling particles on the card and the plan page banner. Choosing an
-occasion theme fills the occasion text if it is empty.
+Fix: saving a promotion could fail with "the end date has already passed".
+The form no longer brings back an end time that has already gone by, shows
+the chosen end date in the Solar Hijri calendar (red when it is in the
+past), and a Solar Hijri date typed into the field (for example 1405-07-10)
+is accepted and converted. The end time is read in the panel time zone.
