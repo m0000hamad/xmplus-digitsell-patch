@@ -1,6 +1,5 @@
-Promotion end date is easier to set:
-- a 📅 button opens a Solar Hijri calendar (Saturday first, Fridays in red,
-  past days greyed out) with hour and minute, "today" and "no deadline";
-- or type a number of days and a time: "2 days from today, until 18:00".
-Both fill the end-date field; it is still shown in words underneath and
-counted on Tehran time.
+A promotion discount can now go up to 100%. At 100% the plan is free for
+the promotion's time: the card, plan page and sticker say "رایگان" and the
+Telegram / channel messages say "رایگان (۱۰۰٪ تخفیف)". The plan form warns
+to set a sales limit and to try one purchase with your own test account
+first, because some payment gateways refuse a zero amount.

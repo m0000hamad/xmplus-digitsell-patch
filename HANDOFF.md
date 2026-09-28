@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-28 · installed version **1.9.2** · latest release **1.10.12** · repo
+Last updated: 2026-09-28 · installed version **1.9.2** · latest release **1.10.13** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -710,3 +710,4 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
 | 1.10.10 | Promotion end date: read in the panel time zone, a Solar Hijri date typed into the field (1405-07-10, Persian digits too) is converted, an end time already passed is no longer prefilled, and the form shows the date in the Solar Hijri calendar and warns before saving a past one |
 | 1.10.11 | Promotion dates in the Solar Hijri calendar on Tehran time everywhere: the admin end-date field (1405/07/30 23:59), the ended note, and the Telegram, channel and e-mail texts (۳۰ مهر ۱۴۰۵ ساعت ۲۳:۵۹) |
 | 1.10.12 | Promotion end date: a Solar Hijri calendar popup (📅, Saturday first, past days disabled, hour and minute, today / no deadline) and "N days from today until HH:MM"; both fill the same field |
+| 1.10.13 | Discount up to 100% (free): price written as 0, "رایگان" on the card, the details page and the sticker, "رایگان (۱۰۰٪ تخفیف)" in Telegram/channel texts, and a warning in the form to set a sales limit and try a zero-amount purchase first |

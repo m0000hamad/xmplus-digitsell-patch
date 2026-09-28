@@ -12,8 +12,13 @@
 	<div class="promo-sticker promo-sticker-{$promo.kind} promo-sticker-slot{$slot} promo-only" aria-hidden="true">
 		<div class="promo-sticker-burst">
 			{if $promo.kind == 'discount'}
-				<b class="promo-sticker-big" dir="ltr">{$promo.percent}٪</b>
-				<span class="promo-sticker-small">{$translate->get('PromoStickerOff')}</span>
+				{if $promo.percent == 100}
+					<span class="promo-sticker-icon">🎁</span>
+					<b class="promo-sticker-mid">{$translate->get('PromoFree')}</b>
+				{else}
+					<b class="promo-sticker-big" dir="ltr">{$promo.percent}٪</b>
+					<span class="promo-sticker-small">{$translate->get('PromoStickerOff')}</span>
+				{/if}
 			{else}
 				<span class="promo-sticker-icon">{$promo.theme_icon}</span>
 				<b class="promo-sticker-big">{$translate->get('PromoSpecialLabel')}</b>
