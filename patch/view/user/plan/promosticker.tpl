@@ -2,7 +2,9 @@
   The big stickers on a plan card (plan.tpl): starbursts on the empty side of
   the coloured cap, straddling its bottom edge so they pop out onto the card.
   "special" / "N% off" takes the first slot, the prize the next one. Expects
-  $promo.
+  $promo. Colours, the corner ornament and the particles come from the theme
+  class on the card (promo-theme-*, see promostyle.tpl); the particles are
+  drawn by CSS, so the <i> stay empty.
 *}
 {$slot = 0}
 {if $promo.kind == 'discount' || $promo.kind == 'special'}
@@ -13,11 +15,11 @@
 				<b class="promo-sticker-big" dir="ltr">{$promo.percent}٪</b>
 				<span class="promo-sticker-small">{$translate->get('PromoStickerOff')}</span>
 			{else}
-				<span class="promo-sticker-icon">⭐</span>
+				<span class="promo-sticker-icon">{$promo.theme_icon}</span>
 				<b class="promo-sticker-big">{$translate->get('PromoSpecialLabel')}</b>
 			{/if}
 		</div>
-		<i class="promo-sticker-spark">✦</i><i class="promo-sticker-spark">✦</i><i class="promo-sticker-spark">✦</i>
+		<i class="promo-sticker-spark"></i><i class="promo-sticker-spark"></i><i class="promo-sticker-spark"></i>
 	</div>
 {/if}
 {if $promo.prize != ''}
@@ -27,6 +29,6 @@
 			<span class="promo-sticker-icon">🎁</span>
 			<b class="promo-sticker-mid">{$translate->get('PromoPrizeLabel')}</b>
 		</div>
-		<i class="promo-sticker-spark">✦</i><i class="promo-sticker-spark">✦</i><i class="promo-sticker-spark">✦</i>
+		<i class="promo-sticker-spark"></i><i class="promo-sticker-spark"></i><i class="promo-sticker-spark"></i>
 	</div>
 {/if}
