@@ -22,8 +22,8 @@
 		{if !empty($promoedit.prize.days_max)}{$pdmax = $promoedit.prize.days_max}{/if}
 	{/if}
 	{$pocc = $promoedit.occasion}
-	{* an end time already behind us is not offered again: saving it would be refused *}
-	{if $promoedit.ends_at > $smarty.now}{$pends = $promoedit.ends_at|date_format:"%Y-%m-%dT%H:%M"}{/if}
+	{* Solar Hijri on Tehran time; an end time already behind us comes back empty (Package::promoAdmin) *}
+	{if !empty($promoedit.ends_field)}{$pends = $promoedit.ends_field}{/if}
 	{if $promoedit.max_sales > 0}{$pmax = $promoedit.max_sales}{/if}
 	{$pleft = $promoedit.show_left}
 	{$pannounce = !empty($promoedit.announce)}
@@ -43,7 +43,7 @@
 				⏳ {$translate->get('PromoStateClosing')}
 			{else}
 				🏁 {$translate->get('PromoStateEnded')}
-				<bdi dir="ltr">{$promoedit.closed_at|date_format:"%Y-%m-%d %H:%M"}</bdi>
+				<bdi>{$promoedit.closed_text}</bdi>
 				({$translate->get("PromoReason_{$promoedit.closed_reason}")})
 			{/if}
 			· {$translate->get('PromoSoldSoFar')}: <b>{$promoedit.sold}</b>{if $promoedit.max_sales > 0} / {$promoedit.max_sales}{/if}
@@ -159,7 +159,7 @@
 		<div class="row mb-2">
 			<label class="col-sm-3 col-form-label form-label" for="promo_ends_at">⏳ {$translate->get('PromoEndsAt')}</label>
 			<div class="col-sm-9" style="max-width: 60rem">
-				<input type="datetime-local" class="form-control shadow-lg" id="promo_ends_at" value="{$pends}" dir="ltr">
+				<input type="text" inputmode="numeric" maxlength="16" class="form-control shadow-lg" id="promo_ends_at" value="{$pends}" placeholder="1405/07/30 23:59" dir="ltr" autocomplete="off">
 				<div id="promo_ends_note" class="small fw-semibold mt-1" hidden></div>
 				<small class="text-muted">{$translate->get('PromoEndsAtHint')}</small>
 			</div>
