@@ -17,7 +17,8 @@
 		saved: "{$translate->get('PromoSaved')|escape:'javascript'}",
 		unreachable: "{$translate->get('PromoUnreachable')|escape:'javascript'}",
 		endsPast: "{$translate->get('PromoEndsPast')|escape:'javascript'}",
-		endsIs: "{$translate->get('PromoEndsIs')|escape:'javascript'}"
+		endsIs: "{$translate->get('PromoEndsIs')|escape:'javascript'}",
+		endsBad: "{$translate->get('PromoEndsBad')|escape:'javascript'}"
 	};
 	/* the occasion line an occasion theme fills in when the field is still empty */
 	var promoThemeText = new Object();
@@ -85,38 +86,92 @@
 		}
 	}
 
-	/* the end date read back in the Solar Hijri calendar, and whether it has passed.
-	   A Solar Hijri year typed straight into the field (1405-...) is converted by
-	   the server, so it is only named here, never refused. */
+	/* Solar Hijri -> Gregorian [y, m, d] (the same arithmetic as Promo.php) */
+	function promoJalaliToGregorian(jy, jm, jd) {
+		jy += 1595;
+		var days = -355668 + 365 * jy + Math.floor(jy / 33) * 8 + Math.floor((jy % 33 + 3) / 4) + jd
+			+ (jm < 7 ? (jm - 1) * 31 : (jm - 7) * 30 + 186);
+		var gy = 400 * Math.floor(days / 146097);
+		days %= 146097;
+		if (days > 36524) {
+			days--;
+			gy += 100 * Math.floor(days / 36524);
+			days %= 36524;
+			if (days >= 365) {
+				days++;
+			}
+		}
+		gy += 4 * Math.floor(days / 1461);
+		days %= 1461;
+		if (days > 365) {
+			gy += Math.floor((days - 1) / 365);
+			days = (days - 1) % 365;
+		}
+		var gd = days + 1;
+		var leap = (gy % 4 === 0 && gy % 100 !== 0) || gy % 400 === 0;
+		var months = [0, 31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+		var gm = 0;
+		for (; gm < 13 && gd > months[gm]; gm++) {
+			gd -= months[gm];
+		}
+		return [gy, gm, gd];
+	}
+
+	/* "1405/07/30 23:59" (Persian digits too) -> epoch ms on Tehran time (+03:30,
+	   no daylight saving since 2022), or null. The time is optional (23:59). */
+	function promoEndsStamp(raw) {
+		var clean = String(raw || "").replace(/[۰-۹]/g, function (d) {
+			return String("۰۱۲۳۴۵۶۷۸۹".indexOf(d));
+		}).replace(/[-.]/g, "/").trim();
+		var m = /^(\d{4})\/(\d{1,2})\/(\d{1,2})(?:[ T]+(\d{1,2}):(\d{2}))?$/.exec(clean);
+		if (!m) {
+			return null;
+		}
+		var y = +m[1], mo = +m[2], d = +m[3];
+		var h = m[4] === undefined ? 23 : +m[4], mi = m[5] === undefined ? 59 : +m[5];
+		if (y >= 1300 && y < 1600) {
+			if (mo < 1 || mo > 12 || d < 1 || d > (mo <= 6 ? 31 : 30)) {
+				return null;
+			}
+			var g = promoJalaliToGregorian(y, mo, d);
+			// 30 Esfand only in a leap year
+			if (mo === 12 && d === 30 && String(g) === String(promoJalaliToGregorian(y + 1, 1, 1))) {
+				return null;
+			}
+			y = g[0]; mo = g[1]; d = g[2];
+		}
+		if (h > 23 || mi > 59) {
+			return null;
+		}
+		return Date.UTC(y, mo - 1, d, h, mi) - 3.5 * 3600 * 1000;
+	}
+
+	/* the end date read back in words, and whether it has passed */
 	function promoEndsCheck() {
 		var raw = $("#promo_ends_at").val();
 		var note = $("#promo_ends_note");
 
-		if (!raw) {
+		if (!$.trim(raw)) {
 			note.prop("hidden", true).text("");
 			return true;
 		}
 
-		var year = parseInt(raw.substr(0, 4), 10);
-		if (year < 1600) {
-			note.prop("hidden", true).text("");
-			return true;
+		var stamp = promoEndsStamp(raw);
+		if (stamp === null) {
+			note.prop("hidden", false).removeClass("text-success").addClass("text-danger")
+				.text("⚠️ " + promoText.endsBad);
+			return false;
 		}
 
-		var when = new Date(raw);
-		if (isNaN(when.getTime())) {
-			note.prop("hidden", true).text("");
-			return true;
-		}
-
-		var shown = raw.replace("T", " ");
+		var shown = "";
 		try {
-			shown = when.toLocaleString("fa-IR-u-ca-persian", {
-				year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
+			shown = new Date(stamp).toLocaleString("fa-IR-u-ca-persian", {
+				timeZone: "Asia/Tehran", year: "numeric", month: "long", day: "numeric",
+				hour: "2-digit", minute: "2-digit", hour12: false
 			});
 		} catch (e) {}
 
-		var past = when.getTime() <= Date.now();
+		var past = stamp <= Date.now();
 		note.prop("hidden", false)
 			.toggleClass("text-danger", past)
 			.toggleClass("text-success", !past)

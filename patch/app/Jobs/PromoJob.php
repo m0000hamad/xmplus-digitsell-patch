@@ -683,10 +683,10 @@ class PromoJob
 		return implode("\n", $lines);
 	}
 
-	/* LRM marks keep a Latin date reading left to right inside Persian text */
+	/* Solar Hijri, on Tehran time: "۱۰ مهر ۱۴۰۵ ساعت ۲۳:۵۹" */
 	private function date($stamp, $withTime = false)
 	{
-		return "\u{200E}" . date($withTime ? 'Y-m-d H:i' : 'Y-m-d', $stamp) . "\u{200E}";
+		return Package::jalaliText((int) $stamp, $withTime);
 	}
 
 	private function prizeText(array $prize)
