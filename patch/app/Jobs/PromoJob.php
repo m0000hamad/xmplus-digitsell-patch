@@ -477,7 +477,7 @@ class PromoJob
 
 		$tags = [];
 		if (($entry['kind'] ?? '') === 'discount') {
-			$tags[] = '🔥 <b>' . (int) $entry['percent'] . '٪ تخفیف</b>';
+			$tags[] = '🔥 <b>' . $this->offText($entry) . '</b>';
 		} elseif (($entry['kind'] ?? '') === 'special') {
 			$tags[] = '⭐ <b>ویژه</b>';
 		}
@@ -655,7 +655,7 @@ class PromoJob
 		$lines = [];
 
 		if (($entry['kind'] ?? '') === 'discount') {
-			$lines[] = '🏷 ' . (int) $entry['percent'] . '٪ تخفیف';
+			$lines[] = '🏷 ' . $this->offText($entry);
 		} elseif (($entry['kind'] ?? '') === 'special') {
 			$lines[] = '⭐ پکیج ویژه';
 		}
@@ -681,6 +681,14 @@ class PromoJob
 		}
 
 		return implode("\n", $lines);
+	}
+
+	/* "20٪ تخفیف", or "رایگان (۱۰۰٪ تخفیف)" for a free promotion */
+	private function offText(array $entry)
+	{
+		$percent = (int) ($entry['percent'] ?? 0);
+
+		return $percent >= 100 ? '🎁 رایگان (۱۰۰٪ تخفیف)' : $percent . '٪ تخفیف';
 	}
 
 	/* Solar Hijri, on Tehran time: "۱۰ مهر ۱۴۰۵ ساعت ۲۳:۵۹" */
@@ -720,7 +728,9 @@ class PromoJob
 		$text = "🎉 خرید «{$name}» با موفقیت انجام شد.\n";
 
 		if (($entry['kind'] ?? '') === 'discount') {
-			$text .= '🏷 با ' . (int) $entry['percent'] . "٪ تخفیف پروموشن خریدی.\n";
+			$text .= (int) $entry['percent'] >= 100
+				? "🎁 این پکیج را رایگان (۱۰۰٪ تخفیف پروموشن) گرفتی.\n"
+				: '🏷 با ' . (int) $entry['percent'] . "٪ تخفیف پروموشن خریدی.\n";
 		} elseif (($entry['kind'] ?? '') === 'special') {
 			$text .= "⭐ این یکی از پکیج‌های ویژه بود.\n";
 		}
@@ -759,7 +769,7 @@ class PromoJob
 		}
 
 		if (($entry['kind'] ?? '') === 'discount') {
-			$text .= "\n🏷 " . (int) $entry['percent'] . '٪ تخفیف';
+			$text .= "\n🏷 " . $this->offText($entry);
 		} elseif (($entry['kind'] ?? '') === 'special') {
 			$text .= "\n⭐ ویژه";
 		}

@@ -66,9 +66,10 @@
 			<label class="col-sm-3 col-form-label form-label" for="promo_percent">{$translate->get('PromoPercent')}</label>
 			<div class="col-sm-9" style="max-width: 60rem">
 				<div class="input-group">
-					<input type="number" min="1" max="95" class="form-control shadow-lg" id="promo_percent" value="{$ppct}" oninput="promoPreview()">
+					<input type="number" min="1" max="100" class="form-control shadow-lg" id="promo_percent" value="{$ppct}" oninput="promoPreview()">
 					<span class="input-group-text">%</span>
 				</div>
+				<div id="promo_free_warn" class="alert alert-soft-warning small py-2 mt-2 mb-0" hidden>⚠️ {$translate->get('PromoFreeWarn')}</div>
 			</div>
 		</div>
 		<div class="row mb-2">
