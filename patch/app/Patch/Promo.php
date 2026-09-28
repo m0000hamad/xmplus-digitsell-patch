@@ -60,22 +60,81 @@ function promoApplyDiscount(array $options, int $percent): array
     return $options;
 }
 
-/** "2026-10-01T23:59" from a datetime-local input, read in the server's time zone. */
+/** Solar Hijri (Jalali) date -> [year, month, day] Gregorian. */
+function promoJalaliToGregorian(int $jy, int $jm, int $jd): array
+{
+    $jy += 1595;
+    $days = -355668 + 365 * $jy + intdiv($jy, 33) * 8 + intdiv($jy % 33 + 3, 4) + $jd
+        + ($jm < 7 ? ($jm - 1) * 31 : ($jm - 7) * 30 + 186);
+    $gy = 400 * intdiv($days, 146097);
+    $days %= 146097;
+
+    if ($days > 36524) {
+        $days--;
+        $gy += 100 * intdiv($days, 36524);
+        $days %= 36524;
+        if ($days >= 365) {
+            $days++;
+        }
+    }
+
+    $gy += 4 * intdiv($days, 1461);
+    $days %= 1461;
+
+    if ($days > 365) {
+        $gy += intdiv($days - 1, 365);
+        $days = ($days - 1) % 365;
+    }
+
+    $gd = $days + 1;
+    $leap = ($gy % 4 === 0 && $gy % 100 !== 0) || $gy % 400 === 0;
+    $months = [0, 31, $leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+    for ($gm = 0; $gm < 13 && $gd > $months[$gm]; $gm++) {
+        $gd -= $months[$gm];
+    }
+
+    return [$gy, $gm, $gd];
+}
+
+/**
+ * "2026-10-01T23:59" from a datetime-local input, read in the panel's time
+ * zone (the same one the form shows the stored date in). A Solar Hijri year
+ * typed into the field (1405-07-10) is converted instead of landing in 1405 AD.
+ */
 function promoEndsAt(string $raw): int
 {
-    $raw = trim($raw);
+    $raw = trim(strtr($raw, ['۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+        '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9', '/' => '-']));
 
     if ($raw === '') {
         return 0;
     }
 
-    $stamp = strtotime(str_replace('T', ' ', $raw));
+    db(); // loads config/config.php, which fills $_ENV['timeZone']
+    $zone = (string) ($_ENV['timeZone'] ?? '');
+    if ($zone !== '' && in_array($zone, timezone_identifiers_list(), true)) {
+        date_default_timezone_set($zone);
+    }
 
-    if ($stamp === false) {
+    if (!preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ](\d{1,2}):(\d{2}))?/', $raw, $m)) {
         fail('the end date is not valid');
     }
 
-    return $stamp;
+    [$year, $month, $day] = [(int) $m[1], (int) $m[2], (int) $m[3]];
+
+    if ($year >= 1300 && $year < 1600) {
+        [$year, $month, $day] = promoJalaliToGregorian($year, $month, $day);
+    }
+
+    $hour = isset($m[4]) ? (int) $m[4] : 23;
+    $minute = isset($m[5]) ? (int) $m[5] : 59;
+
+    if (!checkdate($month, $day, $year) || $hour > 23 || $minute > 59) {
+        fail('the end date is not valid');
+    }
+
+    return (int) mktime($hour, $minute, 0, $month, $day, $year);
 }
 
 /*
@@ -203,7 +262,7 @@ function promoSave(): void
     $endsAt = promoEndsAt((string) ($_POST['ends_at'] ?? ''));
 
     if ($endsAt > 0 && $endsAt <= $now) {
-        fail('the end date has already passed');
+        fail('the end date (' . date('Y-m-d H:i', $endsAt) . ') has already passed - pick a later one or leave it empty');
     }
 
     $maxSales = max(0, promoInt($_POST['max_sales'] ?? 0));
