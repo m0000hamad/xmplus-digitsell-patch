@@ -423,7 +423,9 @@
 		}
 
 		var percent = parseInt($("#promo_percent").val(), 10);
-		var valid = percent >= 1 && percent <= 95;
+		var valid = percent >= 1 && percent <= 100;
+
+		$("#promo_free_warn").prop("hidden", percent !== 100);
 
 		target.html("");
 

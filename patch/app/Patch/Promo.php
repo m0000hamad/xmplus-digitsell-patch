@@ -18,7 +18,7 @@ declare(strict_types=1);
 
 const PROMO_SETTING = 'promo_plans';
 const PROMO_CYCLES = ['onetime', 'month', 'quater', 'semiannual', 'annual', 'custom'];
-const PROMO_MAX_PERCENT = 95;
+const PROMO_MAX_PERCENT = 100; // 100 = free for the promotion's time
 const PROMO_THEMES = ['auto', 'classic', 'spring', 'summer', 'autumn', 'winter',
     'nowruz', 'yalda', 'christmas', 'mother', 'father', 'girl', 'boy'];
 const PROMO_MAX_GB = 1000;
