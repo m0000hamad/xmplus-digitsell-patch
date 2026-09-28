@@ -15,7 +15,9 @@
 		},
 		empty: "{$translate->get('PromoPreviewEmpty')|escape:'javascript'}",
 		saved: "{$translate->get('PromoSaved')|escape:'javascript'}",
-		unreachable: "{$translate->get('PromoUnreachable')|escape:'javascript'}"
+		unreachable: "{$translate->get('PromoUnreachable')|escape:'javascript'}",
+		endsPast: "{$translate->get('PromoEndsPast')|escape:'javascript'}",
+		endsIs: "{$translate->get('PromoEndsIs')|escape:'javascript'}"
 	};
 	/* the occasion line an occasion theme fills in when the field is still empty */
 	var promoThemeText = new Object();
@@ -83,6 +85,46 @@
 		}
 	}
 
+	/* the end date read back in the Solar Hijri calendar, and whether it has passed.
+	   A Solar Hijri year typed straight into the field (1405-...) is converted by
+	   the server, so it is only named here, never refused. */
+	function promoEndsCheck() {
+		var raw = $("#promo_ends_at").val();
+		var note = $("#promo_ends_note");
+
+		if (!raw) {
+			note.prop("hidden", true).text("");
+			return true;
+		}
+
+		var year = parseInt(raw.substr(0, 4), 10);
+		if (year < 1600) {
+			note.prop("hidden", true).text("");
+			return true;
+		}
+
+		var when = new Date(raw);
+		if (isNaN(when.getTime())) {
+			note.prop("hidden", true).text("");
+			return true;
+		}
+
+		var shown = raw.replace("T", " ");
+		try {
+			shown = when.toLocaleString("fa-IR-u-ca-persian", {
+				year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
+			});
+		} catch (e) {}
+
+		var past = when.getTime() <= Date.now();
+		note.prop("hidden", false)
+			.toggleClass("text-danger", past)
+			.toggleClass("text-success", !past)
+			.text((past ? "⚠️ " + promoText.endsPast : "✅ " + promoText.endsIs) + " " + shown);
+
+		return !past;
+	}
+
 	/* list price -> price after the discount, for every cycle that has a price */
 	function promoPreview() {
 		var target = $("#promo_preview");
@@ -123,6 +165,13 @@
 
 		if (typeof timeplanReady === "undefined" || !timeplanReady) {
 			layer.msg(promoText.unreachable, { time: 6000, offset: "100px" });
+			return;
+		}
+
+		if (($("#promo_kind").val() !== "none" || $("#promo_prize_on").is(":checked")) && !promoEndsCheck()) {
+			// the plan itself is already saved; only the promotion waits for a later end date
+			layer.msg($("#promo_ends_note").text(), { time: 7000, offset: "100px" });
+			$("#promo_ends_at").trigger("focus");
 			return;
 		}
 
@@ -170,5 +219,7 @@
 	}
 
 	$(document).on("input", "input[name$='[price]']", promoPreview);
+	$(document).on("input change", "#promo_ends_at", promoEndsCheck);
+	$(function () { promoEndsCheck(); });
 </script>
 {/literal}

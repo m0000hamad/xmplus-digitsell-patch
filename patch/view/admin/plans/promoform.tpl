@@ -22,7 +22,8 @@
 		{if !empty($promoedit.prize.days_max)}{$pdmax = $promoedit.prize.days_max}{/if}
 	{/if}
 	{$pocc = $promoedit.occasion}
-	{if $promoedit.ends_at > 0}{$pends = $promoedit.ends_at|date_format:"%Y-%m-%dT%H:%M"}{/if}
+	{* an end time already behind us is not offered again: saving it would be refused *}
+	{if $promoedit.ends_at > $smarty.now}{$pends = $promoedit.ends_at|date_format:"%Y-%m-%dT%H:%M"}{/if}
 	{if $promoedit.max_sales > 0}{$pmax = $promoedit.max_sales}{/if}
 	{$pleft = $promoedit.show_left}
 	{$pannounce = !empty($promoedit.announce)}
@@ -159,6 +160,7 @@
 			<label class="col-sm-3 col-form-label form-label" for="promo_ends_at">⏳ {$translate->get('PromoEndsAt')}</label>
 			<div class="col-sm-9" style="max-width: 60rem">
 				<input type="datetime-local" class="form-control shadow-lg" id="promo_ends_at" value="{$pends}" dir="ltr">
+				<div id="promo_ends_note" class="small fw-semibold mt-1" hidden></div>
 				<small class="text-muted">{$translate->get('PromoEndsAtHint')}</small>
 			</div>
 		</div>
