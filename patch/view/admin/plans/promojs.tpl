@@ -17,6 +17,15 @@
 		saved: "{$translate->get('PromoSaved')|escape:'javascript'}",
 		unreachable: "{$translate->get('PromoUnreachable')|escape:'javascript'}"
 	};
+	/* the occasion line an occasion theme fills in when the field is still empty */
+	var promoThemeText = new Object();
+	promoThemeText.nowruz    = "{$translate->get('PromoOccasionNowruz')|escape:'javascript'}";
+	promoThemeText.yalda     = "{$translate->get('PromoOccasionYalda')|escape:'javascript'}";
+	promoThemeText.christmas = "{$translate->get('PromoOccasionChristmas')|escape:'javascript'}";
+	promoThemeText.mother    = "{$translate->get('PromoOccasionMother')|escape:'javascript'}";
+	promoThemeText.father    = "{$translate->get('PromoOccasionFather')|escape:'javascript'}";
+	promoThemeText.girl      = "{$translate->get('PromoOccasionGirl')|escape:'javascript'}";
+	promoThemeText.boy       = "{$translate->get('PromoOccasionBoy')|escape:'javascript'}";
 </script>
 {literal}
 <script>
@@ -52,6 +61,26 @@
 		document.getElementById("promo_extra_fields").hidden = kind === "none" && !prize;
 
 		promoPreview();
+	}
+
+	/* an occasion theme writes its occasion line, but never over the admin's own text */
+	function promoThemePicked() {
+		var theme = $("#promo_theme").val();
+		var field = $("#promo_occasion");
+		var current = $.trim(field.val());
+		var ours = false;
+
+		for (var key in promoThemeText) {
+			if (promoThemeText.hasOwnProperty(key) && current === promoThemeText[key]) {
+				ours = true;
+			}
+		}
+
+		if (promoThemeText.hasOwnProperty(theme) && (current === "" || ours)) {
+			field.val(promoThemeText[theme]);
+		} else if (ours) {
+			field.val("");
+		}
 	}
 
 	/* list price -> price after the discount, for every cycle that has a price */
@@ -118,7 +147,8 @@
 				max_sales: $("#promo_max_sales").val(),
 				show_left: $("#promo_show_left").is(":checked") ? 1 : 0,
 				announce: $("#promo_announce").is(":checked") ? 1 : 0,
-				channel: $("#promo_channel").is(":checked") ? 1 : 0
+				channel: $("#promo_channel").is(":checked") ? 1 : 0,
+				theme: $("#promo_theme").val()
 			},
 			success: function (data) {
 				if (!data.ok) {
