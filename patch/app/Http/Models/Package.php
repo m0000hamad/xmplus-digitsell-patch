@@ -235,6 +235,55 @@ final class Package extends Model
 	/** the billing cycles a promotion can discount, in the order they are shown */
 	const PROMO_CYCLES = ['onetime', 'month', 'quater', 'semiannual', 'annual', 'custom'];
 
+	/*
+	 * Sticker themes (promostyle.tpl, .promo-theme-*): theme => the icon a
+	 * "special" sticker carries. "auto" follows the season, "classic" is the
+	 * original look.
+	 */
+	const PROMO_THEMES = [
+		'classic'   => '⭐',
+		'spring'    => '🌸',
+		'summer'    => '☀️',
+		'autumn'    => '🍁',
+		'winter'    => '❄️',
+		'nowruz'    => '🌱',
+		'yalda'     => '🍉',
+		'christmas' => '🎄',
+		'mother'    => '💐',
+		'father'    => '👔',
+		'girl'      => '🎀',
+		'boy'       => '🧢',
+	];
+
+	/* the Iranian season on a date: spring from 1 Farvardin (~21 Mar) and so on */
+	public static function promoSeason($stamp = null)
+	{
+		$md = (int) date('nd', $stamp ?: time());
+
+		if ($md >= 321 && $md < 622) {
+			return 'spring';
+		}
+		if ($md >= 622 && $md < 923) {
+			return 'summer';
+		}
+		if ($md >= 923 && $md < 1222) {
+			return 'autumn';
+		}
+
+		return 'winter';
+	}
+
+	public static function promoTheme($entry)
+	{
+		$theme = is_array($entry) ? (string) ($entry['theme'] ?? 'auto') : 'auto';
+
+		if ($theme === 'auto' || !isset(self::PROMO_THEMES[$theme])) {
+			return self::promoSeason();
+		}
+
+		return $theme;
+	}
+
 	public static function promoMap()
 	{
 		static $map = null;
@@ -332,6 +381,8 @@ final class Package extends Model
 			'ends_at'  => (int) ($entry['ends_at'] ?? 0),
 			'left'     => null,
 			'now'      => time(),
+			'theme'    => self::promoTheme($entry),
+			'theme_icon' => self::PROMO_THEMES[self::promoTheme($entry)],
 		];
 
 		if ($kind === 'discount' && isset($entry['original']) && is_array($entry['original'])) {

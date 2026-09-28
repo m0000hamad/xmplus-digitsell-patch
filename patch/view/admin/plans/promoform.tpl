@@ -9,7 +9,7 @@
 *}
 {$pk = 'none'}{$ppct = 20}{$pprize = 0}{$pmode = 'either'}
 {$pgbmin = 1}{$pgbmax = 5}{$pdmin = 1}{$pdmax = 7}
-{$pocc = ''}{$pends = ''}{$pmax = ''}{$pleft = 0}{$pannounce = 1}{$pchannel = 1}
+{$pocc = ''}{$pends = ''}{$pmax = ''}{$pleft = 0}{$pannounce = 1}{$pchannel = 1}{$ptheme = 'auto'}
 {if isset($promoedit) && $promoedit && empty($promoedit.closed_at)}
 	{$pk = $promoedit.kind}
 	{if $promoedit.percent > 0}{$ppct = $promoedit.percent}{/if}
@@ -27,6 +27,7 @@
 	{$pleft = $promoedit.show_left}
 	{$pannounce = !empty($promoedit.announce)}
 	{$pchannel = !empty($promoedit.channel)}
+	{if !empty($promoedit.theme)}{$ptheme = $promoedit.theme}{/if}
 {/if}
 <span id="promobox" hidden>
 
@@ -123,6 +124,31 @@
 	</span>
 
 	<span id="promo_extra_fields" hidden>
+		<div class="row mb-2">
+			<label class="col-sm-3 col-form-label form-label" for="promo_theme">🎨 {$translate->get('PromoTheme')}</label>
+			<div class="col-sm-9" style="max-width: 60rem">
+				<select class="form-control form-select shadow-lg" id="promo_theme" onchange="promoThemePicked()">
+					<option value="auto" {if $ptheme == 'auto'}selected{/if}>🗓️ {$translate->get('PromoThemeAuto')}</option>
+					<optgroup label="{$translate->get('PromoThemeSeasons')}">
+						<option value="spring" {if $ptheme == 'spring'}selected{/if}>🌸 {$translate->get('PromoThemeSpring')}</option>
+						<option value="summer" {if $ptheme == 'summer'}selected{/if}>☀️ {$translate->get('PromoThemeSummer')}</option>
+						<option value="autumn" {if $ptheme == 'autumn'}selected{/if}>🍁 {$translate->get('PromoThemeAutumn')}</option>
+						<option value="winter" {if $ptheme == 'winter'}selected{/if}>❄️ {$translate->get('PromoThemeWinter')}</option>
+					</optgroup>
+					<optgroup label="{$translate->get('PromoThemeOccasions')}">
+						<option value="nowruz" {if $ptheme == 'nowruz'}selected{/if}>🌱 {$translate->get('PromoThemeNowruz')}</option>
+						<option value="yalda" {if $ptheme == 'yalda'}selected{/if}>🍉 {$translate->get('PromoThemeYalda')}</option>
+						<option value="christmas" {if $ptheme == 'christmas'}selected{/if}>🎄 {$translate->get('PromoThemeChristmas')}</option>
+						<option value="mother" {if $ptheme == 'mother'}selected{/if}>💐 {$translate->get('PromoThemeMother')}</option>
+						<option value="father" {if $ptheme == 'father'}selected{/if}>👔 {$translate->get('PromoThemeFather')}</option>
+						<option value="girl" {if $ptheme == 'girl'}selected{/if}>🎀 {$translate->get('PromoThemeGirl')}</option>
+						<option value="boy" {if $ptheme == 'boy'}selected{/if}>🧢 {$translate->get('PromoThemeBoy')}</option>
+					</optgroup>
+					<option value="classic" {if $ptheme == 'classic'}selected{/if}>⭐ {$translate->get('PromoThemeClassic')}</option>
+				</select>
+				<small class="text-muted">{$translate->get('PromoThemeHint')}</small>
+			</div>
+		</div>
 		<div class="row mb-2">
 			<label class="col-sm-3 col-form-label form-label" for="promo_occasion">📣 {$translate->get('PromoOccasion')}</label>
 			<div class="col-sm-9" style="max-width: 60rem">
