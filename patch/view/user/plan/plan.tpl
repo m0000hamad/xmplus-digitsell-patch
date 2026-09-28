@@ -283,10 +283,11 @@ html[data-hs-theme="dark"] .plan-btn-out { background: rgba(255, 255, 255, .09) 
 							<span class="promo-off promo-only">{$translate->get('PromoOffLabel')|replace:'%n%':$promo.percent}</span>
 						</div>
 					{/if}
+					{$free = $promo && $promo.percent == 100}
 					<div class="plan-price{if $was} promo-only{/if}">
-						{if $currency->symbol_left != ""}<span class="plan-cur">{$currency->symbol_left}</span>{/if}
-						<b>{if $cyc != ''}{number_format((float)$option[$cyc]['price'], (int){$currency->decimals})}{/if}</b>
-						{if $currency->symbol_right != ""}<span class="plan-cur">{$currency->symbol_right}</span>{/if}
+						{if $currency->symbol_left != "" && !$free}<span class="plan-cur">{$currency->symbol_left}</span>{/if}
+						<b>{if $cyc != ''}{if $free}{$translate->get('PromoFree')}{else}{number_format((float)$option[$cyc]['price'], (int){$currency->decimals})}{/if}{/if}</b>
+						{if $currency->symbol_right != "" && !$free}<span class="plan-cur">{$currency->symbol_right}</span>{/if}
 					</div>
 				</div>
 

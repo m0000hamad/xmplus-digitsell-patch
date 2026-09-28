@@ -435,7 +435,7 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 											{if $promo && $promo.kind == 'discount' && isset($promo.original[$option]) && $promo.original[$option] > (float)$value['price']}
 												<span class="promo-was promo-only">{number_format((float)$promo.original[$option], (int){$currency->decimals})}</span>
 											{/if}
-											{$currency->symbol_left} {number_format((float)$value['price'], (int){$currency->decimals})} {$currency->symbol_right}
+											{if $promo && $promo.percent == 100}<b>{$translate->get('PromoFree')}</b>{else}{$currency->symbol_left} {number_format((float)$value['price'], (int){$currency->decimals})} {$currency->symbol_right}{/if}
 											{if $promo && $promo.kind == 'discount' && isset($promo.original[$option]) && $promo.original[$option] > (float)$value['price']}
 												<span class="promo-off promo-only">{$translate->get('PromoOffLabel')|replace:'%n%':$promo.percent}</span>
 											{/if}
