@@ -19,6 +19,8 @@ declare(strict_types=1);
 const PROMO_SETTING = 'promo_plans';
 const PROMO_CYCLES = ['onetime', 'month', 'quater', 'semiannual', 'annual', 'custom'];
 const PROMO_MAX_PERCENT = 95;
+const PROMO_THEMES = ['auto', 'classic', 'spring', 'summer', 'autumn', 'winter',
+    'nowruz', 'yalda', 'christmas', 'mother', 'father', 'girl', 'boy'];
 const PROMO_MAX_GB = 1000;
 const PROMO_MAX_DAYS = 365;
 
@@ -230,6 +232,8 @@ function promoSave(): void
         'ends_at'    => $endsAt,
         'max_sales'  => $maxSales,
         'show_left'  => !empty($_POST['show_left']) && $_POST['show_left'] !== '0' ? 1 : 0,
+        // sticker theme (Package::PROMO_THEMES); "auto" follows the season
+        'theme'      => in_array((string) ($_POST['theme'] ?? 'auto'), PROMO_THEMES, true) ? (string) $_POST['theme'] : 'auto',
         // tell every customer once (PromoJob, promo_broadcast); an edit does not repeat it
         'announce'   => !empty($_POST['announce']) && $_POST['announce'] !== '0' ? 1 : 0,
         'broadcast_done' => $wasOpen ? (int) ($previous['broadcast_done'] ?? 0) : 0,

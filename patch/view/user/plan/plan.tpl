@@ -243,7 +243,7 @@ html[data-hs-theme="dark"] .plan-btn-out { background: rgba(255, 255, 255, .09) 
 			{$stickers = 0}
 			{if $promo && ($promo.kind == 'discount' || $promo.kind == 'special')}{$stickers = $stickers + 1}{/if}
 			{if $promo && $promo.prize != ''}{$stickers = $stickers + 1}{/if}
-			<div class="plan-card{if $outofstock} plan-out{/if}{if $promo} is-promo{/if}{if $stickers > 0} has-sticker{/if}{if $stickers > 1} has-two-stickers{/if}" style="{$plan}"{if $promo} data-promo-scope{/if}>
+			<div class="plan-card{if $outofstock} plan-out{/if}{if $promo} is-promo promo-theme-{$promo.theme}{/if}{if $stickers > 0} has-sticker{/if}{if $stickers > 1} has-two-stickers{/if}" style="{$plan}"{if $promo} data-promo-scope{/if}>
 
 				{capture name=badges}
 					{if $package->bandwidth >= 10000}

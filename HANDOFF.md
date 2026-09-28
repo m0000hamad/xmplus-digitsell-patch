@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-26 · installed version **1.9.2** · latest release **1.10.5** · repo
+Last updated: 2026-09-28 · installed version **1.9.2** · latest release **1.10.9** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -508,6 +508,14 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
   only when its text changes; on close it gets an "ended" header and loses
   the button (`channel_closed`). The stickers themselves are not images -
   Telegram gets the same tags as emoji.
+- **Sticker themes (1.10.9):** entry key `theme` (`auto` default, else a key of
+  `Package::PROMO_THEMES`; Promo.php keeps its own list). `Package::promoTheme()`
+  resolves `auto` with `promoSeason()` (Iranian seasons by Gregorian date: spring
+  from 21 Mar, summer 22 Jun, autumn 23 Sep, winter 22 Dec). The card and the
+  details banner get `promo-theme-<name>`; promostyle.tpl sets the sticker colours
+  (`--st-bg/--st-ink/--st-glow`), the corner ornament (`--st-orn`) and the particle
+  glyph (`--st-part`). Picking an occasion theme in the form fills
+  `#promo_occasion` only when it is empty or still holds another theme text.
 - **Prizes on the site (1.10.5):** `promo_log.seen` (added by the job and
   by migration 007; older rows count as seen) feeds `User::newGifts()`, so the
   dashboard's gift popup (`giftpopup.tpl`) shows a purchase prize as
@@ -678,3 +686,7 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
 | 1.10.3 | Prize shown as a big sticker too; two stickers side by side when a plan has both; larger badges on the plan page banner |
 | 1.10.4 | Promotions posted in a Telegram channel (id in settings, switch per promotion), post kept up to date and marked when it ends |
 | 1.10.5 | Purchase prizes shown on the site: "being drawn" note and popup after paying; prize share in gold on the subscription and statistics cards, used first |
+| 1.10.6 | Expiry countdown as a neon digital clock, coloured by time left |
+| 1.10.7 | Countdown drawn as an old LCD watch face |
+| 1.10.8 | Countdown keeps its full width on phones |
+| 1.10.9 | Promotion stickers about 30% smaller; sticker theme per promotion (auto = current season, spring/summer/autumn/winter, Nowruz, Yalda, Christmas, Mother/Father/Girl/Boy day, classic) with its colours, ornament and falling particles; an occasion theme fills the occasion text |

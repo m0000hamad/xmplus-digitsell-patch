@@ -352,7 +352,7 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 		<div class="col-xl-8 col-lg-8 col-md-12 col-sm-12">
 
 			{if $promo}
-				<div class="promo-banner promo-only">
+				<div class="promo-banner promo-only promo-theme-{$promo.theme}">
 					<div class="promo-banner-badges">{include file='user/plan/promobadges.tpl'}</div>
 					{if $promo.kind == 'discount'}
 						<div class="promo-banner-line">🏷️ {$translate->get('PromoBannerDiscount')|replace:'%n%':"<b>{$promo.percent}</b>"}</div>
