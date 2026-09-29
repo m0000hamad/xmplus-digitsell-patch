@@ -78,6 +78,25 @@
 			<button type="button" class="btn btn-primary" id="paSave">💾 {$translate->get('Save')}</button>
 		</div>
 
+		{* ------------------------------------------------------ client apps *}
+		<h5 class="pa-h">📱 {$translate->get('SubInfoTitle')}</h5>
+		<p class="text-muted small">{$translate->get('SubInfoIntro')}</p>
+		<label class="pa-check"><input type="checkbox" id="pa_sub_info_enabled"> {$translate->get('SubInfoEnabled')}</label>
+		<div class="row g-3 mt-1">
+			<div class="col-md-6">
+				<label class="form-label" for="pa_sub_origin">{$translate->get('SubInfoOrigin')}</label>
+				<input type="text" class="form-control" id="pa_sub_origin" dir="ltr" placeholder="https://origin.example.com">
+			</div>
+			<div class="col-md-6">
+				<label class="form-label" for="pa_sub_origin_ip">{$translate->get('SubInfoOriginIp')}</label>
+				<input type="text" class="form-control" id="pa_sub_origin_ip" dir="ltr" placeholder="127.0.0.1">
+			</div>
+		</div>
+		<small class="text-muted">{$translate->get('SubInfoHint')}</small>
+		<div class="d-flex justify-content-end mt-3">
+			<button type="button" class="btn btn-primary pa-save-all">💾 {$translate->get('Save')}</button>
+		</div>
+
 		{* ----------------------------------------------------------- rates *}
 		<h5 class="pa-h">🏷 {$translate->get('PaygAdmRates')}</h5>
 		<p class="text-muted small">{$translate->get('PaygAdmRatesHint')}</p>
@@ -237,8 +256,8 @@
 	var page = 1;
 	var fields = ['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'commission_wallet_enabled',
 		'payg_min_charge', 'payg_charge_step', 'payg_default_price', 'payg_low_balance',
-		'payg_warn_percent', 'payg_warn_days', 'payg_group'];
-	var checks = ['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'commission_wallet_enabled'];
+		'payg_warn_percent', 'payg_warn_days', 'payg_group', 'sub_info_enabled', 'sub_origin', 'sub_origin_ip'];
+	var checks = ['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'commission_wallet_enabled', 'sub_info_enabled'];
 
 	function $id(id) { return document.getElementById(id); }
 
@@ -408,7 +427,7 @@
 		});
 	}
 
-	$id('paSave').addEventListener('click', function () {
+	function saveSettings() {
 		var body = new FormData();
 		fields.forEach(function (name) {
 			var el = $id('pa_' + name);
@@ -419,7 +438,10 @@
 			say(data.ok ? W.saved : data.error);
 			if (data.ok) { load(); }
 		});
-	});
+	}
+
+	$id('paSave').addEventListener('click', saveSettings);
+	document.querySelectorAll('.pa-save-all').forEach(function (b) { b.addEventListener('click', saveSettings); });
 
 	$id('paSaveRates').addEventListener('click', function () {
 		var body = new FormData();

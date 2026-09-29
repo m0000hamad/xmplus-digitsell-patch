@@ -13,3 +13,8 @@ Admin: price per GB per server, totals of charged / spent / unspent, every
 wallet with its ledger, manual adjustment. Commission can be kept in its own
 wallet that only pays for subscription plans; a one-time button moves the
 current panel wallets into it.
+
+In the apps (Happ, V2Box, v2rayNG, Shadowrocket): a switch in the same
+settings hands out a subscription link that shows, above the servers, the
+plan's end date in the Solar Hijri calendar, data left, the wallet balance and
+"update the subscription to see the live balance". The servers are unchanged.

@@ -536,9 +536,13 @@ function paygAdminBootstrap(): void
     foreach (['payg_enabled' => '0', 'payg_min_charge' => '2000000', 'payg_charge_step' => '100000',
               'payg_default_price' => '0', 'payg_low_balance' => '500000', 'payg_outage_free' => '1',
               'payg_warn_percent' => '80,95', 'payg_warn_days' => '3,1', 'payg_show_toman' => '1',
-              'payg_group' => '0', 'commission_wallet_enabled' => '0'] as $name => $fallback) {
+              'payg_group' => '0', 'commission_wallet_enabled' => '0', 'sub_info_enabled' => '0',
+              'sub_origin' => '', 'sub_origin_ip' => '127.0.0.1'] as $name => $fallback) {
         $settings[$name] = paygSetting($name, $fallback);
     }
+
+    // an empty origin IP is a real choice (do not pin), not "unset"
+    $settings['sub_origin_ip'] = (string) setting('sub_origin_ip', '127.0.0.1');
 
     $totals = db()->query(
         "SELECT COUNT(*) AS wallets,
@@ -692,7 +696,25 @@ function paygAdminSave(): void
         putSetting($name, (string) (floor($value) == $value ? (int) $value : $value));
     }
 
-    foreach (['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'commission_wallet_enabled'] as $name) {
+    // where SubInfo.php fetches the panel's own /link/ from
+    if (isset($_POST['sub_origin'])) {
+        $origin = rtrim(trim((string) $_POST['sub_origin']), '/');
+        if ($origin !== '' && !preg_match('~^https?://[A-Za-z0-9.-]+(:\d+)?$~', $origin)) {
+            fail('the panel address must look like https://my.example.com');
+        }
+        putSetting('sub_origin', $origin);
+    }
+
+    if (isset($_POST['sub_origin_ip'])) {
+        $ip = trim((string) $_POST['sub_origin_ip']);
+        if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP) === false) {
+            fail('the origin IP is not an IP address');
+        }
+        putSetting('sub_origin_ip', $ip);
+    }
+
+    foreach (['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'commission_wallet_enabled',
+              'sub_info_enabled'] as $name) {
         if (isset($_POST[$name])) {
             putSetting($name, (int) $_POST[$name] === 1 ? '1' : '0');
         }
