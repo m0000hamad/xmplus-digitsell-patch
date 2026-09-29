@@ -1,5 +1,5 @@
-In the client apps (Happ, V2Box, v2rayNG, Shadowrocket) the app's own bar
-with the total traffic and the Gregorian expiry date is gone on the new
-subscription link; the plan now shows only in the Persian status rows at the
-top of the server list (end date in the Solar Hijri calendar, data left,
-wallet balance). Clash-type apps, which get no rows, keep the numbers.
+The client apps still showed the old total traffic and Gregorian expiry: when
+that information is simply left out, the apps keep what they got on an
+earlier update. The status link now sends it as zeros, which clears it; the
+plan shows only in the Persian rows above the server list. Update the
+subscription once in the app after installing.

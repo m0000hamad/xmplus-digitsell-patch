@@ -356,6 +356,12 @@ foreach ($upstream['headers'] as $name => $value) {
     }
 }
 
+// Leaving the header out is not enough: the apps keep the total and expiry
+// from their last update. All zeros overwrite what they stored.
+if ($withRows) {
+    header('subscription-userinfo: upload=0; download=0; total=0; expire=0');
+}
+
 if ($user !== null && $lines !== []) {
     // Happ shows this text above the server list
     header('announce: base64:' . base64_encode(implode("\n", $lines)));
