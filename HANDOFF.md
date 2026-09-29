@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.11.4** · repo
+Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.11.5** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -649,7 +649,10 @@ rides in information-only rows. The wrapper
 3. for a URI list (base64 or plain) puts rows first, named with the message:
    Solar Hijri end date and days left, data left, wallet balance, "on balance" /
    "balance empty" / "plan over", and "updated HH:MM; update the subscription
-   for the live balance". They point at `127.0.0.1:1`;
+   for the live balance". They point at `127.0.0.1:1`. Since 1.11.5 each row is
+   kept to about 25 characters (the apps cut a long server name off on a
+   phone), so end date / days left and updated / "update to refresh" are two
+   rows each;
 4. passes the headers through and adds `announce: base64:…` (Happ shows it as a
    banner); Shadowrocket also gets a first `STATUS=` line. Since 1.11.2 the
    `subscription-userinfo` header is replaced whenever the rows are added
@@ -912,3 +915,4 @@ Not yet verified on the live panel — see §8.
 | 1.11.2 | Client apps: the `?do=sub` link no longer sends `subscription-userinfo` when it adds the status rows, so the app's own total / Gregorian expiry bar is gone; Clash / sing-box keep it |
 | 1.11.3 | Client apps: the status link sends `subscription-userinfo` with all zeros instead of leaving it out, because the apps kept the old total / Gregorian expiry from their previous update |
 | 1.11.4 | Client apps: the status link drops the panel's own "Total:… Used:…" / "Expire:…" info entries from the list, which still showed the Gregorian expiry under the Persian rows |
+| 1.11.5 | Client apps: shorter status rows (about 25 characters) so they are not cut off on a phone; end date / days left and updated time / "update to refresh" split into two rows each |
