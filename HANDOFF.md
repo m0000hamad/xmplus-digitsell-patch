@@ -635,6 +635,46 @@ holds first, so commission never turns into wallet credit. The one-off
 "move panel wallets" button moves every positive `user.money` into the
 commission wallet (owner asked for all of it; refused a second time).
 
+**Status in the client apps** (`app/Patch/SubInfo.php`, `?do=sub`). The
+panel's `/link/<token>?config=N` output is encoded, and the apps only read
+numbers from `subscription-userinfo` (dates come out Gregorian), so the text
+rides in information-only rows. The wrapper
+`https://<host>/xmplus-patch.php?do=sub&t=<token>&config=N`:
+
+1. fetches the panel's own link with the same query and User-Agent, pinned
+   to `sub_origin_ip` (127.0.0.1) or from `sub_origin` if set, sending
+   `X-Sub-Raw: 1`;
+2. finds the account by the uuid inside the configs (vmess JSON decoded too),
+   then by a `token` column or a `link` table if either exists;
+3. for a URI list (base64 or plain) puts rows first, named with the message:
+   Solar Hijri end date and days left, data left, wallet balance, "on balance" /
+   "balance empty" / "plan over", and "updated HH:MM; update the subscription
+   for the live balance". They point at `127.0.0.1:1`;
+4. passes the headers through and adds `announce: base64:…` (Happ shows it as a
+   banner); Shadowrocket also gets a first `STATUS=` line; while the account is
+   on the wallet `subscription-userinfo` says `expire=0`, not "1 day";
+5. leaves Clash YAML / sing-box JSON untouched; if anything fails it answers
+   302 to the panel's own link, so nobody loses their servers.
+
+Apps in use (owner, 2026-09-29): Happ, V2Box, v2rayNG, Shadowrocket — all read
+base64 URI lists. The dashboard hands out the wrapper link only when
+`sub_info_enabled` = 1 (application.tpl, `$subLink`); links already imported
+keep pointing at `/link/`. To move those too, one nginx line on the server
+(not part of the patch), inside the panel's `server {}`:
+
+```nginx
+location ~ ^/link/([A-Za-z0-9_-]+)$ {
+    if ($http_x_sub_raw = "") { rewrite ^/link/([A-Za-z0-9_-]+)$ /xmplus-patch.php?do=sub&t=$1 last; }
+    try_files $uri /index.php$is_args$args;
+}
+```
+
+(`X-Sub-Raw` stops the wrapper's own fetch from looping; check the panel's
+existing `location /` before adding it.) Tested locally with a stand-in
+upstream: base64 and plain lists, Happ/v2rayNG/Shadowrocket User-Agents, plan,
+expired, on-balance and empty accounts, a YAML pass-through, a bad token (403)
+and a dead upstream (302 to the old link).
+
 Not yet verified on the live panel — see §8.
 
 ### Gift card redeem (1.8.9)
@@ -735,6 +775,9 @@ Not yet verified on the live panel — see §8.
      (intended once commission lives in its own wallet).
   4. Customers who never had a plan: set `payg_group` so they get servers.
   5. Try one 200,000-toman top-up with a test account end to end.
+  6. Status in the apps: open `…/xmplus-patch.php?do=sub&t=<your token>&config=1`
+     in Happ and v2rayNG with a test account; confirm the rows and that the real
+     servers still connect, then switch `sub_info_enabled` on.
   Tested locally against MariaDB with stub panel tables (credit, bonus, double
   run, billing per server, outage, low/empty/resume, plan back, warnings,
   commission hold/return, migration, admin reports) and in a headless browser
@@ -807,4 +850,4 @@ Not yet verified on the live panel — see §8.
 | 1.10.11 | Promotion dates in the Solar Hijri calendar on Tehran time everywhere: the admin end-date field (1405/07/30 23:59), the ended note, and the Telegram, channel and e-mail texts (۳۰ مهر ۱۴۰۵ ساعت ۲۳:۵۹) |
 | 1.10.12 | Promotion end date: a Solar Hijri calendar popup (📅, Saturday first, past days disabled, hour and minute, today / no deadline) and "N days from today until HH:MM"; both fill the same field |
 | 1.10.13 | Discount up to 100% (free): price written as 0, "رایگان" on the card, the details page and the sticker, "رایگان (۱۰۰٪ تخفیف)" in Telegram/channel texts, and a warning in the form to set a sales limit and try a zero-amount purchase first |
-| 1.11.0 | Charge wallet (pay-as-you-go): top up any amount from 200k toman with tiered bonus, plan runs out → usage billed from the balance at each server's price per GB (free while a server is down), plan-ending / low / empty / resumed notices on the dashboard, Telegram and e-mail; admin report of charged / spent / unspent, per-user ledger, manual adjustment; separate commission wallet usable for subscription plans only. Off until switched on |
+| 1.11.0 | Charge wallet (pay-as-you-go): top up any amount from 200k toman with tiered bonus, plan runs out → usage billed from the balance at each server's price per GB (free while a server is down), plan-ending / low / empty / resumed notices on the dashboard, Telegram and e-mail; admin report of charged / spent / unspent, per-user ledger, manual adjustment; separate commission wallet usable for subscription plans only; status rows in Happ / V2Box / v2rayNG / Shadowrocket (Solar Hijri end date, data left, wallet balance, "update for the live balance"). Off until switched on |

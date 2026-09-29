@@ -404,6 +404,13 @@ function clearCompiledTemplates(): void
 
 $action = $_GET['do'] ?? 'status';
 
+// Subscription link with the plan and wallet status on top, for the client
+// apps. No session: the token in the link is the credential, as on /link/.
+if ($action === 'sub') {
+    require ROOT . '/app/Patch/SubInfo.php';
+    exit;
+}
+
 // Time plans live in their own file and answer ordinary users as well as
 // admins, so they are dispatched before the blanket admin check below.
 if (strpos($action, 'timeplan.') === 0) {
