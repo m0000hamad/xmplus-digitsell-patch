@@ -11,6 +11,9 @@
 		{include file='user/dashboard/subsciption.tpl'}
 		{include file='user/dashboard/application.tpl'}
 	</div>
+	<div class="row">
+		{include file='user/dashboard/payg.tpl'}
+	</div>
 	<div class="row match-height">
 		{include file='user/dashboard/statistics.tpl'}	
 		{include file='user/dashboard/chart.tpl'}	
@@ -620,6 +623,11 @@ var renderUsageCharts = (function () {
 	})	
 	
 	function RenewPlan(){
+		// commission pays for plans: move it into the wallet first, then renew
+		if (window.CommissionUse && !window.CommissionUse.passed) {
+			window.CommissionUse.before({$Order->getSubsciption($user->id)->packageid}, "{$Order->getSubsciption($user->id)->plan}", RenewPlan);
+			return;
+		}
 		layer.load(2);
 		$.ajax({
 			type: "POST",
@@ -1295,6 +1303,7 @@ var renderUsageCharts = (function () {
 </script>
 {/if}
 
+{include file='user/plan/commissionuse.tpl' headless=1}
 {include file='user/dashboard/giftpopup.tpl'}
 {include file='user/dashboard/tgpoll.tpl'}
 

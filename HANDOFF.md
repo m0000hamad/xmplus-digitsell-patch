@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-28 · installed version **1.9.2** · latest release **1.10.13** · repo
+Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.11.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -171,6 +171,7 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Sign-in page | `view/auth/login.tpl` redesigned (1.8.6) — see below |
 | Sign-up page | `view/auth/register.tpl` in the sign-in page's design (1.9.1) — see below |
 | Promotions | Discount / special / prize on subscription plans, with occasion text, countdown and sales limit (1.10.0) — see below |
+| Charge wallet | Pay-as-you-go wallet: top up any amount (min 200k toman, tiered bonus), the plan runs out → usage billed per server at a price per GB, no billing on a down server, plan-ending / balance notices; separate commission wallet for plans only (1.11.0) — see below |
 
 ### Time plans — how days are sold without touching the order pipeline
 
@@ -556,6 +557,86 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
   stock `expired.tpl` and `dataused.tpl` (confirmed on the server 2026-09-26).
   The name can be changed with the `promo_mail_template` setting.
 
+### Charge wallet and commission wallet (1.11.0)
+
+Asked for: the customer tops up any amount from 200,000 toman; when the plan
+runs out (data or time) they stay connected and usage comes off the balance,
+like an Iranian SIM card; a price per GB per server; the admin sees what was
+spent and what is still unspent; commission kept apart and only usable for
+subscription plans; tiered top-up bonus; no billing while a server is down.
+
+**Everything ships switched off.** Settings → کیف پول شارژ و پورسانت turns it
+on (`payg_enabled`, `commission_wallet_enabled`). Amounts are rial.
+
+Pieces:
+
+- `migrations/008_payg.php` — `payg_wallet`, `payg_ledger`, `payg_rate`,
+  `payg_notice`, `commission_wallet`, `commission_wallet_log`,
+  `commission_hold`, and the `payg_*` settings.
+- `app/Jobs/PaygJob.php` via `bin/payg.php`, every minute from `TaskCommand`.
+- `app/Patch/Payg.php` — `payg.*` / `commission.*` actions, dispatched from
+  `public/xmplus-patch.php` **before** `requireAdmin()` (customer half has its
+  own CSRF token `$_SESSION['payg_csrf']`; admin half calls `requireAdmin()`).
+- `view/user/dashboard/payg.tpl` (wallet card, charge dialog),
+  `view/user/plan/commissionuse.tpl` (plan page switch + renew button),
+  `view/admin/settings/paygsettings.tpl` (settings, prices, report, wallets,
+  manual adjustment, commission migration).
+
+**Top-up = the time-plan trick.** `payg.mint` finds or creates a topup
+package (bandwidth 0, `order_note` = `{"paygcharge":{"v":1,"amount":N,"created":T}}`)
+priced at the amount, rounded up to `payg_charge_step`; the browser then posts
+`/portal/order/create` with `plan: "topup"`. `PaygJob` credits every paid order
+on such a package once — `payg_ledger.ref = 'order:<id>'` is UNIQUE — minus the
+order's coupon discount, plus the bonus tier (`bonus:<id>` row). Unsold rows are
+deleted after a day. `Package::topupList()` and the admin plan list hide them.
+
+**Modes** (`payg_wallet.mode`), moved by the job:
+
+- `plan` — the job does not touch the account.
+- `balance` — entered when the plan is over (`expire_in` within 3 minutes, or
+  `u + d >= transfer_enable`), the switch is on and the balance is positive.
+  The job keeps `expire_in` at least a day ahead (so `UserJob` never wipes the
+  account) and `transfer_enable = u + d + balance / dearest price per GB`, so
+  **the panel's own quota check is the cut-off**; no encoded field is needed.
+- `empty` — balance ≤ 0: `transfer_enable = u + d`. A top-up resumes.
+- Back to `plan` when a subscription order is paid after `since`, or the plan's
+  periodic reset lowers `u + d` while a subscription is still running. Unused
+  plan data is not carried into the wallet (operator behaviour).
+- The customer switch (`auto`) off while on balance cuts at once.
+- While not in `plan`, the top-up list and time plans are hidden
+  (`User::paygOnBalance()`), because the job owns quota and expiry.
+
+**Billing is exactly-once.** Under `GET_LOCK('payg_bill')`, one transaction
+reads `trafficlog` rows with `datetime` in (`payg_last_log_time`,
+now − 60s] for accounts not in `plan` (and newer than their `since`),
+debits the wallets, upserts one `usage` row per user/server/day and moves the
+watermark. A server with `alive != 1` or a heartbeat older than 5 minutes is
+billed at 0 (`free_bytes`) when `payg_outage_free` is on; a price of 0 is free.
+The balance may dip slightly below zero (billing lags up to ~2 minutes); the
+next top-up covers it. Known loss: rows written in the last minute before
+`LogsJob` prunes yesterday at 00:00 are not billed (in the customer's favour).
+Bytes billed are `trafficlog.u + d` (raw, not the panel's server multiplier).
+
+**Notices** go to `payg_notice` (dashboard card, shown once), Telegram (the
+panel's bot) and e-mail (`promo.tpl` through the queue): top-up credited,
+billing started, low balance (once per top-up), balance empty, resumed, plan
+active again, and plan ending (`payg_warn_days`, `payg_warn_percent`, every 5
+minutes, once per plan period; skipped when the customer turned `dataexpire`
+notices off). The unique key on `payg_notice` is what stops duplicates.
+
+**Commission wallet.** With `commission_wallet_enabled`, `CommissionJob` puts
+the "wallet" share of commission into `commission_wallet` instead of
+`user.money` (the cash-eligible share still stays in `payout_balance`). The
+encoded checkout only spends `user.money`, so right before a subscription
+order `commission.apply` moves the gap between the price and the current money
+into money and writes `commission_hold`; the job returns whatever is still
+there once a subscription is paid or after 30 minutes. `payg.mint` returns open
+holds first, so commission never turns into wallet credit. The one-off
+"move panel wallets" button moves every positive `user.money` into the
+commission wallet (owner asked for all of it; refused a second time).
+
+Not yet verified on the live panel — see §8.
+
 ### Gift card redeem (1.8.9)
 
 - **Dialog:** `#redeem_modal` in `view/user/dashboard/order.tpl`, opened by
@@ -644,6 +725,21 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
   the item's own `--mc` colour behind the icon, a short flicker, light
   kept inside the pill plus a thin edge halo).
 
+- **Charge wallet (1.11.0) — check on the live panel before switching it on:**
+  1. `trafficlog` really carries `datetime` as the insert time and `u`/`d` per
+     push (billing reads exactly that).
+  2. A customer whose quota is used up (`transfer_enable = u + d`) is really
+     disconnected by the nodes, and reconnected when it is raised.
+  3. The checkout spends `user.money` for a topup order too; a charge bought
+     with some money in the wallet converts that money into charge credit
+     (intended once commission lives in its own wallet).
+  4. Customers who never had a plan: set `payg_group` so they get servers.
+  5. Try one 200,000-toman top-up with a test account end to end.
+  Tested locally against MariaDB with stub panel tables (credit, bonus, double
+  run, billing per server, outage, low/empty/resume, plan back, warnings,
+  commission hold/return, migration, admin reports) and in a headless browser
+  (wallet card light/dark/phone, charge dialog → order create, admin page).
+
 
 ## 9. Testing rules learned the hard way
 
@@ -711,3 +807,4 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
 | 1.10.11 | Promotion dates in the Solar Hijri calendar on Tehran time everywhere: the admin end-date field (1405/07/30 23:59), the ended note, and the Telegram, channel and e-mail texts (۳۰ مهر ۱۴۰۵ ساعت ۲۳:۵۹) |
 | 1.10.12 | Promotion end date: a Solar Hijri calendar popup (📅, Saturday first, past days disabled, hour and minute, today / no deadline) and "N days from today until HH:MM"; both fill the same field |
 | 1.10.13 | Discount up to 100% (free): price written as 0, "رایگان" on the card, the details page and the sticker, "رایگان (۱۰۰٪ تخفیف)" in Telegram/channel texts, and a warning in the form to set a sales limit and try a zero-amount purchase first |
+| 1.11.0 | Charge wallet (pay-as-you-go): top up any amount from 200k toman with tiered bonus, plan runs out → usage billed from the balance at each server's price per GB (free while a server is down), plan-ending / low / empty / resumed notices on the dashboard, Telegram and e-mail; admin report of charged / spent / unspent, per-user ledger, manual adjustment; separate commission wallet usable for subscription plans only. Off until switched on |

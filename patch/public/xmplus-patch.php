@@ -417,6 +417,13 @@ if (strpos($action, 'tggift.') === 0) {
     fail('unknown gift action');
 }
 
+// The pay-as-you-go wallet and the commission wallet: the customer half
+// answers ordinary users, the admin half checks for itself.
+if (strpos($action, 'payg.') === 0 || strpos($action, 'commission.') === 0) {
+    require ROOT . '/app/Patch/Payg.php';
+    fail('unknown wallet action');
+}
+
 requireAdmin();
 
 // Read-only reports for admin pages; each file ends in done() or fail().
