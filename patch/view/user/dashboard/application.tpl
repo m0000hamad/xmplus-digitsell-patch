@@ -344,6 +344,12 @@ html[data-hs-theme="dark"] .app-howto-item {
 						{$content = $contentTab->client}
 						{$tabid = $contentTab->type|cat:"-"|cat:$contentTab->client|replace:" ":"-"|replace:".":"-"}
 							<div class="tab-pane fade {if $t == 1}show active{/if}" id="app-{$tabid}" role="tabpanel">
+								{* the link with the plan / wallet status on top (app/Patch/SubInfo.php), once switched on *}
+								{$subLink = $SubUrl|cat:$contentTab->link}
+								{if isset($Config['sub_info_enabled']) && $Config['sub_info_enabled'] == 1 && preg_match('~/link/[A-Za-z0-9_-]+/?$~', $SubUrl)}
+									{$subTail = $contentTab->link|replace:'?':'&'}
+									{$subLink = $SubUrl|regex_replace:'~/link/([A-Za-z0-9_-]+)/?$~':'/xmplus-patch.php?do=sub&t=$1'|cat:$subTail}
+								{/if}
 
 								<div class="app-step">
 									<div class="app-step-head">
@@ -356,8 +362,8 @@ html[data-hs-theme="dark"] .app-howto-item {
 
 									<div class="app-connect">
 										<div class="app-link-row">
-											<input class="app-link-field" type="text" readonly onclick="this.select()" value="{$SubUrl}{$contentTab->link}">
-											<button type="button" class="app-btn app-btn-copy copy-text" data-clipboard-text="{$SubUrl}{$contentTab->link}">
+											<input class="app-link-field" type="text" readonly onclick="this.select()" value="{$subLink}">
+											<button type="button" class="app-btn app-btn-copy copy-text" data-clipboard-text="{$subLink}">
 												📋 <span>{$translate->get('CopyLink')}</span>
 											</button>
 										</div>
@@ -367,7 +373,7 @@ html[data-hs-theme="dark"] .app-howto-item {
 												<a class="app-btn app-btn-import" href="clash://install-config?url={urlencode($SubUrl)}{urlencode($contentTab->link)}">⚡ {$translate->get('ExportLink')}</a>
 											{/if}
 											{if strpos($contentTab->client, "Shadowrocket") !== false}
-												<a class="app-btn app-btn-import" onclick=AddSub("{$SubUrl}{$contentTab->link}","shadowrocket://add/sub://")>⚡ {$translate->get('ExportLink')}</a>
+												<a class="app-btn app-btn-import" onclick=AddSub("{$subLink}","shadowrocket://add/sub://")>⚡ {$translate->get('ExportLink')}</a>
 											{/if}
 											{if strpos($contentTab->client, "Surfboard") !== false}
 												<a class="app-btn app-btn-import" href="surfboard:///install-config?url={urlencode($SubUrl)}{urlencode($contentTab->link)}">⚡ {$translate->get('ExportLink')}</a>

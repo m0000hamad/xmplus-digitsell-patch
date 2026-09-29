@@ -220,6 +220,61 @@
 }
 .sub-tile-note { font-size: 10.5px; color: #97a4af; margin-top: 6px; font-weight: 600; }
 
+/* ---- the wallet tile and the wallet state (wallettile.tpl, walletstate.tpl) ---- */
+.sub-wallet { display: flex; flex-direction: column; }
+.sub-wallet-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: #f43f5e;
+	box-shadow: 0 0 0 3px rgba(244, 63, 94, .18);
+}
+.sub-wallet-value {
+	font-size: 19px;
+	font-weight: 900;
+	color: #16203d;
+	line-height: 1.35;
+}
+.sub-wallet-value small { font-size: 11px; font-weight: 700; color: #7a869f; }
+.sub-wallet.is-empty .sub-wallet-value { color: #e11d48; }
+.sub-wallet .sub-tile-note { line-height: 1.9; }
+.sub-wallet-actions { display: grid; margin-top: auto; padding-top: 10px; }
+.sub-wallet-add,
+.sub-wallet-more {
+	border: 0;
+	cursor: pointer;
+	border-radius: 10px;
+	font-size: 11.5px;
+	font-weight: 800;
+	padding: 7px 10px;
+	line-height: 1;
+	white-space: nowrap;
+	transition: transform .15s ease, filter .15s ease;
+}
+.sub-wallet-add {
+	color: #fff;
+	background: linear-gradient(135deg, #059669, #10b981);
+	box-shadow: 0 6px 14px -6px rgba(16, 185, 129, .8);
+}
+.sub-wallet-more { margin-inline-start: auto; padding: 4px 8px; font-size: 11px; color: #475569; background: rgba(23, 32, 61, .06); }
+.sub-wallet-add:hover,
+.sub-wallet-more:hover { transform: translateY(-1px); filter: brightness(1.05); }
+.sub-btn-wallet { background: linear-gradient(135deg, #059669, #10b981); color: #fff !important; box-shadow: 0 7px 18px rgba(16, 185, 129, .3); border: 0; }
+.sub-status-wallet { background: rgba(245, 158, 11, .16); color: #b45309; }
+.sub-status-wallet .sub-dot { background: #f59e0b; }
+.sub-status-wallet.is-empty { background: rgba(244, 63, 94, .14); color: #be123c; }
+.sub-status-wallet.is-empty .sub-dot { background: #f43f5e; }
+.sub-wallet-clock { border-inline-start: 3px solid #f59e0b; }
+.sub-wallet-clock.is-empty { border-inline-start-color: #f43f5e; }
+.sub-wallet-text { font-size: 12.5px; font-weight: 700; line-height: 1.9; color: #334155; }
+html[data-hs-theme="dark"] .sub-wallet-value { color: #e7eaf3; }
+html[data-hs-theme="dark"] .sub-wallet-value small { color: #9fb0cc; }
+html[data-hs-theme="dark"] .sub-wallet.is-empty .sub-wallet-value { color: #fda4af; }
+html[data-hs-theme="dark"] .sub-wallet-more { color: #cbd5e1; background: rgba(255, 255, 255, .08); }
+html[data-hs-theme="dark"] .sub-wallet-text { color: #dbe3f0; }
+html[data-hs-theme="dark"] .sub-status-wallet { background: rgba(245, 158, 11, .18); color: #fcd34d; }
+html[data-hs-theme="dark"] .sub-status-wallet.is-empty { background: rgba(244, 63, 94, .18); color: #fda4af; }
+
 html[data-hs-theme="dark"] .sub-name,
 html[data-hs-theme="dark"] .sub-tile-value { color: #e7eaf3; }
 html[data-hs-theme="dark"] .sub-chip { background: rgba(255, 255, 255, .07); color: #cfd8ea; }
@@ -477,6 +532,9 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 
 		<div class="card-body">
 
+			{if $user->paygEnabled() && $user->paygOnBalance()}
+				{include file='user/dashboard/walletstate.tpl'}
+			{else}
 			<span class="sub-status">
 				<span class="sub-dot"></span>
 				{if $user->planNeverExpires()}{$translate->get('PlanDontExpire')}
@@ -517,8 +575,13 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 					<div class="sub-mood"><span>{$moodEmoji}</span> {$moodText}</div>
 				</div>
 			{/if}
+			{/if}
 
 			<div class="sub-actions">
+				{if $user->paygEnabled() && $user->paygOnBalance()}
+					<button type="button" class="sub-btn sub-btn-wallet" data-wallet-open="charge">➕ {$translate->get('PaygAddFunds')}</button>
+					<a href="/portal/plans" class="sub-btn sub-btn-buy">🛒 {$translate->get('OrderApaln')}</a>
+				{/if}
 				{* topupCount() already drops the ones this plan is not offered on *}
 				{if $timeplan->topupCount() > 0 && $Order->getSubsciption($user->id) && $user->planIsActive()}
 					<button type="button" class="sub-btn sub-btn-data" onClick="TopupOptions()">📶 {$translate->get('AddData')}</button>
@@ -570,6 +633,9 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 	</div>
 
 	<div class="sub-tiles mb-2">
+		{if $user->paygEnabled()}
+			{include file='user/dashboard/wallettile.tpl'}
+		{else}
 		<div class="sub-tile" style="--tile:#8b5cf6">
 			<div class="sub-tile-head"><span class="sub-tile-emoji">💰</span>{$translate->get('Money')}</div>
 			<div class="sub-tile-value"><span id="money">{$currency->symbol_left} {number_format((float)$user->money, (int){$currency->decimals})} {$currency->symbol_right}</span></div>
@@ -585,6 +651,7 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 				{/if}
 			</div>
 		</div>
+		{/if}
 
 		<div class="sub-tile" style="--tile:#06b6d4">
 			<div class="sub-tile-head"><span class="sub-tile-emoji">📱</span>{$translate->get('OnlineIp')}</div>
