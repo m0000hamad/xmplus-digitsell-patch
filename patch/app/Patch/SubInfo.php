@@ -252,7 +252,11 @@ function subinfoWallet(int $userId): ?array
 
 // ------------------------------------------------------------------ message
 
-/** The rows' names, top to bottom. */
+/**
+ * The rows' names, top to bottom. The apps do not wrap or shrink a server
+ * name, so each row is kept short enough for a phone screen (about 25
+ * characters); longer facts go on two rows.
+ */
 function subinfoLines(array $user): array
 {
     $now = time();
@@ -269,31 +273,33 @@ function subinfoLines(array $user): array
     $lines = [];
 
     if ($mode === 'balance') {
-        $lines[] = '⚡ بسته تمام شده؛ مصرف از موجودی کسر می‌شود';
+        $lines[] = '⚡ مصرف از موجودی شارژ';
     } elseif ($mode === 'empty') {
-        $lines[] = '⛔ موجودی تمام شد؛ از سایت حساب را شارژ کنید';
+        $lines[] = '⛔ موجودی تمام؛ شارژ کنید';
     } elseif ($expire > 0 && $expire <= $now) {
-        $lines[] = '⛔ بسته تمام شده (' . subinfoJalali($expire) . ')؛ تمدید یا شارژ کنید';
+        $lines[] = '⛔ بسته تمام شد؛ تمدید کنید';
     } else {
         $never = ($user['plan'] ?? '') === 'onetime' || $expire > strtotime('+10 years');
 
         if ($never) {
-            $lines[] = '📅 بسته بدون تاریخ انقضا';
+            $lines[] = '📅 بدون تاریخ انقضا';
         } elseif ($expire > 0) {
             $days = (int) ceil(($expire - $now) / 86400);
-            $lines[] = '📅 پایان بسته: ' . subinfoJalali($expire) . ' (' . subinfoFa((string) $days) . ' روز مانده)';
+            $lines[] = '📅 پایان: ' . subinfoJalali($expire);
+            $lines[] = '⏳ ' . subinfoFa((string) $days) . ' روز مانده';
         }
 
         $lines[] = $quota > 0 && $left <= 0
-            ? '📦 حجم بسته تمام شده'
-            : '📦 حجم باقی‌مانده: ' . subinfoGb($left) . ' از ' . subinfoGb($quota);
+            ? '📦 حجم تمام شد'
+            : '📦 ' . preg_replace('~ گیگ$~u', '', subinfoGb($left)) . ' از ' . subinfoGb($quota);
     }
 
     if ($walletOn) {
-        $lines[] = '💰 موجودی شارژ: ' . subinfoMoney($balance);
+        $lines[] = '💰 موجودی: ' . subinfoMoney($balance);
     }
 
-    $lines[] = '🔄 به‌روز شده ' . subinfoTime($now) . '؛ برای موجودی لحظه‌ای، اشتراک را آپدیت کنید';
+    $lines[] = '🔄 به‌روز: ' . subinfoTime($now);
+    $lines[] = '👆 برای تازه‌شدن آپدیت کنید';
 
     return $lines;
 }
