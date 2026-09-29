@@ -1,4 +1,4 @@
-The client apps still listed the panel's own info entries, "Total:... Used:..."
-and "Expire:2027-..." (Gregorian), under the Persian rows. The status link now
-takes those entries out of the list; the Persian rows stay. Update the
-subscription once in the app after installing.
+The Persian status rows in the client apps were cut off on phone screens. They
+are now short (about 25 characters each), and the longer ones are split into
+two rows: end date / days left, and updated time / "update to refresh".
+Update the subscription once in the app after installing.
