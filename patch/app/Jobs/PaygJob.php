@@ -367,26 +367,29 @@ class PaygJob
 		$rates = DB::table('payg_rate')->pluck('price', 'serverid')->all();
 		$list = [];
 
-		foreach (DB::table('servers')->get(['id', 'alive', 'heartbeat']) as $server) {
+		foreach (DB::table('servers')->get(['id', 'status', 'alive', 'heartbeat']) as $server) {
 			$id = (int) $server->id;
 			$age = (int) $server->heartbeat > 0 ? time() - (int) $server->heartbeat : PHP_INT_MAX;
 
 			$list[$id] = [
-				'price' => array_key_exists($id, $rates) ? (float) $rates[$id] : $default,
-				'down'  => (int) $server->alive !== 1 || $age > self::STALE_NODE,
+				'price'   => array_key_exists($id, $rates) ? (float) $rates[$id] : $default,
+				'down'    => (int) $server->alive !== 1 || $age > self::STALE_NODE,
+				'enabled' => (int) $server->status === 1,
 			];
 		}
 
 		return $this->servers = $list;
 	}
 
-	/* the dearest server decides how many bytes the balance is guaranteed to buy */
+	/* the dearest enabled server decides how many bytes the balance is guaranteed to buy */
 	private function maxPrice()
 	{
 		$max = (float) $this->setting('payg_default_price', 0);
 
 		foreach ($this->servers() as $server) {
-			$max = max($max, $server['price']);
+			if ($server['enabled']) {
+				$max = max($max, $server['price']);
+			}
 		}
 
 		return $max;

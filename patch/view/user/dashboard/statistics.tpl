@@ -100,6 +100,17 @@
 	box-shadow: inset 0 0 0 1px rgba(245, 158, 11, .45);
 }
 .quota-prize b { direction: ltr; unicode-bidi: isolate; color: #92400e; }
+.quota-wallet {
+	margin-top: 10px;
+	padding: 8px 12px;
+	border-radius: 12px;
+	font-size: 11.5px;
+	font-weight: 600;
+	line-height: 1.9;
+	color: #92400e;
+	background: rgba(245, 158, 11, .1);
+}
+html[data-hs-theme="dark"] .quota-wallet { color: #fde68a; background: rgba(245, 158, 11, .14); }
 html[data-hs-theme="dark"] .quota-legend-prize b { color: #fcd34d; }
 html[data-hs-theme="dark"] .quota-prize { color: #fde68a; background: rgba(245, 158, 11, .16); box-shadow: inset 0 0 0 1px rgba(252, 211, 77, .4); }
 html[data-hs-theme="dark"] .quota-prize b { color: #fcd34d; }
@@ -138,6 +149,10 @@ html[data-hs-theme="dark"] .quota-stat-label { color: #8b9ab5; }
 					</span>
 				{/if}
 			</div>
+			{if $user->paygEnabled() && $user->paygOnBalance()}
+				{* on the wallet the quota is what the balance buys, not a plan's traffic *}
+				<div class="quota-wallet">💳 {$translate->get('PaygStatsNote')}</div>
+			{/if}
 			{if $uPrize.gb > 0}
 				{* the prize is used first, so this falls to zero before the plan's own traffic does *}
 				<div class="quota-prize">

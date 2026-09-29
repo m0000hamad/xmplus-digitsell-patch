@@ -1,20 +1,14 @@
-Charge wallet (pay-as-you-go), switched off until you turn it on in
-Settings → کیف پول شارژ و پورسانت.
+The wallet now sits where operator apps put it. The balance tile in the
+subscription card shows the wallet balance with "افزایش موجودی"; everything
+else - adding funds, transactions by day, server prices, the "continue on my
+balance" switch - opens in a side panel (a bottom sheet on phones), also from
+the new "کیف پول" menu item. While an account runs on its wallet, the
+subscription card says so instead of showing "1 day left". Billing messages
+appear as a short notice at the top of the page.
 
-Customers top up any amount from 200,000 toman (tiered bonus, e.g. +5% from
-1,000,000). When their plan runs out - data or time - they stay connected and
-usage is taken from the balance at each server's price per GB, like a SIM
-card; nothing is billed while a server is down. They are told on the
-dashboard, Telegram and e-mail when the plan is ending, when billing starts,
-when the balance is low or gone, and when a top-up lands. Buying a plan stops
-the billing.
+Admin: the wallet amounts are in toman, the minimum top-up can be anything
+including 0 (no minimum), and saving shows exactly what was stored.
 
-Admin: price per GB per server, totals of charged / spent / unspent, every
-wallet with its ledger, manual adjustment. Commission can be kept in its own
-wallet that only pays for subscription plans; a one-time button moves the
-current panel wallets into it.
-
-In the apps (Happ, V2Box, v2rayNG, Shadowrocket): a switch in the same
-settings hands out a subscription link that shows, above the servers, the
-plan's end date in the Solar Hijri calendar, data left, the wallet balance and
-"update the subscription to see the live balance". The servers are unchanged.
+Also in this release: the status rows in Happ / V2Box / v2rayNG / Shadowrocket
+(end date in the Solar Hijri calendar, data left, wallet balance) - switch
+them on under the same settings after trying the link in an app.

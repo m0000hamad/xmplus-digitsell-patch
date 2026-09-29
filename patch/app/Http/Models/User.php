@@ -605,28 +605,63 @@ final class User extends Model
 	 * Pay-as-you-go wallet - app/Jobs/PaygJob.php
 	 * ------------------------------------------------------------------ */
 
-	private $paygRow = false;
+	/*
+	 * Per-request caches. Static on purpose: an Eloquent model keeps its data in
+	 * attributes, and a plain property on it is one more thing to go wrong.
+	 */
+	private static $paygRows = [];
 
-	public function paygWallet()
+	private static $paygSettings = null;
+
+	private static function paygSetting($name, $fallback)
 	{
-		if ($this->paygRow === false) {
+		if (self::$paygSettings === null) {
 			try {
-				$this->paygRow = DB::connection('default')->table('payg_wallet')
-					->where('userid', $this->id)->first();
+				self::$paygSettings = DB::connection('default')->table('settings')
+					->whereIn('name', ['payg_enabled', 'payg_show_toman', 'payg_default_price', 'commission_wallet_enabled'])
+					->pluck('value', 'name')->all();
 			} catch (\Throwable $e) {
-				$this->paygRow = null;
+				self::$paygSettings = [];
 			}
 		}
 
-		return $this->paygRow;
+		$value = self::$paygSettings[$name] ?? null;
+
+		return $value === null || $value === '' ? $fallback : (string) $value;
 	}
 
-	/* the plan ran out and the wallet pays (or paid until it ran dry) */
-	public function paygOnBalance()
+	public function paygEnabled()
+	{
+		return self::paygSetting('payg_enabled', '0') === '1';
+	}
+
+	public function paygWallet()
+	{
+		$id = (int) $this->id;
+
+		if (!array_key_exists($id, self::$paygRows)) {
+			try {
+				self::$paygRows[$id] = DB::connection('default')->table('payg_wallet')
+					->where('userid', $id)->first();
+			} catch (\Throwable $e) {
+				self::$paygRows[$id] = null;
+			}
+		}
+
+		return self::$paygRows[$id];
+	}
+
+	/* plan, balance (the wallet pays) or empty (it paid until it ran dry) */
+	public function paygMode()
 	{
 		$wallet = $this->paygWallet();
 
-		return $wallet && (string) $wallet->mode !== 'plan';
+		return $wallet ? (string) $wallet->mode : 'plan';
+	}
+
+	public function paygOnBalance()
+	{
+		return $this->paygMode() !== 'plan';
 	}
 
 	public function paygBalance()
@@ -634,6 +669,59 @@ final class User extends Model
 		$wallet = $this->paygWallet();
 
 		return $wallet ? (float) $wallet->balance : 0.0;
+	}
+
+	/* the balance in the unit customers see - toman unless the admin chose rial */
+	public function paygToman()
+	{
+		return self::paygSetting('payg_show_toman', '1') === '1';
+	}
+
+	public function paygBalanceShown()
+	{
+		$balance = $this->paygBalance();
+
+		return number_format(round($this->paygToman() ? $balance / 10 : $balance));
+	}
+
+	/*
+	 * What the balance buys at the dearest enabled server, in GB, the same sum
+	 * PaygJob grants as quota. Null when every server is free.
+	 */
+	public function paygHeadroomGb()
+	{
+		$max = (float) self::paygSetting('payg_default_price', '0');
+
+		try {
+			$custom = DB::connection('default')->table('payg_rate')
+				->join('servers', 'servers.id', '=', 'payg_rate.serverid')
+				->where('servers.status', 1)
+				->max('payg_rate.price');
+			$max = max($max, (float) $custom);
+		} catch (\Throwable $e) {
+		}
+
+		if ($max <= 0) {
+			return null;
+		}
+
+		return round(max(0.0, $this->paygBalance()) / $max, 1);
+	}
+
+	/* messages from the billing job not shown yet */
+	public function paygUnseen()
+	{
+		try {
+			return (int) DB::connection('default')->table('payg_notice')
+				->where('userid', $this->id)->where('seen', 0)->count();
+		} catch (\Throwable $e) {
+			return 0;
+		}
+	}
+
+	public function commissionWalletEnabled()
+	{
+		return self::paygSetting('commission_wallet_enabled', '0') === '1';
 	}
 
 	/* referral commission kept apart from money, for subscription plans only */

@@ -11,9 +11,6 @@
 		{include file='user/dashboard/subsciption.tpl'}
 		{include file='user/dashboard/application.tpl'}
 	</div>
-	<div class="row">
-		{include file='user/dashboard/payg.tpl'}
-	</div>
 	<div class="row match-height">
 		{include file='user/dashboard/statistics.tpl'}	
 		{include file='user/dashboard/chart.tpl'}	
@@ -1304,6 +1301,7 @@ var renderUsageCharts = (function () {
 {/if}
 
 {include file='user/plan/commissionuse.tpl' headless=1}
+{include file='user/dashboard/wallet.tpl'}
 {include file='user/dashboard/giftpopup.tpl'}
 {include file='user/dashboard/tgpoll.tpl'}
 
