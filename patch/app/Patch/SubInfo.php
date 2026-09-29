@@ -298,6 +298,26 @@ function subinfoLines(array $user): array
     return $lines;
 }
 
+/**
+ * The panel puts its own info entries in the list, like "Total:1000.5G
+ * Used:0.71G" and "Expire:2027-09-29". They repeat the rows in English with a
+ * Gregorian date, so they are taken out when the rows go in. The name is the
+ * vmess JSON "ps" or the part after "#" for the other schemes.
+ */
+function subinfoIsPanelInfo(string $line): bool
+{
+    $line = trim($line);
+    $name = '';
+    if (stripos($line, 'vmess://') === 0) {
+        $json = json_decode((string) base64_decode(strtr(substr($line, 8), '-_', '+/'), false), true);
+        $name = is_array($json) ? (string) ($json['ps'] ?? '') : '';
+    } elseif (($hash = strrpos($line, '#')) !== false) {
+        $name = rawurldecode(substr($line, $hash + 1));
+    }
+
+    return (bool) preg_match('~^\s*(total|used|expire|expiry|expired|remaining|traffic|reset)\s*(?::|：)~i', $name);
+}
+
 function subinfoRow(string $name, int $i): string
 {
     return sprintf('vless://00000000-0000-4000-8000-%012d@127.0.0.1:1?encryption=none&type=tcp#%s',
@@ -393,7 +413,11 @@ if (strpos($ua, 'shadowrocket') !== false) {
     $head = 'STATUS=' . implode(' | ', $lines) . "\n" . $head;
 }
 
-$out = $head . $plain;
+$kept = array_filter(preg_split('~\r?\n~', $plain), function ($line) {
+    return !subinfoIsPanelInfo($line);
+});
+
+$out = $head . implode("\n", $kept);
 
 echo $isBase64 ? base64_encode($out) : $out;
 exit;

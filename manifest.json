@@ -1,7 +1,7 @@
 {
-    "version": "1.11.3",
+    "version": "1.11.4",
     "released": "2026-09-29",
-    "notes": "The client apps still showed the old total traffic and Gregorian expiry: when\nthat information is simply left out, the apps keep what they got on an\nearlier update. The status link now sends it as zeros, which clears it; the\nplan shows only in the Persian rows above the server list. Update the\nsubscription once in the app after installing.",
+    "notes": "The client apps still listed the panel's own info entries, \"Total:... Used:...\"\nand \"Expire:2027-...\" (Gregorian), under the Persian rows. The status link now\ntakes those entries out of the list; the Persian rows stay. Update the\nsubscription once in the app after installing.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -34,7 +34,7 @@
         "app/Patch/Payg.php": "ea1e2e47514e32e5d5985ecad8eccdc7954bd329cfa02ff711ac87489ea9930f",
         "app/Patch/Promo.php": "e7d257b1e9a52b48bee6cba3c153e184d33f62f339ce7d76e61cf57a1c232b8d",
         "app/Patch/ServerUsage.php": "87fe8c3c831db97f148c0d8b85f653694771133e126af75a3e988d91552b8a6e",
-        "app/Patch/SubInfo.php": "36b354bdb14c6deb03a1f74cc9f8033ceb7cdb34e294ceab18f975acc85ac500",
+        "app/Patch/SubInfo.php": "bd0fbbe5dd04031af10b755546763cefd8bf33fd97614c3c36830cae8b64107d",
         "app/Patch/TgGift.php": "bc691f338913bf46bb88f0d91c360bf864c2d54c7839d2bac62ea54d0afacb77",
         "app/Patch/TimePlan.php": "f44e32da8b5ab931ebb6cc2af7bd5282cfad2c86004afc3aebd905e051aa8149",
         "app/Provider/SmartyProvider.php": "7c5119f9ff8f399841618851e3a9dc15feb9c5074afd0e8c9eb8f17befdf585e",
