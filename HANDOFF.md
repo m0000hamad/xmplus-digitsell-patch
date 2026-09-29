@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.11.1** · repo
+Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.11.2** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -651,8 +651,10 @@ rides in information-only rows. The wrapper
    "balance empty" / "plan over", and "updated HH:MM; update the subscription
    for the live balance". They point at `127.0.0.1:1`;
 4. passes the headers through and adds `announce: base64:…` (Happ shows it as a
-   banner); Shadowrocket also gets a first `STATUS=` line; while the account is
-   on the wallet `subscription-userinfo` says `expire=0`, not "1 day";
+   banner); Shadowrocket also gets a first `STATUS=` line. Since 1.11.2 the
+   `subscription-userinfo` header is **dropped** whenever the rows are added
+   (owner: the app must not show the old total and Gregorian expiry); Clash /
+   sing-box, which get no rows, keep it (with `expire=0` while on the wallet);
 5. leaves Clash YAML / sing-box JSON untouched; if anything fails it answers
    302 to the panel's own link, so nobody loses their servers.
 
@@ -901,3 +903,4 @@ Not yet verified on the live panel — see §8.
 | 1.10.13 | Discount up to 100% (free): price written as 0, "رایگان" on the card, the details page and the sticker, "رایگان (۱۰۰٪ تخفیف)" in Telegram/channel texts, and a warning in the form to set a sales limit and try a zero-amount purchase first |
 | 1.11.0 | Charge wallet (pay-as-you-go): top up any amount from 200k toman with tiered bonus, plan runs out → usage billed from the balance at each server's price per GB (free while a server is down), plan-ending / low / empty / resumed notices on the dashboard, Telegram and e-mail; admin report of charged / spent / unspent, per-user ledger, manual adjustment; separate commission wallet usable for subscription plans only; status rows in Happ / V2Box / v2rayNG / Shadowrocket (Solar Hijri end date, data left, wallet balance, "update for the live balance"). Off until switched on |
 | 1.11.1 | Wallet in the operator-app layout: wallet tile in the subscription card, wallet state at the top of the card while on balance, side panel / bottom sheet with add funds, transactions, prices and settings, toast for billing messages, menu item; admin amounts in toman, minimum any value including 0, save answered with the stored values, GETs bypass the CDN cache, token retry; status rows in the client apps (from the 1.11.0 branch) |
+| 1.11.2 | Client apps: the `?do=sub` link no longer sends `subscription-userinfo` when it adds the status rows, so the app's own total / Gregorian expiry bar is gone; Clash / sing-box keep it |
