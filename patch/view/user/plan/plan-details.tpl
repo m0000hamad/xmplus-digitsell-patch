@@ -503,6 +503,8 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 					</div>
 				</div>
 
+				{include file='user/plan/commissionuse.tpl'}
+
 				<div class="pd-card">
 					<div class="pd-card-head">
 						<span class="pd-card-emoji">🧾</span>
@@ -661,6 +663,11 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 	
 	function Checkout(){
 		var plan =  $("input[name='plan']:checked").val();
+		// commission pays for plans: move it into the wallet first, then check out
+		if (window.CommissionUse && !window.CommissionUse.passed) {
+			window.CommissionUse.before({$package->id}, plan, Checkout);
+			return;
+		}
 		var coupon = localStorage.getItem('coupon');
 		if(coupon != null){
 			var code = coupon;

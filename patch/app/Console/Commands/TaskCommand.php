@@ -127,6 +127,15 @@ final class TaskCommand extends Command
 			'enabled' => true,
 		));
 
+		// pay-as-you-go wallet: charges, billing on balance, plan-ending notices
+		$scheduler->add('PaygJob', array(
+			'command' => 'php '.BASE_PATH.'/bin/payg.php',
+			'schedule' => "* * * * *",
+			'output' => BASE_PATH.'/storage/logs/payg.log',
+			'lock_dir' => BASE_PATH.'/storage/cron/',
+			'enabled' => true,
+		));
+
 		$scheduler->run();
 		return 0;
     }
