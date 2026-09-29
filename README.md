@@ -23,6 +23,7 @@ templates and the localization files — plus one standalone PHP file under
 | Time plans | A third plan type that sells days on their own — fixed bundles or a per-day rate, limited to chosen plans, offered near the end of a subscription |
 | Plan scoping | Traffic top-ups and time plans can each be limited to chosen subscription plans and server groups |
 | Menu | Labelled glass toggle instead of a bar icon, per-item colours, current page marked, works on phones |
+| Charge wallet | Pay-as-you-go: top up any amount, usage billed per server at a price per GB once the plan runs out, spent/unspent report for the admin, separate commission wallet for plans only (off until switched on) |
 | Themes | Dark mode fixed panel-wide (see the note below) |
 
 ### The dark-mode note

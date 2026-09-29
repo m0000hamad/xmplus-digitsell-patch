@@ -574,7 +574,10 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 			<div class="sub-tile-head"><span class="sub-tile-emoji">💰</span>{$translate->get('Money')}</div>
 			<div class="sub-tile-value"><span id="money">{$currency->symbol_left} {number_format((float)$user->money, (int){$currency->decimals})} {$currency->symbol_right}</span></div>
 			<div class="sub-tile-note sub-tile-note-money">
-				{if $user->commissionCredited() > 0}
+				{if $user->commissionWalletBalance() > 0}
+					🤝 {$translate->get('PaygCommission')}: {number_format((float)$user->commissionWalletBalance(), (int){$currency->decimals})}
+					<br>💳 {$translate->get('PaygCommissionNote')}
+				{elseif $user->commissionCredited() > 0}
 					🤝 {$translate->get('FromCommission')}: {number_format((float)$user->commissionCredited(), (int){$currency->decimals})}
 					{if $user->walletTopUp() > 0}<br>💳 {$translate->get('FromTopUp')}: {number_format((float)$user->walletTopUp(), (int){$currency->decimals})}{/if}
 				{else}

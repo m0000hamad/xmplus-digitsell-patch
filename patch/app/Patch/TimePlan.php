@@ -347,8 +347,10 @@ function timeplanAdminBootstrap(): void
 
     // the plans list is drawn by an encoded endpoint that lists every package,
     // so the page hides these rows itself
+    // wallet charges (app/Patch/Payg.php) are generated rows as well
     $generated = db()->query(
-        'SELECT id FROM package WHERE type = 1 AND order_note LIKE \'%"mode":"minted"%\'')
+        'SELECT id FROM package WHERE type = 1
+            AND (order_note LIKE \'%"mode":"minted"%\' OR order_note LIKE \'%"paygcharge"%\')')
         ->fetchAll(PDO::FETCH_COLUMN);
 
     done([

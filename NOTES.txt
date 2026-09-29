@@ -1,5 +1,15 @@
-A promotion discount can now go up to 100%. At 100% the plan is free for
-the promotion's time: the card, plan page and sticker say "رایگان" and the
-Telegram / channel messages say "رایگان (۱۰۰٪ تخفیف)". The plan form warns
-to set a sales limit and to try one purchase with your own test account
-first, because some payment gateways refuse a zero amount.
+Charge wallet (pay-as-you-go), switched off until you turn it on in
+Settings → کیف پول شارژ و پورسانت.
+
+Customers top up any amount from 200,000 toman (tiered bonus, e.g. +5% from
+1,000,000). When their plan runs out - data or time - they stay connected and
+usage is taken from the balance at each server's price per GB, like a SIM
+card; nothing is billed while a server is down. They are told on the
+dashboard, Telegram and e-mail when the plan is ending, when billing starts,
+when the balance is low or gone, and when a top-up lands. Buying a plan stops
+the billing.
+
+Admin: price per GB per server, totals of charged / spent / unspent, every
+wallet with its ledger, manual adjustment. Commission can be kept in its own
+wallet that only pays for subscription plans; a one-time button moves the
+current panel wallets into it.

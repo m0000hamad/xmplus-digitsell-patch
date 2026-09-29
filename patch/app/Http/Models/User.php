@@ -583,6 +583,11 @@ final class User extends Model
 			return false;
 		}
 
+		// on the wallet the expiry is the billing job's, not a plan's
+		if ($this->paygOnBalance()) {
+			return false;
+		}
+
 		if ($this->planIsActive()) {
 			return $this->daysLeft() <= $this->timePlanWindowDays();
 		}
@@ -594,6 +599,52 @@ final class User extends Model
 		}
 
 		return time() - strtotime($this->expire_in) <= $grace * 3600;
+	}
+
+	/* ------------------------------------------------------------------
+	 * Pay-as-you-go wallet - app/Jobs/PaygJob.php
+	 * ------------------------------------------------------------------ */
+
+	private $paygRow = false;
+
+	public function paygWallet()
+	{
+		if ($this->paygRow === false) {
+			try {
+				$this->paygRow = DB::connection('default')->table('payg_wallet')
+					->where('userid', $this->id)->first();
+			} catch (\Throwable $e) {
+				$this->paygRow = null;
+			}
+		}
+
+		return $this->paygRow;
+	}
+
+	/* the plan ran out and the wallet pays (or paid until it ran dry) */
+	public function paygOnBalance()
+	{
+		$wallet = $this->paygWallet();
+
+		return $wallet && (string) $wallet->mode !== 'plan';
+	}
+
+	public function paygBalance()
+	{
+		$wallet = $this->paygWallet();
+
+		return $wallet ? (float) $wallet->balance : 0.0;
+	}
+
+	/* referral commission kept apart from money, for subscription plans only */
+	public function commissionWalletBalance()
+	{
+		try {
+			return (float) DB::connection('default')->table('commission_wallet')
+				->where('userid', $this->id)->value('balance');
+		} catch (\Throwable $e) {
+			return 0.0;
+		}
 	}
 
 	/* ------------------------------------------------------------------
