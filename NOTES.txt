@@ -1,5 +1,4 @@
-The client apps still showed the old total traffic and Gregorian expiry: when
-that information is simply left out, the apps keep what they got on an
-earlier update. The status link now sends it as zeros, which clears it; the
-plan shows only in the Persian rows above the server list. Update the
+The client apps still listed the panel's own info entries, "Total:... Used:..."
+and "Expire:2027-..." (Gregorian), under the Persian rows. The status link now
+takes those entries out of the list; the Persian rows stay. Update the
 subscription once in the app after installing.
