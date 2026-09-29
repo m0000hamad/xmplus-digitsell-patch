@@ -114,6 +114,11 @@
                      <i class="fa-brands fa-telegram nav-icon"></i> {$translate->get('PromoChannelTitle')}
                   </a>
                 </li>
+				<li class="nav-item">
+                  <a class="nav-link" href="#PaygSettings"  data-scroll="PaygSettings">
+                     <i class="fa-solid fa-wallet nav-icon"></i> {$translate->get('PaygAdmTitle')}
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
@@ -135,6 +140,7 @@
 			{include file='admin/settings/restrictsettings.tpl'} 
 			{include file='admin/settings/patchsettings.tpl'}
 			{include file='admin/settings/promochannel.tpl'}
+			{include file='admin/settings/paygsettings.tpl'}
           </div>
           <div id="stickyBlockEndPoint"></div>
         </div>

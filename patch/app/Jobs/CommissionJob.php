@@ -99,6 +99,35 @@ class CommissionJob
 				// the checkout already put it in payout_balance, leave it there
 				$destination = 'payout';
 				$balance = (float) $user->payout_balance;
+			} elseif ($this->separateWallet()) {
+				// kept out of user.money: spendable on subscription plans only,
+				// through app/Patch/Payg.php (commission.apply)
+				$destination = 'wallet';
+				$pending = (float) $user->payout_balance - $amount;
+
+				$connection->table('user')->where('id', $userid)->update([
+					'payout_balance' => $pending > 0 ? $pending : 0,
+				]);
+
+				$connection->statement('INSERT IGNORE INTO commission_wallet (userid, updated) VALUES (?, ?)', [$userid, time()]);
+				$wallet = $connection->table('commission_wallet')->where('userid', $userid)->lockForUpdate()->first();
+				$balance = (float) $wallet->balance + $amount;
+
+				$connection->table('commission_wallet')->where('userid', $userid)->update([
+					'balance' => $balance,
+					'earned'  => $connection->raw('earned + ' . (float) $amount),
+					'updated' => time(),
+				]);
+
+				$connection->table('commission_wallet_log')->insert([
+					'userid'        => $userid,
+					'kind'          => 'commission',
+					'ref'           => 'affiliate:' . (int) $row->id,
+					'amount'        => $amount,
+					'balance_after' => $balance,
+					'note'          => (string) $row->username,
+					'created'       => time(),
+				]);
 			} else {
 				$destination = 'wallet';
 				$balance = (float) $user->money + $amount;
@@ -130,6 +159,17 @@ class CommissionJob
 		}
 
 		return true;
+	}
+
+	/* switched on from the admin wallet settings; see app/Jobs/PaygJob.php */
+	private function separateWallet()
+	{
+		try {
+			return (new ConfigProvider)->get('commission_wallet_enabled') == 1
+				&& DB::connection('default')->getSchemaBuilder()->hasTable('commission_wallet');
+		} catch (\Throwable $e) {
+			return false;
+		}
 	}
 
 	/*

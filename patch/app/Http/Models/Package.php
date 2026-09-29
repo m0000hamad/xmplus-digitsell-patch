@@ -29,6 +29,9 @@ final class Package extends Model
 
 	const TIME_MARKER = '"timeplan"';
 
+	/* a wallet charge, minted per amount by app/Patch/Payg.php - see app/Jobs/PaygJob.php */
+	const CHARGE_MARKER = '"paygcharge"';
+
 	public function timeMeta()
 	{
 		return self::decodeTimeMeta($this->order_note);
@@ -519,10 +522,14 @@ final class Package extends Model
 	 */
 	public function topupList()
     {
+		// time plans and wallet charges are topup rows too, but not traffic
 		$list = self::where('status', 1)->where('type', 1)
 			->where(function ($query) {
 				$query->whereNull('order_note')
-					->orWhere('order_note', 'not like', '%' . self::TIME_MARKER . '%');
+					->orWhere(function ($inner) {
+						$inner->where('order_note', 'not like', '%' . self::TIME_MARKER . '%')
+							->where('order_note', 'not like', '%' . self::CHARGE_MARKER . '%');
+					});
 			})
 			->orderBy('sort',"asc")->get();
 
@@ -530,6 +537,13 @@ final class Package extends Model
 
 		if ($viewer === null) {
 			return $list;
+		}
+
+		// on the wallet the job owns the quota; extra traffic would be overwritten
+		if (method_exists($viewer, 'paygOnBalance') && $viewer->paygOnBalance()) {
+			return $list->filter(function () {
+				return false;
+			})->values();
 		}
 
 		return $list->filter(function ($row) use ($viewer) {
