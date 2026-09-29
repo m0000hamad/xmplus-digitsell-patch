@@ -312,8 +312,22 @@ function paygUserMe(): void
         'SELECT l.kind, l.amount, l.balance_after, l.bytes, l.free_bytes, l.created, l.updated, l.note,
                 COALESCE(s.name, \'\') AS server
            FROM payg_ledger l LEFT JOIN servers s ON s.id = l.serverid
-          WHERE l.userid = ? ORDER BY l.updated DESC, l.id DESC LIMIT 30');
+          WHERE l.userid = ? ORDER BY l.updated DESC, l.id DESC LIMIT 60');
     $history->execute([$id]);
+
+    // paid top-ups the job has not credited yet (it runs once a minute)
+    $pending = 0.0;
+    $open = db()->prepare(
+        "SELECT o.id, o.discount, p.order_note
+           FROM orders o JOIN package p ON p.id = o.packageid
+          WHERE o.userid = ? AND o.status = 1 AND p.order_note LIKE ?
+            AND NOT EXISTS (SELECT 1 FROM payg_ledger l WHERE l.ref = CONCAT('order:', o.id))
+          LIMIT 20");
+    $open->execute([$id, '%' . PAYG_MARKER . '%']);
+    foreach ($open as $row) {
+        $meta = json_decode((string) $row['order_note'], true);
+        $pending += max(0.0, (float) ($meta['paygcharge']['amount'] ?? 0) - max(0.0, (float) $row['discount']));
+    }
 
     $notices = db()->prepare(
         'SELECT id, kind, text, created FROM payg_notice WHERE userid = ? AND seen = 0 ORDER BY id DESC LIMIT 5');
@@ -340,6 +354,7 @@ function paygUserMe(): void
             'auto'    => (int) $wallet['auto'] === 1,
             'since'   => (int) $wallet['since'],
         ],
+        'pending'     => $pending,
         'today'       => (float) $totals['today'],
         'month'       => (float) $totals['month'],
         'today_bytes' => (float) $totals['today_bytes'],
@@ -373,19 +388,23 @@ function paygUserMint(): void
     paygRequireUserToken();
 
     if (!paygEnabled()) {
-        fail('wallet charging is switched off');
+        fail('شارژ کیف پول فعلاً غیرفعال است');
     }
 
     $min = (float) paygSetting('payg_min_charge', '2000000');
     $step = max(1.0, (float) paygSetting('payg_charge_step', '100000'));
     $amount = paygNumber($_POST['amount'] ?? 0);
 
+    if ($amount <= 0) {
+        fail('مبلغ شارژ را وارد کنید');
+    }
+
     if ($amount < $min) {
-        fail('the minimum charge is ' . paygMoneyText($min));
+        fail('حداقل مبلغ شارژ ' . paygMoneyText($min) . ' است');
     }
 
     if ($amount > PAYG_MAX_CHARGE) {
-        fail('that amount is too large');
+        fail('این مبلغ بیش از حد مجاز است');
     }
 
     // whole amounts are written as integers, so the marker lookup below matches
@@ -528,17 +547,29 @@ function paygCommissionApply(): void
 
 // ------------------------------------------------------------------- admin
 
-function paygAdminBootstrap(): void
+/** The wallet settings as the admin form shows them. Amounts stay in rial. */
+function paygAdminSettings(): array
 {
-    requireAdmin();
-
     $settings = [];
     foreach (['payg_enabled' => '0', 'payg_min_charge' => '2000000', 'payg_charge_step' => '100000',
               'payg_default_price' => '0', 'payg_low_balance' => '500000', 'payg_outage_free' => '1',
               'payg_warn_percent' => '80,95', 'payg_warn_days' => '3,1', 'payg_show_toman' => '1',
-              'payg_group' => '0', 'commission_wallet_enabled' => '0'] as $name => $fallback) {
+              'payg_group' => '0', 'commission_wallet_enabled' => '0', 'sub_info_enabled' => '0',
+              'sub_origin' => ''] as $name => $fallback) {
         $settings[$name] = paygSetting($name, $fallback);
     }
+
+    // an empty origin IP is a real choice (do not pin), not "unset"
+    $settings['sub_origin_ip'] = (string) setting('sub_origin_ip', '127.0.0.1');
+
+    return $settings;
+}
+
+function paygAdminBootstrap(): void
+{
+    requireAdmin();
+
+    $settings = paygAdminSettings();
 
     $totals = db()->query(
         "SELECT COUNT(*) AS wallets,
@@ -692,7 +723,25 @@ function paygAdminSave(): void
         putSetting($name, (string) (floor($value) == $value ? (int) $value : $value));
     }
 
-    foreach (['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'commission_wallet_enabled'] as $name) {
+    // where SubInfo.php fetches the panel's own /link/ from
+    if (isset($_POST['sub_origin'])) {
+        $origin = rtrim(trim((string) $_POST['sub_origin']), '/');
+        if ($origin !== '' && !preg_match('~^https?://[A-Za-z0-9.-]+(:\d+)?$~', $origin)) {
+            fail('the panel address must look like https://my.example.com');
+        }
+        putSetting('sub_origin', $origin);
+    }
+
+    if (isset($_POST['sub_origin_ip'])) {
+        $ip = trim((string) $_POST['sub_origin_ip']);
+        if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP) === false) {
+            fail('the origin IP is not an IP address');
+        }
+        putSetting('sub_origin_ip', $ip);
+    }
+
+    foreach (['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'commission_wallet_enabled',
+              'sub_info_enabled'] as $name) {
         if (isset($_POST[$name])) {
             putSetting($name, (int) $_POST[$name] === 1 ? '1' : '0');
         }
@@ -739,7 +788,8 @@ function paygAdminSave(): void
         putSetting('payg_last_log_time', (string) (time() - 60));
     }
 
-    done(['saved' => true]);
+    // what is stored now, read back, so the form shows exactly that
+    done(['saved' => true, 'settings' => paygAdminSettings(), 'tiers' => paygTiers()]);
 }
 
 function paygAdminRates(): void
