@@ -337,11 +337,18 @@ $isList = (bool) preg_match('~^[a-z0-9+.-]+://~im', $plain)
 $user = subinfoUser($subToken, $plain);
 $lines = $user !== null && setting('sub_info_enabled', '1') !== '0' ? subinfoLines($user) : [];
 
+// the rows carry the plan in Solar Hijri and toman; the app's own bar would
+// repeat it with a Gregorian date, so the owner wants that bar gone
+$withRows = $isList && $lines !== [];
+
 header_remove('Content-Type');
 header('Content-Type: text/plain; charset=utf-8');
 foreach ($upstream['headers'] as $name => $value) {
     // an HTML type would make some apps treat the list as a web page
     if ($name === 'content-type' && stripos($value, 'text/html') !== false) {
+        continue;
+    }
+    if ($name === 'subscription-userinfo' && $withRows) {
         continue;
     }
     if (in_array($name, SUBINFO_PASS, true)) {
@@ -353,8 +360,9 @@ if ($user !== null && $lines !== []) {
     // Happ shows this text above the server list
     header('announce: base64:' . base64_encode(implode("\n", $lines)));
 
-    // on the wallet the expiry is the billing job's, a day ahead; do not show it
-    $wallet = setting('payg_enabled', '0') === '1' ? subinfoWallet((int) $user['id']) : null;
+    // Clash / sing-box get no rows, so they keep the numbers; on the wallet the
+    // expiry is the billing job's, a day ahead, and is not shown
+    $wallet = !$withRows && setting('payg_enabled', '0') === '1' ? subinfoWallet((int) $user['id']) : null;
     if ($wallet && (string) $wallet['mode'] !== 'plan') {
         header(sprintf('subscription-userinfo: upload=%d; download=%d; total=%d; expire=0',
             (int) $user['u'], (int) $user['d'], (int) $user['transfer_enable']));
