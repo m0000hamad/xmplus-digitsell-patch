@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.11.3** · repo
+Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.11.4** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -656,7 +656,11 @@ rides in information-only rows. The wrapper
    (owner: the app must not show the old total and Gregorian expiry). 1.11.3:
    dropping it was not enough - the apps keep the values from their last
    update - so it is sent as `upload=0; download=0; total=0; expire=0`; Clash /
-   sing-box, which get no rows, keep it (with `expire=0` while on the wallet);
+   sing-box, which get no rows, keep it (with `expire=0` while on the wallet).
+   1.11.4: the panel also puts its own info entries in the list ("Total:1000.5G
+   Used:0.71G", "Expire:2027-09-29", shown as VMESS servers); when the rows go
+   in, entries whose name starts with Total/Used/Expire/Remaining/Traffic/Reset
+   and a colon are dropped (`subinfoIsPanelInfo`);
 5. leaves Clash YAML / sing-box JSON untouched; if anything fails it answers
    302 to the panel's own link, so nobody loses their servers.
 
@@ -907,3 +911,4 @@ Not yet verified on the live panel — see §8.
 | 1.11.1 | Wallet in the operator-app layout: wallet tile in the subscription card, wallet state at the top of the card while on balance, side panel / bottom sheet with add funds, transactions, prices and settings, toast for billing messages, menu item; admin amounts in toman, minimum any value including 0, save answered with the stored values, GETs bypass the CDN cache, token retry; status rows in the client apps (from the 1.11.0 branch) |
 | 1.11.2 | Client apps: the `?do=sub` link no longer sends `subscription-userinfo` when it adds the status rows, so the app's own total / Gregorian expiry bar is gone; Clash / sing-box keep it |
 | 1.11.3 | Client apps: the status link sends `subscription-userinfo` with all zeros instead of leaving it out, because the apps kept the old total / Gregorian expiry from their previous update |
+| 1.11.4 | Client apps: the status link drops the panel's own "Total:… Used:…" / "Expire:…" info entries from the list, which still showed the Gregorian expiry under the Persian rows |
