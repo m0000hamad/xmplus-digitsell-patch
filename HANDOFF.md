@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.11.0** · repo
+Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.11.1** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -675,6 +675,55 @@ upstream: base64 and plain lists, Happ/v2rayNG/Shadowrocket User-Agents, plan,
 expired, on-balance and empty accounts, a YAML pass-through, a bad token (403)
 and a dead upstream (302 to the old link).
 
+**1.11.1 — where the wallet lives on the dashboard.** The owner found the
+1.11.0 card, a full-width block between the dashboard rows, confusing and
+asked for the operator-app layout instead:
+
+- The balance tile in the subscription card becomes the **wallet tile**
+  (`view/user/dashboard/wallettile.tpl`): balance, "≈ N GB", commission and
+  panel-money lines when present, a red dot for unread messages, **➕ افزایش
+  موجودی** and **جزئیات ‹**. Without `payg_enabled` the old balance tile stays.
+- While the account is on the wallet, the top of the subscription card
+  (`walletstate.tpl`) says so — "⚡ اتصال از کیف پول" / "⛔ اتصال قطع است",
+  balance and headroom chips, a one-line explanation — instead of the plan's
+  name, traffic chip and a misleading "1 day left" clock. Add funds and Buy a
+  plan lead the button row. `statistics.tpl` explains what "remaining" means.
+- Everything else is in a **side panel** (`view/user/dashboard/wallet.tpl`):
+  from the inline end on desktop, a bottom sheet under 576 px. Bank-card hero,
+  a pending line for paid-but-not-credited top-ups (`payg.me` → `pending`), and
+  four tabs: add funds (sticky pay button), transactions grouped by day,
+  prices, settings (auto switch, commission wallet). Opened by any
+  `[data-wallet-open="charge|history|prices|settings"]` and by
+  `/portal/dashboard#wallet` (`#wallet-history` etc.) — the new **💳 کیف پول**
+  menu item points there (`usermenu.tpl`, only with `payg_enabled`). Esc,
+  backdrop, ✕ close it; the page does not scroll behind it.
+- Billing-job messages are a **toast** at the top with "مشاهده", no longer a
+  block in the page. `payg.tpl` is gone (the updater leaves the old file on the
+  server, unused).
+- `User` got `paygEnabled()`, `paygMode()`, `paygBalanceShown()`,
+  `paygToman()`, `paygHeadroomGb()`, `paygUnseen()`,
+  `commissionWalletEnabled()`; the per-user cache is a static array now, not a
+  property on the Eloquent model. Headroom (and the job's quota) use the dearest
+  **enabled** server.
+
+**1.11.1 — "the minimum goes back to 200k".** No server-side bug was found;
+the save path was made observable and robust instead:
+
+- Admin amounts are shown and typed in **toman** while `payg_show_toman` is on
+  (rial in the database; the page multiplies/divides by 10): minimum, step,
+  default price, low-balance threshold, bonus tiers, server prices, report,
+  wallets, ledger, adjustment, migration total.
+- `payg.save` answers with the stored settings and the form is refilled from
+  that answer ("✓ ذخیره شد — حداقل شارژ: X تومان"); no follow-up GET that a cache
+  could answer. Enter in a box saves.
+- Every GET from the wallet pages carries `&_=<ms>` and `cache: 'no-store'`:
+  the site is behind an Iranian CDN, and a cached `payg.admin` would show the
+  old minimum after a save — the most likely cause of the report.
+- A POST refused for its token fetches a fresh token and retries once (the
+  panel's own requests can rewrite the session file).
+- Minimum 0 means no minimum; `payg.mint` still refuses 0 and rounds up to the
+  step. Customer-facing mint errors are Persian.
+
 Not yet verified on the live panel — see §8.
 
 ### Gift card redeem (1.8.9)
@@ -851,3 +900,4 @@ Not yet verified on the live panel — see §8.
 | 1.10.12 | Promotion end date: a Solar Hijri calendar popup (📅, Saturday first, past days disabled, hour and minute, today / no deadline) and "N days from today until HH:MM"; both fill the same field |
 | 1.10.13 | Discount up to 100% (free): price written as 0, "رایگان" on the card, the details page and the sticker, "رایگان (۱۰۰٪ تخفیف)" in Telegram/channel texts, and a warning in the form to set a sales limit and try a zero-amount purchase first |
 | 1.11.0 | Charge wallet (pay-as-you-go): top up any amount from 200k toman with tiered bonus, plan runs out → usage billed from the balance at each server's price per GB (free while a server is down), plan-ending / low / empty / resumed notices on the dashboard, Telegram and e-mail; admin report of charged / spent / unspent, per-user ledger, manual adjustment; separate commission wallet usable for subscription plans only; status rows in Happ / V2Box / v2rayNG / Shadowrocket (Solar Hijri end date, data left, wallet balance, "update for the live balance"). Off until switched on |
+| 1.11.1 | Wallet in the operator-app layout: wallet tile in the subscription card, wallet state at the top of the card while on balance, side panel / bottom sheet with add funds, transactions, prices and settings, toast for billing messages, menu item; admin amounts in toman, minimum any value including 0, save answered with the stored values, GETs bypass the CDN cache, token retry; status rows in the client apps (from the 1.11.0 branch) |

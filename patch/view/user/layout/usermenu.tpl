@@ -76,6 +76,15 @@
                 <span class="nav-link-title">{$translate->get('Orders')}</span>
               </a>
             </div>
+			{if isset($Config['payg_enabled']) && $Config['payg_enabled'] == 1}
+			{* opens the wallet side panel on the dashboard (user/dashboard/wallet.tpl) *}
+            <div class="nav-item" style="--mc:#22c55e;--mcs:rgba(34, 197, 94,.12);--mch:rgba(34, 197, 94,.26);--mcd:#15803d">
+              <a class="nav-link " href="/portal/dashboard#wallet" data-placement="left">
+                <span class="nav-icon nav-sticker">💳</span>
+                <span class="nav-link-title">{$translate->get('PaygWallet')}</span>
+              </a>
+            </div>
+			{/if}
 
             <span class="dropdown-header mt-4">{$translate->get('Support')}</span>
             <small class="bi-three-dots nav-subtitle-replacer"></small>
@@ -179,6 +188,8 @@
 	for (var i = 0; i < links.length; i++) {
 		var href = links[i].getAttribute('href') || '';
 		if (href.charAt(0) !== '/') { continue; }
+		// the wallet item is the dashboard with its side panel open, not a page of its own
+		if (href.indexOf('#wallet') !== -1) { continue; }
 
 		var path = href.split('#')[0].split('?')[0].replace(/\/+$/, '');
 		if (path && here.indexOf(path) === 0) {

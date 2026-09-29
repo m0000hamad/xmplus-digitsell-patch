@@ -2,7 +2,8 @@
   Pay-as-you-go wallet and commission wallet - admin side.
   Included by settings.tpl; everything is read from and written to
   /xmplus-patch.php?do=payg.* / commission.* (app/Patch/Payg.php).
-  Amounts in the forms are in the panel's currency (rial).
+  Amounts are stored in rial; the form shows and takes them in toman while
+  "show amounts in toman" is on (the JS multiplies/divides by 10).
 *}
 <div class="card card-shadow shadow-lg rounded mb-3 mb-lg-5" id="PaygSettings">
 	<div class="card-header">
@@ -22,7 +23,7 @@
 				<table class="table table-sm pa-table">
 					<thead><tr>
 						<th>{$translate->get('PaygAdmServer')}</th>
-						<th>{$translate->get('PaygAdmRevenue')}</th>
+						<th>{$translate->get('PaygAdmRevenue')} <span class="pa-unit"></span></th>
 						<th>{$translate->get('PaygAdmBilledVolume')}</th>
 						<th>{$translate->get('PaygAdmFreeVolume')}</th>
 					</tr></thead>
@@ -41,19 +42,20 @@
 		</div>
 		<div class="row g-3 mt-1">
 			<div class="col-md-6">
-				<label class="form-label" for="pa_payg_min_charge">{$translate->get('PaygAdmMin')}</label>
+				<label class="form-label" for="pa_payg_min_charge">{$translate->get('PaygAdmMin')} <span class="pa-unit"></span></label>
 				<input type="text" class="form-control" id="pa_payg_min_charge" dir="ltr">
+				<small class="text-muted">{$translate->get('PaygAdmMinHint')}</small>
 			</div>
 			<div class="col-md-6">
-				<label class="form-label" for="pa_payg_charge_step">{$translate->get('PaygAdmStep')}</label>
+				<label class="form-label" for="pa_payg_charge_step">{$translate->get('PaygAdmStep')} <span class="pa-unit"></span></label>
 				<input type="text" class="form-control" id="pa_payg_charge_step" dir="ltr">
 			</div>
 			<div class="col-md-6">
-				<label class="form-label" for="pa_payg_default_price">{$translate->get('PaygAdmDefault')}</label>
+				<label class="form-label" for="pa_payg_default_price">{$translate->get('PaygAdmDefault')} <span class="pa-unit"></span></label>
 				<input type="text" class="form-control" id="pa_payg_default_price" dir="ltr">
 			</div>
 			<div class="col-md-6">
-				<label class="form-label" for="pa_payg_low_balance">{$translate->get('PaygAdmLow')}</label>
+				<label class="form-label" for="pa_payg_low_balance">{$translate->get('PaygAdmLow')} <span class="pa-unit"></span></label>
 				<input type="text" class="form-control" id="pa_payg_low_balance" dir="ltr">
 			</div>
 			<div class="col-md-6">
@@ -70,11 +72,12 @@
 			</div>
 			<div class="col-md-6">
 				<label class="form-label" for="pa_payg_bonus_tiers">{$translate->get('PaygAdmTiers')}</label>
-				<textarea class="form-control" id="pa_payg_bonus_tiers" rows="3" dir="ltr" placeholder="10000000:5&#10;20000000:10"></textarea>
+				<textarea class="form-control" id="pa_payg_bonus_tiers" rows="3" dir="ltr" placeholder="1000000:5&#10;2000000:10"></textarea>
 				<small class="text-muted">{$translate->get('PaygAdmTiersHint')}</small>
 			</div>
 		</div>
-		<div class="d-flex justify-content-end mt-3">
+		<div class="d-flex justify-content-end align-items-center gap-3 mt-3">
+			<span class="pa-status" id="paStatus" role="status"></span>
 			<button type="button" class="btn btn-primary" id="paSave">💾 {$translate->get('Save')}</button>
 		</div>
 
@@ -92,7 +95,8 @@
 				<input type="text" class="form-control" id="pa_sub_origin_ip" dir="ltr" placeholder="127.0.0.1">
 			</div>
 		</div>
-		<small class="text-muted">{$translate->get('SubInfoHint')}</small>
+		<small class="text-muted d-block">{$translate->get('SubInfoHint')}</small>
+		<code class="d-block mt-1" dir="ltr" id="paSubExample"></code>
 		<div class="d-flex justify-content-end mt-3">
 			<button type="button" class="btn btn-primary pa-save-all">💾 {$translate->get('Save')}</button>
 		</div>
@@ -105,7 +109,7 @@
 				<thead><tr>
 					<th>{$translate->get('PaygAdmServer')}</th>
 					<th>{$translate->get('PaygAdmState')}</th>
-					<th>{$translate->get('PaygAdmPrice')}</th>
+					<th>{$translate->get('PaygAdmPrice')} <span class="pa-unit"></span></th>
 				</tr></thead>
 				<tbody id="paRates"></tbody>
 			</table>
@@ -157,8 +161,8 @@
 				<input type="text" class="form-control" id="paAdjUser">
 			</div>
 			<div class="col-md-4">
-				<label class="form-label" for="paAdjAmount">{$translate->get('PaygAdmAdjustAmount')}</label>
-				<input type="text" class="form-control" id="paAdjAmount" dir="ltr" placeholder="500000 / -500000">
+				<label class="form-label" for="paAdjAmount">{$translate->get('PaygAdmAdjustAmount')} <span class="pa-unit"></span></label>
+				<input type="text" class="form-control" id="paAdjAmount" dir="ltr" placeholder="50000 / -50000">
 			</div>
 			<div class="col-md-4">
 				<label class="form-label" for="paAdjWallet">{$translate->get('PaygAdmAdjustWallet')}</label>
@@ -222,6 +226,11 @@
 	window.PaygAdmWords.kUsage    = "{$translate->get('PaygKindUsage')|escape:'javascript'}";
 	window.PaygAdmWords.kAdjust   = "{$translate->get('PaygKindAdjust')|escape:'javascript'}";
 	window.PaygAdmWords.close     = "{$translate->get('Close')|escape:'javascript'}";
+	window.PaygAdmWords.toman     = "{$translate->get('PaygToman')|escape:'javascript'}";
+	window.PaygAdmWords.rial      = "{$translate->get('PaygRial')|escape:'javascript'}";
+	window.PaygAdmWords.savedMin  = "{$translate->get('PaygAdmSavedMin')|escape:'javascript'}";
+	window.PaygAdmWords.noMin     = "{$translate->get('PaygAdmNoMin')|escape:'javascript'}";
+	window.PaygAdmWords.failed    = "{$translate->get('PaygAdmSaveFailed')|escape:'javascript'}";
 </script>
 {literal}
 <style>
@@ -247,6 +256,10 @@
 .pa-user { cursor: pointer; }
 .pa-neg { color: #e11d48; font-weight: 700; }
 .pa-ledger { margin-top: 10px; padding: 12px; border-radius: 14px; background: rgba(55, 125, 255, .05); }
+.pa-unit { font-weight: 400; opacity: .75; }
+.pa-status { font-size: 12.5px; font-weight: 700; }
+.pa-status.is-ok { color: #059669; }
+.pa-status.is-bad { color: #e11d48; }
 </style>
 <script>
 (function () {
@@ -258,6 +271,10 @@
 		'payg_min_charge', 'payg_charge_step', 'payg_default_price', 'payg_low_balance',
 		'payg_warn_percent', 'payg_warn_days', 'payg_group', 'sub_info_enabled', 'sub_origin', 'sub_origin_ip'];
 	var checks = ['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'commission_wallet_enabled', 'sub_info_enabled'];
+	var moneyFields = ['payg_min_charge', 'payg_charge_step', 'payg_default_price', 'payg_low_balance'];
+
+	/* rial in the database; toman on screen while "show in toman" is on */
+	var factor = 10;
 
 	function $id(id) { return document.getElementById(id); }
 
@@ -269,6 +286,12 @@
 		}
 	}
 
+	function status(text, ok) {
+		var el = $id('paStatus');
+		el.textContent = text;
+		el.className = 'pa-status ' + (ok ? 'is-ok' : 'is-bad');
+	}
+
 	function esc(text) {
 		return String(text == null ? '' : text).replace(/[&<>"']/g, function (c) {
 			return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
@@ -277,6 +300,29 @@
 
 	function num(n) {
 		return Math.round(Number(n) || 0).toLocaleString('en-US');
+	}
+
+	/* a stored rial amount, as the form shows it */
+	function shown(rial) {
+		var v = (Number(rial) || 0) / factor;
+		return Math.round(v * 100) / 100;
+	}
+
+	function money(rial) {
+		return num(shown(rial)) + ' ' + (factor === 10 ? W.toman : W.rial);
+	}
+
+	/* what the admin typed (Persian digits and separators too), back in rial */
+	function toRial(text) {
+		var clean = String(text == null ? '' : text)
+			.replace(/[۰-۹]/g, function (d) { return '۰۱۲۳۴۵۶۷۸۹'.indexOf(d); })
+			.replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); })
+			.replace(/[−–]/g, '-')
+			.replace(/[^0-9.\-]/g, '');
+		if (clean === '' || clean === '-') {
+			return '';
+		}
+		return String(Math.round(Number(clean) * factor * 100) / 100);
 	}
 
 	function vol(bytes) {
@@ -294,52 +340,79 @@
 			+ '</div><div class="pa-kpi-value">' + esc(value) + '</div></div>';
 	}
 
+	/* the CDN in front of the panel must never answer from a cache */
 	function get(action, query) {
-		return fetch(endpoint + '?do=' + action + (query || ''), { credentials: 'same-origin' })
+		return fetch(endpoint + '?do=' + action + (query || '') + '&_=' + Date.now(),
+			{ credentials: 'same-origin', cache: 'no-store' })
 			.then(function (r) { return r.json(); });
 	}
 
-	function post(action, body) {
-		body.append('token', token);
-		return fetch(endpoint + '?do=' + action, { method: 'POST', credentials: 'same-origin', body: body })
-			.then(function (r) { return r.json(); });
+	function post(action, body, retried) {
+		body.set('token', token);
+		return fetch(endpoint + '?do=' + action, { method: 'POST', credentials: 'same-origin', cache: 'no-store', body: body })
+			.then(function (r) { return r.json(); })
+			.then(function (data) {
+				// the session lost its token: take a fresh one and try once more
+				if (!data.ok && !retried && /token/i.test(String(data.error || ''))) {
+					return get('payg.admin').then(function (fresh) {
+						token = fresh.token || token;
+						return post(action, body, true);
+					});
+				}
+				return data;
+			})
+			.catch(function () {
+				return { ok: false, error: 'network / server error' };
+			});
 	}
 
 	function modeName(mode) {
 		return mode === 'balance' ? W.onBalance : (mode === 'empty' ? W.empty : W.plan);
 	}
 
+	function fillForm(settings, tiers) {
+		factor = String(settings.payg_show_toman) === '0' ? 1 : 10;
+
+		document.querySelectorAll('#PaygSettings .pa-unit').forEach(function (el) {
+			el.textContent = '(' + (factor === 10 ? W.toman : W.rial) + ')';
+		});
+
+		fields.forEach(function (name) {
+			var el = $id('pa_' + name);
+			if (!el) { return; }
+			if (checks.indexOf(name) >= 0) {
+				el.checked = String(settings[name]) === '1';
+			} else if (moneyFields.indexOf(name) >= 0) {
+				el.value = shown(settings[name]);
+			} else {
+				el.value = settings[name];
+			}
+		});
+
+		$id('pa_payg_bonus_tiers').value = (tiers || []).map(function (t) {
+			return shown(t.min) + ':' + t.percent;
+		}).join('\n');
+	}
+
 	function load() {
-		get('payg.admin').then(function (data) {
+		return get('payg.admin').then(function (data) {
 			if (!data.ok) {
 				say(data.error);
 				return;
 			}
 			token = data.token;
-
-			fields.forEach(function (name) {
-				var el = $id('pa_' + name);
-				if (!el) { return; }
-				if (checks.indexOf(name) >= 0) {
-					el.checked = String(data.settings[name]) === '1';
-				} else {
-					el.value = data.settings[name];
-				}
-			});
-			$id('pa_payg_bonus_tiers').value = (data.tiers || []).map(function (t) {
-				return t.min + ':' + t.percent;
-			}).join('\n');
+			fillForm(data.settings, data.tiers);
 
 			var t = data.totals || {};
 			var u = data.usage || {};
 			$id('paKpis').innerHTML =
-				kpi(W.charged, num(t.charged), 'is-green')
-				+ kpi(W.bonus, num(Number(t.bonus) + Number(t.adjusted)), 'is-violet')
-				+ kpi(W.spent, num(t.spent), 'is-amber')
-				+ kpi(W.unspent, num(t.unspent), '')
-				+ kpi(W.owed, num(t.owed), 'is-red')
-				+ kpi(W.today, num(u.today), 'is-amber')
-				+ kpi(W.month, num(u.month), 'is-amber')
+				kpi(W.charged, money(t.charged), 'is-green')
+				+ kpi(W.bonus, money(Number(t.bonus) + Number(t.adjusted)), 'is-violet')
+				+ kpi(W.spent, money(t.spent), 'is-amber')
+				+ kpi(W.unspent, money(t.unspent), '')
+				+ kpi(W.owed, money(t.owed), 'is-red')
+				+ kpi(W.today, money(u.today), 'is-amber')
+				+ kpi(W.month, money(u.month), 'is-amber')
 				+ kpi(W.wallets, num(t.wallets), '')
 				+ kpi(W.onBalance, num(t.on_balance), 'is-amber')
 				+ kpi(W.empty, num(t.empty), 'is-red');
@@ -347,7 +420,7 @@
 			$id('paLastRun').textContent = W.lastRun + ': ' + (data.last_run > 0 ? when(data.last_run) : W.never);
 
 			$id('paPerServer').innerHTML = (data.per_server || []).map(function (r) {
-				return '<tr><td>' + esc(r.name) + '</td><td>' + num(r.revenue) + '</td><td>' + vol(r.bytes)
+				return '<tr><td>' + esc(r.name) + '</td><td>' + num(shown(r.revenue)) + '</td><td>' + vol(r.bytes)
 					+ '</td><td>' + vol(r.free_bytes) + '</td></tr>';
 			}).join('') || '<tr><td colspan="4">' + esc(W.nothing) + '</td></tr>';
 
@@ -356,15 +429,15 @@
 				return '<tr><td>' + esc(s.name) + ' <small class="text-muted">#' + s.id + '</small></td>'
 					+ '<td>' + esc(state) + '</td>'
 					+ '<td><input type="text" class="form-control form-control-sm pa-rate" dir="ltr" data-id="' + s.id + '"'
-					+ ' value="' + (s.custom ? esc(s.price) : '') + '" placeholder="' + esc(W.defaultP) + ' ' + num(data.settings.payg_default_price) + '"></td></tr>';
+					+ ' value="' + (s.custom ? esc(shown(s.price)) : '') + '" placeholder="' + esc(W.defaultP) + ' ' + num(shown(data.settings.payg_default_price)) + '"></td></tr>';
 			}).join('');
 
 			var c = data.commission || {};
 			$id('paCommission').innerHTML =
-				kpi(W.cBalance, num(c.balance), 'is-violet')
-				+ kpi(W.cEarned, num(c.earned), 'is-green')
-				+ kpi(W.cSpent, num(c.spent), 'is-amber')
-				+ kpi(W.money, num(data.money_total), '');
+				kpi(W.cBalance, money(c.balance), 'is-violet')
+				+ kpi(W.cEarned, money(c.earned), 'is-green')
+				+ kpi(W.cSpent, money(c.spent), 'is-amber')
+				+ kpi(W.money, money(data.money_total), '');
 
 			$id('paMigrated').textContent = data.migrated ? W.migrated.replace('%date%', data.migrated) : '';
 			$id('paMigrate').disabled = !!data.migrated;
@@ -386,10 +459,10 @@
 				var balance = Number(r.balance);
 				return '<tr class="pa-user" data-id="' + r.userid + '">'
 					+ '<td>' + esc(r.username) + ' <small class="text-muted">#' + r.userid + '</small><br><small class="text-muted">' + esc(r.email) + '</small></td>'
-					+ '<td>' + num(r.charged) + '</td>'
-					+ '<td>' + num(Number(r.bonus) + Number(r.adjusted)) + '</td>'
-					+ '<td>' + num(r.spent) + '</td>'
-					+ '<td class="' + (balance < 0 ? 'pa-neg' : '') + '">' + num(balance) + '</td>'
+					+ '<td>' + money(r.charged) + '</td>'
+					+ '<td>' + money(Number(r.bonus) + Number(r.adjusted)) + '</td>'
+					+ '<td>' + money(r.spent) + '</td>'
+					+ '<td class="' + (balance < 0 ? 'pa-neg' : '') + '">' + money(balance) + '</td>'
 					+ '<td>' + esc(modeName(r.mode)) + (Number(r.auto) === 1 ? '' : ' ⏸') + '</td>'
 					+ '<td>' + when(r.last_usage) + '</td></tr>';
 			}).join('') || '<tr><td colspan="7">' + esc(W.nothing) + '</td></tr>';
@@ -410,14 +483,14 @@
 			var kinds = { charge: W.kCharge, bonus: W.kBonus, usage: W.kUsage, adjust: W.kAdjust };
 			var rows = (data.rows || []).map(function (r) {
 				var detail = r.kind === 'usage'
-					? (r.server || '#') + ' · ' + vol(Number(r.bytes)) + (Number(r.free_bytes) > 0 ? ' (+' + vol(r.free_bytes) + ' free)' : '') + ' @ ' + num(r.rate)
+					? (r.server || '#') + ' · ' + vol(Number(r.bytes)) + (Number(r.free_bytes) > 0 ? ' (+' + vol(r.free_bytes) + ' free)' : '') + ' @ ' + money(r.rate)
 					: r.note;
 				return '<tr><td>' + when(r.updated) + '</td><td>' + esc(kinds[r.kind] || r.kind) + '</td><td>' + esc(detail)
-					+ '</td><td class="' + (Number(r.amount) < 0 ? 'pa-neg' : '') + '">' + num(r.amount) + '</td><td>' + num(r.balance_after) + '</td></tr>';
+					+ '</td><td class="' + (Number(r.amount) < 0 ? 'pa-neg' : '') + '">' + money(r.amount) + '</td><td>' + money(r.balance_after) + '</td></tr>';
 			}).join('');
 			var box = $id('paLedger');
 			box.innerHTML = '<div class="d-flex justify-content-between align-items-center mb-2"><b>#' + userId
-				+ ' · ' + esc(W.unspent) + ': ' + num(data.wallet.balance) + ' · ' + esc(W.cBalance) + ': ' + num(data.commission_balance)
+				+ ' · ' + esc(W.unspent) + ': ' + money(data.wallet.balance) + ' · ' + esc(W.cBalance) + ': ' + money(data.commission_balance)
 				+ '</b><button type="button" class="btn btn-sm btn-outline-secondary" id="paLedgerClose">' + esc(W.close) + '</button></div>'
 				+ '<div class="table-responsive"><table class="table table-sm pa-table"><tbody>'
 				+ (rows || '<tr><td>' + esc(W.nothing) + '</td></tr>') + '</tbody></table></div>';
@@ -427,29 +500,67 @@
 		});
 	}
 
+	/*
+	 * Saves the form and shows what the server stored, from the same answer:
+	 * no second request that a cache could answer with the old numbers.
+	 */
 	function saveSettings() {
 		var body = new FormData();
 		fields.forEach(function (name) {
 			var el = $id('pa_' + name);
-			body.append(name, checks.indexOf(name) >= 0 ? (el.checked ? 1 : 0) : el.value);
+			if (checks.indexOf(name) >= 0) {
+				body.append(name, el.checked ? 1 : 0);
+			} else if (moneyFields.indexOf(name) >= 0) {
+				body.append(name, toRial(el.value) || '0');
+			} else {
+				body.append(name, el.value);
+			}
 		});
-		body.append('payg_bonus_tiers', $id('pa_payg_bonus_tiers').value);
+		body.append('payg_bonus_tiers', $id('pa_payg_bonus_tiers').value.split(/\r?\n/).map(function (line) {
+			var parts = line.split(/[:=]/);
+			return parts.length === 2 ? toRial(parts[0]) + ':' + parts[1].replace(/[^0-9.۰-۹]/g, '') : '';
+		}).filter(Boolean).join('\n'));
+
+		document.querySelectorAll('#paSave, .pa-save-all').forEach(function (b) { b.disabled = true; });
+
 		post('payg.save', body).then(function (data) {
-			say(data.ok ? W.saved : data.error);
-			if (data.ok) { load(); }
+			document.querySelectorAll('#paSave, .pa-save-all').forEach(function (b) { b.disabled = false; });
+
+			if (!data.ok) {
+				var text = W.failed.replace('%error%', data.error || '?');
+				status(text, false);
+				say(text);
+				return;
+			}
+
+			fillForm(data.settings, data.tiers);
+			var min = Number(data.settings.payg_min_charge) || 0;
+			var text = W.savedMin.replace('%min%', min > 0 ? money(min) : W.noMin);
+			status(text, true);
+			say(text);
 		});
 	}
 
 	$id('paSave').addEventListener('click', saveSettings);
 	document.querySelectorAll('.pa-save-all').forEach(function (b) { b.addEventListener('click', saveSettings); });
 
+	/* Enter in a settings box saves, instead of doing nothing */
+	document.querySelectorAll('#PaygSettings input[id^="pa_"]').forEach(function (input) {
+		input.addEventListener('keydown', function (e) {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				saveSettings();
+			}
+		});
+	});
+
 	$id('paSaveRates').addEventListener('click', function () {
 		var body = new FormData();
 		document.querySelectorAll('.pa-rate').forEach(function (input) {
-			body.append('rates[' + input.getAttribute('data-id') + ']', input.value.trim());
+			body.append('rates[' + input.getAttribute('data-id') + ']', toRial(input.value.trim()));
 		});
 		post('payg.rates', body).then(function (data) {
-			say(data.ok ? W.saved : data.error);
+			say(data.ok ? W.saved : W.failed.replace('%error%', data.error || '?'));
 			if (data.ok) { load(); }
 		});
 	});
@@ -469,15 +580,15 @@
 	$id('paAdjust').addEventListener('click', function () {
 		var body = new FormData();
 		body.append('user', $id('paAdjUser').value.trim());
-		body.append('amount', $id('paAdjAmount').value.trim());
+		body.append('amount', toRial($id('paAdjAmount').value.trim()));
 		body.append('reason', $id('paAdjReason').value.trim());
 		body.append('wallet', $id('paAdjWallet').value);
 		post('payg.adjust', body).then(function (data) {
 			if (!data.ok) {
-				say(data.error);
+				say(W.failed.replace('%error%', data.error || '?'));
 				return;
 			}
-			say(W.saved + ' · ' + num(data.balance));
+			say(W.saved + ' · ' + money(data.balance));
 			$id('paAdjAmount').value = '';
 			$id('paAdjReason').value = '';
 			load();
@@ -486,18 +597,19 @@
 	});
 
 	$id('paMigrate').addEventListener('click', function () {
-		var total = num(this.getAttribute('data-total'));
+		var total = money(this.getAttribute('data-total'));
 		if (!window.confirm(W.migrateQ.replace('%total%', total))) {
 			return;
 		}
 		post('commission.migrate', new FormData()).then(function (data) {
-			say(data.ok ? W.migrateOk.replace('%users%', num(data.users)).replace('%total%', num(data.total)) : data.error);
+			say(data.ok ? W.migrateOk.replace('%users%', num(data.users)).replace('%total%', money(data.total)) : W.failed.replace('%error%', data.error || '?'));
 			if (data.ok) { load(); }
 		});
 	});
 
-	load();
-	users();
+	$id('paSubExample').textContent = location.origin + '/xmplus-patch.php?do=sub&t=TOKEN&config=1';
+
+	load().then(users);
 })();
 </script>
 {/literal}
