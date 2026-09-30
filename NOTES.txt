@@ -1,6 +1,6 @@
-Direct routes for Xray customers: on the OpenVPN "direct routes" card, the new
-"Xray customers too (Happ)" switch sends the same list - Iranian sites and
-addresses plus the custom lines - to the Happ app with the subscription link,
-so those destinations open directly instead of through the server. New: an
-Xray node of our own (node/xray) that replaces the XMPlus node binary with the
-official, newest Xray-core; see node/xray/README.md.
+Xray nodes on the xhttp transport no longer take the panel down: the panel's
+own link builders (app/Http/Schema) crashed on them, so the subscription link
+and the user's Servers page answered "Internal Server Error" for every account
+that could see such a node. The patch now fixes those files by itself when it is
+installed, and checks them every hour, because a panel update puts the
+originals back. Nothing to run by hand any more.

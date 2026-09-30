@@ -1,7 +1,7 @@
 {
-    "version": "1.17.0",
+    "version": "1.17.1",
     "released": "2026-09-30",
-    "notes": "Direct routes for Xray customers: on the OpenVPN \"direct routes\" card, the new\n\"Xray customers too (Happ)\" switch sends the same list - Iranian sites and\naddresses plus the custom lines - to the Happ app with the subscription link,\nso those destinations open directly instead of through the server. New: an\nXray node of our own (node/xray) that replaces the XMPlus node binary with the\nofficial, newest Xray-core; see node/xray/README.md.",
+    "notes": "Xray nodes on the xhttp transport no longer take the panel down: the panel's\nown link builders (app/Http/Schema) crashed on them, so the subscription link\nand the user's Servers page answered \"Internal Server Error\" for every account\nthat could see such a node. The patch now fixes those files by itself when it is\ninstalled, and checks them every hour, because a panel update puts the\noriginals back. Nothing to run by hand any more.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -15,10 +15,11 @@
         "010_openvpn.php",
         "011_openvpn_ports.php",
         "012_openvpn_protocols.php",
-        "013_openvpn_status_bypass.php"
+        "013_openvpn_status_bypass.php",
+        "014_schema_defaults.php"
     ],
     "files": {
-        "app/Console/Commands/TaskCommand.php": "165b8bf0980d70409038ab4e7592a6eee7ded1117ac2a961cd373ffd569edb09",
+        "app/Console/Commands/TaskCommand.php": "806f2b7beb0f9f80fd549f86ea9dd1e939805a8fb89b1fd52851d0e4d208b8dd",
         "app/Http/Models/CommissionLog.php": "b5ff0ba69d77668113550e5887051c154bbbf87e077116cc63ebbcd08cf46e50",
         "app/Http/Models/Order.php": "a560d42000ecf0ded7906972a5de4ca548b29063135e9b0ff4afe35d74fb0849",
         "app/Http/Models/Package.php": "a9dd16537274e0426a851e1b18d2426c44c343b21172f9726c03c85078ebd876",
@@ -39,6 +40,7 @@
         "app/Patch/Ovpn.php": "c13f6e836833aa7efc1024e47cce7d5158eb171ede5308fbc0df91261bb329b0",
         "app/Patch/Payg.php": "e0cfc71cc6cd98256c7e52d9dd4648fb7507b3037aaedc02754c704b60c553ca",
         "app/Patch/Promo.php": "e7d257b1e9a52b48bee6cba3c153e184d33f62f339ce7d76e61cf57a1c232b8d",
+        "app/Patch/SchemaFix.php": "b4e1e18902398c92864f6c218beb823231c4977d9dbc8c0a83bdbc3bc5eeee3c",
         "app/Patch/ServerUsage.php": "87fe8c3c831db97f148c0d8b85f653694771133e126af75a3e988d91552b8a6e",
         "app/Patch/SubInfo.php": "0cbe6b5d4a555f3e7a80d59e0a02ed275368e9cc36b547e558596af3fde6af34",
         "app/Patch/TgGift.php": "bc691f338913bf46bb88f0d91c360bf864c2d54c7839d2bac62ea54d0afacb77",
@@ -50,6 +52,7 @@
         "bin/ovpn.php": "a0e69868f517b86ac34325ef6146624f3b158f3701eec92b253c0306fb7f6219",
         "bin/payg.php": "f64fc4fc39c8c7b0ecb40dd457548e82433b19f74d4eb7542425a5af6329500b",
         "bin/promos.php": "2a8460f8083668078fa317a1c78a95a8c4704dc357a043d49178b206c64b90d7",
+        "bin/schemafix.php": "ff4c2d7aabe285187f7a57a0da5e9f345031c5d5476674ba551e61593227d108",
         "bin/tgjoin.php": "c3ed033295ee3580221c98dd5ec5913477ce2ca77be53ad79d61aeb8a3461a4c",
         "bin/timeplans.php": "4aa8ebf67961220dfb9f9a78aa31a73bfac1161ebaa337ddae12940eb4f42269",
         "localization/en_US.php": "3b54672fa823edbf6e8a7381b563f194008aab800692b31a5b3bd40cd0d82775",
