@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.13.0** · repo
+Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.13.1** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -774,6 +774,18 @@ Pieces:
   reported as taken, or any port other than its own on a node without the
   redirect (installed with 1.12.x or `--single-port`); the row turns red if a
   chosen port stops working later. The protocol is still fixed at install.
+- **OpenVPN in the apps card (1.13.1):** an app in the panel's own client
+  apps list whose name contains "OpenVPN" (e.g. "OpenVPN Connect", one per
+  platform) gets `view/user/dashboard/ovpnapp.tpl` as its step 3 in
+  `application.tpl`: server files, username / password, the app's own download
+  link and guide — all edited in the panel's apps list like any other app.
+  While such an app exists, `dashboard.tpl` hides the separate OpenVPN card.
+  Styles and the password toggle live in `ovpnstyle.tpl` (class / data
+  attributes only, since the markup can appear once per platform tab).
+- **No client certificate on purpose:** customers sign in with username /
+  password; the server is checked against the CA inside the file and the
+  handshake is wrapped in tls-crypt. The profile carries
+  `setenv CLIENT_CERT 0` (1.13.1) so OpenVPN Connect stops asking for one.
 - **Downloading the file:** customers from the dashboard card; admins from
   the 📥 button on the server's row, which works while OpenVPN is still off and
   whatever the group (`ovpn.profile` lets staff through), with the admin's own
@@ -1024,3 +1036,4 @@ dark / phone.
 | 1.12.0 | OpenVPN servers on the same subscription: node agent + installer (`node/openvpn/`), login and usage through `xmplus-patch.php?do=ovpn.*`, traffic counted against the plan and billed by the charge wallet, cut-off when the plan or data ends, admin server list with install command, dashboard card with profile download and credentials. Off until switched on |
 | 1.12.1 | OpenVPN: `node/openvpn/uninstall.sh` removes a node from its server (agent, OpenVPN config, NAT rules, services; `--keep-ca`, `--purge`); the admin page shows the command |
 | 1.13.0 | OpenVPN: the node redirects every port of its protocol to OpenVPN (except ports in use, SSH and `--exclude`), and the ports customers use are chosen in the panel, several allowed with fallback; admin 📥 profile download per server and a test login, working before OpenVPN is switched on. Existing nodes: run the install command again |
+| 1.13.1 | OpenVPN: shown inside the apps card for any panel app named OpenVPN (download link / icon / guide edited in the panel's apps list), with server files and login instead of the subscription link; profile says `setenv CLIENT_CERT 0` so OpenVPN Connect no longer asks for a certificate; push errors carry the database message to the agent log |

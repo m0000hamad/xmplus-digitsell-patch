@@ -624,7 +624,8 @@ function ovpnPush(): void
     } catch (Throwable $error) {
         $pdo->rollBack();
         error_log('ovpn.push: ' . $error->getMessage());
-        fail('push not stored');
+        // only the node sees this; it lands in its log, where the admin looks
+        fail('push not stored: ' . substr($error->getMessage(), 0, 300));
     }
 
     // who is online, for the device limit and the dashboard's "connected" mark
@@ -721,6 +722,9 @@ function ovpnProfileText(array $node, string $login): string
         'persist-tun',
         'remote-cert-tls server',
         'auth-user-pass',
+        // sign-in is username + password; without this OpenVPN Connect asks
+        // for a client certificate it does not need
+        'setenv CLIENT_CERT 0',
         // no cipher lines: the data cipher is negotiated, and a 2.4 client
         // refuses the whole file over an option it does not know
         'verb 3',
