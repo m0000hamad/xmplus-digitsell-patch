@@ -292,19 +292,19 @@ digitsell-xray uninstall --restore-xmplus
 
 ## عیب‌یابی
 
-### بعد از گذاشتن نود xhttp، آپدیت اشتراک همه «Internal Server Error» می‌دهد
+### بعد از گذاشتن نود xhttp، آپدیت اشتراک یا صفحهٔ «سرورها» (/portal/servers) «Internal Server Error» می‌دهد
 
-این باگ **خود پنل** است، نه نود. سازندهٔ لینک پنل (`app/Http/Schema/Xray.php`) کلیدهایی مثل
+این باگ **خود پنل** است، نه نود. سازنده‌های لینک پنل (فایل‌های `app/Http/Schema/`: `Xray.php` برای لینک اشتراک، `VlessURI.php` و هم‌خانواده‌ها برای صفحهٔ سرورها) کلیدهایی مثل
 `headerType` و `alpn` را بدون بررسی می‌خواند و برای xhttp کنترلر آن‌ها را نمی‌فرستد؛ Whoops هشدار PHP را
 خطای کشنده می‌کند و اشتراک **همهٔ** اکانت‌هایی که آن نود را می‌بینند خراب می‌شود. پیام:
-`Undefined index: headerType` در `Xray.php:85`. برای دیدن پیام واقعی (روی سرور پنل):
+`Undefined index: headerType` در `Xray.php:85` (اشتراک) یا `VlessURI.php:12` (صفحهٔ سرورها). برای دیدن پیام واقعی (روی سرور پنل):
 
 ```bash
 curl -sk --resolve <دامنه‌ی پنل>:443:127.0.0.1 "https://<دامنه‌ی پنل>/link/<توکن>?config=1" -o /tmp/err.html
 python3 -c "import re,html;t=open('/tmp/err.html',errors='ignore').read();t=re.sub(r'(?s)<(style|script).*?</\1>','',t);t=re.sub(r'<[^>]+>','\n',t);print('\n'.join(l.strip() for l in html.unescape(t).splitlines() if l.strip())[:700])"
 ```
 
-راه‌حل: روی **سرور پنل** یک بار (نسخهٔ خود فایل را پشتیبان می‌گیرد، syntax را می‌سنجد، در صورت خطا برمی‌گرداند):
+راه‌حل: روی **سرور پنل** یک بار. همهٔ فایل‌های `app/Http/Schema/` را بررسی می‌کند و فقط جایی که لازم است دست می‌زند (از هر فایل پشتیبان می‌گیرد، syntax را می‌سنجد، در صورت خطا برمی‌گرداند):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main/node/xray/fix-panel-xhttp.py | python3 - /www/wwwroot/p.digitsell-shop.ir
