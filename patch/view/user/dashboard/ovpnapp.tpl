@@ -21,11 +21,7 @@
 		{if $user->ovpnEnabled()}
 			<ul class="ovpn-servers mb-3">
 				{foreach $user->ovpnNodes() as $ovpnNode}
-					<li class="ovpn-server">
-						<span class="ovpn-dot{if !$ovpnNode.live} is-down{/if}" title="{if $ovpnNode.live}{$translate->get('OvpnServerUp')}{else}{$translate->get('OvpnServerDown')}{/if}"></span>
-						<span class="ovpn-server-name">{$ovpnNode.name}</span>
-						<a class="ovpn-get" href="/xmplus-patch.php?do=ovpn.profile&amp;node={$ovpnNode.id}" download>⬇️ {$translate->get('OvpnDownload')}</a>
-					</li>
+					{include file='user/dashboard/ovpnnode.tpl' node=$ovpnNode}
 				{/foreach}
 			</ul>
 

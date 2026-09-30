@@ -627,7 +627,7 @@ final class User extends Model
 					self::$ovpnRows = DB::connection('default')->table('ovpn_node')
 						->where('enabled', 1)
 						->orderBy('sort', 'asc')->orderBy('id', 'asc')
-						->get(['id', 'name', 'allowed_groups', 'host', 'host_override', 'ca', 'tls_crypt', 'heartbeat'])
+						->get()
 						->all();
 				} catch (\Throwable $e) {
 					self::$ovpnRows = [];
@@ -651,14 +651,46 @@ final class User extends Model
 				continue;
 			}
 
+			$protos = self::ovpnOffered($node);
+
+			if ($protos === []) {
+				continue; // offers a protocol the server does not run
+			}
+
 			$list[] = [
-				'id'   => (int) $node->id,
-				'name' => htmlspecialchars((string) $node->name, ENT_QUOTES, 'UTF-8'),
-				'live' => (int) $node->heartbeat > time() - 180,
+				'id'     => (int) $node->id,
+				'name'   => htmlspecialchars((string) $node->name, ENT_QUOTES, 'UTF-8'),
+				'live'   => (int) $node->heartbeat > time() - 180,
+				// more than one: the default file carries both, and each has its own
+				'protos' => $protos,
 			];
 		}
 
 		return $list;
+	}
+
+	/* keep in step with ovpnListen() / ovpnOffered() in app/Patch/Ovpn.php */
+	private static function ovpnOffered($node)
+	{
+		$running = [];
+		$listen = json_decode((string) (isset($node->listen_json) ? $node->listen_json : ''), true);
+
+		if (is_array($listen) && $listen !== []) {
+			foreach (['udp', 'tcp'] as $proto) {
+				if (isset($listen[$proto])) {
+					$running[] = $proto;
+				}
+			}
+		} else {
+			$running[] = strpos(strtolower((string) (isset($node->proto) ? $node->proto : 'udp')), 'tcp') === 0 ? 'tcp' : 'udp';
+		}
+
+		$offer = isset($node->offer) ? (string) $node->offer : '';
+		$wanted = in_array($offer, ['udp', 'tcp'], true) ? [$offer] : ['udp', 'tcp'];
+
+		return array_values(array_filter(['udp', 'tcp'], function ($proto) use ($running, $wanted) {
+			return in_array($proto, $running, true) && in_array($proto, $wanted, true);
+		}));
 	}
 
 	public function ovpnEnabled()
