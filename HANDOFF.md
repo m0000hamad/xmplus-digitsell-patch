@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.12.0** · repo
+Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.12.1** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -758,7 +758,8 @@ Pieces:
 - `view/admin/settings/ovpnsettings.tpl` (servers, add / edit, new key, delete,
   install command, connected users), `view/user/dashboard/ovpn.tpl` (included
   by `dashboard.tpl` only when `User::ovpnEnabled()`).
-- `node/openvpn/` — `install.sh` and `ovpn-agent.py` for the OpenVPN server.
+- `node/openvpn/` — `install.sh`, `ovpn-agent.py` and `uninstall.sh`
+  (1.12.1; `--keep-ca`, `--purge`) for the OpenVPN server.
   **Not part of the manifest**; the install command fetches them from this
   repository. See `node/openvpn/README.md`.
 
@@ -1005,3 +1006,4 @@ dark / phone.
 | 1.11.4 | Client apps: the status link drops the panel's own "Total:… Used:…" / "Expire:…" info entries from the list, which still showed the Gregorian expiry under the Persian rows |
 | 1.11.5 | Client apps: shorter status rows (about 25 characters) so they are not cut off on a phone; end date / days left and updated time / "update to refresh" split into two rows each |
 | 1.12.0 | OpenVPN servers on the same subscription: node agent + installer (`node/openvpn/`), login and usage through `xmplus-patch.php?do=ovpn.*`, traffic counted against the plan and billed by the charge wallet, cut-off when the plan or data ends, admin server list with install command, dashboard card with profile download and credentials. Off until switched on |
+| 1.12.1 | OpenVPN: `node/openvpn/uninstall.sh` removes a node from its server (agent, OpenVPN config, NAT rules, services; `--keep-ca`, `--purge`); the admin page shows the command |

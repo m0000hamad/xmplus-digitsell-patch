@@ -1,7 +1,5 @@
-OpenVPN servers on the same subscription. Customers can also connect with the
-OpenVPN app: the login is checked by the panel and the traffic counts against
-the same plan (data and end date) and the charge wallet; the connection is cut
-when the plan or its data runs out. Settings -> OpenVPN servers adds a server
-and prints the install command for it (node/openvpn/install.sh); the dashboard
-gets an OpenVPN card with the profile download, username and password.
-Switched off until turned on in the settings.
+OpenVPN servers can now be removed from their server with one command:
+Settings -> OpenVPN servers -> "Remove from the server" shows it
+(node/openvpn/uninstall.sh). It removes the agent, the OpenVPN server
+config and the NAT rules; --keep-ca keeps the certificates for a later
+reinstall, --purge also removes the openvpn packages.
