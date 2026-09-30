@@ -1,4 +1,7 @@
-OpenVPN servers now send an online / offline message to the admin Telegram
-chat, like the panel's own servers: "offline" with the time of the last
-contact, "online again" with how long it was down. Same bot and admin chat as
-the other patch notices. It can be switched off on the OpenVPN settings card.
+OpenVPN: the OpenVPN servers card is now on the Servers page. Stopping only
+UDP or only TCP now sends a "part of the server is down" message; the card
+shows when the scheduler last checked the servers and has a Telegram test
+button. New: bypass for Iranian IPs and chosen sites (banks...), automatic free
+ports on install and for customers, and an automatic certificate when the
+server has a domain. Run each server's install command again (agent 1.4.0);
+customers download their file again for bypass and ports.

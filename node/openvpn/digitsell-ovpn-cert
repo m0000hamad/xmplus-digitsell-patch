@@ -1,0 +1,66 @@
+#!/bin/bash
+# Digitsell OpenVPN node - gives the OpenVPN server a certificate for a name.
+#
+#   digitsell-ovpn-cert vpn.example.com   certificate for that domain
+#   digitsell-ovpn-cert ""                back to the certificate of the install
+#                                         (by hand only; files that check the
+#                                         domain stop working)
+#
+# Run by the agent when the panel gives this server a domain (the address
+# customers connect to). The certificate comes from this server's own
+# certificate authority - the one already in every customer file - so old
+# files keep working, and new ones check the server's name
+# (verify-x509-name). No outside service, port 80 or renewal is involved: the
+# certificate is valid for 20 years.
+#
+# The OpenVPN instances that run are restarted, so connected customers
+# reconnect once (a few seconds).
+set -euo pipefail
+
+SERVER_DIR=/etc/openvpn/server
+RSA_DIR=$SERVER_DIR/easy-rsa
+CONF_DIR=/etc/digitsell-ovpn
+
+NAME=$(printf '%s' "${1-}" | tr 'A-Z' 'a-z')
+
+die() { echo "digitsell-ovpn-cert: $*" >&2; exit 1; }
+
+[ "$(id -u)" = "0" ] || die "run as root"
+[ -f "$RSA_DIR/pki/ca.crt" ] || die "no certificate authority in $RSA_DIR; run install.sh first"
+
+if [ -z "$NAME" ]; then
+    file=server
+else
+    [ ${#NAME} -le 253 ] && [[ "$NAME" =~ ^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]([a-z0-9-]{0,61}[a-z0-9])?$ ]] \
+        || die "not a domain name: $NAME"
+    file=$NAME
+    if [ ! -f "$RSA_DIR/pki/issued/$file.crt" ]; then
+        (
+            cd "$RSA_DIR"
+            export EASYRSA_BATCH=1 EASYRSA_ALGO=ec EASYRSA_CURVE=prime256v1 EASYRSA_CERT_EXPIRE=7300
+            # the file name is the common name; Easy-RSA adds it as DNS subject alt name
+            ./easyrsa --subject-alt-name="DNS:$NAME" build-server-full "$file" nopass >/dev/null 2>&1 \
+                || ./easyrsa build-server-full "$file" nopass >/dev/null
+        )
+    fi
+fi
+
+crt="$RSA_DIR/pki/issued/$file.crt"
+key="$RSA_DIR/pki/private/$file.key"
+[ -f "$crt" ] && [ -f "$key" ] || die "easy-rsa did not produce $crt"
+
+instances=()
+for conf in "$SERVER_DIR/digitsell.conf" "$SERVER_DIR/digitsell-tcp.conf"; do
+    [ -f "$conf" ] || continue
+    sed -i -e "s|^cert .*|cert $crt|" -e "s|^key .*|key $key|" "$conf"
+    instances+=("openvpn-server@$(basename "$conf" .conf).service")
+done
+[ ${#instances[@]} -gt 0 ] || die "no OpenVPN configuration in $SERVER_DIR"
+
+printf '%s\n' "$NAME" > "$CONF_DIR/cert-name.tmp"
+mv "$CONF_DIR/cert-name.tmp" "$CONF_DIR/cert-name"
+
+# only the ones running; a stopped instance picks the certificate up when started
+systemctl try-restart "${instances[@]}"
+
+echo "OpenVPN now uses the certificate for ${NAME:-the install (server)}"

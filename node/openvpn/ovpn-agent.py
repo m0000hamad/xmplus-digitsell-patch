@@ -35,18 +35,33 @@ import queue
 import re
 import socket
 import ssl
+import subprocess
 import sys
 import threading
 import time
 import urllib.error
 import urllib.request
 
-VERSION = "1.2.0"
+VERSION = "1.4.0"
 
 DEFAULT_CONFIG = "/etc/digitsell-ovpn/agent.json"
 AUTH_CACHE_SECONDS = 6 * 3600
 HELLO_EVERY = 600
 MAX_CLOSED_BACKLOG = 20000
+
+# the ports customers are best sent to, in order: 443 looks like ordinary
+# HTTPS and is the last to be blocked; the rest are the other HTTPS ports CDNs
+# use. The panel takes the first free ones unless the admin chose ports.
+PREFERRED_PORTS = {
+    "tcp": [443, 8443, 2053, 2083, 2087, 2096, 80, 8080],
+    "udp": [443, 8443, 2053, 2083, 1194, 51820],
+}
+SUGGEST = 2
+
+# gives OpenVPN a certificate for the domain the panel names (digitsell-ovpn-cert)
+CERT_TOOL = "/usr/local/sbin/digitsell-ovpn-cert"
+CERT_NAME_FILE = "/etc/digitsell-ovpn/cert-name"
+CERT_RETRY = 600
 
 
 def log(*parts):
@@ -264,6 +279,35 @@ class Instance:
         except Exception:
             return []
 
+    def listening_ports(self):
+        """Ports some program listens on for this protocol, read from /proc/net."""
+        ports = set()
+        for name in (self.proto, self.proto + "6"):
+            try:
+                lines = read_file("/proc/net/" + name).splitlines()[1:]
+            except Exception:
+                continue
+            for line in lines:
+                fields = line.split()
+                # tcp: 0A is LISTEN; udp: 07 is an open socket
+                if len(fields) > 3 and fields[3] == ("0A" if self.proto == "tcp" else "07"):
+                    ports.add(int(fields[1].rsplit(":", 1)[1], 16))
+        return ports
+
+    def busy_ports(self):
+        """Ports another program holds: the redirect's skip list, plus what
+        listens right now (the skip list does not exist yet while the
+        installer checks the agent). OpenVPN's own port is not busy."""
+        return (set(self.excluded_ports()) | self.listening_ports()) - {self.port}
+
+    def suggested_ports(self, all_ports):
+        """The best ports for customers that nothing else on this server uses."""
+        if not all_ports:
+            return [self.port]  # without the redirect only OpenVPN's own port works
+        busy = self.busy_ports()
+        free = [p for p in PREFERRED_PORTS[self.proto] if p not in busy]
+        return free[:SUGGEST] or [self.port]
+
     def keep_connected(self):
         """Thread: hold the management connection, reconnecting after OpenVPN restarts."""
         config = self.agent.config
@@ -326,6 +370,8 @@ class Agent:
         self.closed_lock = threading.Lock()
         self.auth_cache = {}        # (user, sha256(password)) -> time of the last panel "yes"
         self.last_hello = 0
+        self.cert_busy = threading.Lock()
+        self.cert_failed = {}       # domain -> time of the last failed attempt
 
         # configs written before 1.2.0 describe a single instance at the top level
         specs = config.get("instances") or [{
@@ -347,6 +393,10 @@ class Agent:
                 # every port redirected to OpenVPN except these (digitsell-ovpn-nat)
                 "all_ports": bool(self.config.get("all_ports")),
                 "excluded": instance.excluded_ports(),
+                "suggested": instance.suggested_ports(bool(self.config.get("all_ports"))),
+                # the preferred ports taken by other programs, so the panel can
+                # tell whether ports it gave customers before still work
+                "busy": sorted(instance.busy_ports() & set(PREFERRED_PORTS[instance.proto])),
             }
         payload = {
             "host": self.config.get("host", ""),
@@ -354,6 +404,8 @@ class Agent:
             "tls_crypt": read_file(self.config["tls_crypt"]),
             "version": VERSION,
             "listen": listen,
+            # the domain OpenVPN's certificate is for (empty: the install one)
+            "cert_name": self.cert_name(),
             # what panels before 1.14.0 read
             "port": first.port,
             "proto": first.proto,
@@ -365,6 +417,7 @@ class Agent:
         self.last_hello = time.time()
         log("registered with the panel as node", answer.get("node"), repr(answer.get("name")),
             "(%s)" % ", ".join(sorted(listen)))
+        return answer
 
     # -- logins -----------------------------------------------------------
 
@@ -467,8 +520,12 @@ class Agent:
 
         answer = self.panel.call("ovpn.push", {
             "version": VERSION,
+            # which OpenVPN instances are running right now: the panel tells
+            # "the agent is alive but OpenVPN is down" from "the agent is gone"
+            "instances": {instance.proto: instance.connected() for instance in self.instances},
             "sessions": [{k: row[k] for k in ("sid", "user", "ip", "vip", "rx", "tx")} for row in live],
             "closed": closed,
+            "cert_name": self.cert_name(),
         }, timeout=30)
 
         with self.closed_lock:
@@ -477,6 +534,7 @@ class Agent:
             self.closed = [record for record in self.closed if id(record) not in sent]
 
         self.interval = int(answer.get("interval", self.interval)) or 60
+        self.follow_cert(answer)
 
         by_sid = {row["sid"]: row for row in live}
         for item in answer.get("kick", []):
@@ -489,6 +547,50 @@ class Agent:
             except Exception as error:
                 log("could not cut", row["user"], ":", error)
 
+    # -- certificate for the server's domain -------------------------------
+
+    def cert_name(self):
+        """The domain OpenVPN's certificate is for; empty for the install one."""
+        try:
+            return read_file(self.config.get("cert_name_file", CERT_NAME_FILE)).strip().lower()
+        except Exception:
+            return ""
+
+    def follow_cert(self, answer):
+        """Panels from 1.15.0 name the domain customers connect to; give
+        OpenVPN a certificate for it when it has another one."""
+        wanted = answer.get("cert_name")
+        if not isinstance(wanted, str):
+            return  # an older panel: leave the certificate alone
+        wanted = wanted.strip().lower()
+        # no domain any more: keep the last certificate, files that check its
+        # name keep working (new files check no name)
+        if not wanted or wanted == self.cert_name() or not os.path.exists(CERT_TOOL):
+            return
+        if time.time() - self.cert_failed.get(wanted, 0) < CERT_RETRY:
+            return
+        if not self.cert_busy.acquire(blocking=False):
+            return
+        threading.Thread(target=self.make_cert, args=(wanted,), daemon=True).start()
+
+    def make_cert(self, wanted):
+        try:
+            log("the panel names this server %r; issuing its certificate" % wanted)
+            done = subprocess.run([CERT_TOOL, wanted], capture_output=True, text=True, timeout=180)
+            output = (done.stdout + done.stderr).strip()
+            if done.returncode != 0:
+                self.cert_failed[wanted] = time.time()
+                log("certificate failed:", output or "exit %d" % done.returncode)
+            else:
+                log(output)
+                self.cert_failed.pop(wanted, None)
+                self.last_hello = 0  # tell the panel right away
+        except Exception as error:
+            self.cert_failed[wanted] = time.time()
+            log("certificate failed:", error)
+        finally:
+            self.cert_busy.release()
+
     # -- main loop --------------------------------------------------------
 
     def run(self):
@@ -500,18 +602,18 @@ class Agent:
             now = time.time()
             if now - self.last_hello > HELLO_EVERY:
                 try:
-                    self.hello()
+                    self.follow_cert(self.hello() or {})
                 except Exception as error:
                     log("hello failed:", error)
                     self.last_hello = now - HELLO_EVERY + 60  # try again in a minute
             if now >= next_push:
-                # with no OpenVPN reachable there is nothing true to report;
-                # the panel then sees the node as down
-                if any(instance.connected() for instance in self.instances):
-                    try:
-                        self.push()
-                    except Exception as error:
-                        log("push failed:", error)
+                # always report, even with no OpenVPN reachable: the report
+                # says which instances are down, which is what the panel's
+                # offline message is built on
+                try:
+                    self.push()
+                except Exception as error:
+                    log("push failed:", error)
                 next_push = time.time() + self.interval
             time.sleep(1)
 

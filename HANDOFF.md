@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.14.1** · repo
+Last updated: 2026-09-30 · installed version **1.9.2** · latest release **1.15.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -756,7 +756,9 @@ Pieces:
   the customer's session; the admin half calls `requireAdmin()` and, for
   writes, `requireToken()` (`patch_csrf`).
 - `view/admin/settings/ovpnsettings.tpl` (servers, add / edit, new key, delete,
-  install command, connected users), `view/user/dashboard/ovpn.tpl` (included
+  install command, connected users, bypass, messages) — included by
+  `view/admin/servers/index.tpl` under the server list since 1.15.0 (it was
+  the last card of the settings page before), `view/user/dashboard/ovpn.tpl` (included
   by `dashboard.tpl` only when `User::ovpnEnabled()`).
 - `node/openvpn/` — `install.sh`, `ovpn-agent.py` and `uninstall.sh`
   (1.12.1; `--keep-ca`, `--purge`) for the OpenVPN server.
@@ -818,6 +820,49 @@ Pieces:
   that never reported are skipped. State in the `ovpn_notify_state` setting,
   written before sending. `ovpn_notify` = 0 (the switch on the OpenVPN
   settings card) turns it off.
+- **Status, auto ports, bypass, domain certificate (1.15.0).**
+  `migrations/013` adds `ovpn_node.up_json`, `cert_name` and the settings
+  `ovpn_bypass_iran`, `ovpn_bypass_custom`, `ovpn_bypass_cache`.
+  - *Why the Telegram message did not come:* stopping one instance of two
+    (`openvpn-server@digitsell`) left the other one feeding the agent, so the
+    heartbeat stayed fresh. Agent 1.3.0 pushes every minute even with nothing
+    running and sends `instances` {udp: bool, tcp: bool} → `up_json`.
+    `ovpnNodeLive()` / `User::ovpnLive()`: fresh heartbeat and not every
+    offered protocol down; `ovpnNodeDownProtos()` names the rest. `OvpnJob`
+    now has three levels (2 online / 1 part down 🟠 / 0 offline 🔴, with "agent
+    link lost" vs "agent alive, OpenVPN not running"), state
+    `{"s", "since"}` (the old `{"up"}` is still read), writes
+    `ovpn_job_last` every run and logs each send result. The card shows when
+    the job last ran (never / late → the cron is the problem) and a
+    **پیام آزمایشی** button (`ovpn.notifytest`, per-chat result: token, chat
+    id and reachability problems show there).
+  - *Auto ports:* `install.sh --port auto` (default) picks a port no program
+    holds (`ss`, both protocols; an earlier install's port first). The agent
+    suggests the best free public ports (`PREFERRED_PORTS`, first 2) and
+    reports the preferred ones that are `busy` (skip list + `/proc/net`
+    listeners, since the skip list does not exist yet at `--check`).
+    `ovpn.hello` keeps the previous `auto` while none of it is excluded or
+    busy, else takes `suggested`; `ovpnNodePorts()` uses the admin's ports,
+    else `auto`, else the node's own port.
+  - *Bypass:* `route <net> <mask> net_gateway` lines in the profile
+    (`ovpnBypassLines()`): the Iran IPv4 list (`app/Patch/data/iran-ipv4.txt`,
+    ipverse/rir-ip, CC0; **به‌روزرسانی** fetches it into
+    `storage/patch/iran-ipv4.txt`, refused under 500 ranges) plus custom
+    lines (domains / IPs / networks, max 200 lines, 40 domains, prefix ≥ 8).
+    Domains are resolved by the panel on save and every 6 h by `OvpnJob`
+    (`ovpn_bypass_cache`); custom entries inside the Iran list are dropped.
+  - *Domain certificate:* when the address customers get
+    (`ovpnNodeHost()`) is a domain, hello and push answers carry
+    `cert_name`; agent 1.4.0 runs `/usr/local/sbin/digitsell-ovpn-cert
+    <domain>` (easy-rsa, the node's own CA, CN = SAN = domain, 20 years),
+    which points both configs at it and `try-restart`s the instances, then
+    reports `cert_name` back. Only when the reported name equals the wanted
+    one does the profile add `verify-x509-name <domain> name`
+    (`ovpnCertReady()`), so a file never pins a name the server does not
+    have yet. An empty wanted name leaves the last certificate in place;
+    `install.sh` keeps it on reinstall (`/etc/digitsell-ovpn/cert-name`).
+    Not Let's Encrypt: OpenVPN apps trust only the file's CA, and port 80 is
+    redirected to OpenVPN.
 - **No client certificate on purpose:** customers sign in with username /
   password; the server is checked against the CA inside the file and the
   handshake is wrapped in tls-crypt. The profile carries
@@ -1077,3 +1122,4 @@ dark / phone.
 | 1.13.3 | OpenVPN: the app picker draws the OpenVPN icon as inline SVG for any app named OpenVPN, since the `xmplus-openvpn` class did not show on the live panel |
 | 1.14.0 | OpenVPN: UDP and TCP side by side (`install.sh --proto both`, default), per-server choice in the panel (automatic / both / UDP / TCP) with separate UDP and TCP ports; with both, customers get a combined file (UDP first, TCP fallback) and a UDP-only and TCP-only file. Existing nodes: run the install command again |
 | 1.14.1 | OpenVPN: online / offline messages for OpenVPN servers to the admin Telegram chat (`OvpnJob`, every minute), with a switch on the OpenVPN settings card |
+| 1.15.0 | OpenVPN: card moved to the Servers page; per-instance status (🟠 part down) so stopping UDP or TCP alone is reported, scheduler last-run line and Telegram test button; bypass (Iranian IPs, custom domains / IPs / networks) as `net_gateway` routes; automatic free install port and customer ports that avoid ports other programs use; automatic certificate for the server's domain with `verify-x509-name` in new files. Nodes: run the install command again (agent 1.4.0) |
