@@ -602,6 +602,97 @@ final class User extends Model
 	}
 
 	/* ------------------------------------------------------------------
+	 * OpenVPN servers on the same subscription - app/Patch/Ovpn.php
+	 * ------------------------------------------------------------------ */
+
+	private static $ovpnRows = null;
+
+	private static function ovpnSetting($name)
+	{
+		try {
+			return (string) DB::connection('default')->table('settings')->where('name', $name)->value('value');
+		} catch (\Throwable $e) {
+			return '';
+		}
+	}
+
+	/* the OpenVPN servers this account can download a profile for */
+	public function ovpnNodes()
+	{
+		if (self::$ovpnRows === null) {
+			self::$ovpnRows = [];
+
+			if (self::ovpnSetting('ovpn_enabled') === '1') {
+				try {
+					self::$ovpnRows = DB::connection('default')->table('ovpn_node')
+						->where('enabled', 1)
+						->orderBy('sort', 'asc')->orderBy('id', 'asc')
+						->get(['id', 'name', 'allowed_groups', 'host', 'host_override', 'ca', 'tls_crypt', 'heartbeat'])
+						->all();
+				} catch (\Throwable $e) {
+					self::$ovpnRows = [];
+				}
+			}
+		}
+
+		$group = (int) $this->server_group;
+		$list = [];
+
+		foreach (self::$ovpnRows as $node) {
+			$host = trim((string) $node->host_override) !== '' ? $node->host_override : $node->host;
+
+			if (trim((string) $host) === '' || trim((string) $node->ca) === '' || trim((string) $node->tls_crypt) === '') {
+				continue; // its agent has not reported in yet
+			}
+
+			$groups = array_values(array_filter(array_map('intval', explode(',', (string) $node->allowed_groups))));
+
+			if ($groups !== [] && !in_array($group, $groups, true)) {
+				continue;
+			}
+
+			$list[] = [
+				'id'   => (int) $node->id,
+				'name' => htmlspecialchars((string) $node->name, ENT_QUOTES, 'UTF-8'),
+				'live' => (int) $node->heartbeat > time() - 180,
+			];
+		}
+
+		return $list;
+	}
+
+	public function ovpnEnabled()
+	{
+		return count($this->ovpnNodes()) > 0;
+	}
+
+	public function ovpnLogin()
+	{
+		return 'u' . (int) $this->id;
+	}
+
+	/* keep in step with ovpnPassword() in app/Patch/Ovpn.php */
+	public function ovpnPassword()
+	{
+		$secret = self::ovpnSetting('ovpn_secret');
+		$uuid = strtolower(trim((string) $this->uuid));
+
+		if ($secret === '' || $uuid === '') {
+			return '';
+		}
+
+		$alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
+		$raw = hash_hmac('sha256', (int) $this->id . ':' . $uuid, $secret, true);
+		$out = '';
+
+		for ($i = 0; $i < 12; $i++) {
+			$out .= $alphabet[ord($raw[$i]) % strlen($alphabet)];
+		}
+
+		return $out;
+	}
+
+	/* ------------------------------------------------------------------
 	 * Pay-as-you-go wallet - app/Jobs/PaygJob.php
 	 * ------------------------------------------------------------------ */
 
@@ -696,6 +787,16 @@ final class User extends Model
 			$custom = DB::connection('default')->table('payg_rate')
 				->join('servers', 'servers.id', '=', 'payg_rate.serverid')
 				->where('servers.status', 1)
+				->max('payg_rate.price');
+			$max = max($max, (float) $custom);
+		} catch (\Throwable $e) {
+		}
+
+		// OpenVPN servers are priced under 900000 + node id (app/Patch/Ovpn.php)
+		try {
+			$custom = DB::connection('default')->table('payg_rate')
+				->join('ovpn_node', DB::raw('900000 + ovpn_node.id'), '=', 'payg_rate.serverid')
+				->where('ovpn_node.enabled', 1)
 				->max('payg_rate.price');
 			$max = max($max, (float) $custom);
 		} catch (\Throwable $e) {

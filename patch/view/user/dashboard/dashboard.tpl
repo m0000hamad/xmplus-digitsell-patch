@@ -11,6 +11,9 @@
 		{include file='user/dashboard/subsciption.tpl'}
 		{include file='user/dashboard/application.tpl'}
 	</div>
+	{if $user->ovpnEnabled()}
+		{include file='user/dashboard/ovpn.tpl'}
+	{/if}
 	<div class="row match-height">
 		{include file='user/dashboard/statistics.tpl'}	
 		{include file='user/dashboard/chart.tpl'}	
