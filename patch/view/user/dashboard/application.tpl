@@ -325,7 +325,9 @@ html[data-hs-theme="dark"] .app-howto-item {
 								{$appid = $app->type|cat:"-"|cat:$app->client|replace:" ":"-"|replace:".":"-"}
 									<li class="nav-item">
 										<a class="nav-link app-pick {if $a == 1}active{/if}" href="#app-{$appid}" data-bs-toggle="pill" data-bs-target="#app-{$appid}" role="presentation" aria-controls="app-{$appid}" aria-selected="false" style="--pick:#6366f1;--pick-soft:rgba(99,102,241,.11)">
-											<span class="app-pick-icon">{$app->icon}</span>
+											{* OpenVPN draws its own icon: the panel's icon font has none *}
+											{$pickName = $app->client|lower}
+											<span class="app-pick-icon">{if strpos($pickName, 'openvpn') !== false}{include file='common/ovpnsvg.tpl'}{else}{$app->icon}{/if}</span>
 											<span class="app-pick-name">{$app->client}</span>
 											{if $a == 1}<span class="app-here">⭐ {$translate->get('Recommended')}</span>{/if}
 										</a>
