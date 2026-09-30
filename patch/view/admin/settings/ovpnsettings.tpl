@@ -54,6 +54,11 @@
 				<small class="text-muted">{$translate->get('OvpnAdmHostHint')}</small>
 			</div>
 			<div class="col-md-6">
+				<label class="form-label" for="ovPorts">{$translate->get('OvpnAdmPorts')}</label>
+				<input type="text" class="form-control" id="ovPorts" dir="ltr" placeholder="443, 8443, 2083">
+				<small class="text-muted">{$translate->get('OvpnAdmPortsHint')}</small>
+			</div>
+			<div class="col-md-6">
 				<label class="form-label">{$translate->get('OvpnAdmGroups')}</label>
 				<div class="ov-groups" id="ovGroups"></div>
 				<small class="text-muted">{$translate->get('OvpnAdmGroupsHint')}</small>
@@ -110,6 +115,7 @@
 			</div>
 		</details>
 
+		<p class="small mt-3 mb-1 d-none" id="ovTest">🧪 {$translate->get('OvpnAdmTest')} <code dir="ltr" id="ovTestLogin"></code> / <code dir="ltr" id="ovTestPass"></code></p>
 		<p class="small text-muted mt-3 mb-0">{$translate->get('OvpnAdmPriceNote')}</p>
 	</div>
 </div>
@@ -132,6 +138,9 @@
 	window.OvpnWords.editing  = "{$translate->get('OvpnAdmEditing')|escape:'javascript'}";
 	window.OvpnWords.none     = "{$translate->get('OvpnAdmNone')|escape:'javascript'}";
 	window.OvpnWords.online   = "{$translate->get('OvpnAdmOnline')|escape:'javascript'}";
+	window.OvpnWords.download = "{$translate->get('OvpnAdmDownload')|escape:'javascript'}";
+	window.OvpnWords.allPorts = "{$translate->get('OvpnAdmAllPorts')|escape:'javascript'}";
+	window.OvpnWords.portBad  = "{$translate->get('OvpnAdmPortBad')|escape:'javascript'}";
 </script>
 {literal}
 <style>
@@ -232,17 +241,25 @@
 			}
 
 			var address = node.host_override || node.host;
-			address = address ? address + ':' + node.port + '/' + node.proto : '—';
+			address = address ? address + ' : ' + node.ports.join(', ') + ' / ' + node.proto : '—';
+			// a chosen port the server cannot serve: not every port open, or taken by another program
+			var bad = node.heartbeat ? node.ports.filter(function (p) {
+				return (!node.all_ports && p !== node.port) || node.excluded.indexOf(p) !== -1;
+			}) : [];
+			var portNote = bad.length
+				? '<br><small class="text-danger">⚠️ ' + esc(words.portBad) + ' ' + esc(bad.join(', ')) + '</small>'
+				: (node.all_ports ? '<br><small class="text-success">' + esc(words.allPorts) + '</small>' : '');
 			var groups = node.groups.length ? node.groups.map(groupName).join('، ') : words.all;
 
 			return '<tr>'
 				+ '<td><b>' + esc(node.name) + '</b>' + (node.version ? ' <small class="text-muted">v' + esc(node.version) + '</small>' : '') + '</td>'
 				+ '<td><span class="ov-dot ' + dot + '"></span>' + esc(stateText) + '</td>'
-				+ '<td dir="ltr">' + esc(address) + '</td>'
+				+ '<td><span dir="ltr">' + esc(address) + '</span>' + portNote + '</td>'
 				+ '<td>' + esc(groups) + '</td>'
 				+ '<td dir="ltr">×' + esc(node.rate) + '</td>'
 				+ '<td dir="ltr">' + gb(node.today_bytes) + '</td>'
 				+ '<td><div class="ov-actions">'
+				+ (node.ready ? '<a class="btn btn-outline-success btn-xs btn-sm" href="' + endpoint + '?do=ovpn.profile&amp;node=' + node.id + '" download>📥 ' + esc(words.download) + '</a>' : '')
 				+ '<button type="button" class="btn btn-outline-primary btn-xs btn-sm" data-ov-edit="' + node.id + '">' + esc(words.edit) + '</button>'
 				+ '<button type="button" class="btn btn-outline-warning btn-xs btn-sm" data-ov-key="' + node.id + '">' + esc(words.newKey) + '</button>'
 				+ '<button type="button" class="btn btn-outline-danger btn-xs btn-sm" data-ov-del="' + node.id + '">' + esc(words.remove) + '</button>'
@@ -265,6 +282,7 @@
 		$('ovRate').value = '1';
 		$('ovSort').value = '0';
 		$('ovHost').value = '';
+		$('ovPorts').value = '';
 		$('ovNodeEnabled').checked = true;
 		$('ovFormTitle').textContent = '➕ ' + words.add;
 		$('ovCancel').classList.add('d-none');
@@ -279,6 +297,7 @@
 		$('ovRate').value = String(node.rate);
 		$('ovSort').value = String(node.sort);
 		$('ovHost').value = node.host_override;
+		$('ovPorts').value = node.public_ports;
 		$('ovNodeEnabled').checked = !!node.enabled;
 		$('ovFormTitle').textContent = '✏️ ' + words.editing + ' ' + node.name;
 		$('ovCancel').classList.remove('d-none');
@@ -335,6 +354,11 @@
 			state.groups = data.groups || [];
 			state.repo = data.repo || '';
 			state.branch = data.branch || 'main';
+			if (data.test && data.test.pass) {
+				$('ovTestLogin').textContent = data.test.login;
+				$('ovTestPass').textContent = data.test.pass;
+				$('ovTest').classList.remove('d-none');
+			}
 			$('ovEnabled').checked = !!data.enabled;
 			renderNodes();
 			renderUninstall();
@@ -366,6 +390,7 @@
 			rate: $('ovRate').value,
 			sort: $('ovSort').value,
 			host_override: $('ovHost').value,
+			public_ports: $('ovPorts').value,
 			enabled: $('ovNodeEnabled').checked ? '1' : '0',
 			groups: groups
 		}).then(function (data) {

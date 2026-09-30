@@ -40,11 +40,11 @@ import time
 import urllib.error
 import urllib.request
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 DEFAULT_CONFIG = "/etc/digitsell-ovpn/agent.json"
 AUTH_CACHE_SECONDS = 6 * 3600
-HELLO_EVERY = 1800
+HELLO_EVERY = 600
 MAX_CLOSED_BACKLOG = 20000
 
 
@@ -249,6 +249,12 @@ class Agent:
 
     # -- panel ------------------------------------------------------------
 
+    def excluded_ports(self):
+        try:
+            return [int(p) for p in read_file(self.config.get("excluded_file", "")).split() if p.isdigit()]
+        except Exception:
+            return []
+
     def hello(self):
         payload = {
             "host": self.config.get("host", ""),
@@ -257,6 +263,9 @@ class Agent:
             "ca": read_file(self.config["ca"]),
             "tls_crypt": read_file(self.config["tls_crypt"]),
             "version": VERSION,
+            # every port redirected to OpenVPN except these (digitsell-ovpn-nat)
+            "all_ports": bool(self.config.get("all_ports")),
+            "excluded": self.excluded_ports(),
         }
         answer = self.panel.call("ovpn.hello", payload)
         self.interval = int(answer.get("interval", self.interval)) or 60
