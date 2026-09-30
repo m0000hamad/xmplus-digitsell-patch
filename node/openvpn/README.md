@@ -9,6 +9,7 @@ by the updater; it is fetched by the server that runs OpenVPN.
 |---|---|
 | `install.sh` | Installs OpenVPN, a CA, NAT and the agent on Ubuntu 20.04+ / Debian 11+ |
 | `ovpn-agent.py` | Holds OpenVPN's management socket; asks the panel about logins and reports usage |
+| `uninstall.sh` | Removes what `install.sh` set up |
 
 ## Setting a server up
 
@@ -43,6 +44,24 @@ Use the panel address that is not behind the CDN for `--panel`
 - If the panel is unreachable, a login that the panel approved in the last six
   hours with the same password is let in; counters keep running and are
   reported when the panel is back.
+
+## Removing a server
+
+On the OpenVPN server, as root (the same command is in the panel under
+**حذف از سرور**):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main/node/openvpn/uninstall.sh -o ovpn-uninstall.sh
+sudo bash ovpn-uninstall.sh              # everything, including the CA
+sudo bash ovpn-uninstall.sh --keep-ca    # keep the CA for a later reinstall
+sudo bash ovpn-uninstall.sh --purge      # also remove the openvpn / easy-rsa packages
+```
+
+It stops and removes the agent, the OpenVPN server config and the NAT rules
+and their services, and closes the ufw port it opened. With `--keep-ca` a
+later `install.sh` reuses the same CA, so profiles customers downloaded keep
+working. IP forwarding is left as it is (Docker and others need it). Then
+delete the server in the panel; recorded usage stays.
 
 ## Passwords
 

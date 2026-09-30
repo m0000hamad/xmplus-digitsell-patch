@@ -1814,4 +1814,6 @@ $i18n['fa_IR'] = array(
 	'OvpnAdmEditing'       => "ویرایش",
 	'OvpnAdmNone'          => "موردی نیست",
 	'OvpnAdmOnline'        => "کاربر",
+	'OvpnAdmUninstall'          => "حذف از سرور",
+	'OvpnAdmUninstallHint'      => "این دستور را با دسترسی root روی سرور OpenVPN اجرا کنید تا OpenVPN و برنامه‌ی ارتباط با پنل و قوانین NAT حذف شوند. با --keep-ca گواهی‌ها می‌مانند تا نصب دوباره همان فایل‌های کاربران را معتبر نگه دارد؛ با --purge بسته‌های openvpn هم پاک می‌شوند. بعد سرور را همین‌جا حذف کنید.",
 );
