@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-30 · installed version **1.9.2** · latest release **1.16.1** · repo
+Last updated: 2026-09-30 · installed version **1.9.2** · latest release **1.17.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -986,6 +986,71 @@ settled, login from cache with the panel down and catch-up after, wallet ledger
 names, all 83 templates compiled with Smarty 3, dashboard card rendered light /
 dark / phone.
 
+### Xray node of our own (`node/xray/`, 2026-09-30)
+
+Asked for: an independent backend for the new Xray, because the XMPlus node
+logged "WebSocket transport ... is deprecated" (a warning, not an error; Xray
+keeps WebSocket, `PrintNonRemovalDeprecatedFeatureWarning`) and the owner
+wanted to stop depending on XMPlus's fork.
+
+- **Nothing in the panel changes.** `xray-agent.py` calls the same node API as
+  XMPlusDev/XMPlus (`api/xmplus/xmplus.go`): `GET /api/server/<id>?key=` (ETag),
+  `GET /api/subscriptions/<id>`, `POST /api/traffic/<id>` (`{"data":[{"subscription_id","u","d"}]}`),
+  `POST /api/onlineip/<id>` (`{"data":[{"subscription_id","ip"}]}`). The answer
+  shapes, user email format (`n<node>|<email>|<uid>`), SS2022 user keys
+  (base64 of the first 16/32 bytes of `passwd`), relay outbounds and the device
+  limit formula (`iplimit - ipcount + last report here`, else not let on) copy
+  XMPlus. XMPlus's own bug: `mode` / `noSSEHeader` are unexported Go fields, so
+  its xhttp `mode` was always empty; ours reads them.
+- **Xray is the unmodified release**, as its own unit `digitsell-xray`; the agent
+  (`digitsell-xray-agent`) restarts it only when a node's settings or
+  certificate change (tested first with `xray run -test`; a refused config
+  keeps the old settings for the nodes that broke it). Accounts go in and out
+  through `xray api adu` / `rmu`; routing (panel block rules, relay per user,
+  sendthrough, device-limit blocks) is replaced as one list with `adrules`
+  (without `-append`, which would put new rules after catch-alls).
+- **Things current Xray (26.9.30) changed that bit during testing:**
+  `allowInsecure` is removed (config error; clients on new cores refuse links
+  carrying it - tell admins to turn it off); `freedom` blackholes private / LAN
+  targets by default for VLESS/VMess/Trojan/SS (so `block_private` needs no
+  rule, and `false` needs an explicit `finalRules` allow); `X-Forwarded-For`
+  is believed only with `sockopt.trustedXForwardedFor` (header names that must
+  be present, set to CF-Connecting-IP / X-Real-IP / True-Client-IP), otherwise
+  behind a CDN every customer has the CDN's address and the device limit
+  misfires; mKCP seed / header moved to finalmask; `ocspStapling` only adds
+  warnings for Let's Encrypt certs (no OCSP URL) - cert files are re-read hourly
+  without it.
+- **Usage is never lost:** counters are read with `-reset` into
+  `/var/lib/digitsell-xray/state.json` before posting, and cleared per node only
+  when the panel accepted them. The last server / subscription answers are kept
+  there too, so a reboot during a panel outage still starts every node.
+- **Certificates:** lego v5 (`run --renew-days 30`), storage
+  `/etc/digitsell-xray/lego/certificates/<domain>.crt`; a self-signed stand-in
+  until the real one is had (retried every 10 minutes).
+- **Automatic install:** `install.sh` with no options reads XMPlus's
+  `config.yml` (`/etc/XMPlus/`, `/root/config.yml`), copies its lego directory
+  and runs `lego migrate`, disables (not deletes) `XMPlus.service`, turns BBR on.
+- **Not done:** per-user / per-node speed limits (official Xray has none; the
+  agent warns). Tested locally against a stand-in panel with the real Xray
+  26.9.30 binary: VLESS+XHTTP+TLS, VMess+WS, Trojan+gRPC+TLS, SS2022 and
+  SS-AES carry traffic; usage byte-exact per node; add / remove without
+  restart; device limit refuses the second address; relay outbounds and rules
+  added and removed live; installer / update / uninstall with systemd stubbed.
+  Not yet run on a real node server or behind a real CDN.
+
+### Direct routes for Xray customers (1.17.0)
+
+Asked for right after: "a place for the servers to bypass Iran or chosen sites,
+like OpenVPN". In Xray the client app decides what skips the server, so this
+is done in the subscription, not on the node: the OpenVPN direct-routes card
+got a switch (`xray_bypass`), and `SubInfo.php` sends Happ
+`routing: happ://routing/onadd/<base64 JSON>` (DirectSites / DirectIp from the
+same Iran toggle and custom lines; format as in MHSanaei/3x-ui's Happ presets).
+Turning it off stores `off`, which sends `happ://routing/off` so the pushed
+profile stops too. Only Happ reads routing from a subscription; v2rayNG /
+V2Box / Shadowrocket users turn on the app's own Iran preset. Only links
+served by `?do=sub` carry it. Not tested inside the Happ app itself.
+
 ### Gift card redeem (1.8.9)
 
 - **Dialog:** `#redeem_modal` in `view/user/dashboard/order.tpl`, opened by
@@ -1190,3 +1255,4 @@ dark / phone.
 | 1.15.1 | OpenVPN: bypass files stay under OpenVPN Connect's profile size limit ("profile is too large"): at most 1200 routes, custom entries first, then the largest Iran ranges (~98.5% of Iran's addresses) |
 | 1.16.0 | Affiliate page: 📱 QR code button on the invite link card opens a dialog with the link as a QR code (drawn in the browser, no library), save as PNG, send the image (phones), copy the link |
 | 1.16.1 | Copy buttons work on iPhone / iPad after downloading the OpenVPN profile (synchronous copy inside the tap first). OpenVPN nodes on servers that already run Xray or a firewall: live socket skip, atomic redirect, openings kept first and mirrored into iptables-legacy / nftables, `digitsell-ovpn-nat doctor` (run the install command again) |
+| 1.17.0 | Direct routes for Xray customers: "Xray customers too (Happ)" switch on the OpenVPN direct-routes card sends the Iran / custom list to Happ with the subscription (`routing` header). `node/xray/`: our own Xray node with the official Xray-core in place of the XMPlus node binary (node files, not copied into the panel) |

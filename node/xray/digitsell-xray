@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+#
+# digitsell-xray (also: dxray) - day-to-day commands for the Digitsell Xray node.
+
+set -uo pipefail
+
+LIB=/usr/local/lib/digitsell-xray
+ETC=/etc/digitsell-xray
+REPO_RAW="${DIGITSELL_REPO_RAW:-https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main}"
+AGENT="python3 $LIB/xray-agent.py"
+
+usage() {
+    cat <<'EOF'
+digitsell-xray <command>
+
+  status        what runs: nodes, accounts, online, certificates, last report
+  log [-n N]    live log of the agent and Xray (Ctrl+C to stop)
+  check         ask the panel about every node and print what would run
+  doctor        check this server end to end
+  restart       restart the agent and Xray
+  start | stop  start / stop both
+  update        newest Xray, geo files, lego and agent (settings kept)
+  config        open agent.json in an editor, then restart
+  render        print the Xray config the agent builds
+  bbr           turn BBR on
+  version       versions
+  uninstall     remove the node (see: digitsell-xray uninstall --help)
+EOF
+}
+
+[ "$(id -u)" -eq 0 ] || { echo "run as root" >&2; exit 1; }
+
+case "${1:-status}" in
+    status)
+        systemctl --no-pager --lines=0 status digitsell-xray digitsell-xray-agent 2>/dev/null | grep -E "●|Active:" || true
+        echo
+        $AGENT status ;;
+    log|logs)
+        shift
+        if [ "${1:-}" = "-n" ]; then
+            journalctl --no-pager -u digitsell-xray-agent -u digitsell-xray -n "${2:-100}"
+        else
+            journalctl -u digitsell-xray-agent -u digitsell-xray -f -n 50
+        fi ;;
+    check)   $AGENT check ;;
+    doctor)  $AGENT doctor ;;
+    render)  $AGENT render ;;
+    restart) systemctl restart digitsell-xray-agent && echo "restarted (the agent restarts Xray only when its settings changed)" ;;
+    start)   systemctl start digitsell-xray digitsell-xray-agent ;;
+    stop)    systemctl stop digitsell-xray-agent digitsell-xray ;;
+    update)
+        shift
+        tmp=$(mktemp)
+        curl -fsSL "$REPO_RAW/node/xray/install.sh" -o "$tmp" || { echo "cannot download install.sh" >&2; exit 1; }
+        DIGITSELL_FROM_REPO=1 bash "$tmp" --update "$@"
+        rm -f "$tmp" ;;
+    config)
+        "${EDITOR:-nano}" "$ETC/agent.json" || vi "$ETC/agent.json"
+        python3 -c "import json; json.load(open('$ETC/agent.json'))" \
+            && systemctl restart digitsell-xray-agent && echo "saved and restarted" \
+            || echo "agent.json is not valid JSON - not restarted" >&2 ;;
+    bbr)
+        modprobe tcp_bbr 2>/dev/null || true
+        printf 'net.core.default_qdisc = fq\nnet.ipv4.tcp_congestion_control = bbr\n' > /etc/sysctl.d/98-digitsell-bbr.conf
+        sysctl --system >/dev/null 2>&1
+        echo "congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control)" ;;
+    version)
+        echo "agent $($AGENT version)"
+        "$LIB/xray" version | head -1
+        "$LIB/lego" --version 2>/dev/null || true ;;
+    uninstall)
+        shift
+        bash "$LIB/uninstall.sh" "$@" ;;
+    -h|--help|help) usage ;;
+    *) usage; exit 1 ;;
+esac

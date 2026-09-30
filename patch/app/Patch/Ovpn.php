@@ -1489,6 +1489,8 @@ function ovpnBypassView(): array
     return [
         'iran'        => ovpnSetting('ovpn_bypass_iran', '0') === '1',
         'custom'      => ovpnSetting('ovpn_bypass_custom', ''),
+        // the same list for Xray customers on Happ, through the subscription (SubInfo.php)
+        'xray'        => ovpnSetting('xray_bypass', '0') === '1',
         'iran_ranges' => count(ovpnIranRanges()),
         'iran_date'   => ovpnIranDate($file),
         'iran_source' => strpos($file, '/storage/') !== false ? 'refreshed' : 'shipped',
@@ -1515,6 +1517,11 @@ function ovpnAdminBypassSave(): void
 
     putSetting('ovpn_bypass_iran', !empty($_POST['iran']) && $_POST['iran'] !== '0' ? '1' : '0');
     putSetting('ovpn_bypass_custom', trim($custom));
+
+    // turned off after being on: 'off' tells Happ to drop the profile it was given
+    $xrayWas = ovpnSetting('xray_bypass', '0');
+    $xrayOn = !empty($_POST['xray']) && $_POST['xray'] !== '0';
+    putSetting('xray_bypass', $xrayOn ? '1' : ($xrayWas === '0' ? '0' : 'off'));
 
     // the domains are looked up now, so the next file downloaded carries them
     $resolved = ovpnBypassResolve($parsed['domains']);
