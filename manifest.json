@@ -1,7 +1,7 @@
 {
-    "version": "1.16.0",
+    "version": "1.16.1",
     "released": "2026-09-30",
-    "notes": "Affiliate page: a \"QR code\" button next to the invite link opens the link as a\nQR code. A friend scans it with the phone camera and lands on the sign-up page\nwith the invite already applied. The image can be saved, sent straight to\nTelegram / WhatsApp from a phone, and the link copied from the same dialog.",
+    "notes": "Copy buttons (the OpenVPN password and the others) now work on iPhone and\niPad after downloading the OpenVPN profile. OpenVPN on servers that already run\nXray (XMPlus node) or a firewall: run the install command on those servers\nagain; if customers still cannot connect, send the output of\ndigitsell-ovpn-nat doctor from that server.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -81,7 +81,7 @@
         "view/auth/login.tpl": "6f3894f0afe82b8cda5725cb73590cb224af788b0a395b9c9b5cbe8e3f744a58",
         "view/auth/loginsocial.tpl": "b44928ee2d7b207ef79542afddc989329ac09a25d3f4940774d2baa175515b7f",
         "view/auth/register.tpl": "e65c46a4ae2f33bacedc2c714fcff7f659c829e3387434c45d049751c28687d6",
-        "view/common/copy.tpl": "36c6512dfbced246104d9d1585d67fd19e912e6994354aa107a40bb8362a373a",
+        "view/common/copy.tpl": "344425205fce8ad4cfaec67c55037efafe3084e2e28c3fec88998421f25263f0",
         "view/common/orderresult.tpl": "1383136e8b1dfef82c73fc10568a1334972d17321e822df51630a68821e26bcf",
         "view/common/ovpnicon.tpl": "1408b2ae82f9408f28052acbab0c27533f60e3c2a6f49db62560b36b45429158",
         "view/common/ovpnsvg.tpl": "ec9bcd9973e062fd2709f6605b64218f756043061848ab911578a54648259959",

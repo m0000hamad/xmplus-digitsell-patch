@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-30 · installed version **1.9.2** · latest release **1.16.0** · repo
+Last updated: 2026-09-30 · installed version **1.9.2** · latest release **1.16.1** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -891,6 +891,31 @@ Pieces:
     `is-active` check ("OpenVPN (udp) did not start" on a node with a
     domain). `install.sh` now waits up to 20 s for each unit to stay active
     and prints its journal when it does not.
+- **Servers that already run Xray / a firewall (1.16.1, node files).** It
+  worked only on clean servers. `digitsell-ovpn-nat` now: skips ports with a
+  live socket via `-m socket --nowildcard` in the redirect chain (Xray's
+  hundreds of ever-changing UDP relay sockets were listed from `ss -lun`, so
+  the chain was rebuilt every minute; UDP listeners in the ephemeral range are
+  no longer listed when the match exists), builds the chain atomically with
+  `iptables-restore --noflush`, keeps the openings in its own chains
+  (`DIGITSELL_OVPN_IN` / `_FWD` / `_POST`) jumped to first and re-asserted by
+  the refresh timer, mirrors them into `iptables-legacy` when that backend has
+  rules or a DROP policy, and inserts accept rules (comment `digitsell-ovpn`)
+  into native nftables input / forward chains with `policy drop`. `start`
+  removes the 1.12 - 1.15.1 rules written straight into the built-in chains.
+  `digitsell-ovpn-nat doctor` reports the lot. Tested with 400 churning UDP
+  sockets, a foreign DROP inserted at the top of FORWARD, an `inet` table
+  with `policy drop`, and iptables-legacy `FORWARD DROP`: each cut tunnel
+  traffic before a refresh and passed after. Which of these the live servers
+  had is not known; `doctor` output from one would say.
+- **Copy on iPhone (1.16.1).** `common/copy.tpl` copies synchronously inside
+  the tap first on iOS / iPadOS (a selected `<span>`, checked with
+  `getSelection().toString()` before `execCommand`), then the Clipboard API.
+  Safari refuses the Clipboard API while the page has no focus (after the
+  profile download sheet or back from OpenVPN Connect), and the old fallback
+  ran after that refusal, outside the tap, with an off-screen read-only
+  textarea that iOS does not select. The helper goes inside an open dialog so
+  a focus trap cannot steal the selection.
 - **No client certificate on purpose:** customers sign in with username /
   password; the server is checked against the CA inside the file and the
   handshake is wrapped in tls-crypt. The profile carries
@@ -1153,3 +1178,4 @@ dark / phone.
 | 1.15.0 | OpenVPN: card moved to the Servers page; per-instance status (🟠 part down) so stopping UDP or TCP alone is reported, scheduler last-run line and Telegram test button; bypass (Iranian IPs, custom domains / IPs / networks) as `net_gateway` routes; automatic free install port and customer ports that avoid ports other programs use; automatic certificate for the server's domain with `verify-x509-name` in new files. Nodes: run the install command again (agent 1.4.0) |
 | 1.15.1 | OpenVPN: bypass files stay under OpenVPN Connect's profile size limit ("profile is too large"): at most 1200 routes, custom entries first, then the largest Iran ranges (~98.5% of Iran's addresses) |
 | 1.16.0 | Affiliate page: 📱 QR code button on the invite link card opens a dialog with the link as a QR code (drawn in the browser, no library), save as PNG, send the image (phones), copy the link |
+| 1.16.1 | Copy buttons work on iPhone / iPad after downloading the OpenVPN profile (synchronous copy inside the tap first). OpenVPN nodes on servers that already run Xray or a firewall: live socket skip, atomic redirect, openings kept first and mirrored into iptables-legacy / nftables, `digitsell-ovpn-nat doctor` (run the install command again) |

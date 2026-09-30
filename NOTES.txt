@@ -1,4 +1,5 @@
-Affiliate page: a "QR code" button next to the invite link opens the link as a
-QR code. A friend scans it with the phone camera and lands on the sign-up page
-with the invite already applied. The image can be saved, sent straight to
-Telegram / WhatsApp from a phone, and the link copied from the same dialog.
+Copy buttons (the OpenVPN password and the others) now work on iPhone and
+iPad after downloading the OpenVPN profile. OpenVPN on servers that already run
+Xray (XMPlus node) or a firewall: run the install command on those servers
+again; if customers still cannot connect, send the output of
+digitsell-ovpn-nat doctor from that server.

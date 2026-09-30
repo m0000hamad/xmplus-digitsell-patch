@@ -46,6 +46,12 @@
  *
  * This handles the click on the wrapper too, prefers the async Clipboard API, and
  * degrades to execCommand and finally to "we selected it, press copy".
+ *
+ * iPhone / iPad copy synchronously first: Safari refuses the Clipboard API
+ * while the page does not have focus (right after a download sheet, or back
+ * from another app - the OpenVPN password after importing the profile), and
+ * by the time that refusal arrives the tap is over, so execCommand is refused
+ * too. Done inside the tap, execCommand works there.
  */
 window.CopyText = (function () {
 	var config = window.CopyText || {};
@@ -86,38 +92,65 @@ window.CopyText = (function () {
 		return (element.textContent || '').trim();
 	}
 
-	function legacyCopy(text, element) {
-		var helper = document.createElement('textarea');
-		helper.value = text;
-		helper.setAttribute('readonly', '');
-		helper.style.position = 'fixed';
-		helper.style.top = '0';
-		helper.style.left = '-9999px';
-		helper.style.opacity = '0';
-		document.body.appendChild(helper);
+	// iPadOS 13+ says "Macintosh"; a touch screen tells it apart
+	var apple = /ipad|iphone|ipod/i.test(navigator.userAgent)
+		|| (/macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 
+	// tryOnly: a first attempt; on failure leave nothing selected
+	function legacyCopy(text, element, tryOnly) {
+		// inside an open dialog, so its focus trap does not pull the selection away
+		var host = (element && element.closest && element.closest('.modal, [role="dialog"]')) || document.body;
+		var helper;
 		var ok = false;
+
 		try {
-			// iOS refuses select() on a plain textarea, it wants a range
-			if (/ipad|iphone|ipod/i.test(navigator.userAgent)) {
-				helper.contentEditable = 'true';
+			if (apple) {
+				// iOS selects nothing in a textarea that is not focused (and
+				// focusing opens the keyboard): select a real text node instead,
+				// on screen but clipped away
+				helper = document.createElement('span');
+				helper.textContent = text;
+				helper.setAttribute('aria-hidden', 'true');
+				helper.style.position = 'fixed';
+				helper.style.top = '0';
+				helper.style.left = '0';
+				helper.style.clip = 'rect(0, 0, 0, 0)';
+				helper.style.whiteSpace = 'pre';
+				helper.style.webkitUserSelect = 'text';
+				helper.style.userSelect = 'text';
+				host.appendChild(helper);
+
 				var range = document.createRange();
 				range.selectNodeContents(helper);
 				var selection = window.getSelection();
 				selection.removeAllRanges();
 				selection.addRange(range);
-				helper.setSelectionRange(0, text.length);
+				// execCommand can say yes having copied nothing: check first
+				ok = selection.toString() === text && document.execCommand('copy');
 			} else {
+				helper = document.createElement('textarea');
+				helper.value = text;
+				helper.setAttribute('readonly', '');
+				helper.style.position = 'fixed';
+				helper.style.top = '0';
+				helper.style.left = '-9999px';
+				helper.style.opacity = '0';
+				host.appendChild(helper);
 				helper.select();
+				ok = document.execCommand('copy');
 			}
-			ok = document.execCommand('copy');
 		} catch (error) {
 			ok = false;
 		}
 
-		document.body.removeChild(helper);
+		if (window.getSelection) {
+			window.getSelection().removeAllRanges();
+		}
+		if (helper && helper.parentNode) {
+			helper.parentNode.removeChild(helper);
+		}
 
-		if (!ok && element && typeof element.select === 'function') {
+		if (!ok && !tryOnly && element && typeof element.select === 'function') {
 			// last resort: leave it selected so the visitor can copy by hand
 			try {
 				element.removeAttribute('disabled');
@@ -141,6 +174,13 @@ window.CopyText = (function () {
 
 	function copy(text, element) {
 		if (!text) { return; }
+
+		// inside the tap first on iOS (see the top); the Clipboard API after
+		if (apple && legacyCopy(text, element, true)) {
+			flash(element);
+			toast(message());
+			return;
+		}
 
 		if (navigator.clipboard && window.isSecureContext) {
 			navigator.clipboard.writeText(text).then(function () {
