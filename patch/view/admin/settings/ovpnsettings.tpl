@@ -54,8 +54,24 @@
 				<small class="text-muted">{$translate->get('OvpnAdmHostHint')}</small>
 			</div>
 			<div class="col-md-6">
-				<label class="form-label" for="ovPorts">{$translate->get('OvpnAdmPorts')}</label>
-				<input type="text" class="form-control" id="ovPorts" dir="ltr" placeholder="443, 8443, 2083">
+				<label class="form-label" for="ovOffer">{$translate->get('OvpnAdmOffer')}</label>
+				<select class="form-select" id="ovOffer">
+					<option value="">{$translate->get('OvpnAdmOfferAuto')}</option>
+					<option value="both">{$translate->get('OvpnAdmOfferBoth')}</option>
+					<option value="udp">{$translate->get('OvpnAdmOfferUdp')}</option>
+					<option value="tcp">{$translate->get('OvpnAdmOfferTcp')}</option>
+				</select>
+				<small class="text-muted">{$translate->get('OvpnAdmOfferHint')}</small>
+			</div>
+			<div class="col-md-6">
+				<label class="form-label" for="ovPorts">{$translate->get('OvpnAdmPortsUdp')}</label>
+				<input type="text" class="form-control" id="ovPorts" dir="ltr" placeholder="1194, 2083">
+			</div>
+			<div class="col-md-6">
+				<label class="form-label" for="ovPortsTcp">{$translate->get('OvpnAdmPortsTcp')}</label>
+				<input type="text" class="form-control" id="ovPortsTcp" dir="ltr" placeholder="443, 8443">
+			</div>
+			<div class="col-12">
 				<small class="text-muted">{$translate->get('OvpnAdmPortsHint')}</small>
 			</div>
 			<div class="col-md-6">
@@ -86,7 +102,7 @@
 				</div>
 				<div class="col-md-2">
 					<label class="form-label small" for="ovProto">Proto</label>
-					<select class="form-select form-select-sm" id="ovProto"><option>udp</option><option>tcp</option></select>
+					<select class="form-select form-select-sm" id="ovProto"><option value="both">UDP + TCP</option><option value="udp">UDP</option><option value="tcp">TCP</option></select>
 				</div>
 			</div>
 			<pre class="ov-cmd copy-text" id="ovCmd" dir="ltr"></pre>
@@ -241,26 +257,40 @@
 				dot = 'is-down'; stateText = words.down;
 			}
 
-			var address = node.host_override || node.host;
-			address = address ? address + ' : ' + node.ports.join(', ') + ' / ' + node.proto : '—';
-			// a chosen port the server cannot serve: not every port open, or taken by another program
-			var bad = node.heartbeat ? node.ports.filter(function (p) {
-				return (!node.all_ports && p !== node.port) || node.excluded.indexOf(p) !== -1;
-			}) : [];
-			var portNote = bad.length
-				? '<br><small class="text-danger">⚠️ ' + esc(words.portBad) + ' ' + esc(bad.join(', ')) + '</small>'
-				: (node.all_ports ? '<br><small class="text-success">' + esc(words.allPorts) + '</small>' : '');
+			var host = node.host_override || node.host;
+			var lines = [];
+			['udp', 'tcp'].forEach(function (proto) {
+				var item = node.listen[proto];
+				if (!item) { return; }
+				var offered = node.offered.indexOf(proto) !== -1;
+				// a chosen port the server cannot serve: not every port open, or taken by another program
+				var bad = item.ports.filter(function (p) {
+					return (!item.all_ports && p !== item.port) || item.excluded.indexOf(p) !== -1;
+				});
+				var line = '<span dir="ltr"' + (offered ? '' : ' class="text-muted text-decoration-line-through"') + '>'
+					+ proto.toUpperCase() + ' ' + esc(host) + ' : ' + esc(item.ports.join(', ')) + '</span>';
+				if (bad.length) {
+					line += ' <small class="text-danger">⚠️ ' + esc(words.portBad) + ' ' + esc(bad.join(', ')) + '</small>';
+				} else if (item.all_ports) {
+					line += ' <small class="text-success">' + esc(words.allPorts) + '</small>';
+				}
+				lines.push(line);
+			});
+			var addressCell = lines.length ? lines.join('<br>') : '—';
 			var groups = node.groups.length ? node.groups.map(groupName).join('، ') : words.all;
 
 			return '<tr>'
 				+ '<td><b>' + esc(node.name) + '</b>' + (node.version ? ' <small class="text-muted">v' + esc(node.version) + '</small>' : '') + '</td>'
 				+ '<td><span class="ov-dot ' + dot + '"></span>' + esc(stateText) + '</td>'
-				+ '<td><span dir="ltr">' + esc(address) + '</span>' + portNote + '</td>'
+				+ '<td>' + addressCell + '</td>'
 				+ '<td>' + esc(groups) + '</td>'
 				+ '<td dir="ltr">×' + esc(node.rate) + '</td>'
 				+ '<td dir="ltr">' + gb(node.today_bytes) + '</td>'
 				+ '<td><div class="ov-actions">'
 				+ (node.ready ? '<a class="btn btn-outline-success btn-xs btn-sm" href="' + endpoint + '?do=ovpn.profile&amp;node=' + node.id + '" download>📥 ' + esc(words.download) + '</a>' : '')
+				+ (node.ready && node.offered.length > 1 ? node.offered.map(function (proto) {
+					return '<a class="btn btn-outline-success btn-xs btn-sm" href="' + endpoint + '?do=ovpn.profile&amp;node=' + node.id + '&amp;proto=' + proto + '" download>' + proto.toUpperCase() + '</a>';
+				}).join('') : '')
 				+ '<button type="button" class="btn btn-outline-primary btn-xs btn-sm" data-ov-edit="' + node.id + '">' + esc(words.edit) + '</button>'
 				+ '<button type="button" class="btn btn-outline-warning btn-xs btn-sm" data-ov-key="' + node.id + '">' + esc(words.newKey) + '</button>'
 				+ '<button type="button" class="btn btn-outline-danger btn-xs btn-sm" data-ov-del="' + node.id + '">' + esc(words.remove) + '</button>'
@@ -284,6 +314,8 @@
 		$('ovSort').value = '0';
 		$('ovHost').value = '';
 		$('ovPorts').value = '';
+		$('ovPortsTcp').value = '';
+		$('ovOffer').value = '';
 		$('ovNodeEnabled').checked = true;
 		$('ovFormTitle').textContent = '➕ ' + words.add;
 		$('ovCancel').classList.add('d-none');
@@ -299,6 +331,8 @@
 		$('ovSort').value = String(node.sort);
 		$('ovHost').value = node.host_override;
 		$('ovPorts').value = node.public_ports;
+		$('ovPortsTcp').value = node.public_ports_tcp;
+		$('ovOffer').value = node.offer;
 		$('ovNodeEnabled').checked = !!node.enabled;
 		$('ovFormTitle').textContent = '✏️ ' + words.editing + ' ' + node.name;
 		$('ovCancel').classList.remove('d-none');
@@ -392,6 +426,8 @@
 			sort: $('ovSort').value,
 			host_override: $('ovHost').value,
 			public_ports: $('ovPorts').value,
+			public_ports_tcp: $('ovPortsTcp').value,
+			offer: $('ovOffer').value,
 			enabled: $('ovNodeEnabled').checked ? '1' : '0',
 			groups: groups
 		}).then(function (data) {

@@ -54,10 +54,27 @@ Use the panel address that is not behind the CDN for `--panel`
   hours with the same password is let in; counters keep running and are
   reported when the panel is back.
 
+## UDP and TCP
+
+`--proto both` (the default) runs two OpenVPN instances side by side:
+`openvpn-server@digitsell` for UDP (subnet `--subnet`, management port 7505)
+and `openvpn-server@digitsell-tcp` for TCP (`--subnet-tcp`, 7506), both on
+`--port`, sharing the certificates, so one file's CA fits both. `--proto udp`
+or `--proto tcp` runs only one; running the installer again with another
+choice adds or removes the other instance.
+
+What customers get is chosen in the panel per server (**پروتکل برای کاربران**):
+automatic (whatever the server runs), both, UDP only or TCP only, with
+separate UDP and TCP port lists. With both, the dashboard offers one file that
+lists the UDP remotes first and the TCP ones after (the app moves on to TCP
+when UDP does not answer within 10 seconds), plus a UDP-only and a TCP-only
+file. Sessions of the TCP instance are reported with a `t` prefix, so the two
+never mix up in the panel.
+
 ## Ports
 
 OpenVPN itself listens on one port (`--port`, 1194 by default), but every
-other port of the same protocol is redirected to it, so the port customers
+other port of each protocol is redirected to that protocol's instance, so the port customers
 connect to is chosen in the panel: **Settings → OpenVPN servers → edit →
 پورت‌ها برای کاربران**. Several ports can be given (`443, 8443, 2083`); the
 profile lists one `remote` per port and the app moves on to the next when one
@@ -75,11 +92,11 @@ server's own addresses on the public interface are redirected; replies to the
 server's own outgoing traffic are not touched. IPv4 only.
 
 `--single-port` turns the redirect off; the panel then only accepts the port
-OpenVPN listens on. The protocol (`--proto udp|tcp`) is still chosen at
-install time.
+OpenVPN listens on.
 
 ```bash
-digitsell-ovpn-nat excluded      # the ports left alone right now
+digitsell-ovpn-nat excluded udp  # the UDP ports left alone right now
+digitsell-ovpn-nat excluded tcp  # the TCP ports left alone right now
 ```
 
 ## Removing a server

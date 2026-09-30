@@ -89,6 +89,8 @@
 .ovpn-servers { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
 .ovpn-server {
 	display: flex;
+	flex-wrap: wrap;
+	row-gap: 8px;
 	align-items: center;
 	gap: 10px;
 	padding: 8px 10px;
@@ -98,7 +100,9 @@
 }
 .ovpn-dot { width: 9px; height: 9px; border-radius: 50%; background: #10b981; flex: 0 0 auto; }
 .ovpn-dot.is-down { background: #f43f5e; }
-.ovpn-server-name { flex: 1 1 auto; font-size: 13px; font-weight: 600; color: #16203d; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* where the row is narrow (a phone, a third of a desktop card) the buttons
+   wrap under the name instead of squeezing it away */
+.ovpn-server-name { flex: 1 1 110px; font-size: 13px; font-weight: 600; color: #16203d; min-width: 0; overflow-wrap: anywhere; }
 .ovpn-get {
 	flex: 0 0 auto;
 	display: inline-flex;
@@ -112,6 +116,21 @@
 	font-weight: 700;
 	text-decoration: none;
 }
+.ovpn-proto {
+	flex: 0 0 auto;
+	padding: 5px 9px;
+	border-radius: 9px;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: .4px;
+	color: #c2410c !important;
+	background: rgba(234, 88, 12, .12);
+	text-decoration: none;
+}
+.ovpn-proto:hover { background: rgba(234, 88, 12, .22); }
+.ovpn-proto.is-static { background: rgba(23, 32, 61, .06); color: #5b6b86 !important; }
+html[data-hs-theme="dark"] .ovpn-proto { color: #fdba74 !important; background: rgba(251, 146, 60, .18); }
+html[data-hs-theme="dark"] .ovpn-proto.is-static { color: #b6c0d3 !important; background: rgba(255, 255, 255, .08); }
 .ovpn-steps { margin: 0; padding-inline-start: 18px; font-size: 12.5px; color: #3b4a6b; line-height: 1.9; }
 .ovpn-note { font-size: 11.5px; color: #8c98ab; margin-top: 10px; }
 
