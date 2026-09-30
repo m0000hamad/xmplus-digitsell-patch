@@ -24,7 +24,11 @@ by the updater; it is fetched by the server that runs OpenVPN.
    downloads a profile for your admin account, even while OpenVPN is still
    switched off for customers. Import it into OpenVPN Connect and sign in with
    the username / password on your own dashboard card (`u<your id>`).
-4. Switch **OpenVPN برای کاربران فعال باشد** on. Customers whose group the
+4. Switch **OpenVPN برای کاربران فعال باشد** on.
+5. Optional: to show OpenVPN next to the other apps on the dashboard, add an
+   app named e.g. "OpenVPN Connect" for each platform in the panel's own
+   client apps list. Its download link, icon and guide are edited there, and
+   its step shows the server files and the username / password. Customers whose group the
    server serves see an OpenVPN card on their dashboard with a profile
    download, a username (`u<account id>`) and a password.
 
