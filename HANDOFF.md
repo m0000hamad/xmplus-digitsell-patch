@@ -862,7 +862,13 @@ Pieces:
     have yet. An empty wanted name leaves the last certificate in place;
     `install.sh` keeps it on reinstall (`/etc/digitsell-ovpn/cert-name`).
     Not Let's Encrypt: OpenVPN apps trust only the file's CA, and port 80 is
-    redirected to OpenVPN.
+    redirected to OpenVPN. Agent 1.4.1 (node files only, no panel release):
+    `--check` issues the certificate synchronously, so it is in place before
+    the installer starts OpenVPN; with 1.4.0 the freshly started agent issued
+    it and restarted OpenVPN right under the installer's 2-second
+    `is-active` check ("OpenVPN (udp) did not start" on a node with a
+    domain). `install.sh` now waits up to 20 s for each unit to stay active
+    and prints its journal when it does not.
 - **No client certificate on purpose:** customers sign in with username /
   password; the server is checked against the CA inside the file and the
   handshake is wrapped in tls-crypt. The profile carries
