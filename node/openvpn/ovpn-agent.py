@@ -42,7 +42,7 @@ import time
 import urllib.error
 import urllib.request
 
-VERSION = "1.4.1"
+VERSION = "1.4.2"
 
 DEFAULT_CONFIG = "/etc/digitsell-ovpn/agent.json"
 AUTH_CACHE_SECONDS = 6 * 3600
@@ -635,7 +635,14 @@ def main():
         # the installer runs this before starting OpenVPN: the domain's
         # certificate is made now, not by the running agent a moment after
         # OpenVPN started (which restarted it under the installer's check)
-        agent.follow_cert(agent.hello() or {}, wait=True)
+        try:
+            answer = agent.hello() or {}
+        except urllib.error.URLError as error:
+            # one line the installer shows as it is, not a traceback
+            sys.exit("cannot reach the panel at %s: %s" % (config["panel"], getattr(error, "reason", error)))
+        except Exception as error:
+            sys.exit(str(error))
+        agent.follow_cert(answer, wait=True)
         print("ok")
         return
 
