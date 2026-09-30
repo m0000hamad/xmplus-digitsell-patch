@@ -389,12 +389,25 @@ done
 systemctl enable digitsell-ovpn-agent.service >/dev/null
 systemctl restart digitsell-ovpn-agent.service
 
-sleep 2
+# a unit counts as started once it stays active; up to 20 s, so one still
+# (re)starting is not taken for a failure
+started() {
+    local tries=0
+    while [ $tries -lt 20 ]; do
+        systemctl is-active --quiet "$1" && sleep 2 && systemctl is-active --quiet "$1" && return 0
+        tries=$((tries + 1))
+        sleep 1
+    done
+    echo >&2
+    journalctl -u "$1" -n 20 --no-pager >&2 || true
+    return 1
+}
+
 for proto in $PROTOS; do
     name=$(instance_name "$proto")
-    systemctl is-active --quiet "openvpn-server@$name.service" || die "OpenVPN ($proto) did not start: journalctl -u openvpn-server@$name -n 50"
+    started "openvpn-server@$name.service" || die "OpenVPN ($proto) did not start (log above): journalctl -u openvpn-server@$name -n 50"
 done
-systemctl is-active --quiet digitsell-ovpn-agent.service || die "the agent did not start: journalctl -u digitsell-ovpn-agent -n 50"
+started digitsell-ovpn-agent.service || die "the agent did not start (log above): journalctl -u digitsell-ovpn-agent -n 50"
 
 echo
 for proto in $PROTOS; do
