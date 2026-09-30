@@ -145,6 +145,17 @@ final class TaskCommand extends Command
 			'enabled' => true,
 		));
 
+		// the panel's own link builders (app/Http/Schema) crash on xhttp nodes and
+		// take every subscription link and the Servers page down; a panel update
+		// puts the original files back, so they are checked every hour
+		$scheduler->add('SchemaFixJob', array(
+			'command' => 'php '.BASE_PATH.'/bin/schemafix.php',
+			'schedule' => "17 * * * *",
+			'output' => BASE_PATH.'/storage/logs/schemafix.log',
+			'lock_dir' => BASE_PATH.'/storage/cron/',
+			'enabled' => true,
+		));
+
 		$scheduler->run();
 		return 0;
     }
