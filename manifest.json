@@ -1,7 +1,7 @@
 {
-    "version": "1.13.2",
+    "version": "1.13.3",
     "released": "2026-09-30",
-    "notes": "An OpenVPN icon in the panel's own icon style. In the client apps list, set\nthe OpenVPN Connect app's icon to\n<span class='xmplus xmplus-openvpn fs-15'></span>\nlike the other apps; it takes the same colour as the icons next to it.",
+    "notes": "The OpenVPN app's icon now always shows on the dashboard: the app picker\ndraws it itself for any app whose name contains OpenVPN, whatever is in the\nicon field.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -79,6 +79,7 @@
         "view/common/copy.tpl": "36c6512dfbced246104d9d1585d67fd19e912e6994354aa107a40bb8362a373a",
         "view/common/orderresult.tpl": "1383136e8b1dfef82c73fc10568a1334972d17321e822df51630a68821e26bcf",
         "view/common/ovpnicon.tpl": "1408b2ae82f9408f28052acbab0c27533f60e3c2a6f49db62560b36b45429158",
+        "view/common/ovpnsvg.tpl": "ec9bcd9973e062fd2709f6605b64218f756043061848ab911578a54648259959",
         "view/common/ticketchat.tpl": "51bdf66c2834977caf6e9a47ffdeebf67ab2db8315b7d81e0b77f629e0901d3b",
         "view/common/ticketrowlink.tpl": "6f1e8a4dc6c1c5acc82646657844e948abf5a2aea00e05daaab52589b58e0af1",
         "view/email/promo.tpl": "ea0f0c6441f61a1cd22e1742c31e30b78e440f9d4e5d6eefe4c66934632975c4",
@@ -90,7 +91,7 @@
         "view/user/affiliate/sharebar.tpl": "2cb65c4fbddc59c8e713f65fbf979c8e640efe1232f759d85e43bc137b183bbc",
         "view/user/affiliate/stats.tpl": "29b9ba28c071ea963e83f4b0f1b57b26e2909c56f8998fb4be823ae335ea6410",
         "view/user/affiliate/widthdraw.tpl": "186900dc998b81478bf96ce093a9abc7f807f6b0425378cddc93fe7ee1e219ec",
-        "view/user/dashboard/application.tpl": "c763b8d1c8c9dc7724231290af97a4151ecb83b54375cfeb5f0c53e750dc0add",
+        "view/user/dashboard/application.tpl": "092e1e241bcd9dd9d46065d7efc3873e93b499bae53cdf5e35a704bb905b4672",
         "view/user/dashboard/chart.tpl": "2be509daa4994c092acc3ab4d1ee2c5aff35a96c328f3acee9e4604f820a60cb",
         "view/user/dashboard/dashboard.tpl": "bd7ddf9fce80e7059db69e8bf8fd68279cf60b1771ec00d7de70764d26567266",
         "view/user/dashboard/giftpopup.tpl": "921e7b34dec6616c2a81ef313c5d05d7432feb4b630f6c3a6f80c32f770eec70",
