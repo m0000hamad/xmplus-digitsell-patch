@@ -42,7 +42,7 @@ import time
 import urllib.error
 import urllib.request
 
-VERSION = "1.4.0"
+VERSION = "1.4.1"
 
 DEFAULT_CONFIG = "/etc/digitsell-ovpn/agent.json"
 AUTH_CACHE_SECONDS = 6 * 3600
@@ -556,7 +556,7 @@ class Agent:
         except Exception:
             return ""
 
-    def follow_cert(self, answer):
+    def follow_cert(self, answer, wait=False):
         """Panels from 1.15.0 name the domain customers connect to; give
         OpenVPN a certificate for it when it has another one."""
         wanted = answer.get("cert_name")
@@ -571,7 +571,10 @@ class Agent:
             return
         if not self.cert_busy.acquire(blocking=False):
             return
-        threading.Thread(target=self.make_cert, args=(wanted,), daemon=True).start()
+        if wait:
+            self.make_cert(wanted)
+        else:
+            threading.Thread(target=self.make_cert, args=(wanted,), daemon=True).start()
 
     def make_cert(self, wanted):
         try:
@@ -629,7 +632,10 @@ def main():
 
     if "--check" in sys.argv:
         agent = Agent(config)
-        agent.hello()
+        # the installer runs this before starting OpenVPN: the domain's
+        # certificate is made now, not by the running agent a moment after
+        # OpenVPN started (which restarted it under the installer's check)
+        agent.follow_cert(agent.hello() or {}, wait=True)
         print("ok")
         return
 
