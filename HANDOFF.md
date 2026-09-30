@@ -1060,6 +1060,15 @@ nothing renews them unless the owner's own tooling does). Findings:
   Trojan / SS items; confirmed working live on the panel. Not committed as a
   file: it is the panel vendor's code and this repository is public. A panel
   update that replaces the file removes the fix.
+- **Same crash on the user's Servers page** (`/portal/servers`): the page's
+  controller (`ServerController.php:62`) builds each link with
+  `Schema/VlessURI.php` (and siblings), not `Xray.php`, and hit the same
+  `Undefined index: headerType`. The script was generalised to every file in
+  `app/Http/Schema/`: per file it adds defaults only for keys that file reads
+  without any `isset` / `empty` / `??` anywhere (a key it guards is left alone,
+  otherwise `isset($item['mode'])` would start seeing the default and change
+  links of nodes that work). Tested on synthetic builders; `VlessURI.php` of
+  the panel was only seen in a screenshot, never as a full file.
 - **Zero traffic right after the swap** was not the agent: no established
   connections on the node ports, scanners reached them (so the firewall was
   open), the certificates were served, XMPlus was inactive. Usage only appears
