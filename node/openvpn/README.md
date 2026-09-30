@@ -105,6 +105,37 @@ server's own outgoing traffic are not touched. IPv4 only.
 `--single-port` turns the redirect off; the panel then only accepts the port
 OpenVPN listens on.
 
+### On a server that already runs Xray (XMPlus node) or a firewall
+
+- Ports some program has a socket on are skipped live, per packet
+  (`-m socket`), not from a list: Xray relaying customers' UDP opens hundreds
+  of sockets on random ports and replaces them all the time, and listing them
+  rebuilt the redirect every minute. The listed ports are only 22, sshd's,
+  the listeners outside the ephemeral range and `--exclude`; the chain is
+  replaced in one `iptables-restore`, never half built.
+- The openings (INPUT for OpenVPN's port, FORWARD for the VPN subnets, the
+  NAT) live in chains of their own, `DIGITSELL_OVPN_IN` / `_FWD` / `_POST`,
+  jumped to **first** from INPUT / FORWARD / POSTROUTING. The refresh timer
+  puts them back every minute when another program (a firewall reload,
+  Docker, a script) removed them or put a DROP in front.
+- Where the server also has `iptables-legacy` rules (a legacy DROP policy
+  drops what iptables-nft accepted) or nftables tables of its own whose input
+  or forward chain drops by default (`/etc/nftables.conf`), the openings are
+  added there too (nftables rules carry the comment `digitsell-ovpn`).
+  `stop` removes all of it.
+
+Customers cannot connect, or connect without internet:
+
+```bash
+digitsell-ovpn-nat doctor
+```
+
+prints the interface, `ip_forward`, whether OpenVPN listens, the redirect
+chains and their jumps, where our jumps sit in INPUT / FORWARD / POSTROUTING
+and each policy, iptables-legacy, nftables chains that drop, ufw, firewalld,
+Docker, UDP socket counts and conntrack. `IF=eth1` in
+`/etc/digitsell-ovpn/nat.conf` picks another public interface.
+
 ```bash
 digitsell-ovpn-nat excluded udp  # the UDP ports left alone right now
 digitsell-ovpn-nat excluded tcp  # the TCP ports left alone right now
