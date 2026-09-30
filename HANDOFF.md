@@ -850,7 +850,14 @@ Pieces:
     `storage/patch/iran-ipv4.txt`, refused under 500 ranges) plus custom
     lines (domains / IPs / networks, max 200 lines, 40 domains, prefix ≥ 8).
     Domains are resolved by the panel on save and every 6 h by `OvpnJob`
-    (`ovpn_bypass_cache`); custom entries inside the Iran list are dropped.
+    (`ovpn_bypass_cache`). **At most `OVPN_BYPASS_MAX_ROUTES` = 1200 routes
+    (1.15.1):** OpenVPN Connect (OpenVPN 3, `cliconstants.hpp`) refuses a
+    profile over 262144 bytes counted as 64 per line + 16 per word + the
+    words (~166 per route); 1745 Iran routes came to ~298000 → "option_error:
+    profile is too large". Custom entries always go in, the Iran ranges fill
+    the rest largest first (~98.5% of the addresses; the smallest go through
+    the tunnel — merging would send foreign space around it), and a custom
+    entry is dropped only if a range that made it in covers it.
   - *Domain certificate:* when the address customers get
     (`ovpnNodeHost()`) is a domain, hello and push answers carry
     `cert_name`; agent 1.4.0 runs `/usr/local/sbin/digitsell-ovpn-cert
@@ -1129,3 +1136,4 @@ dark / phone.
 | 1.14.0 | OpenVPN: UDP and TCP side by side (`install.sh --proto both`, default), per-server choice in the panel (automatic / both / UDP / TCP) with separate UDP and TCP ports; with both, customers get a combined file (UDP first, TCP fallback) and a UDP-only and TCP-only file. Existing nodes: run the install command again |
 | 1.14.1 | OpenVPN: online / offline messages for OpenVPN servers to the admin Telegram chat (`OvpnJob`, every minute), with a switch on the OpenVPN settings card |
 | 1.15.0 | OpenVPN: card moved to the Servers page; per-instance status (🟠 part down) so stopping UDP or TCP alone is reported, scheduler last-run line and Telegram test button; bypass (Iranian IPs, custom domains / IPs / networks) as `net_gateway` routes; automatic free install port and customer ports that avoid ports other programs use; automatic certificate for the server's domain with `verify-x509-name` in new files. Nodes: run the install command again (agent 1.4.0) |
+| 1.15.1 | OpenVPN: bypass files stay under OpenVPN Connect's profile size limit ("profile is too large"): at most 1200 routes, custom entries first, then the largest Iran ranges (~98.5% of Iran's addresses) |
