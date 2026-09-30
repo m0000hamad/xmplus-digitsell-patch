@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.13.1** · repo
+Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.13.2** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -780,6 +780,11 @@ Pieces:
   `application.tpl`: server files, username / password, the app's own download
   link and guide — all edited in the panel's apps list like any other app.
   While such an app exists, `dashboard.tpl` hides the separate OpenVPN card.
+  Its icon is written like the panel's others,
+  `<span class='xmplus xmplus-openvpn fs-15'></span>`: the panel's xmplus icon
+  font has no OpenVPN glyph, so `view/common/ovpnicon.tpl` (included from
+  `user/layout/style.tpl` and `admin/layout/footer.tpl`) draws one as a
+  currentColor mask (1.13.2).
   Styles and the password toggle live in `ovpnstyle.tpl` (class / data
   attributes only, since the markup can appear once per platform tab).
 - **No client certificate on purpose:** customers sign in with username /
@@ -1037,3 +1042,4 @@ dark / phone.
 | 1.12.1 | OpenVPN: `node/openvpn/uninstall.sh` removes a node from its server (agent, OpenVPN config, NAT rules, services; `--keep-ca`, `--purge`); the admin page shows the command |
 | 1.13.0 | OpenVPN: the node redirects every port of its protocol to OpenVPN (except ports in use, SSH and `--exclude`), and the ports customers use are chosen in the panel, several allowed with fallback; admin 📥 profile download per server and a test login, working before OpenVPN is switched on. Existing nodes: run the install command again |
 | 1.13.1 | OpenVPN: shown inside the apps card for any panel app named OpenVPN (download link / icon / guide edited in the panel's apps list), with server files and login instead of the subscription link; profile says `setenv CLIENT_CERT 0` so OpenVPN Connect no longer asks for a certificate; push errors carry the database message to the agent log |
+| 1.13.2 | OpenVPN: `xmplus-openvpn` icon class in the panel's own icon style (`<span class='xmplus xmplus-openvpn fs-15'></span>`) for the OpenVPN app in the client apps list |
