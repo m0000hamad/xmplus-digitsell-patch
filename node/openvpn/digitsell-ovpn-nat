@@ -326,16 +326,24 @@ doctor() {
     warn=""
     [ "$max" -gt 0 ] && [ $((count * 100 / max)) -ge 70 ] && warn=" - NEARLY FULL: new connections are dropped when it fills"
     echo "== conntrack: $count of $max$warn"
-    # did customers' attempts reach this server at all: a client that passed
-    # the tls-crypt check sends its version (IV_VER); stray packets never do
+    # did customers' attempts reach this server at all. Only a client holding
+    # the profile gets past tls-crypt: it then either finishes the TLS
+    # handshake (IV_VER, then "Peer Connection Initiated") or times out in
+    # it ("TLS handshake failed": packets lost on the way - a filter - or the
+    # app refused the server, see the OpenSSL / VERIFY lines). Packets without
+    # the key ("unwrapping failed") are scanners or probes, not customers.
     for p in $PROTOS; do
         unit=openvpn-server@digitsell; [ "$p" = "tcp" ] && unit=openvpn-server@digitsell-tcp
-        seen=$(journalctl -u "$unit" --since "-15min" --no-pager -o cat 2>/dev/null | grep -c "peer info: IV_VER=")
-        ok=$(journalctl -u "$unit" --since "-15min" --no-pager -o cat 2>/dev/null | grep -c "Peer Connection Initiated")
-        echo "== $p last 15 min: $seen connection attempts reached OpenVPN, $ok got through the handshake"
-        journalctl -u "$unit" --since "-15min" --no-pager -o cat 2>/dev/null \
-            | grep -E "IV_PLAT=|Peer Connection Initiated|AUTH|TLS handshake failed|VERIFY|unwrapping failed" \
-            | grep -v "tls-crypt-v2 client key" | tail -4 | sed 's/^/   /'
+        log=$(journalctl -u "$unit" --since "-15min" --no-pager -o cat 2>/dev/null)
+        done_=$(printf '%s\n' "$log" | grep -c "peer info: IV_VER=")
+        stuck=$(printf '%s\n' "$log" | grep -c "TLS handshake failed")
+        ok=$(printf '%s\n' "$log" | grep -c "Peer Connection Initiated")
+        probes=$(printf '%s\n' "$log" | grep -c "unwrapping failed")
+        echo "== $p last 15 min: $((done_ + stuck)) attempts with the right key reached OpenVPN;" \
+             "$ok finished the handshake, $stuck stopped in it; $probes packets without the key (not customers)"
+        printf '%s\n' "$log" \
+            | grep -E "IV_PLAT=|Peer Connection Initiated|AUTH|TLS handshake failed|key negotiation failed|VERIFY|OpenSSL|alert" \
+            | grep -v "tls-crypt-v2 client key" | tail -6 | sed 's/^/   /'
     done
     echo "== excluded: udp $(excluded udp | wc -l), tcp $(excluded tcp | wc -l) listed ports"
 }
