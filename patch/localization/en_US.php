@@ -1812,4 +1812,6 @@ If you want a fast, reliable service, sign up with my link 👇",
 	'OvpnAdmEditing'       => "Editing",
 	'OvpnAdmNone'          => "nothing here",
 	'OvpnAdmOnline'        => "online",
+	'OvpnAdmUninstall'          => "Remove from the server",
+	'OvpnAdmUninstallHint'      => "Run this as root on the OpenVPN server to remove OpenVPN, the agent and the NAT rules. Add --keep-ca to keep the certificates, so a later install keeps the profiles customers downloaded valid; add --purge to remove the openvpn packages too. Then delete the server here.",
 );

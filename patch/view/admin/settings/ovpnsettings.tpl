@@ -88,6 +88,12 @@
 			<p class="small text-danger mb-0">{$translate->get('OvpnAdmKeyOnce')}</p>
 		</div>
 
+		<details class="ov-more mt-3">
+			<summary>🗑 {$translate->get('OvpnAdmUninstall')}</summary>
+			<p class="small text-muted my-2">{$translate->get('OvpnAdmUninstallHint')}</p>
+			<pre class="ov-cmd copy-text" id="ovUninstallCmd" dir="ltr"></pre>
+		</details>
+
 		<details class="ov-more mt-3" id="ovSessionsBox">
 			<summary>👥 {$translate->get('OvpnAdmSessions')}</summary>
 			<div class="table-responsive">
@@ -301,6 +307,12 @@
 		$('ovInstall').classList.remove('d-none');
 	}
 
+	function renderUninstall() {
+		var script = 'https://raw.githubusercontent.com/' + state.repo + '/' + state.branch + '/node/openvpn/uninstall.sh';
+		$('ovUninstallCmd').textContent = 'curl -fsSL ' + script + ' -o ovpn-uninstall.sh && sudo bash ovpn-uninstall.sh';
+		$('ovUninstallCmd').setAttribute('data-clipboard-text', $('ovUninstallCmd').textContent);
+	}
+
 	function renderSessions(rows) {
 		var names = {};
 		state.nodes.forEach(function (n) { names[n.id] = n.name; });
@@ -325,6 +337,7 @@
 			state.branch = data.branch || 'main';
 			$('ovEnabled').checked = !!data.enabled;
 			renderNodes();
+			renderUninstall();
 			if ($('ovId').value === '0') { renderGroups([]); }
 		}).catch(function (error) {
 			$('ovNodes').innerHTML = '<tr><td colspan="7" class="text-danger">' + esc(error.message) + '</td></tr>';
