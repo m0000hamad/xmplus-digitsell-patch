@@ -116,7 +116,57 @@ function paygServers(): array
         ];
     }
 
+    // OpenVPN servers, under the virtual ids their traffic is logged with
+    try {
+        foreach (db()->query('SELECT id, name, enabled, heartbeat FROM ovpn_node ORDER BY sort, id') as $row) {
+            $id = 900000 + (int) $row['id'];
+            $age = (int) $row['heartbeat'] > 0 ? time() - (int) $row['heartbeat'] : PHP_INT_MAX;
+
+            $list[] = [
+                'id'      => $id,
+                'name'    => 'OpenVPN · ' . (string) $row['name'],
+                'enabled' => (int) $row['enabled'] === 1,
+                'custom'  => array_key_exists($id, $rates),
+                'price'   => array_key_exists($id, $rates) ? $rates[$id] : $default,
+                'down'    => $age > 300,
+            ];
+        }
+    } catch (Throwable $error) {
+        // no OpenVPN table yet
+    }
+
     return $list;
+}
+
+/**
+ * Ledger rows name their server by id; OpenVPN servers live in ovpn_node under
+ * 900000 + node id. Both pieces of SQL fall back to servers alone while that
+ * table does not exist.
+ */
+function paygLedgerServerJoin(): string
+{
+    static $ovpn = null;
+
+    if ($ovpn === null) {
+        try {
+            $ovpn = db()->query("SHOW TABLES LIKE 'ovpn_node'")->fetch() !== false;
+        } catch (Throwable $error) {
+            $ovpn = false;
+        }
+    }
+
+    return 'LEFT JOIN servers s ON s.id = l.serverid'
+        . ($ovpn ? ' LEFT JOIN ovpn_node o ON l.serverid > 900000 AND o.id = l.serverid - 900000' : '');
+}
+
+function paygLedgerServerName(): string
+{
+    return strpos(paygLedgerServerJoin(), 'ovpn_node') !== false
+        // explicit collation on both sides: the panel's servers table may not
+        // share the new table's, and COALESCE refuses a mix
+        ? "COALESCE(CONVERT(s.name USING utf8mb4) COLLATE utf8mb4_general_ci,"
+          . " CONVERT(CONCAT('OpenVPN · ', o.name) USING utf8mb4) COLLATE utf8mb4_general_ci)"
+        : 's.name';
 }
 
 function paygMaxPrice(array $servers): float
@@ -310,8 +360,8 @@ function paygUserMe(): void
 
     $history = db()->prepare(
         'SELECT l.kind, l.amount, l.balance_after, l.bytes, l.free_bytes, l.created, l.updated, l.note,
-                COALESCE(s.name, \'\') AS server
-           FROM payg_ledger l LEFT JOIN servers s ON s.id = l.serverid
+                COALESCE(' . paygLedgerServerName() . ', \'\') AS server
+           FROM payg_ledger l ' . paygLedgerServerJoin() . '
           WHERE l.userid = ? ORDER BY l.updated DESC, l.id DESC LIMIT 60');
     $history->execute([$id]);
 
@@ -588,10 +638,10 @@ function paygAdminBootstrap(): void
     $usage->execute([$today, $today - 29 * 86400]);
 
     $perServer = db()->prepare(
-        "SELECT l.serverid, COALESCE(MAX(s.name), CONCAT('#', l.serverid)) AS name,
+        "SELECT l.serverid, COALESCE(MAX(" . paygLedgerServerName() . "), CONCAT('#', l.serverid)) AS name,
                 COALESCE(SUM(-l.amount), 0) AS revenue, COALESCE(SUM(l.bytes), 0) AS bytes,
                 COALESCE(SUM(l.free_bytes), 0) AS free_bytes
-           FROM payg_ledger l LEFT JOIN servers s ON s.id = l.serverid
+           FROM payg_ledger l " . paygLedgerServerJoin() . "
           WHERE l.kind = 'usage' AND l.updated >= ?
           GROUP BY l.serverid ORDER BY revenue DESC");
     $perServer->execute([$today - 29 * 86400]);
@@ -673,8 +723,8 @@ function paygAdminLedger(): void
 
     $rows = db()->prepare(
         'SELECT l.id, l.kind, l.amount, l.balance_after, l.bytes, l.free_bytes, l.rate, l.note,
-                l.created, l.updated, COALESCE(s.name, \'\') AS server
-           FROM payg_ledger l LEFT JOIN servers s ON s.id = l.serverid
+                l.created, l.updated, COALESCE(' . paygLedgerServerName() . ', \'\') AS server
+           FROM payg_ledger l ' . paygLedgerServerJoin() . '
           WHERE l.userid = ? ORDER BY l.updated DESC, l.id DESC LIMIT 200');
     $rows->execute([$userId]);
 

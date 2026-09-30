@@ -44,6 +44,9 @@ class PaygJob
 	/* a node silent for this long counts as down */
 	const STALE_NODE = 300;
 
+	/* OpenVPN servers log their traffic under this + node id (app/Patch/Ovpn.php) */
+	const OVPN_SERVER_BASE = 900000;
+
 	/* while on balance, expire_in is kept at least this far ahead */
 	const KEEP_AHEAD = 86400;
 
@@ -376,6 +379,21 @@ class PaygJob
 				'down'    => (int) $server->alive !== 1 || $age > self::STALE_NODE,
 				'enabled' => (int) $server->status === 1,
 			];
+		}
+
+		try {
+			foreach (DB::table('ovpn_node')->get(['id', 'enabled', 'heartbeat']) as $node) {
+				$id = self::OVPN_SERVER_BASE + (int) $node->id;
+				$age = (int) $node->heartbeat > 0 ? time() - (int) $node->heartbeat : PHP_INT_MAX;
+
+				$list[$id] = [
+					'price'   => array_key_exists($id, $rates) ? (float) $rates[$id] : $default,
+					'down'    => $age > self::STALE_NODE,
+					'enabled' => (int) $node->enabled === 1,
+				];
+			}
+		} catch (\Throwable $e) {
+			// no OpenVPN table yet
 		}
 
 		return $this->servers = $list;
