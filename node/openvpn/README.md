@@ -124,6 +124,12 @@ OpenVPN listens on.
   added there too (nftables rules carry the comment `digitsell-ovpn`).
   `stop` removes all of it.
 
+- The connection tracking table is raised to 128 entries per MB of RAM
+  (65536 - 262144, `CONNTRACK_MAX` in nat.conf, never lowered) with its hash
+  sized to match: a 1 GB VPS allows 7680, Xray alone half fills that, and a
+  full table drops every new connection - OpenVPN logins and the traffic of
+  connected customers.
+
 Customers cannot connect, or connect without internet:
 
 ```bash
@@ -133,7 +139,13 @@ digitsell-ovpn-nat doctor
 prints the interface, `ip_forward`, whether OpenVPN listens, the redirect
 chains and their jumps, where our jumps sit in INPUT / FORWARD / POSTROUTING
 and each policy, iptables-legacy, nftables chains that drop, ufw, firewalld,
-Docker, UDP socket counts and conntrack. `IF=eth1` in
+Docker, UDP socket counts, conntrack (warns at 70%), and per protocol how
+many connection attempts reached OpenVPN in the last 15 minutes and how many
+got through the handshake, with the last lines that matter. No attempts while
+a phone is trying means the packets never arrive: a filter on the way, not
+this server. A `TLS Error: can not extract tls-crypt-v2 client key` from some
+address on port 443 is a stray packet (a closed QUIC connection of Xray's),
+not a customer. `IF=eth1` in
 `/etc/digitsell-ovpn/nat.conf` picks another public interface.
 
 ```bash
