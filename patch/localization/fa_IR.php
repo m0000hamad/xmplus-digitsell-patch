@@ -1814,6 +1814,7 @@ $i18n['fa_IR'] = array(
 	'OvpnAdmEditing'       => "ویرایش",
 	'OvpnAdmNone'          => "موردی نیست",
 	'OvpnAdmOnline'        => "کاربر",
+	'OvpnAdmNotify'             => "پیام آنلاین و آفلاین شدن سرورها به تلگرام ادمین",
 	'OvpnProtoOnly'             => "فقط",
 	'OvpnBothHint'              => "هر دو: اول UDP و اگر بسته بود TCP",
 	'OvpnAdmOffer'              => "پروتکل برای کاربران",
