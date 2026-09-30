@@ -1,8 +1,7 @@
-OpenVPN ports are now chosen in the panel. The OpenVPN server hands every
-port of its protocol to OpenVPN (except ports another program there uses,
-and SSH), so Settings -> OpenVPN servers -> edit -> "Ports for customers"
-decides which port the customers' file points to - one or several, tried in
-order. Each server row also has a download button for its .ovpn file, which
-admins can use to test before switching OpenVPN on; the admin's own test
-login is shown under the list. Servers installed before this release: run
-the install command again once to open the ports.
+OpenVPN can now sit next to the other apps on the dashboard: add an app whose
+name contains OpenVPN (e.g. "OpenVPN Connect") for each platform in the
+panel's client apps list, where its download link, icon and guide are edited
+like any other app. Its step shows the server files and the OpenVPN username
+and password instead of the subscription link, and the separate OpenVPN card
+is then hidden. The server file now tells OpenVPN Connect that no client
+certificate is needed, so it stops asking for one; download the file again.

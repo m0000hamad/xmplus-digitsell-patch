@@ -117,6 +117,7 @@
 
 		<p class="small mt-3 mb-1 d-none" id="ovTest">🧪 {$translate->get('OvpnAdmTest')} <code dir="ltr" id="ovTestLogin"></code> / <code dir="ltr" id="ovTestPass"></code></p>
 		<p class="small text-muted mt-3 mb-0">{$translate->get('OvpnAdmPriceNote')}</p>
+		<p class="small text-muted mt-2 mb-0">📱 {$translate->get('OvpnAdmAppNote')}</p>
 	</div>
 </div>
 <script>
