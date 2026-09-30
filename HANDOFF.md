@@ -909,7 +909,12 @@ Pieces:
   (a live XMPlus server showed 3353 of 7680 used); `doctor` warns at 70% and
   counts attempts per protocol in the last 15 min (`peer info: IV_VER=` =
   passed tls-crypt, `Peer Connection Initiated` = handshake done). A
-  reinstall keeps an `IF=` line of nat.conf. Tested with 400 churning UDP
+  reinstall keeps an `IF=` line of nat.conf. **That broke every first
+  install** (no nat.conf yet: the `sed` reading it failed under
+  `set -euo pipefail` and the script ended silently after "==> routing");
+  fixed, and install.sh now traps ERR to print the line and command it
+  stopped at. Agent 1.4.2: `--check` prints one line (panel unreachable, or
+  its refusal) instead of a traceback. Tested with 400 churning UDP
   sockets, a foreign DROP inserted at the top of FORWARD, an `inet` table
   with `policy drop`, and iptables-legacy `FORWARD DROP`: each cut tunnel
   traffic before a refresh and passed after. Which of these the live servers

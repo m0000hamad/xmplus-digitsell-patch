@@ -30,6 +30,8 @@
 # the key are rewritten (that is how a new key is put in place).
 
 set -euo pipefail
+# never stop without saying where: set -e alone exits silently
+trap 'echo "error: install.sh stopped at line $LINENO: $BASH_COMMAND (exit $?)" >&2' ERR
 
 REPO_RAW="${DIGITSELL_REPO_RAW:-https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main}"
 
@@ -266,7 +268,12 @@ CONNTRACK_MAX=$(( MEM_MB * 128 ))
 [ "$CONNTRACK_MAX" -le 262144 ] || CONNTRACK_MAX=262144
 
 # an interface chosen by hand (IF= in nat.conf) survives a reinstall
-KEEP_IF=$(sed -n 's/^IF=//p' "$CONF_DIR/nat.conf" 2>/dev/null | tail -1)
+# (a first install has no nat.conf: under pipefail a failing sed here ended
+# the script without a word, right after "==> routing")
+KEEP_IF=""
+if [ -f "$CONF_DIR/nat.conf" ]; then
+    KEEP_IF=$(sed -n 's/^IF=//p' "$CONF_DIR/nat.conf" | tail -1)
+fi
 
 cat > "$CONF_DIR/nat.conf" <<EOF
 # read by /usr/local/sbin/digitsell-ovpn-nat; run install.sh again to change
@@ -389,7 +396,7 @@ EOF
 
 echo "==> checking the panel"
 if ! python3 "$AGENT_DIR/ovpn-agent.py" "$CONF_DIR/agent.json" --check; then
-    die "the panel refused this node - check --panel, --node and --key (a new key in the panel invalidates the old one)"
+    die "the agent could not register with the panel (reason above). Refused: check --node and --key (a new key in the panel invalidates the old one). Unreachable: check --panel and that this server can open it"
 fi
 
 echo "==> starting"
