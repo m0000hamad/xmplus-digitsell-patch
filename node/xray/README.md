@@ -92,7 +92,7 @@ digitsell-xray uninstall  # حذف (--keep-config ، --restore-xmplus)
   "transport": "xhttp",
   "acceptProxyProtocol": false,
   "path": "/openai",
-  "host": "s1.dgtshop.ir",
+  "host": "s1.example.com",
   "mode": "auto",
   "cdn_host": "chatgpt.com"
 }
@@ -102,7 +102,7 @@ digitsell-xray uninstall  # حذف (--keep-config ، --restore-xmplus)
 
 ```json
 {
-  "serverName": "s1.dgtshop.ir",
+  "serverName": "s1.example.com",
   "rejectUnknownSni": false,
   "allowInsecure": false,
   "fingerprint": "chrome",
@@ -189,7 +189,7 @@ digitsell-xray uninstall  # حذف (--keep-config ، --restore-xmplus)
   "transport": "ws",
   "acceptProxyProtocol": false,
   "path": "/openai?ed=2560",
-  "host": "s1.dgtshop.ir",
+  "host": "s1.example.com",
   "heartbeatperiod": 10,
   "cdn_host": "chatgpt.com"
 }
@@ -197,7 +197,7 @@ digitsell-xray uninstall  # حذف (--keep-config ، --restore-xmplus)
 
 ```json
 {
-  "serverName": "s1.dgtshop.ir",
+  "serverName": "s1.example.com",
   "rejectUnknownSni": false,
   "allowInsecure": false,
   "fingerprint": "chrome",
