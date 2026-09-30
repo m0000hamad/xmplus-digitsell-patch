@@ -1,6 +1,4 @@
-OpenVPN over UDP and TCP, separately or together. The OpenVPN server now runs
-a UDP and a TCP instance side by side (run the install command again once;
---proto both is the default), and each server in Settings -> OpenVPN servers
-has a protocol choice (automatic / both / UDP only / TCP only) with separate
-UDP and TCP ports. With both, customers get one file that tries UDP first and
-TCP where UDP is blocked, plus a UDP-only and a TCP-only file.
+OpenVPN servers now send an online / offline message to the admin Telegram
+chat, like the panel's own servers: "offline" with the time of the last
+contact, "online again" with how long it was down. Same bot and admin chat as
+the other patch notices. It can be switched off on the OpenVPN settings card.
