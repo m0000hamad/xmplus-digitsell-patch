@@ -1,4 +1,3 @@
-An OpenVPN icon in the panel's own icon style. In the client apps list, set
-the OpenVPN Connect app's icon to
-<span class='xmplus xmplus-openvpn fs-15'></span>
-like the other apps; it takes the same colour as the icons next to it.
+The OpenVPN app's icon now always shows on the dashboard: the app picker
+draws it itself for any app whose name contains OpenVPN, whatever is in the
+icon field.

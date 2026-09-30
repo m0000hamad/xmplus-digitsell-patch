@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.13.2** · repo
+Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.13.3** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -784,7 +784,10 @@ Pieces:
   `<span class='xmplus xmplus-openvpn fs-15'></span>`: the panel's xmplus icon
   font has no OpenVPN glyph, so `view/common/ovpnicon.tpl` (included from
   `user/layout/style.tpl` and `admin/layout/footer.tpl`) draws one as a
-  currentColor mask (1.13.2).
+  currentColor mask (1.13.2). That did not show on the live panel (cause not
+  known: the icon font's own CSS or a CSP on data: URIs are the suspects), so
+  since 1.13.3 `application.tpl` draws any OpenVPN app's picker icon itself
+  with inline SVG (`view/common/ovpnsvg.tpl`), whatever the icon field says.
   Styles and the password toggle live in `ovpnstyle.tpl` (class / data
   attributes only, since the markup can appear once per platform tab).
 - **No client certificate on purpose:** customers sign in with username /
@@ -1043,3 +1046,4 @@ dark / phone.
 | 1.13.0 | OpenVPN: the node redirects every port of its protocol to OpenVPN (except ports in use, SSH and `--exclude`), and the ports customers use are chosen in the panel, several allowed with fallback; admin 📥 profile download per server and a test login, working before OpenVPN is switched on. Existing nodes: run the install command again |
 | 1.13.1 | OpenVPN: shown inside the apps card for any panel app named OpenVPN (download link / icon / guide edited in the panel's apps list), with server files and login instead of the subscription link; profile says `setenv CLIENT_CERT 0` so OpenVPN Connect no longer asks for a certificate; push errors carry the database message to the agent log |
 | 1.13.2 | OpenVPN: `xmplus-openvpn` icon class in the panel's own icon style (`<span class='xmplus xmplus-openvpn fs-15'></span>`) for the OpenVPN app in the client apps list |
+| 1.13.3 | OpenVPN: the app picker draws the OpenVPN icon as inline SVG for any app named OpenVPN, since the `xmplus-openvpn` class did not show on the live panel |
