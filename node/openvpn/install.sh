@@ -418,3 +418,4 @@ for proto in $PROTOS; do
 done
 echo "Choose what customers get (UDP / TCP / both) and the ports in the panel: Servers -> OpenVPN servers -> edit."
 echo "Logs: journalctl -u digitsell-ovpn-agent -f"
+echo "Customers cannot connect, or connect without internet: digitsell-ovpn-nat doctor"

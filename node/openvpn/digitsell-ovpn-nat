@@ -8,22 +8,34 @@
 #             and - with ALL_PORTS=1 - every port of each protocol redirected
 #             to that protocol's OpenVPN, so the ports customers use are
 #             chosen in the panel
-#   refresh   rebuild a redirect when the set of ports to leave alone changed
-#             (run every minute by digitsell-ovpn-nat-refresh.timer)
+#   refresh   put back whatever another program removed or pushed down, and
+#             rebuild a redirect when the ports to leave alone changed (run
+#             every minute by digitsell-ovpn-nat-refresh.timer)
 #   stop      remove everything this script added
 #   excluded [udp|tcp]
-#             print the ports left alone, one per line
+#             print the listed ports left alone, one per line
+#   doctor    print what matters when customers cannot connect or connect
+#             without internet
 #
 # One OpenVPN instance per protocol: PROTOS="udp tcp" with SUBNETS listed in
-# the same order, all listening on PORT. Left alone (never redirected): ports
-# another program on this server listens on for that protocol (SSH, a web
-# server, Xray...), for TCP the SSH ports from sshd's configuration, 22, and
-# EXCLUDE from nat.conf. Only new connections arriving on the public interface
-# for one of this server's own addresses are redirected; replies to this
-# server's own outgoing traffic are not touched.
+# the same order, all listening on PORT. Left alone (never redirected): any
+# port some program on this server has a socket on, checked live per packet
+# (-m socket; Xray relaying customers' UDP opens hundreds of sockets and
+# replaces them all the time), the listed ports (22, sshd's ports, the
+# listeners outside the ephemeral range, EXCLUDE) and, where the kernel has no
+# socket match, every listener. Only new connections arriving on the public
+# interface for one of this server's own addresses are redirected; replies to
+# this server's own outgoing traffic are not touched.
+#
+# The openings live in chains of their own, jumped to first from INPUT,
+# FORWARD and POSTROUTING and put back there every minute, so a firewall
+# reload or another program's rules do not cut customers off. Where the
+# server also has iptables-legacy rules, or nftables tables of its own that
+# drop by default, the openings are added there too.
 
 CONF=/etc/digitsell-ovpn/nat.conf
 STATE=/run/digitsell-ovpn-nat.excluded
+TAG=digitsell-ovpn
 
 [ -r "$CONF" ] || { echo "digitsell-ovpn-nat: $CONF missing" >&2; exit 1; }
 # shellcheck disable=SC1090
@@ -35,17 +47,47 @@ SUBNETS="${SUBNETS:-$SUBNET}"
 ALL_PORTS="${ALL_PORTS:-1}"
 EXCLUDE="${EXCLUDE:-}"
 
-IF=$(ip -4 route show default | awk '{for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); exit }}')
+# the public interface: IF in nat.conf, else the one of the default route
+IF="${IF:-$(ip -4 route show default | awk '{for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); exit }}')}"
+
+FWD=DIGITSELL_OVPN_FWD
+INP=DIGITSELL_OVPN_IN
+POST=DIGITSELL_OVPN_POST
 
 rule() { t="$1"; shift; iptables -t "$t" -C "$@" 2>/dev/null || iptables -t "$t" -I "$@"; }
 undo() { t="$1"; shift; while iptables -t "$t" -D "$@" 2>/dev/null; do :; done; }
 
 chain() { echo "DIGITSELL_OVPN_$(echo "$1" | tr 'a-z' 'A-Z')"; }
 
-# ports this server's own programs listen on for protocol $1, except OpenVPN
+# the kernel's range for ports picked automatically (outgoing sockets)
+ephemeral() {
+    cat /proc/sys/net/ipv4/ip_local_port_range 2>/dev/null || echo "32768 60999"
+}
+
+# whether iptables can skip a port that has a socket right now (xt_socket)
+socket_match() {
+    iptables -t nat -N DIGITSELL_OVPN_T 2>/dev/null
+    if iptables -t nat -A DIGITSELL_OVPN_T -p udp -m socket --nowildcard -j RETURN 2>/dev/null; then ok=0; else ok=1; fi
+    iptables -t nat -F DIGITSELL_OVPN_T 2>/dev/null
+    iptables -t nat -X DIGITSELL_OVPN_T 2>/dev/null
+    return $ok
+}
+
+# ports this server's own programs listen on for protocol $1, except OpenVPN.
+# With the socket match, UDP sockets in the ephemeral range are left to it:
+# listing them rebuilt the redirect every minute on a busy Xray server.
 listening() {
-    if [ "$1" = "tcp" ]; then flags=-ltnpH; else flags=-lunpH; fi
-    ss $flags 2>/dev/null | grep -v '"openvpn"' | awk '{print $4}' | sed 's/.*://'
+    if [ "$1" = "tcp" ]; then
+        ss -ltnpH 2>/dev/null | grep -v '"openvpn"' | awk '{print $4}' | sed 's/.*://'
+        return
+    fi
+    if [ "$SOCKET" = "1" ]; then
+        set -- $(ephemeral)
+        ss -lunpH 2>/dev/null | grep -v '"openvpn"' | awk '{print $4}' | sed 's/.*://' \
+            | awk -v lo="$1" -v hi="$2" '$1 < lo || $1 > hi'
+    else
+        ss -lunpH 2>/dev/null | grep -v '"openvpn"' | awk '{print $4}' | sed 's/.*://'
+    fi
 }
 
 sshd_ports() {
@@ -70,11 +112,21 @@ redirect_off() {  # $1 protocol, $2 chain
 redirect_on() {  # $1 protocol
     c=$(chain "$1")
     list=$(excluded "$1")
-    iptables -t nat -N "$c" 2>/dev/null || iptables -t nat -F "$c"
-    for p in $list; do
-        iptables -t nat -A "$c" -p "$1" --dport "$p" -j RETURN
-    done
-    iptables -t nat -A "$c" -p "$1" -j REDIRECT --to-ports "$PORT"
+    iptables -t nat -N "$c" 2>/dev/null
+    # the whole chain in one go: never a moment without the final REDIRECT
+    if ! {
+        echo "*nat"
+        echo ":$c - [0:0]"
+        [ "$SOCKET" = "1" ] && echo "-A $c -p $1 -m socket --nowildcard -j RETURN"
+        for p in $list; do echo "-A $c -p $1 --dport $p -j RETURN"; done
+        echo "-A $c -p $1 -j REDIRECT --to-ports $PORT"
+        echo "COMMIT"
+    } | iptables-restore --noflush 2>/dev/null; then
+        iptables -t nat -F "$c"
+        [ "$SOCKET" = "1" ] && iptables -t nat -A "$c" -p "$1" -m socket --nowildcard -j RETURN
+        for p in $list; do iptables -t nat -A "$c" -p "$1" --dport "$p" -j RETURN; done
+        iptables -t nat -A "$c" -p "$1" -j REDIRECT --to-ports "$PORT"
+    fi
     rule nat PREROUTING -i "$IF" -p "$1" -m addrtype --dst-type LOCAL -j "$c"
     echo "$list" > "$STATE.$1"
 }
@@ -85,22 +137,186 @@ legacy_off() {
     rm -f "$STATE"
 }
 
-base() {
-    act=$1
+# the openings as 1.12 - 1.15.1 wrote them, straight into the built-in chains
+flat_off() {
     for s in $SUBNETS; do
-        $act nat POSTROUTING -s "$s" -o "$IF" -j MASQUERADE
-        $act filter FORWARD -s "$s" -j ACCEPT
-        $act filter FORWARD -d "$s" -m state --state RELATED,ESTABLISHED -j ACCEPT
+        undo nat POSTROUTING -s "$s" -o "$IF" -j MASQUERADE
+        undo filter FORWARD -s "$s" -j ACCEPT
+        undo filter FORWARD -d "$s" -m state --state RELATED,ESTABLISHED -j ACCEPT
     done
     for p in $PROTOS; do
-        $act filter INPUT -p "$p" --dport "$PORT" -j ACCEPT
+        undo filter INPUT -p "$p" --dport "$PORT" -j ACCEPT
     done
 }
+
+# $1 command (iptables / iptables-legacy), $2 table, $3 built-in chain, $4
+# our chain: the jump to $4 is the first rule of $3, whatever came since
+first() {
+    if [ "$($1 -t "$2" -S "$3" 2>/dev/null | sed -n 2p)" != "-A $3 -j $4" ]; then
+        while $1 -t "$2" -D "$3" -j "$4" 2>/dev/null; do :; done
+        $1 -t "$2" -I "$3" 1 -j "$4"
+    fi
+}
+
+# $1 command: fill our filter chains (and, with $2 = nat, the NAT chain)
+openings_fill() {
+    ipt=$1
+    $ipt -t filter -N "$FWD" 2>/dev/null || $ipt -t filter -F "$FWD"
+    $ipt -t filter -N "$INP" 2>/dev/null || $ipt -t filter -F "$INP"
+    for s in $SUBNETS; do
+        $ipt -t filter -A "$FWD" -s "$s" -j ACCEPT
+        $ipt -t filter -A "$FWD" -d "$s" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    done
+    for p in $PROTOS; do
+        $ipt -t filter -A "$INP" -p "$p" --dport "$PORT" -j ACCEPT
+    done
+    if [ "$2" = "nat" ]; then
+        $ipt -t nat -N "$POST" 2>/dev/null || $ipt -t nat -F "$POST"
+        for s in $SUBNETS; do
+            $ipt -t nat -A "$POST" -s "$s" -o "$IF" -j MASQUERADE
+        done
+    fi
+}
+
+# $1 command: the chains exist and hold what they should
+openings_ok() {
+    ipt=$1
+    for s in $SUBNETS; do
+        $ipt -t filter -C "$FWD" -s "$s" -j ACCEPT 2>/dev/null || return 1
+    done
+    for p in $PROTOS; do
+        $ipt -t filter -C "$INP" -p "$p" --dport "$PORT" -j ACCEPT 2>/dev/null || return 1
+    done
+    if [ "$2" = "nat" ]; then
+        for s in $SUBNETS; do
+            $ipt -t nat -C "$POST" -s "$s" -o "$IF" -j MASQUERADE 2>/dev/null || return 1
+        done
+    fi
+    return 0
+}
+
+openings_on() {  # $1 command, $2 "nat" to include NAT
+    openings_ok "$1" "$2" || openings_fill "$1" "$2"
+    first "$1" filter FORWARD "$FWD"
+    first "$1" filter INPUT "$INP"
+    [ "$2" = "nat" ] && first "$1" nat POSTROUTING "$POST"
+}
+
+openings_off() {  # $1 command
+    ipt=$1
+    for pair in "filter FORWARD $FWD" "filter INPUT $INP" "nat POSTROUTING $POST"; do
+        set -- $pair
+        while $ipt -t "$1" -D "$2" -j "$3" 2>/dev/null; do :; done
+        $ipt -t "$1" -F "$3" 2>/dev/null
+        $ipt -t "$1" -X "$3" 2>/dev/null
+    done
+}
+
+# iptables-legacy rules next to iptables-nft ones (Docker or a script using
+# the legacy backend): a legacy DROP policy drops customers' traffic even
+# after iptables-nft accepted it, so the openings go there too
+legacy_backend() {
+    command -v iptables-legacy >/dev/null 2>&1 || return 1
+    iptables -V 2>/dev/null | grep -q nf_tables || return 1
+    iptables-legacy-save -t filter 2>/dev/null | grep -qE '^-A |^:(INPUT|FORWARD) DROP' || return 1
+}
+
+# nftables tables of the server's own (/etc/nftables.conf and the like) with
+# an input or forward chain that drops by default: "family table chain hook"
+nft_dropping() {
+    command -v nft >/dev/null 2>&1 || return 0
+    nft list chains 2>/dev/null | awk '
+        $1 == "table" { fam = $2; tab = $3 }
+        $1 == "chain" { ch = $2 }
+        /hook (input|forward)/ && /policy drop/ {
+            hook = $0; sub(/.*hook /, "", hook); sub(/ .*/, "", hook)
+            # the tables iptables-nft itself manages
+            if ((fam == "ip" || fam == "ip6") && (tab == "filter" || tab == "nat" || tab == "mangle" || tab == "raw" || tab == "security")) next
+            print fam, tab, ch, hook
+        }'
+}
+
+nft_ours() {  # $1 family $2 table $3 chain: handles of our rules
+    nft -a list chain "$1" "$2" "$3" 2>/dev/null | grep "comment \"$TAG\"" | sed 's/.*# handle //'
+}
+
+nft_on() {
+    nft_dropping | while read -r fam tab ch hook; do
+        [ -n "$(nft_ours "$fam" "$tab" "$ch")" ] && continue
+        if [ "$hook" = "forward" ]; then
+            for s in $SUBNETS; do
+                nft insert rule "$fam" "$tab" "$ch" ip daddr "$s" ct state established,related accept comment "\"$TAG\""
+                nft insert rule "$fam" "$tab" "$ch" ip saddr "$s" accept comment "\"$TAG\""
+            done
+        else
+            for p in $PROTOS; do
+                nft insert rule "$fam" "$tab" "$ch" "$p" dport "$PORT" accept comment "\"$TAG\""
+            done
+        fi
+    done
+}
+
+nft_off() {
+    command -v nft >/dev/null 2>&1 || return 0
+    nft list chains 2>/dev/null | awk '$1 == "table" { fam = $2; tab = $3 } $1 == "chain" { print fam, tab, $2 }' |
+        while read -r fam tab ch; do
+            for h in $(nft_ours "$fam" "$tab" "$ch"); do
+                nft delete rule "$fam" "$tab" "$ch" handle "$h" 2>/dev/null
+            done
+        done
+}
+
+all_on() {
+    openings_on iptables nat
+    if legacy_backend; then openings_on iptables-legacy; fi
+    nft_on
+}
+
+doctor() {
+    echo "== interface: ${IF:-none found} (set IF= in $CONF to choose another)"
+    ip -4 -o addr show dev "$IF" 2>/dev/null | awk '{print "   address " $4}'
+    echo "== ip_forward: $(cat /proc/sys/net/ipv4/ip_forward 2>/dev/null) (must be 1)"
+    echo "== iptables: $(iptables -V 2>/dev/null); socket match: $([ "$SOCKET" = "1" ] && echo yes || echo no)"
+    for p in $PROTOS; do
+        c=$(chain "$p")
+        listen=$(ss -Hln"$(echo "$p" | cut -c1)"p 2>/dev/null | grep '"openvpn"' | awk '$4 !~ /^127\./ {print $4}' | sed 's/.*://' | sort -u | tr '\n' ' ')
+        echo "== $p: OpenVPN listens on: ${listen:-NOTHING}; redirect chain: $(iptables -t nat -S "$c" 2>/dev/null | grep -c '^-A') rules;" \
+             "jump from PREROUTING: $(iptables -t nat -C PREROUTING -i "$IF" -p "$p" -m addrtype --dst-type LOCAL -j "$c" 2>/dev/null && echo yes || echo NO)"
+    done
+    for pair in "filter INPUT $INP" "filter FORWARD $FWD" "nat POSTROUTING $POST"; do
+        set -- $pair
+        pos=$(iptables -t "$1" -S "$2" 2>/dev/null | grep -n -- "-j $3\$" | head -1 | cut -d: -f1)
+        if [ -n "$pos" ]; then pos="rule $((pos - 1)) (should be 1)"; else pos="MISSING"; fi
+        echo "== $2: policy $(iptables -t "$1" -S "$2" 2>/dev/null | awk 'NR == 1 {print $3}'), our jump: $pos"
+    done
+    if command -v iptables-legacy >/dev/null 2>&1; then
+        echo "== iptables-legacy: $(iptables-legacy-save 2>/dev/null | grep -c '^-A') rules;" \
+             "$(iptables-legacy -S FORWARD 2>/dev/null | head -1), $(iptables-legacy -S INPUT 2>/dev/null | head -1);" \
+             "ours there: $(iptables-legacy -S FORWARD 2>/dev/null | grep -c -- "-j $FWD")"
+    fi
+    if command -v nft >/dev/null 2>&1; then
+        echo "== nftables chains of their own that drop by default:"
+        nft_dropping | while read -r fam tab ch hook; do
+            echo "   $fam $tab $ch ($hook): our rules $(nft_ours "$fam" "$tab" "$ch" | wc -l)"
+        done
+    fi
+    if command -v ufw >/dev/null 2>&1; then echo "== ufw: $(ufw status 2>/dev/null | head -1)"; else echo "== ufw: not installed"; fi
+    if command -v firewall-cmd >/dev/null 2>&1; then echo "== firewalld: $(firewall-cmd --state 2>&1)"; else echo "== firewalld: not installed"; fi
+    if command -v docker >/dev/null 2>&1; then echo "== docker: installed"; else echo "== docker: not installed"; fi
+    echo "== OpenVPN log (udp): $(journalctl -u openvpn-server@digitsell -n 1 --no-pager -o cat 2>/dev/null)"
+    set -- $(ephemeral)
+    echo "== UDP sockets: $(ss -Hlun 2>/dev/null | wc -l) (in the ephemeral range $1-$2: $(ss -Hlun 2>/dev/null | awk '{print $4}' | sed 's/.*://' | awk -v lo="$1" -v hi="$2" '$1 >= lo && $1 <= hi' | wc -l))"
+    echo "== conntrack: $(cat /proc/sys/net/netfilter/nf_conntrack_count 2>/dev/null) of $(cat /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null)"
+    echo "== excluded: udp $(excluded udp | wc -l), tcp $(excluded tcp | wc -l) listed ports"
+}
+
+if socket_match; then SOCKET=1; else SOCKET=0; fi
 
 case "$1" in
     start)
         legacy_off
-        base rule
+        flat_off
+        all_on
         for p in udp tcp; do
             if [ "$ALL_PORTS" = "1" ] && echo " $PROTOS " | grep -q " $p "; then
                 redirect_on "$p"
@@ -111,29 +327,37 @@ case "$1" in
         done
         ;;
     refresh)
+        all_on
         [ "$ALL_PORTS" = "1" ] || exit 0
         for p in $PROTOS; do
             c=$(chain "$p")
             # rebuild only when the list changed; the rules themselves are cheap
             if [ "$(excluded "$p")" != "$(cat "$STATE.$p" 2>/dev/null)" ] \
-                    || ! iptables -t nat -C PREROUTING -i "$IF" -p "$p" -m addrtype --dst-type LOCAL -j "$c" 2>/dev/null; then
+                    || ! iptables -t nat -C PREROUTING -i "$IF" -p "$p" -m addrtype --dst-type LOCAL -j "$c" 2>/dev/null \
+                    || ! iptables -t nat -S "$c" 2>/dev/null | grep -q -- "-j REDIRECT"; then
                 redirect_on "$p"
             fi
         done
         ;;
     stop)
         legacy_off
+        flat_off
         for p in udp tcp; do
             redirect_off "$p" "$(chain "$p")"
             rm -f "$STATE.$p"
         done
-        base undo
+        openings_off iptables
+        command -v iptables-legacy >/dev/null 2>&1 && openings_off iptables-legacy
+        nft_off
         ;;
     excluded)
         excluded "${2:-$(echo $PROTOS | awk '{print $1}')}"
         ;;
+    doctor)
+        doctor
+        ;;
     *)
-        echo "usage: $0 start|refresh|stop|excluded [udp|tcp]" >&2
+        echo "usage: $0 start|refresh|stop|excluded [udp|tcp]|doctor" >&2
         exit 1
         ;;
 esac
