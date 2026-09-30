@@ -30,12 +30,16 @@ done
 
 SERVER_DIR=/etc/openvpn/server
 
-# the port and protocol the firewall was opened for, before the config goes
-PORT=$(awk '$1 == "port" {print $2; exit}' "$SERVER_DIR/digitsell.conf" 2>/dev/null || true)
-PROTO=$(awk '$1 == "proto" {print $2; exit}' "$SERVER_DIR/digitsell.conf" 2>/dev/null || true)
+# the ports and protocols the firewall was opened for, before the configs go
+OPENINGS=""
+for conf in "$SERVER_DIR/digitsell.conf" "$SERVER_DIR/digitsell-tcp.conf"; do
+    [ -f "$conf" ] || continue
+    OPENINGS="$OPENINGS $(awk '$1 == "port" {p = $2} $1 == "proto" {q = $2} END {if (p && q) print p "/" q}' "$conf")"
+done
 
 echo "==> stopping services"
-for unit in digitsell-ovpn-nat-refresh.timer digitsell-ovpn-agent.service openvpn-server@digitsell.service; do
+for unit in digitsell-ovpn-nat-refresh.timer digitsell-ovpn-agent.service \
+            openvpn-server@digitsell.service openvpn-server@digitsell-tcp.service; do
     systemctl disable --now "$unit" >/dev/null 2>&1 || true
 done
 # stopping the NAT unit runs "digitsell-ovpn-nat stop", which removes its iptables rules
@@ -43,9 +47,10 @@ systemctl disable --now digitsell-ovpn-nat.service >/dev/null 2>&1 || true
 # and once more directly, in case the unit was never started
 [ -x /usr/local/sbin/digitsell-ovpn-nat ] && /usr/local/sbin/digitsell-ovpn-nat stop || true
 
-if [ -n "$PORT" ] && [ -n "$PROTO" ] && command -v ufw >/dev/null \
-        && ufw status 2>/dev/null | grep -q "Status: active"; then
-    ufw delete allow "$PORT/$PROTO" >/dev/null 2>&1 || true
+if command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q "Status: active"; then
+    for opening in $OPENINGS; do
+        ufw delete allow "$opening" >/dev/null 2>&1 || true
+    done
 fi
 
 echo "==> removing files"
@@ -53,10 +58,13 @@ rm -f /etc/systemd/system/digitsell-ovpn-agent.service \
       /etc/systemd/system/digitsell-ovpn-nat-refresh.service \
       /etc/systemd/system/digitsell-ovpn-nat-refresh.timer \
       /run/digitsell-ovpn-nat.excluded \
+      /run/digitsell-ovpn-nat.excluded.udp \
+      /run/digitsell-ovpn-nat.excluded.tcp \
       /etc/systemd/system/digitsell-ovpn-nat.service \
       /usr/local/sbin/digitsell-ovpn-nat \
       /etc/sysctl.d/99-digitsell-ovpn.conf \
       "$SERVER_DIR/digitsell.conf" \
+      "$SERVER_DIR/digitsell-tcp.conf" \
       "$SERVER_DIR/mgmt.pw"
 rm -rf /usr/local/lib/digitsell-ovpn /etc/digitsell-ovpn
 systemctl daemon-reload >/dev/null 2>&1 || true

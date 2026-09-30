@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.13.3** · repo
+Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.14.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -790,6 +790,25 @@ Pieces:
   with inline SVG (`view/common/ovpnsvg.tpl`), whatever the icon field says.
   Styles and the password toggle live in `ovpnstyle.tpl` (class / data
   attributes only, since the markup can appear once per platform tab).
+- **UDP and TCP (1.14.0).** `install.sh --proto both` (default) runs
+  `openvpn-server@digitsell` (UDP, 10.8.0.0/16, management 7505) and
+  `openvpn-server@digitsell-tcp` (TCP, 10.9.0.0/16, 7506) on the same port;
+  `digitsell-ovpn-nat` keeps a redirect chain per protocol
+  (`DIGITSELL_OVPN_UDP` / `_TCP`, skip lists in
+  `/run/digitsell-ovpn-nat.excluded.<proto>`) and removes the 1.13 chain.
+  The agent (1.2.0) holds one management connection per instance and
+  reports `listen` = {udp: {port, all_ports, excluded}, tcp: {...}};
+  TCP session ids get a `t` prefix. `migrations/012` adds `listen_json`,
+  `offer` ('' automatic / udp / tcp / both) and `public_ports_tcp`
+  (`public_ports` is now UDP; a TCP-only node's ports were moved).
+  `ovpnListen()` falls back to proto / port / excluded_ports for older agents;
+  `ovpnOffered()` (mirrored in `User::ovpnOffered()`) decides what customers
+  get. `ovpn.profile&proto=udp|tcp|both`: both lists the UDP remotes first and
+  the TCP ones after, each with its protocol, and leaves out
+  `explicit-exit-notify`. The dashboard row (`ovpnnode.tpl`) shows UDP / TCP
+  buttons plus the combined download when both are offered. A session
+  closed for silence and reported live again is reopened (usage is still
+  counted once: the growth is against stored counters).
 - **No client certificate on purpose:** customers sign in with username /
   password; the server is checked against the CA inside the file and the
   handshake is wrapped in tls-crypt. The profile carries
@@ -1047,3 +1066,4 @@ dark / phone.
 | 1.13.1 | OpenVPN: shown inside the apps card for any panel app named OpenVPN (download link / icon / guide edited in the panel's apps list), with server files and login instead of the subscription link; profile says `setenv CLIENT_CERT 0` so OpenVPN Connect no longer asks for a certificate; push errors carry the database message to the agent log |
 | 1.13.2 | OpenVPN: `xmplus-openvpn` icon class in the panel's own icon style (`<span class='xmplus xmplus-openvpn fs-15'></span>`) for the OpenVPN app in the client apps list |
 | 1.13.3 | OpenVPN: the app picker draws the OpenVPN icon as inline SVG for any app named OpenVPN, since the `xmplus-openvpn` class did not show on the live panel |
+| 1.14.0 | OpenVPN: UDP and TCP side by side (`install.sh --proto both`, default), per-server choice in the panel (automatic / both / UDP / TCP) with separate UDP and TCP ports; with both, customers get a combined file (UDP first, TCP fallback) and a UDP-only and TCP-only file. Existing nodes: run the install command again |

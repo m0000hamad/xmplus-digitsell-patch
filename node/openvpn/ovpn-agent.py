@@ -2,8 +2,9 @@
 """
 Digitsell OpenVPN agent - ties an OpenVPN server to the XMPlus panel.
 
-Runs next to OpenVPN (installed by install.sh) and holds OpenVPN's management
-interface, which is started with --management-client-auth, so every login is
+Runs next to OpenVPN (installed by install.sh) and holds the management
+interface of each OpenVPN instance - one for UDP and one for TCP with
+--proto both - started with --management-client-auth, so every login is
 decided here:
 
   * a connecting client's username / password go to the panel
@@ -40,7 +41,7 @@ import time
 import urllib.error
 import urllib.request
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 DEFAULT_CONFIG = "/etc/digitsell-ovpn/agent.json"
 AUTH_CACHE_SECONDS = 6 * 3600
@@ -234,54 +235,147 @@ def client_ip(address):
     return address
 
 
+class Instance:
+    """One OpenVPN process - one protocol - and the management connection to it.
+
+    install.sh runs a UDP and a TCP instance side by side (--proto both), each
+    on its own management port. Session ids of the UDP instance keep the form
+    agents before 1.2.0 used; the TCP instance prefixes its own with "t", so
+    the two never collide in the panel.
+    """
+
+    def __init__(self, agent, spec):
+        config = agent.config
+        self.agent = agent
+        self.proto = "tcp" if str(spec.get("proto", "udp")).startswith("tcp") else "udp"
+        self.port = int(spec.get("port", config.get("port", 1194)))
+        self.mgmt_port = int(spec.get("mgmt_port", 7505))
+        self.excluded_file = spec.get("excluded_file", "")
+        self.tag = "" if self.proto == "udp" else "t"
+        self.mgmt = None
+        self.known = {}  # client id -> session id, from the last status
+
+    def connected(self):
+        return self.mgmt is not None and self.mgmt.alive
+
+    def excluded_ports(self):
+        try:
+            return [int(p) for p in read_file(self.excluded_file).split() if p.isdigit()]
+        except Exception:
+            return []
+
+    def keep_connected(self):
+        """Thread: hold the management connection, reconnecting after OpenVPN restarts."""
+        config = self.agent.config
+        while True:
+            if not self.connected():
+                try:
+                    mgmt = Management(
+                        config.get("mgmt_host", "127.0.0.1"),
+                        self.mgmt_port,
+                        read_file(config["mgmt_password_file"]).strip()
+                        if config.get("mgmt_password_file") else "",
+                        lambda notice: self.agent.on_notice(self, notice),
+                    )
+                    mgmt.connect()
+                    self.mgmt = mgmt
+                    log("connected to OpenVPN (%s) management on port %d" % (self.proto, self.mgmt_port))
+                except Exception as error:
+                    log("cannot reach OpenVPN (%s) management (%s); retrying" % (self.proto, error))
+                    time.sleep(5)
+                    continue
+            time.sleep(2)
+
+    def sessions(self):
+        """Live sessions from 'status 3', with their running byte counters."""
+        lines = self.mgmt.command("status 3", multiline=True)
+        columns = None
+        rows = []
+        for line in lines:
+            fields = line.split("\t")
+            if fields[0] == "HEADER" and len(fields) > 1 and fields[1] == "CLIENT_LIST":
+                columns = fields[2:]
+            elif fields[0] == "CLIENT_LIST" and columns:
+                row = dict(zip(columns, fields[1:]))
+                cid = row.get("Client ID", "")
+                since = row.get("Connected Since (time_t)", "0")
+                user = row.get("Username", "")
+                if user in ("", "UNDEF"):
+                    user = row.get("Common Name", "")
+                rows.append({
+                    "instance": self,
+                    "cid": cid,
+                    "sid": "%s%s-%s" % (self.tag, cid, since),
+                    "user": user,
+                    "ip": client_ip(row.get("Real Address", "")),
+                    "vip": row.get("Virtual Address", ""),
+                    "rx": int(row.get("Bytes Received", "0") or 0),
+                    "tx": int(row.get("Bytes Sent", "0") or 0),
+                })
+        self.known = {row["cid"]: row["sid"] for row in rows}
+        return rows
+
+
 class Agent:
     def __init__(self, config):
         self.config = config
         self.panel = Panel(config)
         self.interval = int(config.get("interval", 60))
         self.pool = concurrent.futures.ThreadPoolExecutor(max_workers=int(config.get("workers", 8)))
-        self.mgmt = None
         self.closed = []            # final counters of sessions that ended, waiting for a push
         self.closed_lock = threading.Lock()
-        self.known = {}             # client id -> session id, from the last status
         self.auth_cache = {}        # (user, sha256(password)) -> time of the last panel "yes"
         self.last_hello = 0
 
+        # configs written before 1.2.0 describe a single instance at the top level
+        specs = config.get("instances") or [{
+            "proto": config.get("proto", "udp"),
+            "port": config.get("port", 1194),
+            "mgmt_port": config.get("mgmt_port", 7505),
+            "excluded_file": config.get("excluded_file", ""),
+        }]
+        self.instances = [Instance(self, spec) for spec in specs]
+
     # -- panel ------------------------------------------------------------
 
-    def excluded_ports(self):
-        try:
-            return [int(p) for p in read_file(self.config.get("excluded_file", "")).split() if p.isdigit()]
-        except Exception:
-            return []
-
     def hello(self):
+        first = self.instances[0]
+        listen = {}
+        for instance in self.instances:
+            listen[instance.proto] = {
+                "port": instance.port,
+                # every port redirected to OpenVPN except these (digitsell-ovpn-nat)
+                "all_ports": bool(self.config.get("all_ports")),
+                "excluded": instance.excluded_ports(),
+            }
         payload = {
             "host": self.config.get("host", ""),
-            "port": int(self.config.get("port", 1194)),
-            "proto": self.config.get("proto", "udp"),
             "ca": read_file(self.config["ca"]),
             "tls_crypt": read_file(self.config["tls_crypt"]),
             "version": VERSION,
-            # every port redirected to OpenVPN except these (digitsell-ovpn-nat)
+            "listen": listen,
+            # what panels before 1.14.0 read
+            "port": first.port,
+            "proto": first.proto,
             "all_ports": bool(self.config.get("all_ports")),
-            "excluded": self.excluded_ports(),
+            "excluded": first.excluded_ports(),
         }
         answer = self.panel.call("ovpn.hello", payload)
         self.interval = int(answer.get("interval", self.interval)) or 60
         self.last_hello = time.time()
-        log("registered with the panel as node", answer.get("node"), repr(answer.get("name")))
+        log("registered with the panel as node", answer.get("node"), repr(answer.get("name")),
+            "(%s)" % ", ".join(sorted(listen)))
 
     # -- logins -----------------------------------------------------------
 
-    def on_notice(self, notice):
+    def on_notice(self, instance, notice):
         kind = notice["type"]
         if kind in ("CONNECT", "REAUTH"):
-            self.pool.submit(self.decide, notice)
+            self.pool.submit(self.decide, instance, notice)
         elif kind == "DISCONNECT":
-            self.remember_closed(notice)
+            self.remember_closed(instance, notice)
 
-    def decide(self, notice):
+    def decide(self, instance, notice):
         cid = notice["args"][0] if notice["args"] else ""
         kid = notice["args"][1] if len(notice["args"]) > 1 else "0"
         env = notice["env"]
@@ -314,7 +408,7 @@ class Agent:
 
         try:
             if allow:
-                self.mgmt.command("client-auth-nt %s %s" % (cid, kid))
+                instance.mgmt.command("client-auth-nt %s %s" % (cid, kid))
             else:
                 message = {
                     "password": "wrong username or password",
@@ -326,24 +420,25 @@ class Agent:
                     "off": "OpenVPN is switched off",
                     "node": "this server is switched off",
                 }.get(reason, "not allowed")
-                self.mgmt.command('client-deny %s %s "%s" "%s"' % (cid, kid, reason, message))
+                instance.mgmt.command('client-deny %s %s "%s" "%s"' % (cid, kid, reason, message))
             if not allow or not reauth:
-                log("login", user, "from", ip, "->", "allowed" if allow else "denied (%s)" % reason)
+                log("login", user, "from", ip, "over", instance.proto, "->",
+                    "allowed" if allow else "denied (%s)" % reason)
         except Exception as error:
             log("could not answer the login of", user, ":", error)
 
     # -- usage ------------------------------------------------------------
 
-    def remember_closed(self, notice):
+    def remember_closed(self, instance, notice):
         env = notice["env"]
         cid = notice["args"][0] if notice["args"] else ""
-        sid = self.known.pop(cid, None)
+        sid = instance.known.pop(cid, None)
         rx = int(env.get("bytes_received", "0") or 0)
         tx = int(env.get("bytes_sent", "0") or 0)
         if sid is None:
             if rx + tx == 0:
                 return  # a refused login, or a session that never carried traffic
-            sid = "%s-%s" % (cid, env.get("time_unix", "0"))
+            sid = "%s%s-%s" % (instance.tag, cid, env.get("time_unix", "0"))
         record = {
             "sid": sid,
             "user": env.get("username", "") or env.get("common_name", ""),
@@ -356,36 +451,17 @@ class Agent:
             self.closed.append(record)
             del self.closed[:-MAX_CLOSED_BACKLOG]
 
-    def sessions(self):
-        """Live sessions from 'status 3', with their running byte counters."""
-        lines = self.mgmt.command("status 3", multiline=True)
-        columns = None
-        rows = []
-        for line in lines:
-            fields = line.split("\t")
-            if fields[0] == "HEADER" and len(fields) > 1 and fields[1] == "CLIENT_LIST":
-                columns = fields[2:]
-            elif fields[0] == "CLIENT_LIST" and columns:
-                row = dict(zip(columns, fields[1:]))
-                cid = row.get("Client ID", "")
-                since = row.get("Connected Since (time_t)", "0")
-                user = row.get("Username", "")
-                if user in ("", "UNDEF"):
-                    user = row.get("Common Name", "")
-                rows.append({
-                    "cid": cid,
-                    "sid": "%s-%s" % (cid, since),
-                    "user": user,
-                    "ip": client_ip(row.get("Real Address", "")),
-                    "vip": row.get("Virtual Address", ""),
-                    "rx": int(row.get("Bytes Received", "0") or 0),
-                    "tx": int(row.get("Bytes Sent", "0") or 0),
-                })
-        self.known = {row["cid"]: row["sid"] for row in rows}
-        return rows
-
     def push(self):
-        live = self.sessions()
+        live = []
+        for instance in self.instances:
+            if not instance.connected():
+                continue
+            try:
+                live.extend(instance.sessions())
+            except ManagementError as error:
+                log("management (%s):" % instance.proto, error)
+                instance.mgmt.close()
+
         with self.closed_lock:
             closed = list(self.closed)
 
@@ -408,7 +484,7 @@ class Agent:
             if row is None:
                 continue
             try:
-                self.mgmt.command("client-kill %s" % row["cid"])
+                row["instance"].mgmt.command("client-kill %s" % row["cid"])
                 log("cut", row["user"], "(%s)" % item.get("reason", ""))
             except Exception as error:
                 log("could not cut", row["user"], ":", error)
@@ -416,45 +492,28 @@ class Agent:
     # -- main loop --------------------------------------------------------
 
     def run(self):
-        while True:
-            try:
-                self.mgmt = Management(
-                    self.config.get("mgmt_host", "127.0.0.1"),
-                    int(self.config.get("mgmt_port", 7505)),
-                    read_file(self.config["mgmt_password_file"]).strip()
-                    if self.config.get("mgmt_password_file") else "",
-                    self.on_notice,
-                )
-                self.mgmt.connect()
-                log("connected to the OpenVPN management interface")
-            except Exception as error:
-                log("cannot reach OpenVPN management (%s); retrying" % error)
-                time.sleep(5)
-                continue
+        for instance in self.instances:
+            threading.Thread(target=instance.keep_connected, daemon=True).start()
 
-            next_push = 0
-            while self.mgmt.alive:
-                now = time.time()
-                if now - self.last_hello > HELLO_EVERY:
-                    try:
-                        self.hello()
-                    except Exception as error:
-                        log("hello failed:", error)
-                        self.last_hello = now - HELLO_EVERY + 60  # try again in a minute
-                if now >= next_push:
+        next_push = time.time() + 5  # give the connections a moment
+        while True:
+            now = time.time()
+            if now - self.last_hello > HELLO_EVERY:
+                try:
+                    self.hello()
+                except Exception as error:
+                    log("hello failed:", error)
+                    self.last_hello = now - HELLO_EVERY + 60  # try again in a minute
+            if now >= next_push:
+                # with no OpenVPN reachable there is nothing true to report;
+                # the panel then sees the node as down
+                if any(instance.connected() for instance in self.instances):
                     try:
                         self.push()
-                    except ManagementError as error:
-                        log("management:", error)
-                        break
                     except Exception as error:
                         log("push failed:", error)
-                    next_push = time.time() + self.interval
-                time.sleep(1)
-
-            self.mgmt.close()
-            log("management connection closed; reconnecting")
-            time.sleep(3)
+                next_push = time.time() + self.interval
+            time.sleep(1)
 
 
 def main():

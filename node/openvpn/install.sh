@@ -8,15 +8,19 @@
 # the node id and key and prints this command ready to paste:
 #
 #   sudo bash install.sh --panel https://panel.example.com --node 1 --key <key> \
-#        [--port 1194] [--proto udp|tcp] [--host vpn.example.com] \
-#        [--dns "1.1.1.1 8.8.8.8"] [--subnet 10.8.0.0/16] \
+#        [--proto both|udp|tcp] [--port 1194] [--host vpn.example.com] \
+#        [--dns "1.1.1.1 8.8.8.8"] [--subnet 10.8.0.0/16] [--subnet-tcp 10.9.0.0/16] \
 #        [--single-port] [--exclude "80 443"]
 #
-# By default every port of the chosen protocol is redirected to OpenVPN, so the
-# port customers connect to is set in the panel (Settings -> OpenVPN servers ->
-# ports for customers) without touching this server. Ports another program here
-# listens on (SSH, a web server, Xray...) are left alone automatically;
-# --exclude names more to leave alone, --single-port turns the redirect off.
+# --proto both (the default) runs two OpenVPN instances, one for UDP and one
+# for TCP, sharing the certificates; which of them customers get, and on which
+# ports, is chosen in the panel (Settings -> OpenVPN servers -> edit).
+#
+# By default every port of each protocol is redirected to its OpenVPN, so the
+# ports customers connect to are set in the panel without touching this
+# server. Ports another program here listens on (SSH, a web server, Xray...)
+# are left alone automatically; --exclude names more to leave alone,
+# --single-port turns the redirect off.
 #
 # Ubuntu 20.04+ / Debian 11+. Safe to run again: the certificate authority is
 # kept, so profiles customers already downloaded keep working; settings and
@@ -30,10 +34,11 @@ PANEL=""
 NODE=""
 KEY=""
 PORT="1194"
-PROTO="udp"
+PROTO="both"
 HOST=""
 DNS="1.1.1.1 8.8.8.8"
 SUBNET="10.8.0.0/16"
+SUBNET_TCP="10.9.0.0/16"
 ALL_PORTS=1
 EXCLUDE=""
 
@@ -47,6 +52,7 @@ while [ $# -gt 0 ]; do
         --host)   HOST="$2"; shift 2 ;;
         --dns)    DNS="$2"; shift 2 ;;
         --subnet) SUBNET="$2"; shift 2 ;;
+        --subnet-tcp) SUBNET_TCP="$2"; shift 2 ;;
         --single-port) ALL_PORTS=0; shift ;;
         --exclude) EXCLUDE="$2"; shift 2 ;;
         *) echo "unknown option: $1" >&2; exit 1 ;;
@@ -70,8 +76,15 @@ quiet() {
 [[ "$NODE" =~ ^[0-9]+$ ]] || die "--node must be a number"
 [[ "$KEY" =~ ^[A-Za-z0-9]{32,128}$ ]] || die "--key does not look like a node key"
 [[ "$PORT" =~ ^[0-9]+$ ]] && [ "$PORT" -ge 1 ] && [ "$PORT" -le 65535 ] || die "bad --port"
-[ "$PROTO" = "udp" ] || [ "$PROTO" = "tcp" ] || die "--proto must be udp or tcp"
-[[ "$SUBNET" =~ ^([0-9]+\.){3}[0-9]+/(1[6-9]|2[0-4])$ ]] || die "--subnet must be like 10.8.0.0/16 (/16 to /24)"
+case "$PROTO" in
+    both) PROTOS="udp tcp" ;;
+    udp|tcp) PROTOS="$PROTO" ;;
+    *) die "--proto must be both, udp or tcp" ;;
+esac
+for s in "$SUBNET" "$SUBNET_TCP"; do
+    [[ "$s" =~ ^([0-9]+\.){3}[0-9]+/(1[6-9]|2[0-4])$ ]] || die "subnets must be like 10.8.0.0/16 (/16 to /24)"
+done
+[ "$SUBNET" != "$SUBNET_TCP" ] || die "--subnet and --subnet-tcp must differ"
 command -v apt-get >/dev/null || die "this installer supports Debian and Ubuntu only"
 
 [ -z "$HOST" ] || [[ "$HOST" =~ ^[A-Za-z0-9.:-]{1,253}$ ]] || die "--host may only hold a host name or an IP"
@@ -85,8 +98,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq openvpn easy-rsa python3 curl iptables iproute2 ca-certificates openssl >/dev/null
 
-NET="${SUBNET%/*}"
-MASK=$(python3 -c "import ipaddress,sys; print(ipaddress.ip_network(sys.argv[1], strict=False).netmask)" "$SUBNET")
+netmask() { python3 -c "import ipaddress,sys; print(ipaddress.ip_network(sys.argv[1], strict=False).netmask)" "$1"; }
 
 # openvpn --version exits 1, and head closing the pipe early would trip pipefail
 OVPN_VERSION=$( (openvpn --version 2>/dev/null || true) | awk 'NR == 1 {print $2}')
@@ -130,18 +142,26 @@ if [ ! -f "$SERVER_DIR/mgmt.pw" ]; then
 fi
 chmod 600 "$SERVER_DIR/mgmt.pw"
 
-echo "==> OpenVPN configuration"
+echo "==> OpenVPN configuration ($PROTOS)"
 DNS_LINES=""
 for server in $DNS; do
     DNS_LINES="${DNS_LINES}push \"dhcp-option DNS ${server}\""$'\n'
 done
-EXIT_NOTIFY=""
-[ "$PROTO" = "udp" ] && EXIT_NOTIFY="explicit-exit-notify 1"
 
-cat > "$SERVER_DIR/digitsell.conf" <<EOF
+# one instance per protocol: digitsell (UDP, management 7505) and
+# digitsell-tcp (TCP, management 7506); both on --port, own subnet each
+instance_name() { [ "$1" = "udp" ] && echo digitsell || echo digitsell-tcp; }
+instance_mgmt() { [ "$1" = "udp" ] && echo 7505 || echo 7506; }
+instance_subnet() { [ "$1" = "udp" ] && echo "$SUBNET" || echo "$SUBNET_TCP"; }
+
+write_instance() {
+    local proto=$1 subnet exit_notify=""
+    subnet=$(instance_subnet "$proto")
+    [ "$proto" = "udp" ] && exit_notify="explicit-exit-notify 1"
+    cat > "$SERVER_DIR/$(instance_name "$proto").conf" <<EOF
 # written by the Digitsell installer; run install.sh again rather than editing
 port $PORT
-proto $PROTO
+proto $proto
 dev tun
 ca $RSA_DIR/pki/ca.crt
 cert $RSA_DIR/pki/issued/server.crt
@@ -151,7 +171,7 @@ ecdh-curve prime256v1
 tls-crypt $SERVER_DIR/tc.key
 tls-version-min 1.2
 topology subnet
-server $NET $MASK
+server ${subnet%/*} $(netmask "$subnet")
 push "redirect-gateway def1 bypass-dhcp"
 ${DNS_LINES}keepalive 10 60
 user nobody
@@ -162,13 +182,27 @@ persist-tun
 verify-client-cert none
 username-as-common-name
 duplicate-cn
-management 127.0.0.1 7505 $SERVER_DIR/mgmt.pw
+management 127.0.0.1 $(instance_mgmt "$proto") $SERVER_DIR/mgmt.pw
 management-client-auth
 reneg-sec 0
 max-clients 4000
 verb 3
-$EXIT_NOTIFY
+$exit_notify
 EOF
+}
+
+SUBNETS=""
+for proto in udp tcp; do
+    if [[ " $PROTOS " == *" $proto "* ]]; then
+        write_instance "$proto"
+        SUBNETS="$SUBNETS $(instance_subnet "$proto")"
+    else
+        # a protocol no longer wanted: its instance goes away
+        systemctl disable --now "openvpn-server@$(instance_name "$proto").service" >/dev/null 2>&1 || true
+        rm -f "$SERVER_DIR/$(instance_name "$proto").conf"
+    fi
+done
+SUBNETS="${SUBNETS# }"
 
 echo "==> routing"
 cat > /etc/sysctl.d/99-digitsell-ovpn.conf <<EOF
@@ -181,10 +215,13 @@ fetch() {  # a file from node/openvpn/: next to this script, or from the reposit
     if [ -f "$SELF_DIR/$1" ]; then cp "$SELF_DIR/$1" "$2"; else curl -fsSL "$REPO_RAW/node/openvpn/$1" -o "$2"; fi
 }
 
+# the old NAT rules first, while the script that knows them is still there
+[ -x /usr/local/sbin/digitsell-ovpn-nat ] && /usr/local/sbin/digitsell-ovpn-nat stop >/dev/null 2>&1 || true
+
 cat > "$CONF_DIR/nat.conf" <<EOF
 # read by /usr/local/sbin/digitsell-ovpn-nat; run install.sh again to change
-SUBNET=$SUBNET
-PROTO=$PROTO
+PROTOS="$PROTOS"
+SUBNETS="$SUBNETS"
 PORT=$PORT
 ALL_PORTS=$ALL_PORTS
 EXCLUDE="$EXCLUDE"
@@ -192,10 +229,15 @@ EOF
 fetch digitsell-ovpn-nat /usr/local/sbin/digitsell-ovpn-nat
 chmod 755 /usr/local/sbin/digitsell-ovpn-nat
 
+UNITS_AFTER=""
+for proto in $PROTOS; do
+    UNITS_AFTER="$UNITS_AFTER openvpn-server@$(instance_name "$proto").service"
+done
+
 cat > /etc/systemd/system/digitsell-ovpn-nat.service <<EOF
 [Unit]
 Description=NAT for the Digitsell OpenVPN node
-Before=openvpn-server@digitsell.service
+Before=$UNITS_AFTER
 After=network-online.target
 Wants=network-online.target
 
@@ -234,7 +276,9 @@ WantedBy=timers.target
 EOF
 
 if command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q "Status: active"; then
-    ufw allow "$PORT/$PROTO" >/dev/null
+    for proto in $PROTOS; do
+        ufw allow "$PORT/$proto" >/dev/null
+    done
 fi
 
 echo "==> agent"
@@ -249,22 +293,26 @@ if [ -z "$HOST" ]; then
 fi
 [ -n "$HOST" ] || die "could not work out this server's public address; pass --host"
 
-python3 - "$CONF_DIR/agent.json" <<EOF
+python3 - "$CONF_DIR/agent.json" "$PROTOS" <<EOF
 import json, sys
+protos = sys.argv[2].split()
 json.dump({
     "panel": "$PANEL",
     "node": $NODE,
     "key": "$KEY",
     "host": "$HOST",
     "port": $PORT,
-    "proto": "$PROTO",
+    "proto": protos[0],
     "ca": "$RSA_DIR/pki/ca.crt",
     "tls_crypt": "$SERVER_DIR/tc.key",
     "mgmt_host": "127.0.0.1",
-    "mgmt_port": 7505,
     "mgmt_password_file": "$SERVER_DIR/mgmt.pw",
     "all_ports": $ALL_PORTS == 1,
-    "excluded_file": "/run/digitsell-ovpn-nat.excluded"
+    "instances": [
+        {"proto": p, "port": $PORT, "mgmt_port": 7505 if p == "udp" else 7506,
+         "excluded_file": "/run/digitsell-ovpn-nat.excluded." + p}
+        for p in protos
+    ]
 }, open(sys.argv[1], "w"), indent=2)
 EOF
 chmod 600 "$CONF_DIR/agent.json"
@@ -272,7 +320,7 @@ chmod 600 "$CONF_DIR/agent.json"
 cat > /etc/systemd/system/digitsell-ovpn-agent.service <<EOF
 [Unit]
 Description=Digitsell OpenVPN agent (logins and traffic through the panel)
-After=network-online.target openvpn-server@digitsell.service
+After=network-online.target $UNITS_AFTER
 Wants=network-online.target
 
 [Service]
@@ -294,19 +342,26 @@ systemctl daemon-reload
 systemctl enable --now digitsell-ovpn-nat.service >/dev/null
 systemctl restart digitsell-ovpn-nat.service
 systemctl enable --now digitsell-ovpn-nat-refresh.timer >/dev/null
-systemctl enable openvpn-server@digitsell.service >/dev/null
-systemctl restart openvpn-server@digitsell.service
+for proto in $PROTOS; do
+    systemctl enable "openvpn-server@$(instance_name "$proto").service" >/dev/null
+    systemctl restart "openvpn-server@$(instance_name "$proto").service"
+done
 systemctl enable digitsell-ovpn-agent.service >/dev/null
 systemctl restart digitsell-ovpn-agent.service
 
 sleep 2
-systemctl is-active --quiet openvpn-server@digitsell.service || die "OpenVPN did not start: journalctl -u openvpn-server@digitsell -n 50"
+for proto in $PROTOS; do
+    name=$(instance_name "$proto")
+    systemctl is-active --quiet "openvpn-server@$name.service" || die "OpenVPN ($proto) did not start: journalctl -u openvpn-server@$name -n 50"
+done
 systemctl is-active --quiet digitsell-ovpn-agent.service || die "the agent did not start: journalctl -u digitsell-ovpn-agent -n 50"
 
 echo
-echo "Done. OpenVPN listens on $HOST:$PORT/$PROTO and answers to the panel at $PANEL."
-if [ "$ALL_PORTS" = "1" ]; then
-    echo "Every $PROTO port is redirected to it except: $(/usr/local/sbin/digitsell-ovpn-nat excluded | tr '\n' ' ')"
-    echo "Choose the port customers use in the panel: Settings -> OpenVPN servers -> edit."
-fi
+for proto in $PROTOS; do
+    echo "Done. OpenVPN listens on $HOST:$PORT/$proto and answers to the panel at $PANEL."
+    if [ "$ALL_PORTS" = "1" ]; then
+        echo "    every $proto port is redirected to it except: $(/usr/local/sbin/digitsell-ovpn-nat excluded "$proto" | tr '\n' ' ')"
+    fi
+done
+echo "Choose what customers get (UDP / TCP / both) and the ports in the panel: Settings -> OpenVPN servers -> edit."
 echo "Logs: journalctl -u digitsell-ovpn-agent -f"

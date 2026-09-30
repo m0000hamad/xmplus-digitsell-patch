@@ -285,18 +285,73 @@ function ovpnPortList($value, int $max = 8): array
     return array_slice(array_values($ports), 0, $max);
 }
 
-/** Ports the node leaves alone because another program listens there. */
-function ovpnExcludedPorts(array $node): array
+function ovpnProtoName($value): string
 {
-    return ovpnPortList(str_replace(',', ' ', (string) ($node['excluded_ports'] ?? '')), 65535);
+    return strpos(strtolower((string) $value), 'tcp') === 0 ? 'tcp' : 'udp';
 }
 
-/** The ports customers are sent to: the panel's choice, else OpenVPN's own. */
-function ovpnNodePorts(array $node): array
+/**
+ * What the node runs, per protocol: ['udp' => ['port' => 1194, 'all_ports' =>
+ * true, 'excluded' => [22, 80]], 'tcp' => [...]]. Agents from 1.2.0 report it
+ * in listen_json; an older agent's single instance is read from proto / port /
+ * all_ports / excluded_ports. Empty until the node has reported once.
+ */
+function ovpnListen(array $node): array
 {
-    $ports = ovpnPortList($node['public_ports'] ?? '');
+    $listen = [];
+    $decoded = json_decode((string) ($node['listen_json'] ?? ''), true);
 
-    return $ports !== [] ? $ports : [(int) $node['port']];
+    if (is_array($decoded) && $decoded !== []) {
+        foreach (['udp', 'tcp'] as $proto) {
+            if (isset($decoded[$proto]) && is_array($decoded[$proto])) {
+                $item = $decoded[$proto];
+                $listen[$proto] = [
+                    'port'      => (int) ($item['port'] ?? 0) ?: (int) $node['port'],
+                    'all_ports' => !empty($item['all_ports']),
+                    'excluded'  => ovpnPortList(implode(' ', array_map('intval', (array) ($item['excluded'] ?? []))), 65535),
+                ];
+            }
+        }
+        return $listen;
+    }
+
+    if ((int) $node['heartbeat'] <= 0 && trim((string) $node['host']) === '') {
+        return [];
+    }
+
+    $listen[ovpnProtoName($node['proto'])] = [
+        'port'      => (int) $node['port'],
+        'all_ports' => (int) ($node['all_ports'] ?? 0) === 1,
+        'excluded'  => ovpnPortList(str_replace(',', ' ', (string) ($node['excluded_ports'] ?? '')), 65535),
+    ];
+
+    return $listen;
+}
+
+/** The protocols customers get from this node, UDP first. */
+function ovpnOffered(array $node): array
+{
+    $running = array_keys(ovpnListen($node));
+    $offer = (string) ($node['offer'] ?? '');
+    $wanted = in_array($offer, ['udp', 'tcp'], true) ? [$offer] : ['udp', 'tcp'];
+
+    return array_values(array_filter(['udp', 'tcp'], static function ($proto) use ($running, $wanted) {
+        return in_array($proto, $running, true) && in_array($proto, $wanted, true);
+    }));
+}
+
+/** The ports customers are sent to for a protocol: the panel's choice, else OpenVPN's own. */
+function ovpnNodePorts(array $node, string $proto = 'udp'): array
+{
+    $ports = ovpnPortList($proto === 'tcp' ? ($node['public_ports_tcp'] ?? '') : ($node['public_ports'] ?? ''));
+
+    if ($ports !== []) {
+        return $ports;
+    }
+
+    $listen = ovpnListen($node);
+
+    return [(int) ($listen[$proto]['port'] ?? $node['port'])];
 }
 
 function ovpnNodeLive(array $node): bool
@@ -308,7 +363,8 @@ function ovpnNodeLive(array $node): bool
 function ovpnNodeUsable(array $node): bool
 {
     return (int) $node['enabled'] === 1 && ovpnNodeHost($node) !== ''
-        && trim((string) $node['ca']) !== '' && trim((string) $node['tls_crypt']) !== '';
+        && trim((string) $node['ca']) !== '' && trim((string) $node['tls_crypt']) !== ''
+        && ovpnOffered($node) !== [];
 }
 
 function ovpnNodeServes(array $node, array $user): bool
@@ -457,20 +513,39 @@ function ovpnHello(): void
 
     $version = substr(preg_replace('~[^A-Za-z0-9._-]~', '', (string) ($body['version'] ?? '')), 0, 32);
 
+    $cleanPorts = static function ($list): array {
+        $ports = [];
+        foreach (is_array($list) ? $list : [] as $item) {
+            if (is_int($item) && $item >= 1 && $item <= 65535) {
+                $ports[$item] = $item;
+            }
+        }
+        ksort($ports);
+        return array_slice(array_values($ports), 0, 2000);
+    };
+
     // agents from 1.1.0 redirect every port and say which ones they leave alone
     $allPorts = !empty($body['all_ports']) ? 1 : 0;
-    $excluded = [];
-    foreach (is_array($body['excluded'] ?? null) ? $body['excluded'] : [] as $item) {
-        if (is_int($item) && $item >= 1 && $item <= 65535) {
-            $excluded[$item] = $item;
+    $excluded = $cleanPorts($body['excluded'] ?? []);
+
+    // agents from 1.2.0 describe every instance they run (UDP and / or TCP)
+    $listen = [];
+    foreach (is_array($body['listen'] ?? null) ? $body['listen'] : [] as $name => $item) {
+        $name = ovpnProtoName($name);
+        $itemPort = (int) ($item['port'] ?? 0);
+        if (is_array($item) && $itemPort >= 1 && $itemPort <= 65535) {
+            $listen[$name] = [
+                'port'      => $itemPort,
+                'all_ports' => !empty($item['all_ports']),
+                'excluded'  => $cleanPorts($item['excluded'] ?? []),
+            ];
         }
     }
-    ksort($excluded);
 
     db()->prepare('UPDATE ovpn_node SET host = ?, port = ?, proto = ?, ca = ?, tls_crypt = ?, agent_version = ?,
-                          all_ports = ?, excluded_ports = ?, heartbeat = ?, updated = ? WHERE id = ?')
-        ->execute([$host, $port, $proto, $ca, $tlsCrypt, $version, $allPorts,
-            implode(',', array_slice(array_values($excluded), 0, 2000)), time(), time(), (int) $node['id']]);
+                          all_ports = ?, excluded_ports = ?, listen_json = ?, heartbeat = ?, updated = ? WHERE id = ?')
+        ->execute([$host, $port, $proto, $ca, $tlsCrypt, $version, $allPorts, implode(',', $excluded),
+            $listen === [] ? null : json_encode($listen), time(), time(), (int) $node['id']]);
 
     done(['node' => (int) $node['id'], 'name' => (string) $node['name'], 'interval' => OVPN_PUSH_INTERVAL]);
 }
@@ -564,10 +639,9 @@ function ovpnPush(): void
                 $create->execute([$nodeId, $report['sid'], $report['userid'], $report['ip'], $report['vip'],
                     $report['rx'], $report['tx'], $now, $now, $closedAt]);
             } else {
-                if ((int) $row['closed'] > 0) {
-                    continue; // already settled; a repeated "closed" report counts nothing
-                }
-                // running totals: only the growth counts, so a resent push adds nothing
+                // running totals: only the growth counts, so a resent push - or a
+                // repeated "closed" report - adds nothing; a session marked
+                // closed for silence and reported again is simply open again
                 $up = max(0, $report['rx'] - (int) $row['rx']);
                 $down = max(0, $report['tx'] - (int) $row['tx']);
                 $update->execute([max($report['rx'], (int) $row['rx']), max($report['tx'], (int) $row['tx']),
@@ -696,22 +770,33 @@ function ovpnRequireUser(): array
     return $user;
 }
 
-function ovpnProfileText(array $node, string $login): string
+/**
+ * The .ovpn file. $mode is 'udp', 'tcp' or 'both': with both, the UDP remotes
+ * come first and the TCP ones after, each line naming its protocol, so the app
+ * falls back to TCP where UDP is blocked.
+ */
+function ovpnProfileText(array $node, string $login, string $mode): string
 {
-    $proto = (string) $node['proto'] === 'tcp' ? 'tcp' : 'udp';
+    $protos = $mode === 'both' ? ovpnOffered($node) : [$mode];
+    $single = count($protos) === 1;
+
     $lines = [
         '# ' . preg_replace('~[\r\n]+~', ' ', (string) $node['name']),
         '# OVPN_ACCESS_SERVER_USERNAME=' . $login,
         'client',
         'dev tun',
-        'proto ' . $proto,
+        'proto ' . $protos[0],
     ];
 
     // one remote per port, tried in order: a blocked port falls through to the next
-    foreach (ovpnNodePorts($node) as $port) {
-        $lines[] = 'remote ' . ovpnNodeHost($node) . ' ' . $port;
+    $remotes = 0;
+    foreach ($protos as $proto) {
+        foreach (ovpnNodePorts($node, $proto) as $port) {
+            $lines[] = 'remote ' . ovpnNodeHost($node) . ' ' . $port . ($single ? '' : ' ' . $proto);
+            $remotes++;
+        }
     }
-    if (count(ovpnNodePorts($node)) > 1) {
+    if ($remotes > 1) {
         $lines[] = 'server-poll-timeout 10';
     }
 
@@ -730,7 +815,8 @@ function ovpnProfileText(array $node, string $login): string
         'verb 3',
     ]);
 
-    if ($proto === 'udp') {
+    // only for a file that is UDP alone; some clients refuse it next to TCP
+    if ($protos === ['udp']) {
         $lines[] = 'explicit-exit-notify 1';
     }
 
@@ -757,13 +843,22 @@ function ovpnProfile(): void
         fail('this server is not available for your account');
     }
 
+    // udp / tcp alone, or both in one file when the node offers both (the default)
+    $offered = ovpnOffered($node);
+    $modes = count($offered) > 1 ? array_merge($offered, ['both']) : $offered;
+    $mode = strtolower((string) ($_GET['proto'] ?? ''));
+    if (!in_array($mode, $modes, true)) {
+        $mode = count($offered) > 1 ? 'both' : $offered[0];
+    }
+
     $slug = strtolower(trim(preg_replace('~[^A-Za-z0-9]+~', '-', (string) $node['name']), '-'));
-    $file = 'digitsell-' . ($slug !== '' ? $slug : 'server-' . (int) $node['id']) . '.ovpn';
+    $file = 'digitsell-' . ($slug !== '' ? $slug : 'server-' . (int) $node['id'])
+        . ($mode === 'both' ? '' : '-' . $mode) . '.ovpn';
 
     header('Content-Type: application/x-openvpn-profile');
     header('Content-Disposition: attachment; filename="' . $file . '"');
     header('Cache-Control: no-store, private');
-    echo ovpnProfileText($node, ovpnLogin((int) $user['id']));
+    echo ovpnProfileText($node, ovpnLogin((int) $user['id']), $mode);
     exit;
 }
 
@@ -776,6 +871,17 @@ function ovpnAdminToken(): string
     }
 
     return (string) $_SESSION['patch_csrf'];
+}
+
+/** Per protocol the node runs: its own port, the redirect, the ports left alone, and the ports customers get. */
+function ovpnListenView(array $node): array
+{
+    $view = [];
+    foreach (ovpnListen($node) as $proto => $item) {
+        $view[$proto] = $item + ['ports' => ovpnNodePorts($node, $proto)];
+    }
+
+    return $view;
 }
 
 function ovpnNodeView(array $node): array
@@ -792,9 +898,10 @@ function ovpnNodeView(array $node): array
         'port'          => (int) $node['port'],
         'proto'         => (string) $node['proto'],
         'public_ports'  => implode(', ', ovpnPortList($node['public_ports'] ?? '')),
-        'ports'         => ovpnNodePorts($node),
-        'all_ports'     => (int) ($node['all_ports'] ?? 0) === 1,
-        'excluded'      => ovpnExcludedPorts($node),
+        'public_ports_tcp' => implode(', ', ovpnPortList($node['public_ports_tcp'] ?? '')),
+        'offer'         => (string) ($node['offer'] ?? ''),
+        'offered'       => ovpnOffered($node),
+        'listen'        => (object) ovpnListenView($node),
         'ready'         => ovpnNodeUsable($node),
         'live'          => ovpnNodeLive($node),
         'heartbeat'     => (int) $node['heartbeat'],
@@ -890,10 +997,19 @@ function ovpnAdminNodeSave(): void
         fail('the address may only hold a host name or an IP');
     }
 
-    $portsText = trim((string) ($_POST['public_ports'] ?? ''));
-    $ports = ovpnPortList($portsText);
-    if ($portsText !== '' && $ports === []) {
-        fail('ports must be numbers from 1 to 65535, separated by commas');
+    // customer ports per protocol: public_ports is UDP, public_ports_tcp is TCP
+    $ports = [];
+    foreach (['udp' => 'public_ports', 'tcp' => 'public_ports_tcp'] as $proto => $field) {
+        $text = trim((string) ($_POST[$field] ?? ''));
+        $ports[$proto] = ovpnPortList($text);
+        if ($text !== '' && $ports[$proto] === []) {
+            fail(strtoupper($proto) . ' ports must be numbers from 1 to 65535, separated by commas');
+        }
+    }
+
+    $offer = (string) ($_POST['offer'] ?? '');
+    if (!in_array($offer, ['', 'udp', 'tcp', 'both'], true)) {
+        fail('unknown protocol choice');
     }
 
     $groups = implode(',', ovpnGroups($_POST['groups'] ?? []));
@@ -907,30 +1023,49 @@ function ovpnAdminNodeSave(): void
             fail('no such server');
         }
 
-        // what the server said about itself decides which ports can work
-        if ($ports !== [] && (int) $current['heartbeat'] > 0) {
-            $own = (int) $current['port'];
-            if ((int) ($current['all_ports'] ?? 0) !== 1 && $ports !== [$own]) {
-                fail('this server only listens on port ' . $own . ' - run the install command again (latest version) to open every port');
+        // what the server said about itself decides which protocols and ports can work
+        $listen = ovpnListen($current);
+        if ($listen !== []) {
+            $wanted = $offer === 'both' ? ['udp', 'tcp'] : (in_array($offer, ['udp', 'tcp'], true) ? [$offer] : []);
+            foreach ($wanted as $proto) {
+                if (!isset($listen[$proto])) {
+                    fail('this server does not run ' . strtoupper($proto) . ' - run the install command again with --proto both');
+                }
             }
-            $busy = array_values(array_intersect($ports, ovpnExcludedPorts($current)));
-            if ($busy !== []) {
-                fail('port ' . implode(', ', $busy) . ' is used by another program on the server');
+
+            foreach ($ports as $proto => $list) {
+                if ($list === []) {
+                    continue;
+                }
+                if (!isset($listen[$proto])) {
+                    fail('this server does not run ' . strtoupper($proto) . ' - run the install command again with --proto both');
+                }
+                $own = (int) $listen[$proto]['port'];
+                if (!$listen[$proto]['all_ports'] && $list !== [$own]) {
+                    fail('this server only listens on ' . strtoupper($proto) . ' port ' . $own
+                        . ' - run the install command again (latest version) to open every port');
+                }
+                $busy = array_values(array_intersect($list, $listen[$proto]['excluded']));
+                if ($busy !== []) {
+                    fail(strtoupper($proto) . ' port ' . implode(', ', $busy) . ' is used by another program on the server');
+                }
             }
         }
 
         db()->prepare('UPDATE ovpn_node SET name = ?, allowed_groups = ?, rate = ?, enabled = ?, sort = ?, host_override = ?,
-                              public_ports = ?, updated = ? WHERE id = ?')
-            ->execute([$name, $groups, $rate, $enabled, $sort, $host, implode(',', $ports), $now, $id]);
+                              public_ports = ?, public_ports_tcp = ?, offer = ?, updated = ? WHERE id = ?')
+            ->execute([$name, $groups, $rate, $enabled, $sort, $host, implode(',', $ports['udp']),
+                implode(',', $ports['tcp']), $offer, $now, $id]);
 
         done(['node' => ovpnNodeView(ovpnNode($id))]);
     }
 
     $key = ovpnNewKey();
     db()->prepare('INSERT INTO ovpn_node (name, keyhash, allowed_groups, rate, enabled, sort, host_override, public_ports,
-                                          created, updated)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-        ->execute([$name, hash('sha256', $key), $groups, $rate, $enabled, $sort, $host, implode(',', $ports), $now, $now]);
+                                          public_ports_tcp, offer, created, updated)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        ->execute([$name, hash('sha256', $key), $groups, $rate, $enabled, $sort, $host, implode(',', $ports['udp']),
+            implode(',', $ports['tcp']), $offer, $now, $now]);
     $id = (int) db()->lastInsertId();
 
     // the key is shown this once; only its hash is kept
