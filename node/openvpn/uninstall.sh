@@ -35,7 +35,7 @@ PORT=$(awk '$1 == "port" {print $2; exit}' "$SERVER_DIR/digitsell.conf" 2>/dev/n
 PROTO=$(awk '$1 == "proto" {print $2; exit}' "$SERVER_DIR/digitsell.conf" 2>/dev/null || true)
 
 echo "==> stopping services"
-for unit in digitsell-ovpn-agent.service openvpn-server@digitsell.service; do
+for unit in digitsell-ovpn-nat-refresh.timer digitsell-ovpn-agent.service openvpn-server@digitsell.service; do
     systemctl disable --now "$unit" >/dev/null 2>&1 || true
 done
 # stopping the NAT unit runs "digitsell-ovpn-nat stop", which removes its iptables rules
@@ -50,6 +50,9 @@ fi
 
 echo "==> removing files"
 rm -f /etc/systemd/system/digitsell-ovpn-agent.service \
+      /etc/systemd/system/digitsell-ovpn-nat-refresh.service \
+      /etc/systemd/system/digitsell-ovpn-nat-refresh.timer \
+      /run/digitsell-ovpn-nat.excluded \
       /etc/systemd/system/digitsell-ovpn-nat.service \
       /usr/local/sbin/digitsell-ovpn-nat \
       /etc/sysctl.d/99-digitsell-ovpn.conf \

@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.12.1** · repo
+Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.13.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -762,6 +762,22 @@ Pieces:
   (1.12.1; `--keep-ca`, `--purge`) for the OpenVPN server.
   **Not part of the manifest**; the install command fetches them from this
   repository. See `node/openvpn/README.md`.
+- **Ports are chosen in the panel (1.13.0).** `node/openvpn/digitsell-ovpn-nat`
+  (reading `/etc/digitsell-ovpn/nat.conf`) redirects every port of the node's
+  protocol to OpenVPN through the nat chain `DIGITSELL_OVPN`, except ports a
+  local program listens on (`ss`), sshd's ports, 22 and `--exclude`; a timer
+  rebuilds the list every minute. The agent (1.1.0) reports `all_ports` and the
+  excluded list in `ovpn.hello` (every 10 minutes). `migrations/011` adds
+  `ovpn_node.public_ports`, `all_ports`, `excluded_ports`. The admin form's
+  "پورت‌ها برای کاربران" takes up to 8 ports; the profile gets one `remote` per
+  port plus `server-poll-timeout 10`. `ovpn.nodesave` refuses a port the node
+  reported as taken, or any port other than its own on a node without the
+  redirect (installed with 1.12.x or `--single-port`); the row turns red if a
+  chosen port stops working later. The protocol is still fixed at install.
+- **Downloading the file:** customers from the dashboard card; admins from
+  the 📥 button on the server's row, which works while OpenVPN is still off and
+  whatever the group (`ovpn.profile` lets staff through), with the admin's own
+  test login shown under the list.
 
 How it fits the panel:
 
@@ -1007,3 +1023,4 @@ dark / phone.
 | 1.11.5 | Client apps: shorter status rows (about 25 characters) so they are not cut off on a phone; end date / days left and updated time / "update to refresh" split into two rows each |
 | 1.12.0 | OpenVPN servers on the same subscription: node agent + installer (`node/openvpn/`), login and usage through `xmplus-patch.php?do=ovpn.*`, traffic counted against the plan and billed by the charge wallet, cut-off when the plan or data ends, admin server list with install command, dashboard card with profile download and credentials. Off until switched on |
 | 1.12.1 | OpenVPN: `node/openvpn/uninstall.sh` removes a node from its server (agent, OpenVPN config, NAT rules, services; `--keep-ca`, `--purge`); the admin page shows the command |
+| 1.13.0 | OpenVPN: the node redirects every port of its protocol to OpenVPN (except ports in use, SSH and `--exclude`), and the ports customers use are chosen in the panel, several allowed with fallback; admin 📥 profile download per server and a test login, working before OpenVPN is switched on. Existing nodes: run the install command again |

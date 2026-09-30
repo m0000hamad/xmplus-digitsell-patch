@@ -267,6 +267,38 @@ function ovpnNodeHost(array $node): string
     return $override !== '' ? $override : trim((string) $node['host']);
 }
 
+/** "443, 8443" -> [443, 8443]: at most $max, in the order given, each once. */
+function ovpnPortList($value, int $max = 8): array
+{
+    $ports = [];
+
+    foreach (preg_split('~[\s,،]+~u', (string) $value) ?: [] as $item) {
+        if ($item === '') {
+            continue;
+        }
+        if (!preg_match('~^[0-9]{1,5}$~', $item) || (int) $item < 1 || (int) $item > 65535) {
+            return [];
+        }
+        $ports[(int) $item] = (int) $item;
+    }
+
+    return array_slice(array_values($ports), 0, $max);
+}
+
+/** Ports the node leaves alone because another program listens there. */
+function ovpnExcludedPorts(array $node): array
+{
+    return ovpnPortList(str_replace(',', ' ', (string) ($node['excluded_ports'] ?? '')), 65535);
+}
+
+/** The ports customers are sent to: the panel's choice, else OpenVPN's own. */
+function ovpnNodePorts(array $node): array
+{
+    $ports = ovpnPortList($node['public_ports'] ?? '');
+
+    return $ports !== [] ? $ports : [(int) $node['port']];
+}
+
 function ovpnNodeLive(array $node): bool
 {
     return (int) $node['heartbeat'] > time() - OVPN_STALE;
@@ -425,9 +457,20 @@ function ovpnHello(): void
 
     $version = substr(preg_replace('~[^A-Za-z0-9._-]~', '', (string) ($body['version'] ?? '')), 0, 32);
 
+    // agents from 1.1.0 redirect every port and say which ones they leave alone
+    $allPorts = !empty($body['all_ports']) ? 1 : 0;
+    $excluded = [];
+    foreach (is_array($body['excluded'] ?? null) ? $body['excluded'] : [] as $item) {
+        if (is_int($item) && $item >= 1 && $item <= 65535) {
+            $excluded[$item] = $item;
+        }
+    }
+    ksort($excluded);
+
     db()->prepare('UPDATE ovpn_node SET host = ?, port = ?, proto = ?, ca = ?, tls_crypt = ?, agent_version = ?,
-                          heartbeat = ?, updated = ? WHERE id = ?')
-        ->execute([$host, $port, $proto, $ca, $tlsCrypt, $version, time(), time(), (int) $node['id']]);
+                          all_ports = ?, excluded_ports = ?, heartbeat = ?, updated = ? WHERE id = ?')
+        ->execute([$host, $port, $proto, $ca, $tlsCrypt, $version, $allPorts,
+            implode(',', array_slice(array_values($excluded), 0, 2000)), time(), time(), (int) $node['id']]);
 
     done(['node' => (int) $node['id'], 'name' => (string) $node['name'], 'interval' => OVPN_PUSH_INTERVAL]);
 }
@@ -661,7 +704,17 @@ function ovpnProfileText(array $node, string $login): string
         'client',
         'dev tun',
         'proto ' . $proto,
-        'remote ' . ovpnNodeHost($node) . ' ' . (int) $node['port'],
+    ];
+
+    // one remote per port, tried in order: a blocked port falls through to the next
+    foreach (ovpnNodePorts($node) as $port) {
+        $lines[] = 'remote ' . ovpnNodeHost($node) . ' ' . $port;
+    }
+    if (count(ovpnNodePorts($node)) > 1) {
+        $lines[] = 'server-poll-timeout 10';
+    }
+
+    $lines = array_merge($lines, [
         'resolv-retry infinite',
         'nobind',
         'persist-key',
@@ -671,7 +724,7 @@ function ovpnProfileText(array $node, string $login): string
         // no cipher lines: the data cipher is negotiated, and a 2.4 client
         // refuses the whole file over an option it does not know
         'verb 3',
-    ];
+    ]);
 
     if ($proto === 'udp') {
         $lines[] = 'explicit-exit-notify 1';
@@ -692,7 +745,11 @@ function ovpnProfile(): void
     $user = ovpnRequireUser();
     $node = ovpnNode((int) ($_GET['node'] ?? 0));
 
-    if (!ovpnEnabled() || $node === null || !ovpnNodeUsable($node) || !ovpnNodeServes($node, $user)) {
+    // staff may fetch any ready server's file, to test it before switching OpenVPN on
+    $staff = (int) ($user['role'] ?? 0) > 0;
+
+    if ($node === null || !ovpnNodeUsable($node)
+        || (!$staff && (!ovpnEnabled() || !ovpnNodeServes($node, $user)))) {
         fail('this server is not available for your account');
     }
 
@@ -730,6 +787,10 @@ function ovpnNodeView(array $node): array
         'host_override' => (string) $node['host_override'],
         'port'          => (int) $node['port'],
         'proto'         => (string) $node['proto'],
+        'public_ports'  => implode(', ', ovpnPortList($node['public_ports'] ?? '')),
+        'ports'         => ovpnNodePorts($node),
+        'all_ports'     => (int) ($node['all_ports'] ?? 0) === 1,
+        'excluded'      => ovpnExcludedPorts($node),
         'ready'         => ovpnNodeUsable($node),
         'live'          => ovpnNodeLive($node),
         'heartbeat'     => (int) $node['heartbeat'],
@@ -741,7 +802,14 @@ function ovpnNodeView(array $node): array
 
 function ovpnAdminBootstrap(): void
 {
-    requireAdmin();
+    $adminId = requireAdmin();
+
+    // the admin's own login, to try a server before customers see it
+    $me = ovpnUser($adminId);
+    $test = $me === null ? null : [
+        'login' => ovpnLogin($adminId),
+        'pass'  => ovpnPassword($adminId, (string) ($me['uuid'] ?? '')),
+    ];
 
     $nodes = [];
     foreach (db()->query('SELECT * FROM ovpn_node ORDER BY sort, id') as $row) {
@@ -774,6 +842,7 @@ function ovpnAdminBootstrap(): void
         'enabled' => ovpnEnabled(),
         'nodes'   => $nodes,
         'groups'  => $groups,
+        'test'    => $test,
         'repo'    => repo(),
         'branch'  => branch(),
     ]);
@@ -817,27 +886,47 @@ function ovpnAdminNodeSave(): void
         fail('the address may only hold a host name or an IP');
     }
 
+    $portsText = trim((string) ($_POST['public_ports'] ?? ''));
+    $ports = ovpnPortList($portsText);
+    if ($portsText !== '' && $ports === []) {
+        fail('ports must be numbers from 1 to 65535, separated by commas');
+    }
+
     $groups = implode(',', ovpnGroups($_POST['groups'] ?? []));
     $enabled = !empty($_POST['enabled']) && $_POST['enabled'] !== '0' ? 1 : 0;
     $sort = (int) ($_POST['sort'] ?? 0);
     $now = time();
 
     if ($id > 0) {
-        if (ovpnNode($id) === null) {
+        $current = ovpnNode($id);
+        if ($current === null) {
             fail('no such server');
         }
 
+        // what the server said about itself decides which ports can work
+        if ($ports !== [] && (int) $current['heartbeat'] > 0) {
+            $own = (int) $current['port'];
+            if ((int) ($current['all_ports'] ?? 0) !== 1 && $ports !== [$own]) {
+                fail('this server only listens on port ' . $own . ' - run the install command again (latest version) to open every port');
+            }
+            $busy = array_values(array_intersect($ports, ovpnExcludedPorts($current)));
+            if ($busy !== []) {
+                fail('port ' . implode(', ', $busy) . ' is used by another program on the server');
+            }
+        }
+
         db()->prepare('UPDATE ovpn_node SET name = ?, allowed_groups = ?, rate = ?, enabled = ?, sort = ?, host_override = ?,
-                              updated = ? WHERE id = ?')
-            ->execute([$name, $groups, $rate, $enabled, $sort, $host, $now, $id]);
+                              public_ports = ?, updated = ? WHERE id = ?')
+            ->execute([$name, $groups, $rate, $enabled, $sort, $host, implode(',', $ports), $now, $id]);
 
         done(['node' => ovpnNodeView(ovpnNode($id))]);
     }
 
     $key = ovpnNewKey();
-    db()->prepare('INSERT INTO ovpn_node (name, keyhash, allowed_groups, rate, enabled, sort, host_override, created, updated)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-        ->execute([$name, hash('sha256', $key), $groups, $rate, $enabled, $sort, $host, $now, $now]);
+    db()->prepare('INSERT INTO ovpn_node (name, keyhash, allowed_groups, rate, enabled, sort, host_override, public_ports,
+                                          created, updated)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        ->execute([$name, hash('sha256', $key), $groups, $rate, $enabled, $sort, $host, implode(',', $ports), $now, $now]);
     $id = (int) db()->lastInsertId();
 
     // the key is shown this once; only its hash is kept

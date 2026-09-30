@@ -1,0 +1,106 @@
+#!/bin/sh
+#
+# NAT and firewall rules for the Digitsell OpenVPN node (installed by
+# install.sh as /usr/local/sbin/digitsell-ovpn-nat, settings in
+# /etc/digitsell-ovpn/nat.conf).
+#
+#   start     NAT for the VPN subnet, the firewall openings, and - with
+#             ALL_PORTS=1 - every port of the node's protocol redirected to
+#             OpenVPN, so the port customers use is chosen in the panel
+#   refresh   rebuild the redirect when the set of ports to leave alone
+#             changed (run every minute by digitsell-ovpn-nat-refresh.timer)
+#   stop      remove everything this script added
+#   excluded  print the ports left alone, one per line
+#
+# Left alone (never redirected): ports another program on this server is
+# listening on (SSH, a web server, Xray...), the SSH ports from sshd's
+# configuration, 22, and EXCLUDE from nat.conf. Only new connections arriving
+# on the public interface for one of this server's own addresses are
+# redirected; replies to this server's own outgoing traffic are not touched.
+
+CONF=/etc/digitsell-ovpn/nat.conf
+STATE=/run/digitsell-ovpn-nat.excluded
+CHAIN=DIGITSELL_OVPN
+
+[ -r "$CONF" ] || { echo "digitsell-ovpn-nat: $CONF missing" >&2; exit 1; }
+# shellcheck disable=SC1090
+. "$CONF"
+: "${SUBNET:?}" "${PROTO:?}" "${PORT:?}"
+ALL_PORTS="${ALL_PORTS:-1}"
+EXCLUDE="${EXCLUDE:-}"
+
+IF=$(ip -4 route show default | awk '{for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); exit }}')
+
+rule() { t="$1"; shift; iptables -t "$t" -C "$@" 2>/dev/null || iptables -t "$t" -I "$@"; }
+undo() { t="$1"; shift; while iptables -t "$t" -D "$@" 2>/dev/null; do :; done; }
+
+# ports this server's own programs listen on, except OpenVPN itself
+listening() {
+    if [ "$PROTO" = "tcp" ]; then flags=-ltnpH; else flags=-lunpH; fi
+    ss $flags 2>/dev/null | grep -v '"openvpn"' | awk '{print $4}' | sed 's/.*://'
+}
+
+sshd_ports() {
+    { sshd -T 2>/dev/null | awk '$1 == "port" {print $2}'
+      awk 'tolower($1) == "port" {print $2}' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf 2>/dev/null; } | sort -u
+}
+
+excluded() {
+    { echo 22
+      [ "$PROTO" = "tcp" ] && sshd_ports
+      listening
+      for p in $EXCLUDE; do echo "$p"; done
+    } | tr ', ' '\n\n' | grep -E '^[0-9]+$' | awk '$1 >= 1 && $1 <= 65535 && $1 != '"$PORT"'' | sort -n -u
+}
+
+redirect_off() {
+    undo nat PREROUTING -i "$IF" -p "$PROTO" -m addrtype --dst-type LOCAL -j "$CHAIN"
+    iptables -t nat -F "$CHAIN" 2>/dev/null
+    iptables -t nat -X "$CHAIN" 2>/dev/null
+    rm -f "$STATE"
+}
+
+redirect_on() {
+    list=$(excluded)
+    iptables -t nat -N "$CHAIN" 2>/dev/null || iptables -t nat -F "$CHAIN"
+    for p in $list; do
+        iptables -t nat -A "$CHAIN" -p "$PROTO" --dport "$p" -j RETURN
+    done
+    iptables -t nat -A "$CHAIN" -p "$PROTO" -j REDIRECT --to-ports "$PORT"
+    rule nat PREROUTING -i "$IF" -p "$PROTO" -m addrtype --dst-type LOCAL -j "$CHAIN"
+    echo "$list" > "$STATE"
+}
+
+base() {
+    act=$1
+    $act nat POSTROUTING -s "$SUBNET" -o "$IF" -j MASQUERADE
+    $act filter INPUT -p "$PROTO" --dport "$PORT" -j ACCEPT
+    $act filter FORWARD -s "$SUBNET" -j ACCEPT
+    $act filter FORWARD -d "$SUBNET" -m state --state RELATED,ESTABLISHED -j ACCEPT
+}
+
+case "$1" in
+    start)
+        base rule
+        if [ "$ALL_PORTS" = "1" ]; then redirect_on; else redirect_off; fi
+        ;;
+    refresh)
+        [ "$ALL_PORTS" = "1" ] || exit 0
+        # rebuild only when the list changed; the rules themselves are cheap
+        if [ "$(excluded)" != "$(cat "$STATE" 2>/dev/null)" ] \
+                || ! iptables -t nat -C PREROUTING -i "$IF" -p "$PROTO" -m addrtype --dst-type LOCAL -j "$CHAIN" 2>/dev/null; then
+            redirect_on
+        fi
+        ;;
+    stop)
+        redirect_off
+        base undo
+        ;;
+    excluded)
+        excluded
+        ;;
+    *)
+        echo "usage: $0 start|refresh|stop|excluded" >&2
+        exit 1
+        ;;
+esac
