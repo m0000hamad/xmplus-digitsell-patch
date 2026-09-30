@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-30 · installed version **1.9.2** · latest release **1.15.0** · repo
+Last updated: 2026-09-30 · installed version **1.9.2** · latest release **1.16.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -315,6 +315,21 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 - Warm palette only (orange/pink/amber); the owner rejected the first
   indigo design and its heavy font weights. The panel font is IRANSans with
   weights 200/300/400/500/700/900 — 800 renders as Black.
+
+### Invite QR code (1.16.0)
+
+`view/user/affiliate/inviteqr.tpl`, included on the affiliate page after the
+withdrawal modal; the 📱 button on the link card opens it (`#afQrModal`).
+
+- The QR is drawn on a `<canvas>` by a small encoder inside the template
+  (`dsQrEncode`, byte mode, versions 1-40, after Nayuki's qrcodegen). No
+  library and no CDN, for the same reason as the sign-in page. Tested by
+  decoding every version back with jsQR.
+- It reads the link from `#invitelink` when the dialog opens, so what it draws
+  is always what the card shows.
+- White ground and a 4-module margin in dark mode too, or phones fail to scan.
+- "Send image" only shows where `navigator.canShare({files})` is true
+  (phones); "Save image" downloads `digitsell-invite.png`.
 
 ### Telegram channel gift (1.8.0)
 
@@ -1137,3 +1152,4 @@ dark / phone.
 | 1.14.1 | OpenVPN: online / offline messages for OpenVPN servers to the admin Telegram chat (`OvpnJob`, every minute), with a switch on the OpenVPN settings card |
 | 1.15.0 | OpenVPN: card moved to the Servers page; per-instance status (🟠 part down) so stopping UDP or TCP alone is reported, scheduler last-run line and Telegram test button; bypass (Iranian IPs, custom domains / IPs / networks) as `net_gateway` routes; automatic free install port and customer ports that avoid ports other programs use; automatic certificate for the server's domain with `verify-x509-name` in new files. Nodes: run the install command again (agent 1.4.0) |
 | 1.15.1 | OpenVPN: bypass files stay under OpenVPN Connect's profile size limit ("profile is too large"): at most 1200 routes, custom entries first, then the largest Iran ranges (~98.5% of Iran's addresses) |
+| 1.16.0 | Affiliate page: 📱 QR code button on the invite link card opens a dialog with the link as a QR code (drawn in the browser, no library), save as PNG, send the image (phones), copy the link |
