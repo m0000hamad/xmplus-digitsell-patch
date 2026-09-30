@@ -1,5 +1,6 @@
-Copy buttons (the OpenVPN password and the others) now work on iPhone and
-iPad after downloading the OpenVPN profile. OpenVPN on servers that already run
-Xray (XMPlus node) or a firewall: run the install command on those servers
-again; if customers still cannot connect, send the output of
-digitsell-ovpn-nat doctor from that server.
+Direct routes for Xray customers: on the OpenVPN "direct routes" card, the new
+"Xray customers too (Happ)" switch sends the same list - Iranian sites and
+addresses plus the custom lines - to the Happ app with the subscription link,
+so those destinations open directly instead of through the server. New: an
+Xray node of our own (node/xray) that replaces the XMPlus node binary with the
+official, newest Xray-core; see node/xray/README.md.
