@@ -136,6 +136,15 @@ final class TaskCommand extends Command
 			'enabled' => true,
 		));
 
+		// OpenVPN servers: online / offline messages to the admin on Telegram
+		$scheduler->add('OvpnJob', array(
+			'command' => 'php '.BASE_PATH.'/bin/ovpn.php',
+			'schedule' => "* * * * *",
+			'output' => BASE_PATH.'/storage/logs/ovpn.log',
+			'lock_dir' => BASE_PATH.'/storage/cron/',
+			'enabled' => true,
+		));
+
 		$scheduler->run();
 		return 0;
     }

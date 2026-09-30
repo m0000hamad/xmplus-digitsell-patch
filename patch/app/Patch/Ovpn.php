@@ -951,6 +951,7 @@ function ovpnAdminBootstrap(): void
     done([
         'token'   => ovpnAdminToken(),
         'enabled' => ovpnEnabled(),
+        'notify'  => ovpnSetting('ovpn_notify', '1') === '1',
         'nodes'   => $nodes,
         'groups'  => $groups,
         'test'    => $test,
@@ -966,7 +967,12 @@ function ovpnAdminSave(): void
 
     putSetting('ovpn_enabled', !empty($_POST['enabled']) && $_POST['enabled'] !== '0' ? '1' : '0');
 
-    done(['enabled' => ovpnEnabled()]);
+    // online / offline messages to the admin on Telegram (app/Jobs/OvpnJob.php)
+    if (isset($_POST['notify'])) {
+        putSetting('ovpn_notify', $_POST['notify'] !== '0' ? '1' : '0');
+    }
+
+    done(['enabled' => ovpnEnabled(), 'notify' => ovpnSetting('ovpn_notify', '1') === '1']);
 }
 
 function ovpnNewKey(): string

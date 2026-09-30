@@ -13,7 +13,10 @@
 		<p class="text-muted small">{$translate->get('OvpnAdmIntro')}</p>
 
 		<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-			<label class="ov-check"><input type="checkbox" id="ovEnabled"> {$translate->get('OvpnAdmEnabled')}</label>
+			<div class="d-flex flex-column gap-2">
+				<label class="ov-check"><input type="checkbox" id="ovEnabled"> {$translate->get('OvpnAdmEnabled')}</label>
+				<label class="ov-check"><input type="checkbox" id="ovNotify"> {$translate->get('OvpnAdmNotify')}</label>
+			</div>
 			<button type="button" class="btn btn-primary btn-sm" id="ovSaveEnabled">💾 {$translate->get('Save')}</button>
 		</div>
 
@@ -395,6 +398,7 @@
 				$('ovTest').classList.remove('d-none');
 			}
 			$('ovEnabled').checked = !!data.enabled;
+			$('ovNotify').checked = data.notify !== false;
 			renderNodes();
 			renderUninstall();
 			if ($('ovId').value === '0') { renderGroups([]); }
@@ -410,7 +414,7 @@
 	});
 
 	$('ovSaveEnabled').addEventListener('click', function () {
-		post('ovpn.save', { enabled: $('ovEnabled').checked ? '1' : '0' }).then(function (data) {
+		post('ovpn.save', { enabled: $('ovEnabled').checked ? '1' : '0', notify: $('ovNotify').checked ? '1' : '0' }).then(function (data) {
 			say(data.ok ? words.saved : words.failed + ': ' + data.error);
 		});
 	});
