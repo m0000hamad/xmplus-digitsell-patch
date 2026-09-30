@@ -9,6 +9,7 @@ by the updater; it is fetched by the server that runs OpenVPN.
 |---|---|
 | `install.sh` | Installs OpenVPN, a CA, NAT and the agent on Ubuntu 20.04+ / Debian 11+ |
 | `ovpn-agent.py` | Holds OpenVPN's management socket; asks the panel about logins and reports usage |
+| `digitsell-ovpn-nat` | NAT, firewall openings and the every-port redirect (installed in `/usr/local/sbin`) |
 | `uninstall.sh` | Removes what `install.sh` set up |
 
 ## Setting a server up
@@ -19,7 +20,11 @@ by the updater; it is fetched by the server that runs OpenVPN.
 2. Run that command as root on the OpenVPN server. It is safe to run again
    (to put a new key in place, or change port / protocol); the CA is kept, so
    profiles customers already downloaded keep working.
-3. Switch **OpenVPN برای کاربران فعال باشد** on. Customers whose group the
+3. Try it yourself first: the server's row has a **📥 فایل** button that
+   downloads a profile for your admin account, even while OpenVPN is still
+   switched off for customers. Import it into OpenVPN Connect and sign in with
+   the username / password on your own dashboard card (`u<your id>`).
+4. Switch **OpenVPN برای کاربران فعال باشد** on. Customers whose group the
    server serves see an OpenVPN card on their dashboard with a profile
    download, a username (`u<account id>`) and a password.
 
@@ -44,6 +49,34 @@ Use the panel address that is not behind the CDN for `--panel`
 - If the panel is unreachable, a login that the panel approved in the last six
   hours with the same password is let in; counters keep running and are
   reported when the panel is back.
+
+## Ports
+
+OpenVPN itself listens on one port (`--port`, 1194 by default), but every
+other port of the same protocol is redirected to it, so the port customers
+connect to is chosen in the panel: **Settings → OpenVPN servers → edit →
+پورت‌ها برای کاربران**. Several ports can be given (`443, 8443, 2083`); the
+profile lists one `remote` per port and the app moves on to the next when one
+does not answer within 10 seconds. Changing them needs no reinstall — customers
+only download the file again. Profiles downloaded earlier keep working, since
+their old port is redirected too.
+
+Never redirected (checked again every minute by
+`digitsell-ovpn-nat-refresh.timer`, so a program started later is safe):
+ports another program on the server listens on (SSH, a web server, Xray…),
+the SSH ports from sshd's configuration, 22, and `--exclude "80 443"`. The
+agent reports that list to the panel, which refuses a port from it and marks
+the server's row if a chosen port stops working. Only new connections to this
+server's own addresses on the public interface are redirected; replies to the
+server's own outgoing traffic are not touched. IPv4 only.
+
+`--single-port` turns the redirect off; the panel then only accepts the port
+OpenVPN listens on. The protocol (`--proto udp|tcp`) is still chosen at
+install time.
+
+```bash
+digitsell-ovpn-nat excluded      # the ports left alone right now
+```
 
 ## Removing a server
 

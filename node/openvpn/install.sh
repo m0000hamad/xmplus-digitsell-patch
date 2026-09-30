@@ -9,7 +9,14 @@
 #
 #   sudo bash install.sh --panel https://panel.example.com --node 1 --key <key> \
 #        [--port 1194] [--proto udp|tcp] [--host vpn.example.com] \
-#        [--dns "1.1.1.1 8.8.8.8"] [--subnet 10.8.0.0/16]
+#        [--dns "1.1.1.1 8.8.8.8"] [--subnet 10.8.0.0/16] \
+#        [--single-port] [--exclude "80 443"]
+#
+# By default every port of the chosen protocol is redirected to OpenVPN, so the
+# port customers connect to is set in the panel (Settings -> OpenVPN servers ->
+# ports for customers) without touching this server. Ports another program here
+# listens on (SSH, a web server, Xray...) are left alone automatically;
+# --exclude names more to leave alone, --single-port turns the redirect off.
 #
 # Ubuntu 20.04+ / Debian 11+. Safe to run again: the certificate authority is
 # kept, so profiles customers already downloaded keep working; settings and
@@ -27,6 +34,8 @@ PROTO="udp"
 HOST=""
 DNS="1.1.1.1 8.8.8.8"
 SUBNET="10.8.0.0/16"
+ALL_PORTS=1
+EXCLUDE=""
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -38,6 +47,8 @@ while [ $# -gt 0 ]; do
         --host)   HOST="$2"; shift 2 ;;
         --dns)    DNS="$2"; shift 2 ;;
         --subnet) SUBNET="$2"; shift 2 ;;
+        --single-port) ALL_PORTS=0; shift ;;
+        --exclude) EXCLUDE="$2"; shift 2 ;;
         *) echo "unknown option: $1" >&2; exit 1 ;;
     esac
 done
@@ -67,11 +78,12 @@ command -v apt-get >/dev/null || die "this installer supports Debian and Ubuntu 
 for server in $DNS; do
     [[ "$server" =~ ^[0-9a-fA-F.:]+$ ]] || die "--dns takes IP addresses separated by spaces"
 done
+[[ "$EXCLUDE" =~ ^[0-9\ ,]*$ ]] || die "--exclude takes port numbers"
 
 echo "==> installing packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
-apt-get install -y -qq openvpn easy-rsa python3 curl iptables ca-certificates openssl >/dev/null
+apt-get install -y -qq openvpn easy-rsa python3 curl iptables iproute2 ca-certificates openssl >/dev/null
 
 NET="${SUBNET%/*}"
 MASK=$(python3 -c "import ipaddress,sys; print(ipaddress.ip_network(sys.argv[1], strict=False).netmask)" "$SUBNET")
@@ -164,21 +176,20 @@ net.ipv4.ip_forward = 1
 EOF
 sysctl -q -p /etc/sysctl.d/99-digitsell-ovpn.conf
 
-cat > /usr/local/sbin/digitsell-ovpn-nat <<EOF
-#!/bin/sh
-# NAT and firewall openings for the Digitsell OpenVPN node (install.sh)
-IF=\$(ip -4 route show default | awk '{for (i = 1; i < NF; i++) if (\$i == "dev") { print \$(i + 1); exit }}')
-rule() { t="\$1"; shift; iptables -t "\$t" -C "\$@" 2>/dev/null || iptables -t "\$t" -I "\$@"; }
-undo() { t="\$1"; shift; while iptables -t "\$t" -D "\$@" 2>/dev/null; do :; done; }
-case "\$1" in
-    stop) act=undo ;;
-    *)    act=rule ;;
-esac
-\$act nat POSTROUTING -s $SUBNET -o "\$IF" -j MASQUERADE
-\$act filter INPUT -p $PROTO --dport $PORT -j ACCEPT
-\$act filter FORWARD -s $SUBNET -j ACCEPT
-\$act filter FORWARD -d $SUBNET -m state --state RELATED,ESTABLISHED -j ACCEPT
+SELF_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+fetch() {  # a file from node/openvpn/: next to this script, or from the repository
+    if [ -f "$SELF_DIR/$1" ]; then cp "$SELF_DIR/$1" "$2"; else curl -fsSL "$REPO_RAW/node/openvpn/$1" -o "$2"; fi
+}
+
+cat > "$CONF_DIR/nat.conf" <<EOF
+# read by /usr/local/sbin/digitsell-ovpn-nat; run install.sh again to change
+SUBNET=$SUBNET
+PROTO=$PROTO
+PORT=$PORT
+ALL_PORTS=$ALL_PORTS
+EXCLUDE="$EXCLUDE"
 EOF
+fetch digitsell-ovpn-nat /usr/local/sbin/digitsell-ovpn-nat
 chmod 755 /usr/local/sbin/digitsell-ovpn-nat
 
 cat > /etc/systemd/system/digitsell-ovpn-nat.service <<EOF
@@ -198,17 +209,36 @@ ExecStop=/usr/local/sbin/digitsell-ovpn-nat stop
 WantedBy=multi-user.target
 EOF
 
+# the ports left alone are looked at again every minute, so a service started
+# later (a web server, Xray) is never redirected into OpenVPN
+cat > /etc/systemd/system/digitsell-ovpn-nat-refresh.service <<EOF
+[Unit]
+Description=Refresh the ports the Digitsell OpenVPN redirect leaves alone
+After=digitsell-ovpn-nat.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/digitsell-ovpn-nat refresh
+EOF
+
+cat > /etc/systemd/system/digitsell-ovpn-nat-refresh.timer <<EOF
+[Unit]
+Description=Refresh the Digitsell OpenVPN port redirect every minute
+
+[Timer]
+OnBootSec=30
+OnUnitActiveSec=60
+
+[Install]
+WantedBy=timers.target
+EOF
+
 if command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q "Status: active"; then
     ufw allow "$PORT/$PROTO" >/dev/null
 fi
 
 echo "==> agent"
-SELF_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-if [ -f "$SELF_DIR/ovpn-agent.py" ]; then
-    cp "$SELF_DIR/ovpn-agent.py" "$AGENT_DIR/ovpn-agent.py"
-else
-    curl -fsSL "$REPO_RAW/node/openvpn/ovpn-agent.py" -o "$AGENT_DIR/ovpn-agent.py"
-fi
+fetch ovpn-agent.py "$AGENT_DIR/ovpn-agent.py"
 chmod 755 "$AGENT_DIR/ovpn-agent.py"
 
 if [ -z "$HOST" ]; then
@@ -232,7 +262,9 @@ json.dump({
     "tls_crypt": "$SERVER_DIR/tc.key",
     "mgmt_host": "127.0.0.1",
     "mgmt_port": 7505,
-    "mgmt_password_file": "$SERVER_DIR/mgmt.pw"
+    "mgmt_password_file": "$SERVER_DIR/mgmt.pw",
+    "all_ports": $ALL_PORTS == 1,
+    "excluded_file": "/run/digitsell-ovpn-nat.excluded"
 }, open(sys.argv[1], "w"), indent=2)
 EOF
 chmod 600 "$CONF_DIR/agent.json"
@@ -261,6 +293,7 @@ echo "==> starting"
 systemctl daemon-reload
 systemctl enable --now digitsell-ovpn-nat.service >/dev/null
 systemctl restart digitsell-ovpn-nat.service
+systemctl enable --now digitsell-ovpn-nat-refresh.timer >/dev/null
 systemctl enable openvpn-server@digitsell.service >/dev/null
 systemctl restart openvpn-server@digitsell.service
 systemctl enable digitsell-ovpn-agent.service >/dev/null
@@ -272,4 +305,8 @@ systemctl is-active --quiet digitsell-ovpn-agent.service || die "the agent did n
 
 echo
 echo "Done. OpenVPN listens on $HOST:$PORT/$PROTO and answers to the panel at $PANEL."
+if [ "$ALL_PORTS" = "1" ]; then
+    echo "Every $PROTO port is redirected to it except: $(/usr/local/sbin/digitsell-ovpn-nat excluded | tr '\n' ' ')"
+    echo "Choose the port customers use in the panel: Settings -> OpenVPN servers -> edit."
+fi
 echo "Logs: journalctl -u digitsell-ovpn-agent -f"

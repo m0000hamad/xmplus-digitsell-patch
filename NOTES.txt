@@ -1,5 +1,8 @@
-OpenVPN servers can now be removed from their server with one command:
-Settings -> OpenVPN servers -> "Remove from the server" shows it
-(node/openvpn/uninstall.sh). It removes the agent, the OpenVPN server
-config and the NAT rules; --keep-ca keeps the certificates for a later
-reinstall, --purge also removes the openvpn packages.
+OpenVPN ports are now chosen in the panel. The OpenVPN server hands every
+port of its protocol to OpenVPN (except ports another program there uses,
+and SSH), so Settings -> OpenVPN servers -> edit -> "Ports for customers"
+decides which port the customers' file points to - one or several, tried in
+order. Each server row also has a download button for its .ovpn file, which
+admins can use to test before switching OpenVPN on; the admin's own test
+login is shown under the list. Servers installed before this release: run
+the install command again once to open the ports.

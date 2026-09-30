@@ -1,7 +1,7 @@
 {
-    "version": "1.12.1",
+    "version": "1.13.0",
     "released": "2026-09-30",
-    "notes": "OpenVPN servers can now be removed from their server with one command:\nSettings -> OpenVPN servers -> \"Remove from the server\" shows it\n(node/openvpn/uninstall.sh). It removes the agent, the OpenVPN server\nconfig and the NAT rules; --keep-ca keeps the certificates for a later\nreinstall, --purge also removes the openvpn packages.",
+    "notes": "OpenVPN ports are now chosen in the panel. The OpenVPN server hands every\nport of its protocol to OpenVPN (except ports another program there uses,\nand SSH), so Settings -> OpenVPN servers -> edit -> \"Ports for customers\"\ndecides which port the customers' file points to - one or several, tried in\norder. Each server row also has a download button for its .ovpn file, which\nadmins can use to test before switching OpenVPN on; the admin's own test\nlogin is shown under the list. Servers installed before this release: run\nthe install command again once to open the ports.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -12,7 +12,8 @@
         "007_promo_seen.php",
         "008_payg.php",
         "009_subinfo.php",
-        "010_openvpn.php"
+        "010_openvpn.php",
+        "011_openvpn_ports.php"
     ],
     "files": {
         "app/Console/Commands/TaskCommand.php": "e7d55e1f868c72303d9a1f789a2ce136b9cd84b6acc0eb29e71cd594e9f138b9",
@@ -32,7 +33,7 @@
         "app/Jobs/TrafficStatsJob.php": "8cde9d7167ed068664d9f31ce4e25ac43e7884be866d3689d6507c12d34d247e",
         "app/Jobs/UserJob.php": "622ce66f3fe2987ec01917ab3cbc050d9023aa96d440ec9d80a091d5353c4428",
         "app/Patch/Dashboard.php": "4a6967b22320af01df4bad9c010f44aaf30a7c35b1211bd178e84e39ef4bb6f7",
-        "app/Patch/Ovpn.php": "0c6e3daa711e059a49575275ac109700ab87dafb9e5156939a0e376f6ddc6070",
+        "app/Patch/Ovpn.php": "5d76b74ad4b393ccb391c025ef71273f7d8ce5734715271348f086977e6ed25d",
         "app/Patch/Payg.php": "e0cfc71cc6cd98256c7e52d9dd4648fb7507b3037aaedc02754c704b60c553ca",
         "app/Patch/Promo.php": "e7d257b1e9a52b48bee6cba3c153e184d33f62f339ce7d76e61cf57a1c232b8d",
         "app/Patch/ServerUsage.php": "87fe8c3c831db97f148c0d8b85f653694771133e126af75a3e988d91552b8a6e",
@@ -46,9 +47,9 @@
         "bin/promos.php": "2a8460f8083668078fa317a1c78a95a8c4704dc357a043d49178b206c64b90d7",
         "bin/tgjoin.php": "c3ed033295ee3580221c98dd5ec5913477ce2ca77be53ad79d61aeb8a3461a4c",
         "bin/timeplans.php": "4aa8ebf67961220dfb9f9a78aa31a73bfac1161ebaa337ddae12940eb4f42269",
-        "localization/en_US.php": "6885bee23cec6e8b65e1cd9b1f930b85dd67fc15f026dc824376aff1b5233451",
-        "localization/fa_IR.php": "d5dbf23224e47f6575ed8802b793e0636c126621d90023090e827483ad2bc012",
-        "localization/zh_CN.php": "65b30ceea39ff82dfc66d9ebd4a4904580351247665d36de13caba1675c803d1",
+        "localization/en_US.php": "27200721432732168dc3714dddc89ee7e5ae6e7f15cc34dce74813e3146632eb",
+        "localization/fa_IR.php": "36be308104398912c647e7ce4516793414b7609f332c9e03fc3707a8c0ff2a71",
+        "localization/zh_CN.php": "c85d901f45daa040ac8af5f81e46b643225c9816bee4d7dea53482bedf5530fa",
         "public/xmplus-patch.php": "0b3af19130883b31a988729098af9537515621666454d9d9995a50a2d6388d94",
         "view/admin/dashboard/dashboard.tpl": "68a06883efd1396df376eefb238203ee92507c8e8332883dd97341f8a4e2e806",
         "view/admin/dashboard/dashboardjs.tpl": "bab9abf19903481f4a85822cbd4b0ffd9895313edb260c52a4054c34a4f55c05",
@@ -65,7 +66,7 @@
         "view/admin/plans/topupscopeform.tpl": "78aec7d0a0da0daf8840f03a241a888c55d565b99a85b02967f9a4dbbe8a31ea",
         "view/admin/servers/index.tpl": "70843b73d05ed2a2c3ab532641e2580925fc775617564e8ee4f3fa9842ef82c3",
         "view/admin/settings/basicsettings.tpl": "1f353147218dbfe19be3c622a488d5e81348c5325101757cdbd9f00df7df89d1",
-        "view/admin/settings/ovpnsettings.tpl": "f590a80ea02af84ba5b98ad0fdd75d9850cc285a14ae7de85115a473c093cfb5",
+        "view/admin/settings/ovpnsettings.tpl": "546930e1ac123906172ba095011df8651854ab39819be7b90430fab10616bf68",
         "view/admin/settings/patchsettings.tpl": "2fce4405190237c55d014fdf62e2cc1ed99b33ecfe8d37c8ac985929676f691d",
         "view/admin/settings/paygsettings.tpl": "6e65a12813f8ea061c6b03fe6e30969da58790ac0ec171188b6e3c063f68b2c9",
         "view/admin/settings/promochannel.tpl": "e12005913c39ce72431c38838b696afdb8a663481b4748821215c68a78810c49",
