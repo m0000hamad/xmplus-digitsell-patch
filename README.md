@@ -25,6 +25,7 @@ templates and the localization files — plus one standalone PHP file under
 | Menu | Labelled glass toggle instead of a bar icon, per-item colours, current page marked, works on phones |
 | Charge wallet | Pay-as-you-go: top up any amount, usage billed per server at a price per GB once the plan runs out, spent/unspent report for the admin, separate commission wallet for plans only (off until switched on) |
 | OpenVPN | OpenVPN servers on the same subscription: logins checked and traffic counted by the panel, same data allowance, end date and charge wallet; setup in `node/openvpn/` (off until switched on) |
+| Xray node | `node/xray/`: replaces the XMPlus node binary with the official, newest Xray-core plus an agent that speaks the panel's node API (XHTTP, REALITY, device limit, Let's Encrypt, automatic migration from XMPlus). Direct routes (Iran / chosen sites) for Happ through the subscription (1.17.0) |
 | Themes | Dark mode fixed panel-wide (see the note below) |
 
 ### The dark-mode note
@@ -116,6 +117,7 @@ patch/          files copied into the panel, mirroring its directory layout
 migrations/     idempotent PDO migrations, run in filename order, once each
 tools/          manifest builder
 node/openvpn/   installer and agent for an OpenVPN server (not copied into the panel)
+node/xray/      installer and agent for an Xray node, in place of the XMPlus node binary
 install.php     first-time installer, run from the shell
 manifest.json   version, per-file SHA-256, migration list
 ```

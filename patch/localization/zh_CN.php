@@ -1833,6 +1833,8 @@ $i18n['zh_CN'] = array(
 	'OvpnAdmBypass'             => "Direct routes (bypass)",
 	'OvpnAdmBypassIntro'        => "These destinations skip the tunnel and open over the customer own connection (banks and Iranian sites, for example). After saving, customers download the file again.",
 	'OvpnAdmBypassIran'         => "Iranian addresses skip the tunnel",
+	'OvpnAdmBypassXray'         => "Xray (V2Ray) customers too - Happ app",
+	'OvpnAdmBypassXrayHint'     => "The same list (Iran and the custom lines) goes to Happ with the subscription link, and Happ opens these destinations directly; customers only update the subscription. In Xray the app decides what skips the server, and only Happ takes it from the subscription so far; in v2rayNG / V2Box / Shadowrocket customers turn on the app's own \"Iran direct\" routing. Happ includes subdomains. Unticking also switches the profile off in customers' Happ. Only for links served by xmplus-patch.php?do=sub (subscription info in the apps).",
 	'OvpnAdmIranRefresh'        => "Update the Iran list",
 	'OvpnAdmIranInfo'           => "Iran list: %count% ranges, dated %date%",
 	'OvpnAdmIranCapped'        => "In the file: the %used% largest ranges, %share%% of Iran addresses. The smallest ranges go through the tunnel, since OpenVPN Connect refuses a larger file.",
