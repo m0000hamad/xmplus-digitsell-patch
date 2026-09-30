@@ -119,11 +119,6 @@
                      <i class="fa-solid fa-wallet nav-icon"></i> {$translate->get('PaygAdmTitle')}
                   </a>
                 </li>
-				<li class="nav-item">
-                  <a class="nav-link" href="#OvpnSettings"  data-scroll="OvpnSettings">
-                     <i class="fa-solid fa-shield-halved nav-icon"></i> {$translate->get('OvpnAdmTitle')}
-                  </a>
-                </li>
               </ul>
             </div>
           </div>
@@ -146,7 +141,6 @@
 			{include file='admin/settings/patchsettings.tpl'}
 			{include file='admin/settings/promochannel.tpl'}
 			{include file='admin/settings/paygsettings.tpl'}
-			{include file='admin/settings/ovpnsettings.tpl'}
           </div>
           <div id="stickyBlockEndPoint"></div>
         </div>

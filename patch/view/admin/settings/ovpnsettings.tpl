@@ -1,6 +1,8 @@
 {*
   OpenVPN servers on the same subscription - admin side.
-  Included by settings.tpl; talks to /xmplus-patch.php?do=ovpn.* (app/Patch/Ovpn.php).
+  Included by admin/servers/index.tpl (the servers page, since 1.15.0; it was
+  on the settings page before); talks to /xmplus-patch.php?do=ovpn.*
+  (app/Patch/Ovpn.php).
   A server is added here, which gives it a key shown once; the install command
   built from it sets OpenVPN and the agent up on the server
   (node/openvpn/install.sh in the patch repository).
@@ -17,8 +19,12 @@
 				<label class="ov-check"><input type="checkbox" id="ovEnabled"> {$translate->get('OvpnAdmEnabled')}</label>
 				<label class="ov-check"><input type="checkbox" id="ovNotify"> {$translate->get('OvpnAdmNotify')}</label>
 			</div>
-			<button type="button" class="btn btn-primary btn-sm" id="ovSaveEnabled">💾 {$translate->get('Save')}</button>
+			<div class="d-flex flex-wrap gap-2">
+				<button type="button" class="btn btn-outline-secondary btn-sm" id="ovNotifyTest">✉️ {$translate->get('OvpnAdmNotifyTest')}</button>
+				<button type="button" class="btn btn-primary btn-sm" id="ovSaveEnabled">💾 {$translate->get('Save')}</button>
+			</div>
 		</div>
+		<p class="small mb-3" id="ovJob"></p>
 
 		<h5 class="ov-h">🖥 {$translate->get('OvpnAdmServers')}</h5>
 		<div class="table-responsive">
@@ -101,7 +107,7 @@
 				</div>
 				<div class="col-md-2">
 					<label class="form-label small" for="ovPort">Port</label>
-					<input type="text" class="form-control form-control-sm" id="ovPort" dir="ltr" value="1194">
+					<input type="text" class="form-control form-control-sm" id="ovPort" dir="ltr" value="auto">
 				</div>
 				<div class="col-md-2">
 					<label class="form-label small" for="ovProto">Proto</label>
@@ -134,6 +140,21 @@
 			</div>
 		</details>
 
+		<h5 class="ov-h" id="OvpnBypass">🇮🇷 {$translate->get('OvpnAdmBypass')}</h5>
+		<p class="small text-muted">{$translate->get('OvpnAdmBypassIntro')}</p>
+		<label class="ov-check mb-2"><input type="checkbox" id="ovBypassIran"> {$translate->get('OvpnAdmBypassIran')}</label>
+		<p class="small text-muted mb-2">
+			<span id="ovIranInfo"></span>
+			<button type="button" class="btn btn-link btn-sm p-0 ms-2" id="ovIranRefresh">🔄 {$translate->get('OvpnAdmIranRefresh')}</button>
+		</p>
+		<label class="form-label" for="ovBypassCustom">{$translate->get('OvpnAdmBypassCustom')}</label>
+		<textarea class="form-control" id="ovBypassCustom" rows="6" dir="ltr" placeholder="bmi.ir&#10;shaparak.ir&#10;digikala.com&#10;185.143.232.0/22&#10;# 1.2.3.4"></textarea>
+		<small class="text-muted d-block mb-2">{$translate->get('OvpnAdmBypassCustomHint')}</small>
+		<div class="small mb-2" id="ovBypassHosts"></div>
+		<div class="d-flex justify-content-end">
+			<button type="button" class="btn btn-primary btn-sm" id="ovBypassSave">💾 {$translate->get('Save')}</button>
+		</div>
+
 		<p class="small mt-3 mb-1 d-none" id="ovTest">🧪 {$translate->get('OvpnAdmTest')} <code dir="ltr" id="ovTestLogin"></code> / <code dir="ltr" id="ovTestPass"></code></p>
 		<p class="small text-muted mt-3 mb-0">{$translate->get('OvpnAdmPriceNote')}</p>
 		<p class="small text-muted mt-2 mb-0">📱 {$translate->get('OvpnAdmAppNote')}</p>
@@ -158,6 +179,20 @@
 	window.OvpnWords.editing  = "{$translate->get('OvpnAdmEditing')|escape:'javascript'}";
 	window.OvpnWords.none     = "{$translate->get('OvpnAdmNone')|escape:'javascript'}";
 	window.OvpnWords.online   = "{$translate->get('OvpnAdmOnline')|escape:'javascript'}";
+	window.OvpnWords.partDown = "{$translate->get('OvpnAdmPartDown')|escape:'javascript'}";
+	window.OvpnWords.jobLast  = "{$translate->get('OvpnAdmJobLast')|escape:'javascript'}";
+	window.OvpnWords.jobNever = "{$translate->get('OvpnAdmJobNever')|escape:'javascript'}";
+	window.OvpnWords.jobLate  = "{$translate->get('OvpnAdmJobLate')|escape:'javascript'}";
+	window.OvpnWords.testSent = "{$translate->get('OvpnAdmTestSent')|escape:'javascript'}";
+	window.OvpnWords.autoPorts = "{$translate->get('OvpnAdmAutoPorts')|escape:'javascript'}";
+	window.OvpnWords.iranInfo = "{$translate->get('OvpnAdmIranInfo')|escape:'javascript'}";
+	window.OvpnWords.routes   = "{$translate->get('OvpnAdmRoutes')|escape:'javascript'}";
+	window.OvpnWords.notFound = "{$translate->get('OvpnAdmNotFound')|escape:'javascript'}";
+	window.OvpnWords.certOk   = "{$translate->get('OvpnAdmCertOk')|escape:'javascript'}";
+	window.OvpnWords.certWait = "{$translate->get('OvpnAdmCertWait')|escape:'javascript'}";
+	window.OvpnWords.certOld  = "{$translate->get('OvpnAdmCertOld')|escape:'javascript'}";
+	window.OvpnWords.dnsBad   = "{$translate->get('OvpnAdmDnsBad')|escape:'javascript'}";
+	window.OvpnWords.autoTag  = "{$translate->get('OvpnAdmAutoTag')|escape:'javascript'}";
 	window.OvpnWords.download = "{$translate->get('OvpnAdmDownload')|escape:'javascript'}";
 	window.OvpnWords.allPorts = "{$translate->get('OvpnAdmAllPorts')|escape:'javascript'}";
 	window.OvpnWords.portBad  = "{$translate->get('OvpnAdmPortBad')|escape:'javascript'}";
@@ -167,9 +202,11 @@
 .ov-h { font-size: 15px; font-weight: 700; margin: 18px 0 10px; }
 .ov-check { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; cursor: pointer; }
 .ov-table td, .ov-table th { vertical-align: middle; white-space: nowrap; }
+.ov-table .ov-note { display: inline-block; max-width: 280px; white-space: normal; }
 .ov-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-inline-end: 5px; background: #94a3b8; }
 .ov-dot.is-live { background: #10b981; }
 .ov-dot.is-down { background: #f43f5e; }
+.ov-dot.is-part { background: #f59e0b; }
 .ov-groups { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 6px 0; }
 .ov-groups label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; font-size: 13px; }
 .ov-cmd {
@@ -254,6 +291,8 @@
 				dot = ''; stateText = words.off;
 			} else if (!node.heartbeat) {
 				dot = ''; stateText = words.waiting;
+			} else if (node.live && node.down_protos && node.down_protos.length) {
+				dot = 'is-part'; stateText = words.partDown + ' ' + node.down_protos.join(', ').toUpperCase() + ' · ' + node.online + ' ' + words.online;
 			} else if (node.live) {
 				dot = 'is-live'; stateText = words.live + ' · ' + node.online + ' ' + words.online;
 			} else {
@@ -270,8 +309,11 @@
 				var bad = item.ports.filter(function (p) {
 					return (!item.all_ports && p !== item.port) || item.excluded.indexOf(p) !== -1;
 				});
+				// no ports chosen for this protocol: the ones the server found free
+				var chosen = proto === 'udp' ? node.public_ports : node.public_ports_tcp;
 				var line = '<span dir="ltr"' + (offered ? '' : ' class="text-muted text-decoration-line-through"') + '>'
-					+ proto.toUpperCase() + ' ' + esc(host) + ' : ' + esc(item.ports.join(', ')) + '</span>';
+					+ proto.toUpperCase() + ' ' + esc(host) + ' : ' + esc(item.ports.join(', ')) + '</span>'
+					+ (!chosen && item.auto && item.auto.length ? ' <small class="text-muted">(' + esc(words.autoTag) + ')</small>' : '');
 				if (bad.length) {
 					line += ' <small class="text-danger">⚠️ ' + esc(words.portBad) + ' ' + esc(bad.join(', ')) + '</small>';
 				} else if (item.all_ports) {
@@ -279,6 +321,18 @@
 				}
 				lines.push(line);
 			});
+			// the certificate for the server's domain (agents from 1.4.0 issue it)
+			if (node.cert) {
+				var cert = node.cert;
+				var certLine = cert.ready
+					? '<small class="ov-note text-success">🔒 ' + esc(words.certOk) + ' <span dir="ltr">' + esc(cert.name) + '</span></small>'
+					: '<small class="ov-note ' + (cert.can ? 'text-muted">⏳ ' + esc(words.certWait) : 'text-warning">🔒 ' + esc(words.certOld)) + '</small>';
+				if (cert.points_ok === false) {
+					certLine += '<br><small class="ov-note text-danger">⚠️ ' + esc(words.dnsBad.replace('%ip%', cert.server_ip)) + ' <span dir="ltr">'
+						+ esc(cert.points.length ? cert.points.join(', ') : words.notFound) + '</span></small>';
+				}
+				lines.push(certLine);
+			}
 			var addressCell = lines.length ? lines.join('<br>') : '—';
 			var groups = node.groups.length ? node.groups.map(groupName).join('، ') : words.all;
 
@@ -335,6 +389,12 @@
 		$('ovHost').value = node.host_override;
 		$('ovPorts').value = node.public_ports;
 		$('ovPortsTcp').value = node.public_ports_tcp;
+		// empty means the ports the server found free by itself
+		['udp', 'tcp'].forEach(function (proto) {
+			var item = node.listen[proto];
+			var box = $(proto === 'udp' ? 'ovPorts' : 'ovPortsTcp');
+			box.placeholder = item && item.auto && item.auto.length ? words.autoPorts + ' ' + item.auto.join(', ') : (proto === 'udp' ? '1194, 2083' : '443, 8443');
+		});
 		$('ovOffer').value = node.offer;
 		$('ovNodeEnabled').checked = !!node.enabled;
 		$('ovFormTitle').textContent = '✏️ ' + words.editing + ' ' + node.name;
@@ -358,7 +418,7 @@
 			+ ' --panel ' + shellQuote(panel)
 			+ ' --node ' + lastKey.id
 			+ ' --key ' + lastKey.key
-			+ ' --port ' + (parseInt($('ovPort').value, 10) || 1194)
+			+ ' --port ' + (parseInt($('ovPort').value, 10) || 'auto')
 			+ ' --proto ' + $('ovProto').value;
 		$('ovCmd').setAttribute('data-clipboard-text', $('ovCmd').textContent);
 		$('ovInstall').classList.remove('d-none');
@@ -399,6 +459,8 @@
 			}
 			$('ovEnabled').checked = !!data.enabled;
 			$('ovNotify').checked = data.notify !== false;
+			renderJob(data.job_last, data.now);
+			renderBypass(data.bypass);
 			renderNodes();
 			renderUninstall();
 			if ($('ovId').value === '0') { renderGroups([]); }
@@ -406,6 +468,65 @@
 			$('ovNodes').innerHTML = '<tr><td colspan="7" class="text-danger">' + esc(error.message) + '</td></tr>';
 		});
 	}
+
+	function ago(seconds) {
+		var m = Math.max(1, Math.round(seconds / 60));
+		return m < 60 ? m + "'" : Math.floor(m / 60) + 'h ' + (m % 60) + "'";
+	}
+
+	// whether the scheduler runs the job that sends the Telegram messages
+	function renderJob(last, now) {
+		var box = $('ovJob');
+		if (!last) {
+			box.className = 'small mb-3 text-danger';
+			box.textContent = '⚠️ ' + words.jobNever;
+		} else if (now - last > 300) {
+			box.className = 'small mb-3 text-danger';
+			box.textContent = '⚠️ ' + words.jobLate + ' ' + ago(now - last);
+		} else {
+			box.className = 'small mb-3 text-success';
+			box.textContent = '✓ ' + words.jobLast + ' ' + ago(now - last);
+		}
+	}
+
+	function renderBypass(bypass) {
+		if (!bypass) { return; }
+		$('ovBypassIran').checked = !!bypass.iran;
+		$('ovBypassCustom').value = bypass.custom || '';
+		$('ovIranInfo').textContent = words.iranInfo.replace('%count%', bypass.iran_ranges).replace('%date%', bypass.iran_date || '—')
+			+ ' · ' + words.routes.replace('%count%', bypass.routes);
+		var hosts = bypass.hosts || {};
+		$('ovBypassHosts').innerHTML = Object.keys(hosts).map(function (domain) {
+			var ips = hosts[domain] || [];
+			return '<div dir="ltr"><b>' + esc(domain) + '</b> → '
+				+ (ips.length ? esc(ips.join(', ')) : '<span class="text-danger">' + esc(words.notFound) + '</span>') + '</div>';
+		}).join('');
+	}
+
+	$('ovNotifyTest').addEventListener('click', function () {
+		post('ovpn.notifytest', {}).then(function (data) {
+			if (!data.ok) { say(words.failed + ': ' + data.error); return; }
+			say(Object.keys(data.results).map(function (chat) {
+				return chat + ': ' + (data.results[chat] === 'sent' ? words.testSent : data.results[chat]);
+			}).join(' · '));
+		});
+	});
+
+	$('ovBypassSave').addEventListener('click', function () {
+		post('ovpn.bypasssave', { iran: $('ovBypassIran').checked ? '1' : '0', custom: $('ovBypassCustom').value }).then(function (data) {
+			if (!data.ok) { say(words.failed + ': ' + data.error); return; }
+			renderBypass(data.bypass);
+			say(words.saved + (data.failed && data.failed.length ? ' · ' + words.notFound + ': ' + data.failed.join(', ') : ''));
+		});
+	});
+
+	$('ovIranRefresh').addEventListener('click', function () {
+		post('ovpn.iranrefresh', {}).then(function (data) {
+			if (!data.ok) { say(words.failed + ': ' + data.error); return; }
+			renderBypass(data.bypass);
+			say(words.saved);
+		});
+	});
 
 	$('ovPanelUrl').value = location.origin;
 	['ovPanelUrl', 'ovPort', 'ovProto'].forEach(function (id) {

@@ -10,7 +10,7 @@
 #               profiles customers already downloaded keep working
 #   --purge     also remove the openvpn and easy-rsa packages
 #
-# Removing the server in the panel (Settings -> OpenVPN servers -> Delete) is a
+# Removing the server in the panel (Servers -> OpenVPN servers -> Delete) is a
 # separate step; the panel keeps the usage already recorded either way.
 
 set -euo pipefail
@@ -62,6 +62,7 @@ rm -f /etc/systemd/system/digitsell-ovpn-agent.service \
       /run/digitsell-ovpn-nat.excluded.tcp \
       /etc/systemd/system/digitsell-ovpn-nat.service \
       /usr/local/sbin/digitsell-ovpn-nat \
+      /usr/local/sbin/digitsell-ovpn-cert \
       /etc/sysctl.d/99-digitsell-ovpn.conf \
       "$SERVER_DIR/digitsell.conf" \
       "$SERVER_DIR/digitsell-tcp.conf" \
@@ -85,4 +86,4 @@ echo
 echo "Done. The OpenVPN node is removed from this server."
 echo "IP forwarding was left as it is now (it is needed by Docker and similar);"
 echo "to switch it off: sysctl -w net.ipv4.ip_forward=0"
-echo "Delete the server in the panel too: Settings -> OpenVPN servers -> Delete."
+echo "Delete the server in the panel too: Servers -> OpenVPN servers -> Delete."
