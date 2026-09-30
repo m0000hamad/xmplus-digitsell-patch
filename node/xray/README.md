@@ -290,6 +290,50 @@ digitsell-xray uninstall --restore-xmplus
 
 یا بدون حذف: `systemctl disable --now digitsell-xray digitsell-xray-agent && systemctl enable --now XMPlus`.
 
+## عیب‌یابی
+
+### بعد از گذاشتن نود xhttp، آپدیت اشتراک همه «Internal Server Error» می‌دهد
+
+این باگ **خود پنل** است، نه نود. سازندهٔ لینک پنل (`app/Http/Schema/Xray.php`) کلیدهایی مثل
+`headerType` و `alpn` را بدون بررسی می‌خواند و برای xhttp کنترلر آن‌ها را نمی‌فرستد؛ Whoops هشدار PHP را
+خطای کشنده می‌کند و اشتراک **همهٔ** اکانت‌هایی که آن نود را می‌بینند خراب می‌شود. پیام:
+`Undefined index: headerType` در `Xray.php:85`. برای دیدن پیام واقعی (روی سرور پنل):
+
+```bash
+curl -sk --resolve <دامنه‌ی پنل>:443:127.0.0.1 "https://<دامنه‌ی پنل>/link/<توکن>?config=1" -o /tmp/err.html
+python3 -c "import re,html;t=open('/tmp/err.html',errors='ignore').read();t=re.sub(r'(?s)<(style|script).*?</\1>','',t);t=re.sub(r'<[^>]+>','\n',t);print('\n'.join(l.strip() for l in html.unescape(t).splitlines() if l.strip())[:700])"
+```
+
+راه‌حل: روی **سرور پنل** یک بار (نسخهٔ خود فایل را پشتیبان می‌گیرد، syntax را می‌سنجد، در صورت خطا برمی‌گرداند):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main/node/xray/fix-panel-xhttp.py | python3 - /www/wwwroot/panel.example.com
+```
+
+بعد از آن نود xhttp را فعال کنید و همان `curl` بالا را بزنید: باید `200` بدهد. اگر ۵۰۰ ماند، نود را فوراً
+غیرفعال کنید و پیام را بفرستید. این اصلاح با هر به‌روزرسانی خود پنل که `Xray.php` را عوض کند از بین می‌رود؛ دوباره اجرا کنید.
+(هر نودی که ۵۰۰ بدهد با غیرفعال‌کردنش فوراً اشتراک برمی‌گردد.)
+
+### نود بالا است ولی «0 آنلاین» و هیچ مصرفی گزارش نمی‌شود
+
+```bash
+ss -tn state established '( sport = :PORT )'     # اگر خالی است، کسی به این سرور نمی‌رسد
+ss -ltnp | grep ':PORT '                         # باید xray باشد، نه XMPlus
+systemctl is-active XMPlus xmplus                # هر دو inactive
+echo | openssl s_client -connect 127.0.0.1:PORT -servername دامنه 2>/dev/null | openssl x509 -noout -subject -dates
+```
+
+اگر اتصال برقرار نبود، مشکل مسیر است، نه نود: رکورد DNS دامنه‌ها به IP این سرور (یا CDN با origin درست) نمی‌رود.
+`dxray doctor` فقط می‌گوید «چیزی روی پورت گوش می‌دهد» و نمی‌گوید چه چیزی.
+
+### چیزهای عادی در لاگ
+
+- `node N: +2 -0 account(s)` هر دقیقه: محدودیت دستگاه پنل (اکانتی که روی نودهای دیگر به سقف رسیده کنار می‌رود).
+- `starting Xray: ...` بعد از تغییر تنظیمات نود در پنل؛ اتصال‌ها دوباره برقرار می‌شوند.
+- `TLS handshake error ... i/o timeout` و `client sent an HTTP request to an HTTPS server`: اسکنر اینترنتی.
+- نسخهٔ Xray را نصب‌کننده از «latest release» گیت‌هاب می‌گیرد (ممکن است از جدیدترین پیش‌انتشار عقب‌تر باشد): `dxray update --xray-version v26.9.30`.
+- گواهی‌ای که خودتان به‌صورت فایل داده‌اید (حالت `file`) تمدید نمی‌شود؛ `dxray status` روزهای باقی‌مانده را نشان می‌دهد.
+
 ## محدودیت‌ها
 
 - محدودیت سرعت (speedlimit پنل) اعمال نمی‌شود؛ `check` برای نودی که دارد هشدار می‌دهد.
