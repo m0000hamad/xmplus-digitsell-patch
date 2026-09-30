@@ -474,6 +474,11 @@ function ovpnNodeServes(array $node, array $user): bool
  */
 const OVPN_BYPASS_MAX_LINES = 200;
 const OVPN_BYPASS_MAX_DOMAINS = 40;
+// routes in one file. OpenVPN Connect (OpenVPN 3) refuses a profile over
+// 262144 bytes as it counts them (64 per line, 16 + length per word): about
+// 166 per route, so 1745 Iran routes failed with "profile is too large".
+// 1200 routes stay near 205000 with the rest of the file.
+const OVPN_BYPASS_MAX_ROUTES = 1200;
 const OVPN_BYPASS_MIN_PREFIX = 8;
 const OVPN_IRAN_SOURCE = 'https://raw.githubusercontent.com/ipverse/rir-ip/master/country/ir/ipv4-aggregated.txt';
 
@@ -654,33 +659,68 @@ function ovpnBypassResolve(array $domains): array
  * Everything that goes direct: [[network int, prefix]], the Iranian ranges
  * first. Custom entries that an Iranian range already covers are left out.
  */
-function ovpnBypassNets(): array
+/**
+ * The networks that skip the tunnel: the custom ones, and as many Iran ranges
+ * as the rest of OVPN_BYPASS_MAX_ROUTES allows, largest first. A range left
+ * out (the smallest; about 1.5% of Iran's addresses) goes through the tunnel,
+ * as without the bypass; merging ranges instead would send foreign addresses
+ * around the tunnel. $info: iran_total, iran_used, iran_share (0..1).
+ */
+function ovpnBypassNets(?array &$info = null): array
 {
     $iran = ovpnSetting('ovpn_bypass_iran', '0') === '1' ? ovpnIranRanges() : [];
     $custom = ovpnBypassParse(ovpnSetting('ovpn_bypass_custom', ''));
-    $extra = $custom['nets'];
+    $extra = [];
 
+    $candidates = $custom['nets'];
     foreach (ovpnBypassCache()['hosts'] as $domain => $ips) {
         if (!in_array($domain, $custom['domains'], true)) {
             continue; // a domain that is no longer on the list
         }
         foreach (is_array($ips) ? $ips : [] as $ip) {
             if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
-                $extra[] = [ip2long($ip), 32];
+                $candidates[] = [ip2long($ip), 32];
             }
         }
     }
+    foreach ($candidates as $net) {
+        $extra[$net[0] . '/' . $net[1]] = $net;
+    }
 
-    $nets = $iran;
-    $seen = [];
+    // the custom entries always fit; the Iran ranges share what is left
+    $extra = array_slice($extra, 0, OVPN_BYPASS_MAX_ROUTES, true);
+    $room = max(0, OVPN_BYPASS_MAX_ROUTES - count($extra));
+    $kept = $iran;
+    if (count($kept) > $room) {
+        usort($kept, static function (array $a, array $b): int {
+            return $a[1] <=> $b[1] ?: $a[0] <=> $b[0]; // shorter prefix = larger range
+        });
+        $kept = array_slice($kept, 0, $room);
+        usort($kept, static function (array $a, array $b): int {
+            return $a[0] <=> $b[0];
+        });
+    }
 
+    $all = 0;
+    $used = 0;
+    foreach ($iran as [, $bits]) {
+        $all += 2 ** (32 - $bits);
+    }
+    foreach ($kept as [, $bits]) {
+        $used += 2 ** (32 - $bits);
+    }
+    $info = [
+        'iran_total' => count($iran),
+        'iran_used'  => count($kept),
+        'iran_share' => $all > 0 ? $used / $all : 0.0,
+    ];
+
+    $nets = $kept;
     foreach ($extra as $net) {
-        $key = $net[0] . '/' . $net[1];
-        if (isset($seen[$key]) || ($iran !== [] && ovpnNetInAny($net, $iran))) {
-            continue;
+        // inside a range already in the file: nothing to add
+        if ($kept === [] || !ovpnNetInAny($net, $kept)) {
+            $nets[] = $net;
         }
-        $seen[$key] = true;
-        $nets[] = $net;
     }
 
     return $nets;
@@ -1454,7 +1494,10 @@ function ovpnBypassView(): array
         'iran_source' => strpos($file, '/storage/') !== false ? 'refreshed' : 'shipped',
         'hosts'       => (object) $cache['hosts'],
         'resolved_at' => $cache['at'],
-        'routes'      => count(ovpnBypassNets()),
+        'routes'      => count(ovpnBypassNets($info)),
+        // how many Iran ranges the file has room for (OVPN_BYPASS_MAX_ROUTES)
+        'iran_used'   => $info['iran_used'],
+        'iran_share'  => round($info['iran_share'] * 100, 1),
     ];
 }
 

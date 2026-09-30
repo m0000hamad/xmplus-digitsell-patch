@@ -186,6 +186,7 @@
 	window.OvpnWords.testSent = "{$translate->get('OvpnAdmTestSent')|escape:'javascript'}";
 	window.OvpnWords.autoPorts = "{$translate->get('OvpnAdmAutoPorts')|escape:'javascript'}";
 	window.OvpnWords.iranInfo = "{$translate->get('OvpnAdmIranInfo')|escape:'javascript'}";
+	window.OvpnWords.iranCapped = "{$translate->get('OvpnAdmIranCapped')|escape:'javascript'}";
 	window.OvpnWords.routes   = "{$translate->get('OvpnAdmRoutes')|escape:'javascript'}";
 	window.OvpnWords.notFound = "{$translate->get('OvpnAdmNotFound')|escape:'javascript'}";
 	window.OvpnWords.certOk   = "{$translate->get('OvpnAdmCertOk')|escape:'javascript'}";
@@ -494,7 +495,10 @@
 		$('ovBypassIran').checked = !!bypass.iran;
 		$('ovBypassCustom').value = bypass.custom || '';
 		$('ovIranInfo').textContent = words.iranInfo.replace('%count%', bypass.iran_ranges).replace('%date%', bypass.iran_date || '—')
-			+ ' · ' + words.routes.replace('%count%', bypass.routes);
+			+ ' · ' + words.routes.replace('%count%', bypass.routes)
+			// the file has room for part of the list only (OpenVPN Connect's size limit)
+			+ (bypass.iran && bypass.iran_used < bypass.iran_ranges
+				? ' · ' + words.iranCapped.replace('%used%', bypass.iran_used).replace('%share%', bypass.iran_share) : '');
 		var hosts = bypass.hosts || {};
 		$('ovBypassHosts').innerHTML = Object.keys(hosts).map(function (domain) {
 			var ips = hosts[domain] || [];
