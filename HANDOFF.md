@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.14.0** · repo
+Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.14.1** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -809,6 +809,15 @@ Pieces:
   buttons plus the combined download when both are offered. A session
   closed for silence and reported live again is reopened (usage is still
   counted once: the growth is against stored counters).
+- **Online / offline messages (1.14.1).** `app/Jobs/OvpnJob.php` via
+  `bin/ovpn.php`, every minute from `TaskCommand` (log `storage/logs/ovpn.log`):
+  a server whose heartbeat is older than 180 s is offline; a change sends
+  "🔴 … آفلاین شد" (last contact) or "🟢 … دوباره آنلاین شد" (how long it was
+  down) with the panel bot (`telegramtoken`) to `tgjoin_admin_chats`, else
+  `telegramchatid`. First sight only records; switched-off servers and ones
+  that never reported are skipped. State in the `ovpn_notify_state` setting,
+  written before sending. `ovpn_notify` = 0 (the switch on the OpenVPN
+  settings card) turns it off.
 - **No client certificate on purpose:** customers sign in with username /
   password; the server is checked against the CA inside the file and the
   handshake is wrapped in tls-crypt. The profile carries
@@ -1067,3 +1076,4 @@ dark / phone.
 | 1.13.2 | OpenVPN: `xmplus-openvpn` icon class in the panel's own icon style (`<span class='xmplus xmplus-openvpn fs-15'></span>`) for the OpenVPN app in the client apps list |
 | 1.13.3 | OpenVPN: the app picker draws the OpenVPN icon as inline SVG for any app named OpenVPN, since the `xmplus-openvpn` class did not show on the live panel |
 | 1.14.0 | OpenVPN: UDP and TCP side by side (`install.sh --proto both`, default), per-server choice in the panel (automatic / both / UDP / TCP) with separate UDP and TCP ports; with both, customers get a combined file (UDP first, TCP fallback) and a UDP-only and TCP-only file. Existing nodes: run the install command again |
+| 1.14.1 | OpenVPN: online / offline messages for OpenVPN servers to the admin Telegram chat (`OvpnJob`, every minute), with a switch on the OpenVPN settings card |

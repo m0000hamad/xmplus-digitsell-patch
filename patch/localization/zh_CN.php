@@ -1813,6 +1813,7 @@ $i18n['zh_CN'] = array(
 	'OvpnAdmEditing'       => "Editing",
 	'OvpnAdmNone'          => "nothing here",
 	'OvpnAdmOnline'        => "online",
+	'OvpnAdmNotify'             => "Tell the admin on Telegram when a server goes offline or comes back",
 	'OvpnProtoOnly'             => "only",
 	'OvpnBothHint'              => "both: UDP first, TCP where UDP is blocked",
 	'OvpnAdmOffer'              => "Protocol for customers",
