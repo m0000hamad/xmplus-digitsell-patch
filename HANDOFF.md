@@ -903,7 +903,13 @@ Pieces:
   rules or a DROP policy, and inserts accept rules (comment `digitsell-ovpn`)
   into native nftables input / forward chains with `policy drop`. `start`
   removes the 1.12 - 1.15.1 rules written straight into the built-in chains.
-  `digitsell-ovpn-nat doctor` reports the lot. Tested with 400 churning UDP
+  `digitsell-ovpn-nat doctor` reports the lot. Later (node files only): the
+  installer writes `CONNTRACK_MAX` (128 per MB of RAM, 65536 - 262144) to
+  nat.conf and the nat script raises `nf_conntrack_max` and the hash to it
+  (a live XMPlus server showed 3353 of 7680 used); `doctor` warns at 70% and
+  counts attempts per protocol in the last 15 min (`peer info: IV_VER=` =
+  passed tls-crypt, `Peer Connection Initiated` = handshake done). A
+  reinstall keeps an `IF=` line of nat.conf. Tested with 400 churning UDP
   sockets, a foreign DROP inserted at the top of FORWARD, an `inet` table
   with `policy drop`, and iptables-legacy `FORWARD DROP`: each cut tunnel
   traffic before a refresh and passed after. Which of these the live servers

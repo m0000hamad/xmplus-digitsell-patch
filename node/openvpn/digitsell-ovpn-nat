@@ -46,6 +46,7 @@ SUBNETS="${SUBNETS:-$SUBNET}"
 : "${PROTOS:?}" "${SUBNETS:?}" "${PORT:?}"
 ALL_PORTS="${ALL_PORTS:-1}"
 EXCLUDE="${EXCLUDE:-}"
+CONNTRACK_MAX="${CONNTRACK_MAX:-}"
 
 # the public interface: IF in nat.conf, else the one of the default route
 IF="${IF:-$(ip -4 route show default | awk '{for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); exit }}')}"
@@ -266,7 +267,22 @@ nft_off() {
         done
 }
 
+# raise the connection tracking table to CONNTRACK_MAX (never lower it), and
+# its hash to a quarter of that, so lookups stay short
+conntrack_size() {
+    [ -n "$CONNTRACK_MAX" ] || return 0
+    now=$(cat /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null) || return 0
+    if [ "$now" -lt "$CONNTRACK_MAX" ]; then
+        echo "$CONNTRACK_MAX" > /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null
+    fi
+    hash=/sys/module/nf_conntrack/parameters/hashsize
+    if [ -w "$hash" ] && [ "$(cat "$hash")" -lt $((CONNTRACK_MAX / 4)) ]; then
+        echo $((CONNTRACK_MAX / 4)) > "$hash" 2>/dev/null
+    fi
+}
+
 all_on() {
+    conntrack_size
     openings_on iptables nat
     if legacy_backend; then openings_on iptables-legacy; fi
     nft_on
@@ -303,10 +319,24 @@ doctor() {
     if command -v ufw >/dev/null 2>&1; then echo "== ufw: $(ufw status 2>/dev/null | head -1)"; else echo "== ufw: not installed"; fi
     if command -v firewall-cmd >/dev/null 2>&1; then echo "== firewalld: $(firewall-cmd --state 2>&1)"; else echo "== firewalld: not installed"; fi
     if command -v docker >/dev/null 2>&1; then echo "== docker: installed"; else echo "== docker: not installed"; fi
-    echo "== OpenVPN log (udp): $(journalctl -u openvpn-server@digitsell -n 1 --no-pager -o cat 2>/dev/null)"
     set -- $(ephemeral)
     echo "== UDP sockets: $(ss -Hlun 2>/dev/null | wc -l) (in the ephemeral range $1-$2: $(ss -Hlun 2>/dev/null | awk '{print $4}' | sed 's/.*://' | awk -v lo="$1" -v hi="$2" '$1 >= lo && $1 <= hi' | wc -l))"
-    echo "== conntrack: $(cat /proc/sys/net/netfilter/nf_conntrack_count 2>/dev/null) of $(cat /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null)"
+    count=$(cat /proc/sys/net/netfilter/nf_conntrack_count 2>/dev/null || echo 0)
+    max=$(cat /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null || echo 0)
+    warn=""
+    [ "$max" -gt 0 ] && [ $((count * 100 / max)) -ge 70 ] && warn=" - NEARLY FULL: new connections are dropped when it fills"
+    echo "== conntrack: $count of $max$warn"
+    # did customers' attempts reach this server at all: a client that passed
+    # the tls-crypt check sends its version (IV_VER); stray packets never do
+    for p in $PROTOS; do
+        unit=openvpn-server@digitsell; [ "$p" = "tcp" ] && unit=openvpn-server@digitsell-tcp
+        seen=$(journalctl -u "$unit" --since "-15min" --no-pager -o cat 2>/dev/null | grep -c "peer info: IV_VER=")
+        ok=$(journalctl -u "$unit" --since "-15min" --no-pager -o cat 2>/dev/null | grep -c "Peer Connection Initiated")
+        echo "== $p last 15 min: $seen connection attempts reached OpenVPN, $ok got through the handshake"
+        journalctl -u "$unit" --since "-15min" --no-pager -o cat 2>/dev/null \
+            | grep -E "IV_PLAT=|Peer Connection Initiated|AUTH|TLS handshake failed|VERIFY|unwrapping failed" \
+            | grep -v "tls-crypt-v2 client key" | tail -4 | sed 's/^/   /'
+    done
     echo "== excluded: udp $(excluded udp | wc -l), tcp $(excluded tcp | wc -l) listed ports"
 }
 
