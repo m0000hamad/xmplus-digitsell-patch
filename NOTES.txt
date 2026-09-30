@@ -1,7 +1,4 @@
-OpenVPN: the OpenVPN servers card is now on the Servers page. Stopping only
-UDP or only TCP now sends a "part of the server is down" message; the card
-shows when the scheduler last checked the servers and has a Telegram test
-button. New: bypass for Iranian IPs and chosen sites (banks...), automatic free
-ports on install and for customers, and an automatic certificate when the
-server has a domain. Run each server's install command again (agent 1.4.0);
-customers download their file again for bypass and ports.
+OpenVPN: with the Iran bypass on, OpenVPN Connect refused the file ("profile
+is too large"). A file now holds at most 1200 direct routes: your custom
+entries, then the largest Iran ranges (about 98.5% of Iran's addresses; the
+smallest few go through the tunnel). Customers download the file again.

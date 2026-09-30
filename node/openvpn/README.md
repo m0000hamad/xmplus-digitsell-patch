@@ -138,7 +138,15 @@ IPv4 list (about 1,750 ranges from ipverse/rir-ip, CC0, shipped with the
 patch and refreshable from the card); custom lines take domains, addresses
 and networks. The panel looks domains up (and again every 6 hours) and writes
 everything as `route <net> <mask> net_gateway` lines into the file, so
-customers download the file again after a change. Works in OpenVPN Connect
+customers download the file again after a change.
+
+A file holds at most 1200 such routes: OpenVPN Connect refuses a profile
+over 262144 bytes as it counts them (64 per line plus 16 per word, about 166
+per route), and all 1745 Iran ranges came to about 298000 ("profile is too
+large"). Custom entries always go in; the Iran ranges fill the rest, largest
+first — about 98.5% of Iran's addresses. The smallest ranges left out go
+through the tunnel, as without the bypass; merging ranges instead would have
+sent foreign addresses around the tunnel. The card shows how many ranges fit. Works in OpenVPN Connect
 and OpenVPN 2.x; routes are IPv4 only.
 
 ## Status and messages
