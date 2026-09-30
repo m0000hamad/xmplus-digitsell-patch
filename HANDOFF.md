@@ -1038,6 +1038,40 @@ wanted to stop depending on XMPlus's fork.
   added and removed live; installer / update / uninstall with systemd stubbed.
   Not yet run on a real node server or behind a real CDN.
 
+**First live deploy (2026-09-30, nodes 69 and 74 on one server, Xray 26.3.27):**
+`install.sh` with no options migrated from `/root/config.yml` (file-mode
+certificates kept, both nodes found); `dxray doctor` all green; 330 accounts
+per node; certificates 88 days left (Let's Encrypt, 90 days, given as files -
+nothing renews them unless the owner's own tooling does). Findings:
+
+- **The panel's own subscription builder crashed on an xhttp node.** Every
+  account that can see that node got HTTP 500 on `/link/<token>` (a ~960 KB
+  Whoops page, so it was easy to misread as a CDN or TLS problem; the nginx
+  error log has nothing, the exception only appears in the response body).
+  `app/Http/Schema/Xray.php` (plain PHP, readable) reads `$item['headerType']`,
+  `['alpn']`, `['mode']`... with no check, and its encoded controller leaves
+  keys out for xhttp; Whoops makes the notice fatal. Accounts whose group does
+  not include the node were fine, which made it look intermittent (phone fine,
+  Windows not). Disabling the node in the panel fixed it at once. First guess
+  (add `headerType` to the node's network JSON) was wrong - the array is built
+  by the controller, not copied from the JSON. Fix: `node/xray/fix-panel-xhttp.py`
+  puts defaults in front of `Xray::build()` (`$item += [...]`, keeps keys that
+  exist). Tested on the owner's file with bare / full / REALITY / VMess /
+  Trojan / SS items; confirmed working live on the panel. Not committed as a
+  file: it is the panel vendor's code and this repository is public. A panel
+  update that replaces the file removes the fix.
+- **Zero traffic right after the swap** was not the agent: no established
+  connections on the node ports, scanners reached them (so the firewall was
+  open), the certificates were served, XMPlus was inactive. Usage only appears
+  once clients actually connect; `dxray status` shows it.
+- `dxray doctor` says "something listens on port N" without saying who; the
+  check that XMPlus is not the one holding it is `ss -ltnp`.
+- `latest_tag` gave Xray 26.3.27 on the server (GitHub's "latest release"
+  skips pre-releases); the agent ran fine on it.
+- Not checked live yet: Happ picking up the direct-routes profile (the link
+  that failed was the panel's own `/link/`, which never carries it), traffic
+  and online numbers once customers connect.
+
 ### Direct routes for Xray customers (1.17.0)
 
 Asked for right after: "a place for the servers to bypass Iran or chosen sites,
