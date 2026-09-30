@@ -139,11 +139,18 @@ digitsell-ovpn-nat doctor
 prints the interface, `ip_forward`, whether OpenVPN listens, the redirect
 chains and their jumps, where our jumps sit in INPUT / FORWARD / POSTROUTING
 and each policy, iptables-legacy, nftables chains that drop, ufw, firewalld,
-Docker, UDP socket counts, conntrack (warns at 70%), and per protocol how
-many connection attempts reached OpenVPN in the last 15 minutes and how many
-got through the handshake, with the last lines that matter. No attempts while
-a phone is trying means the packets never arrive: a filter on the way, not
-this server. A `TLS Error: can not extract tls-crypt-v2 client key` from some
+Docker, UDP socket counts, conntrack (warns at 70%), and per protocol for
+the last 15 minutes: the attempts with the right key (only a device holding
+the profile gets past tls-crypt), how many finished the handshake, how many
+stopped in it, and the packets without the key (scanners and probes - every
+port leads to OpenVPN, so a port scan lands there), with the last lines that
+matter.
+
+- No attempt while a phone is trying: its packets never arrive (UDP to
+  foreign servers is often blocked from Iran).
+- Attempts that stop in the handshake: the server log looks the same for a
+  filter cutting the connection and for the app refusing the server; the
+  app's own log tells them apart (`VERIFY` errors = the app refused). A `TLS Error: can not extract tls-crypt-v2 client key` from some
 address on port 443 is a stray packet (a closed QUIC connection of Xray's),
 not a customer. `IF=eth1` in
 `/etc/digitsell-ovpn/nat.conf` picks another public interface.
