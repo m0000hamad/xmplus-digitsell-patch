@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-30 · installed version **1.9.2** · latest release **1.17.0** · repo
+Last updated: 2026-09-30 · installed version **1.9.2** · latest release **1.17.1** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -1069,6 +1069,19 @@ nothing renews them unless the owner's own tooling does). Findings:
   otherwise `isset($item['mode'])` would start seeing the default and change
   links of nodes that work). Tested on synthetic builders; `VlessURI.php` of
   the panel was only seen in a screenshot, never as a full file.
+- **Made automatic in 1.17.1** ("so I never have to run code again"):
+  `app/Patch/SchemaFix.php` is the PHP port of the script (same output,
+  byte for byte, checked on the same synthetic files). Migration
+  `014_schema_defaults.php` runs it once at install (files are copied before
+  migrations run); `bin/schemafix.php`, scheduled hourly from `TaskCommand`
+  (`17 * * * *`, log `storage/logs/schemafix.log`, prints only when it
+  changed or failed), puts it back after a panel update replaces the files.
+  Backups go to `storage/patch/schema-backup/` (outside `app/`). Validation is
+  `token_get_all(..., TOKEN_PARSE)` because php-fpm has no CLI `php -l`, and
+  a file that does not parse or does not read back is restored. If the cron
+  user is not the file's owner the write can fail (`ERROR: not writable` in the
+  log) - not seen yet. Not tested under PHP 7.4 itself (8.4 here), only kept to
+  7.4 syntax. The python script stays for panels without the patch.
 - **Zero traffic right after the swap** was not the agent: no established
   connections on the node ports, scanners reached them (so the firewall was
   open), the certificates were served, XMPlus was inactive. Usage only appears
@@ -1299,3 +1312,4 @@ served by `?do=sub` carry it. Not tested inside the Happ app itself.
 | 1.16.0 | Affiliate page: 📱 QR code button on the invite link card opens a dialog with the link as a QR code (drawn in the browser, no library), save as PNG, send the image (phones), copy the link |
 | 1.16.1 | Copy buttons work on iPhone / iPad after downloading the OpenVPN profile (synchronous copy inside the tap first). OpenVPN nodes on servers that already run Xray or a firewall: live socket skip, atomic redirect, openings kept first and mirrored into iptables-legacy / nftables, `digitsell-ovpn-nat doctor` (run the install command again) |
 | 1.17.0 | Direct routes for Xray customers: "Xray customers too (Happ)" switch on the OpenVPN direct-routes card sends the Iran / custom list to Happ with the subscription (`routing` header). `node/xray/`: our own Xray node with the official Xray-core in place of the XMPlus node binary (node files, not copied into the panel) |
+| 1.17.1 | The panel's own link builders (`app/Http/Schema`) are fixed automatically so an xhttp node cannot take the subscription link and the Servers page down: once at install (migration 014) and every hour (`bin/schemafix.php`), since a panel update puts the originals back |
