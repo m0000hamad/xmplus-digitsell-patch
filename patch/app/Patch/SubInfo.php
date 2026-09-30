@@ -31,6 +31,62 @@ const SUBINFO_PASS = ['subscription-userinfo', 'profile-title', 'profile-update-
     'profile-web-page-url', 'support-url', 'content-disposition', 'content-type', 'announce',
     'routing', 'providerid', 'update-always', 'hide-settings'];
 
+/**
+ * Direct routes for Happ, which takes a routing profile from the subscription
+ * (`routing: happ://routing/onadd/<base64 JSON>`): the list on the admin's
+ * OpenVPN "direct routes" card, when "Xray apps too" is on there. Iranian
+ * sites and addresses, and the custom lines, then open over the customer's
+ * own connection; the rest goes through the server. `xray_bypass` = off is
+ * left behind when the admin turns it off again, and sends routing/off so the
+ * profile pushed earlier stops too. Null: send nothing.
+ */
+function subinfoHappRouting(): ?string
+{
+    $state = (string) setting('xray_bypass', '0');
+    if ($state === 'off') {
+        return 'happ://routing/off';
+    }
+    if ($state !== '1') {
+        return null;
+    }
+
+    $sites = ['geosite:private'];
+    $ips = ['geoip:private'];
+    if ((string) setting('ovpn_bypass_iran', '0') === '1') {
+        $sites[] = 'domain:ir';
+        $sites[] = 'geosite:category-ir';
+        $ips[] = 'geoip:ir';
+    }
+    // the same lines OpenVPN uses, checked when they were saved
+    foreach (preg_split('~\R~', (string) setting('ovpn_bypass_custom', '')) ?: [] as $raw) {
+        $line = strtolower(trim((string) preg_replace('~\s*#.*$~', '', $raw)));
+        if ($line === '') {
+            continue;
+        }
+        if (preg_match('~^\d{1,3}(\.\d{1,3}){3}(/\d{1,2})?$~', $line)) {
+            $ips[] = $line;
+        } elseif (preg_match('~^[a-z0-9.-]+$~', $line) && strpos($line, '.') !== false) {
+            // domain: takes the subdomains too
+            $sites[] = 'domain:' . $line;
+        }
+    }
+
+    $profile = [
+        'Name'           => 'Digitsell',
+        'GlobalProxy'    => 'true',
+        'RouteOrder'     => 'block-proxy-direct',
+        'DirectSites'    => array_values(array_unique($sites)),
+        'DirectIp'       => array_values(array_unique($ips)),
+        'ProxySites'     => [],
+        'ProxyIp'        => [],
+        'BlockSites'     => [],
+        'BlockIp'        => [],
+        'DomainStrategy' => 'IPIfNonMatch',
+    ];
+
+    return 'happ://routing/onadd/' . base64_encode((string) json_encode($profile, JSON_UNESCAPED_SLASHES));
+}
+
 function subinfoFa(string $text): string
 {
     return strtr($text, ['0' => '۰', '1' => '۱', '2' => '۲', '3' => '۳', '4' => '۴',
@@ -379,6 +435,14 @@ foreach ($upstream['headers'] as $name => $value) {
     }
     if (in_array($name, SUBINFO_PASS, true)) {
         header($name . ': ' . $value);
+    }
+}
+
+// direct routes (Iran, chosen sites) for Happ; the other apps ignore the header
+if (preg_match('~\bhapp\b~i', (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''))) {
+    $routing = subinfoHappRouting();
+    if ($routing !== null) {
+        header('routing: ' . $routing);
     }
 }
 

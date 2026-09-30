@@ -151,6 +151,8 @@
 		<textarea class="form-control" id="ovBypassCustom" rows="6" dir="ltr" placeholder="bmi.ir&#10;shaparak.ir&#10;digikala.com&#10;185.143.232.0/22&#10;# 1.2.3.4"></textarea>
 		<small class="text-muted d-block mb-2">{$translate->get('OvpnAdmBypassCustomHint')}</small>
 		<div class="small mb-2" id="ovBypassHosts"></div>
+		<label class="ov-check mb-1"><input type="checkbox" id="ovBypassXray"> {$translate->get('OvpnAdmBypassXray')}</label>
+		<small class="text-muted d-block mb-2">{$translate->get('OvpnAdmBypassXrayHint')}</small>
 		<div class="d-flex justify-content-end">
 			<button type="button" class="btn btn-primary btn-sm" id="ovBypassSave">💾 {$translate->get('Save')}</button>
 		</div>
@@ -493,6 +495,7 @@
 	function renderBypass(bypass) {
 		if (!bypass) { return; }
 		$('ovBypassIran').checked = !!bypass.iran;
+		$('ovBypassXray').checked = !!bypass.xray;
 		$('ovBypassCustom').value = bypass.custom || '';
 		$('ovIranInfo').textContent = words.iranInfo.replace('%count%', bypass.iran_ranges).replace('%date%', bypass.iran_date || '—')
 			+ ' · ' + words.routes.replace('%count%', bypass.routes)
@@ -517,7 +520,7 @@
 	});
 
 	$('ovBypassSave').addEventListener('click', function () {
-		post('ovpn.bypasssave', { iran: $('ovBypassIran').checked ? '1' : '0', custom: $('ovBypassCustom').value }).then(function (data) {
+		post('ovpn.bypasssave', { iran: $('ovBypassIran').checked ? '1' : '0', xray: $('ovBypassXray').checked ? '1' : '0', custom: $('ovBypassCustom').value }).then(function (data) {
 			if (!data.ok) { say(words.failed + ': ' + data.error); return; }
 			renderBypass(data.bypass);
 			say(words.saved + (data.failed && data.failed.length ? ' · ' + words.notFound + ': ' + data.failed.join(', ') : ''));
