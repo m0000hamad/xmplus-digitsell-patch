@@ -11,7 +11,13 @@
 		{include file='user/dashboard/subsciption.tpl'}
 		{include file='user/dashboard/application.tpl'}
 	</div>
-	{if $user->ovpnEnabled()}
+	{* the OpenVPN card, unless OpenVPN is already an app in the apps card above *}
+	{$ovpnInApps = false}
+	{foreach $clients as $ovpnClient}
+		{$ovpnClientName = $ovpnClient->client|lower}
+		{if strpos($ovpnClientName, 'openvpn') !== false}{$ovpnInApps = true}{/if}
+	{/foreach}
+	{if $user->ovpnEnabled() && !$ovpnInApps}
 		{include file='user/dashboard/ovpn.tpl'}
 	{/if}
 	<div class="row match-height">
