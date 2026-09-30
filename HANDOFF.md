@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.11.5** · repo
+Last updated: 2026-09-29 · installed version **1.9.2** · latest release **1.12.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -172,6 +172,7 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Sign-up page | `view/auth/register.tpl` in the sign-in page's design (1.9.1) — see below |
 | Promotions | Discount / special / prize on subscription plans, with occasion text, countdown and sales limit (1.10.0) — see below |
 | Charge wallet | Pay-as-you-go wallet: top up any amount (min 200k toman, tiered bonus), the plan runs out → usage billed per server at a price per GB, no billing on a down server, plan-ending / balance notices; separate commission wallet for plans only (1.11.0) — see below |
+| OpenVPN | OpenVPN servers on the same subscription: logins and traffic go through the panel, usage counts against the plan's data and the charge wallet, cut-off when the plan ends; admin server list with install command, dashboard card with profile download and credentials (1.12.0) — see below |
 
 ### Time plans — how days are sold without touching the order pipeline
 
@@ -737,6 +738,80 @@ the save path was made observable and robust instead:
 
 Not yet verified on the live panel — see §8.
 
+### OpenVPN on the same subscription (1.12.0)
+
+Asked for: an OpenVPN backend whose traffic is merged with the existing
+subscription. **Ships switched off** (`ovpn_enabled`).
+
+Pieces:
+
+- `migrations/010_openvpn.php` — `ovpn_node` (one row per OpenVPN server:
+  key hash, `allowed_groups`, multiplier `rate`, and what a profile needs —
+  address, port, proto, CA, tls-crypt key — reported by the node itself),
+  `ovpn_session` (last counters per live session), settings `ovpn_enabled`
+  and `ovpn_secret`.
+- `app/Patch/Ovpn.php`, dispatched from `xmplus-patch.php` **before**
+  `requireAdmin()`: node actions (`ovpn.hello`, `ovpn.auth`, `ovpn.push`)
+  authenticate with headers `X-Ovpn-Node` / `X-Ovpn-Key`; `ovpn.profile` takes
+  the customer's session; the admin half calls `requireAdmin()` and, for
+  writes, `requireToken()` (`patch_csrf`).
+- `view/admin/settings/ovpnsettings.tpl` (servers, add / edit, new key, delete,
+  install command, connected users), `view/user/dashboard/ovpn.tpl` (included
+  by `dashboard.tpl` only when `User::ovpnEnabled()`).
+- `node/openvpn/` — `install.sh` and `ovpn-agent.py` for the OpenVPN server.
+  **Not part of the manifest**; the install command fetches them from this
+  repository. See `node/openvpn/README.md`.
+
+How it fits the panel:
+
+- **Nodes are not `servers` rows.** The encoded subscription builder would put
+  them into every Xray link. Their traffic is logged under the virtual server
+  id `900000 + node id` (`OVPN_SERVER_BASE`), with `servername` =
+  "OpenVPN · <name>", so the charts, the admin server report and
+  `traffic_daily` show them by name.
+- **Usage:** the push carries running byte counters per session; the growth
+  since the stored counters goes to `user.u` / `user.d` (× the node's `rate`,
+  as the panel applies a server's multiplier), `total_data_used` and `t` if
+  those columns exist, and raw to `trafficlog`, which is what `PaygJob` bills.
+  Counters are compared under `FOR UPDATE` in one transaction, so a resent or
+  overlapping push counts once.
+- **`trafficlog` and `online_ip` belong to the encoded panel**, so
+  `ovpnInsert()` reads `SHOW COLUMNS` and writes only columns that exist,
+  filling a NOT NULL column without a default with 0 / '' / now.
+- **Who may connect** (`ovpnRefusal()`, the admin dashboard's reading of an
+  account): `status = 1`, `expire_in` in the future, not `transfer_enable > 0
+  AND u + d >= transfer_enable`, `server_group` in the node's groups (empty =
+  all), plus the device limit at login (`iplimit` over `online_ip` of the last
+  2 minutes and live OpenVPN sessions). Every push answers the sessions that
+  fail this now; the agent kills them. Because `PaygJob` keeps
+  `transfer_enable` = what the balance buys, the wallet cut-off works the same.
+- **Wallet prices:** `PaygJob::servers()`, `paygServers()` and
+  `User::paygHeadroomGb()` include OpenVPN nodes under their virtual ids, so
+  each gets a row in the wallet price table ("OpenVPN · <name>") and is free
+  while its heartbeat is older than 5 minutes (outage rule). Ledger queries name
+  them through `paygLedgerServerJoin()` with an explicit collation, because
+  `servers` and the new table may not share one.
+- **Credentials:** login `u<id>`, password = 12 characters of
+  HMAC-SHA256(`ovpn_secret`, "<id>:<uuid>"), computed in both `Ovpn.php` and
+  `User::ovpnPassword()` — **keep the two identical**. Resetting the link
+  changes the password. Nothing is stored.
+- **Profile:** built by the panel from what the node reported; `ovpnPem()`
+  keeps only the marked PEM block, so a node cannot inject directives into
+  customers' profiles. No cipher lines (negotiated; a 2.4 client rejects
+  `data-ciphers`).
+- The agent lets a login in from a 6-hour cache of panel approvals while the
+  panel is unreachable, and reports the accumulated counters afterwards.
+
+Tested locally (2026-09-30) with real OpenVPN 2.6 server and client against
+MariaDB with stub panel tables: installer on Ubuntu 24.04 (systemd stubbed),
+wrong password refused, valid login connected, usage in `user` (× 1.5) and raw
+in `trafficlog` with an unknown NOT NULL column, online mark, resent push
+counted once, every refusal reason, device limit, quota cut-off killing the
+live session and refusing the reconnect, final counters of a disconnect
+settled, login from cache with the panel down and catch-up after, wallet ledger
+names, all 83 templates compiled with Smarty 3, dashboard card rendered light /
+dark / phone.
+
 ### Gift card redeem (1.8.9)
 
 - **Dialog:** `#redeem_modal` in `view/user/dashboard/order.tpl`, opened by
@@ -844,6 +919,19 @@ Not yet verified on the live panel — see §8.
   (wallet card light/dark/phone, charge dialog → order create, admin page).
 
 
+- **OpenVPN (1.12.0) — check on the live panel before switching it on:**
+  1. `trafficlog` / `online_ip` columns: open Settings → OpenVPN, add a test
+     server, connect once, then look at the new `trafficlog` row (serverid
+     900001) and at the admin dashboard's traffic chart.
+  2. That the Xray nodes do not stumble over `online_ip` rows with serverid
+     900000+ (they should only read their own).
+  3. Put `--panel https://my.digitsell-shop.ir` (not the CDN host) in the
+     install command; the CDN may cache or block the node's POSTs.
+  4. Set a wallet price for the OpenVPN server if it should differ from the
+     default.
+  5. Whether OpenVPN gets through from Iran at all on the chosen port /
+     protocol (`--proto tcp --port 443` is the usual first try).
+
 ## 9. Testing rules learned the hard way
 
 - **Render every page as at least two accounts** — a normal one and an edge
@@ -916,3 +1004,4 @@ Not yet verified on the live panel — see §8.
 | 1.11.3 | Client apps: the status link sends `subscription-userinfo` with all zeros instead of leaving it out, because the apps kept the old total / Gregorian expiry from their previous update |
 | 1.11.4 | Client apps: the status link drops the panel's own "Total:… Used:…" / "Expire:…" info entries from the list, which still showed the Gregorian expiry under the Persian rows |
 | 1.11.5 | Client apps: shorter status rows (about 25 characters) so they are not cut off on a phone; end date / days left and updated time / "update to refresh" split into two rows each |
+| 1.12.0 | OpenVPN servers on the same subscription: node agent + installer (`node/openvpn/`), login and usage through `xmplus-patch.php?do=ovpn.*`, traffic counted against the plan and billed by the charge wallet, cut-off when the plan or data ends, admin server list with install command, dashboard card with profile download and credentials. Off until switched on |

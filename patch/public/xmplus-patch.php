@@ -431,6 +431,13 @@ if (strpos($action, 'payg.') === 0 || strpos($action, 'commission.') === 0) {
     fail('unknown wallet action');
 }
 
+// OpenVPN servers on the same subscription: the nodes authenticate with their
+// own key, customers download profiles, the admin half checks for itself.
+if (strpos($action, 'ovpn.') === 0) {
+    require ROOT . '/app/Patch/Ovpn.php';
+    fail('unknown OpenVPN action');
+}
+
 requireAdmin();
 
 // Read-only reports for admin pages; each file ends in done() or fail().
