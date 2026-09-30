@@ -257,6 +257,9 @@ html[data-hs-theme="dark"] .af-btn-cash[disabled] { background: rgba(255, 255, 2
 					<button type="button" class="af-btn af-btn-copy copy-text" data-clipboard-text="{$helpers->InviteUrl()}/register?aff={$user->afflink}">
 						📋 {$translate->get('CopyInviteLink')}
 					</button>
+					<button type="button" class="af-btn af-btn-qr" data-bs-toggle="modal" data-bs-target="#afQrModal">
+						📱 {$translate->get('InviteQrButton')}
+					</button>
 					<a class="af-btn af-btn-reset" onClick="resetLink()" data-bs-placement="top" data-bs-toggle="tooltip" title="{$translate->get('resetLink')}">
 						🔄 {$translate->get('resetLink')}
 					</a>
@@ -380,6 +383,7 @@ html[data-hs-theme="dark"] .af-btn-cash[disabled] { background: rgba(255, 255, 2
 </div>
 
 {include file='user/affiliate/widthdraw.tpl'}
+{include file='user/affiliate/inviteqr.tpl'}
 
 {include file='user/layout/footer.tpl'}
 <script>

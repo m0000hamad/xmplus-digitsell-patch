@@ -1,4 +1,4 @@
-OpenVPN: with the Iran bypass on, OpenVPN Connect refused the file ("profile
-is too large"). A file now holds at most 1200 direct routes: your custom
-entries, then the largest Iran ranges (about 98.5% of Iran's addresses; the
-smallest few go through the tunnel). Customers download the file again.
+Affiliate page: a "QR code" button next to the invite link opens the link as a
+QR code. A friend scans it with the phone camera and lands on the sign-up page
+with the invite already applied. The image can be saved, sent straight to
+Telegram / WhatsApp from a phone, and the link copied from the same dialog.
