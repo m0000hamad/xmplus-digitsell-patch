@@ -133,3 +133,4 @@
 </body>
 </html>
 {include file='common/copy.tpl'}
+{include file='common/ovpnicon.tpl'}
