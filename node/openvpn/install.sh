@@ -255,6 +255,19 @@ fetch() {  # a file from node/openvpn/: next to this script, or from the reposit
 # the old NAT rules first, while the script that knows them is still there
 [ -x /usr/local/sbin/digitsell-ovpn-nat ] && /usr/local/sbin/digitsell-ovpn-nat stop >/dev/null 2>&1 || true
 
+# connection tracking entries: small VPS kernels allow a few thousand (7680
+# on 1 GB), which Xray alone half fills; when full, every new connection -
+# OpenVPN logins and the traffic of connected customers - is dropped.
+# 128 per MB of RAM (about 40 MB of entries on 1 GB), 65536 to 262144, never
+# lowered. Applied by digitsell-ovpn-nat, which runs after the module loads.
+MEM_MB=$(awk '/^MemTotal:/ {print int($2 / 1024)}' /proc/meminfo)
+CONNTRACK_MAX=$(( MEM_MB * 128 ))
+[ "$CONNTRACK_MAX" -ge 65536 ] || CONNTRACK_MAX=65536
+[ "$CONNTRACK_MAX" -le 262144 ] || CONNTRACK_MAX=262144
+
+# an interface chosen by hand (IF= in nat.conf) survives a reinstall
+KEEP_IF=$(sed -n 's/^IF=//p' "$CONF_DIR/nat.conf" 2>/dev/null | tail -1)
+
 cat > "$CONF_DIR/nat.conf" <<EOF
 # read by /usr/local/sbin/digitsell-ovpn-nat; run install.sh again to change
 PROTOS="$PROTOS"
@@ -262,7 +275,9 @@ SUBNETS="$SUBNETS"
 PORT=$PORT
 ALL_PORTS=$ALL_PORTS
 EXCLUDE="$EXCLUDE"
+CONNTRACK_MAX=$CONNTRACK_MAX
 EOF
+[ -z "$KEEP_IF" ] || echo "IF=$KEEP_IF" >> "$CONF_DIR/nat.conf"
 fetch digitsell-ovpn-nat /usr/local/sbin/digitsell-ovpn-nat
 chmod 755 /usr/local/sbin/digitsell-ovpn-nat
 # gives OpenVPN a certificate for the domain the panel names (run by the agent)
