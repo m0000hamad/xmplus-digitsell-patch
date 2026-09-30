@@ -660,7 +660,7 @@ final class User extends Model
 			$list[] = [
 				'id'     => (int) $node->id,
 				'name'   => htmlspecialchars((string) $node->name, ENT_QUOTES, 'UTF-8'),
-				'live'   => (int) $node->heartbeat > time() - 180,
+				'live'   => self::ovpnLive($node, $protos),
 				// more than one: the default file carries both, and each has its own
 				'protos' => $protos,
 			];
@@ -691,6 +691,28 @@ final class User extends Model
 		return array_values(array_filter(['udp', 'tcp'], function ($proto) use ($running, $wanted) {
 			return in_array($proto, $running, true) && in_array($proto, $wanted, true);
 		}));
+	}
+
+	/* keep in step with ovpnNodeLive() in app/Patch/Ovpn.php */
+	private static function ovpnLive($node, $offered)
+	{
+		if ((int) $node->heartbeat <= time() - 180) {
+			return false;
+		}
+
+		$up = json_decode((string) (isset($node->up_json) ? $node->up_json : ''), true);
+
+		if (!is_array($up) || $up === []) {
+			return true;
+		}
+
+		foreach ($offered as $proto) {
+			if (!isset($up[$proto]) || !empty($up[$proto])) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	public function ovpnEnabled()

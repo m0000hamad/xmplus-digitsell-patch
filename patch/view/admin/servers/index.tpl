@@ -67,6 +67,12 @@
 				</div>
 			</div>
 	</div>
+	<div class="row">
+			<div class="col-12">
+				{* OpenVPN servers: nodes, install command, bypass, messages *}
+				{include file='admin/settings/ovpnsettings.tpl'}
+			</div>
+	</div>
 	<style>
 		{literal}
 		.su-chart-wrap { position: relative; height: 320px; }

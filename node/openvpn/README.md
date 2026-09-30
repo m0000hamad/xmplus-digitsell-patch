@@ -10,11 +10,12 @@ by the updater; it is fetched by the server that runs OpenVPN.
 | `install.sh` | Installs OpenVPN, a CA, NAT and the agent on Ubuntu 20.04+ / Debian 11+ |
 | `ovpn-agent.py` | Holds OpenVPN's management socket; asks the panel about logins and reports usage |
 | `digitsell-ovpn-nat` | NAT, firewall openings and the every-port redirect (installed in `/usr/local/sbin`) |
+| `digitsell-ovpn-cert` | Gives OpenVPN a certificate for the server's domain (run by the agent; `/usr/local/sbin`) |
 | `uninstall.sh` | Removes what `install.sh` set up |
 
 ## Setting a server up
 
-1. Panel → **Settings → سرورهای OpenVPN** → add a server (name, groups,
+1. Panel → **Servers (سرورها) → سرورهای OpenVPN**, under the server list → add a server (name, groups,
    multiplier). The page shows an install command with the server's key.
    The key is shown once; **کلید جدید** makes a new one.
 2. Run that command as root on the OpenVPN server. It is safe to run again
@@ -73,10 +74,20 @@ never mix up in the panel.
 
 ## Ports
 
-OpenVPN itself listens on one port (`--port`, 1194 by default), but every
-other port of each protocol is redirected to that protocol's instance, so the port customers
-connect to is chosen in the panel: **Settings → OpenVPN servers → edit →
-پورت‌ها برای کاربران**. Several ports can be given (`443, 8443, 2083`); the
+OpenVPN itself listens on one port (`--port`). With `--port auto` (the
+default since 1.15.0) the installer keeps the port of an earlier install,
+else takes 1194, else the first port from 1195 that no program uses for UDP
+or TCP, so it never takes a port another service (Xray, a web server…)
+already holds. An explicit `--port` that is taken stops the install.
+
+Every other port of each protocol is redirected to that protocol's instance, so the port customers
+connect to is chosen in the panel: **Servers → OpenVPN servers → edit →
+پورت‌ها برای کاربران**. Left empty, customers get the ports the server
+found free by itself (**خودکار**): the agent (1.3.0) suggests the first two free
+ones from 443, 8443, 2053, 2083, 2087, 2096, 80, 8080 (TCP) or 443, 8443,
+2053, 2083, 1194, 51820 (UDP), and the panel keeps its choice while those
+ports stay free, so files already downloaded keep working; a port another
+program takes later is replaced with the next free one. Several ports can be given (`443, 8443, 2083`); the
 profile lists one `remote` per port and the app moves on to the next when one
 does not answer within 10 seconds. Changing them needs no reinstall — customers
 only download the file again. Profiles downloaded earlier keep working, since
@@ -98,6 +109,45 @@ OpenVPN listens on.
 digitsell-ovpn-nat excluded udp  # the UDP ports left alone right now
 digitsell-ovpn-nat excluded tcp  # the TCP ports left alone right now
 ```
+
+## Domain and certificate
+
+Put a domain in the server's **آدرس برای کاربران** (with an A record to the
+server's IP), or install with `--host vpn.example.com`. Customers' files then
+connect to the domain, and the agent (1.4.0) gets OpenVPN a certificate for it
+by itself within a minute (`digitsell-ovpn-cert`): issued by the server's own
+CA — the one already in every file — valid 20 years, no port 80 and no
+renewal. The OpenVPN instances restart once (connected customers reconnect).
+Files downloaded after that also check the server's name
+(`verify-x509-name <domain> name`); older files keep working. The server's
+row shows 🔒 when the certificate is in place, and warns when the domain does
+not point to the server.
+
+A public (Let's Encrypt) certificate is not used on purpose: OpenVPN apps
+trust only the CA inside the file, not public CAs, so it would add nothing but
+a 90-day renewal and a port 80 that the every-port redirect hands to OpenVPN.
+
+Removing the domain keeps the last certificate, so files that check it keep
+working. Changing to another domain: customers download the file again.
+
+## Direct routes (bypass)
+
+**Servers → OpenVPN → عبور مستقیم**: destinations that skip the tunnel and
+open over the customer's own connection. "Iranian addresses" adds the Iran
+IPv4 list (about 1,750 ranges from ipverse/rir-ip, CC0, shipped with the
+patch and refreshable from the card); custom lines take domains, addresses
+and networks. The panel looks domains up (and again every 6 hours) and writes
+everything as `route <net> <mask> net_gateway` lines into the file, so
+customers download the file again after a change. Works in OpenVPN Connect
+and OpenVPN 2.x; routes are IPv4 only.
+
+## Status and messages
+
+The agent (1.3.0) reports every minute which OpenVPN instances it can reach,
+so the panel tells three states apart: online, part of it down (e.g. the UDP
+instance stopped while TCP runs — 🟠), and offline (agent gone, or the agent
+alive with no OpenVPN running — 🔴). Older agents only report while something
+is running, so stopping one instance of two went unnoticed.
 
 ## Removing a server
 
@@ -137,7 +187,7 @@ key, root only).
 
 ## Caveats
 
-- OpenVPN is easy for DPI to recognise. `--proto tcp --port 443` survives more
-  networks than the default UDP 1194, but neither is guaranteed from Iran.
+- OpenVPN is easy for DPI to recognise. TCP 443 survives more networks than
+  UDP, but neither is guaranteed from Iran.
 - The device limit (`user.iplimit`) counts the addresses in `online_ip` (the
   Xray nodes' reports) plus live OpenVPN sessions, at login time only.

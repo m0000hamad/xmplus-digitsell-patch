@@ -4,17 +4,20 @@
 # XMPlus panel, so OpenVPN logins and traffic go through the customer's
 # existing subscription.
 #
-# Add the server first in the panel (Settings -> OpenVPN servers); that gives
+# Add the server first in the panel (Servers -> OpenVPN servers); that gives
 # the node id and key and prints this command ready to paste:
 #
 #   sudo bash install.sh --panel https://panel.example.com --node 1 --key <key> \
-#        [--proto both|udp|tcp] [--port 1194] [--host vpn.example.com] \
+#        [--proto both|udp|tcp] [--port auto|1194] [--host vpn.example.com] \
 #        [--dns "1.1.1.1 8.8.8.8"] [--subnet 10.8.0.0/16] [--subnet-tcp 10.9.0.0/16] \
 #        [--single-port] [--exclude "80 443"]
 #
 # --proto both (the default) runs two OpenVPN instances, one for UDP and one
 # for TCP, sharing the certificates; which of them customers get, and on which
-# ports, is chosen in the panel (Settings -> OpenVPN servers -> edit).
+# ports, is chosen in the panel (Servers -> OpenVPN servers -> edit).
+#
+# --port auto (the default) keeps the port of an earlier install, else takes
+# 1194, else the first free port above it - never one another program uses.
 #
 # By default every port of each protocol is redirected to its OpenVPN, so the
 # ports customers connect to are set in the panel without touching this
@@ -33,7 +36,7 @@ REPO_RAW="${DIGITSELL_REPO_RAW:-https://raw.githubusercontent.com/m0000hamad/xmp
 PANEL=""
 NODE=""
 KEY=""
-PORT="1194"
+PORT="auto"
 PROTO="both"
 HOST=""
 DNS="1.1.1.1 8.8.8.8"
@@ -75,7 +78,7 @@ quiet() {
 [[ "$PANEL" =~ ^https?://[A-Za-z0-9.:-]+(/.*)?$ ]] || die "--panel must look like https://panel.example.com"
 [[ "$NODE" =~ ^[0-9]+$ ]] || die "--node must be a number"
 [[ "$KEY" =~ ^[A-Za-z0-9]{32,128}$ ]] || die "--key does not look like a node key"
-[[ "$PORT" =~ ^[0-9]+$ ]] && [ "$PORT" -ge 1 ] && [ "$PORT" -le 65535 ] || die "bad --port"
+[ "$PORT" = "auto" ] || { [[ "$PORT" =~ ^[0-9]+$ ]] && [ "$PORT" -ge 1 ] && [ "$PORT" -le 65535 ]; } || die "bad --port"
 case "$PROTO" in
     both) PROTOS="udp tcp" ;;
     udp|tcp) PROTOS="$PROTO" ;;
@@ -108,6 +111,30 @@ case "$OVPN_VERSION" in
 esac
 
 SERVER_DIR=/etc/openvpn/server
+
+# a port no other program listens on, for either protocol (OpenVPN itself aside)
+port_taken() {
+    ss -Hlntup 2>/dev/null | grep -v '"openvpn"' | awk '{print $5}' | sed 's/.*://' | grep -qx "$1"
+}
+
+if [ "$PORT" = "auto" ]; then
+    PORT=""
+    # an earlier install's port: files customers already have point at it
+    for conf in "$SERVER_DIR/digitsell.conf" "$SERVER_DIR/digitsell-tcp.conf"; do
+        [ -z "$PORT" ] && [ -f "$conf" ] && PORT=$(awk '$1 == "port" {print $2; exit}' "$conf")
+    done
+    if [ -z "$PORT" ] || port_taken "$PORT"; then
+        PORT=""
+        for candidate in 1194 $(seq 1195 1294) $(seq 20000 20100); do
+            if ! port_taken "$candidate"; then PORT=$candidate; break; fi
+        done
+    fi
+    [ -n "$PORT" ] || die "no free port found for OpenVPN; pass --port"
+    echo "==> OpenVPN will listen on port $PORT (free on this server)"
+elif port_taken "$PORT"; then
+    die "port $PORT is already used by another program here; pass another --port or --port auto"
+fi
+
 RSA_DIR=$SERVER_DIR/easy-rsa
 AGENT_DIR=/usr/local/lib/digitsell-ovpn
 CONF_DIR=/etc/digitsell-ovpn
@@ -131,6 +158,16 @@ else
     echo "    kept the existing one"
 fi
 [ -f "$RSA_DIR/pki/issued/server.crt" ] || die "easy-rsa did not produce a server certificate"
+
+# a certificate for the server's domain, made earlier by the agent
+# (digitsell-ovpn-cert) when the panel gave the server a domain; kept
+CERT_FILE=server
+CERT_NOW=$(cat "$CONF_DIR/cert-name" 2>/dev/null || true)
+if [ -n "$CERT_NOW" ] && [ -f "$RSA_DIR/pki/issued/$CERT_NOW.crt" ] && [ -f "$RSA_DIR/pki/private/$CERT_NOW.key" ]; then
+    CERT_FILE=$CERT_NOW
+else
+    rm -f "$CONF_DIR/cert-name"  # the agent makes it again if the panel still asks
+fi
 
 if [ ! -f "$SERVER_DIR/tc.key" ]; then
     openvpn --genkey secret "$SERVER_DIR/tc.key" 2>/dev/null || openvpn --genkey --secret "$SERVER_DIR/tc.key"
@@ -164,8 +201,8 @@ port $PORT
 proto $proto
 dev tun
 ca $RSA_DIR/pki/ca.crt
-cert $RSA_DIR/pki/issued/server.crt
-key $RSA_DIR/pki/private/server.key
+cert $RSA_DIR/pki/issued/$CERT_FILE.crt
+key $RSA_DIR/pki/private/$CERT_FILE.key
 dh none
 ecdh-curve prime256v1
 tls-crypt $SERVER_DIR/tc.key
@@ -228,6 +265,9 @@ EXCLUDE="$EXCLUDE"
 EOF
 fetch digitsell-ovpn-nat /usr/local/sbin/digitsell-ovpn-nat
 chmod 755 /usr/local/sbin/digitsell-ovpn-nat
+# gives OpenVPN a certificate for the domain the panel names (run by the agent)
+fetch digitsell-ovpn-cert /usr/local/sbin/digitsell-ovpn-cert
+chmod 755 /usr/local/sbin/digitsell-ovpn-cert
 
 UNITS_AFTER=""
 for proto in $PROTOS; do
@@ -363,5 +403,5 @@ for proto in $PROTOS; do
         echo "    every $proto port is redirected to it except: $(/usr/local/sbin/digitsell-ovpn-nat excluded "$proto" | tr '\n' ' ')"
     fi
 done
-echo "Choose what customers get (UDP / TCP / both) and the ports in the panel: Settings -> OpenVPN servers -> edit."
+echo "Choose what customers get (UDP / TCP / both) and the ports in the panel: Servers -> OpenVPN servers -> edit."
 echo "Logs: journalctl -u digitsell-ovpn-agent -f"
