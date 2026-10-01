@@ -1903,4 +1903,13 @@ $i18n['fa_IR'] = array(
 	'TorExitStStartWait'        => "در صف راه‌اندازی Tor",
 	'TorExitStStartFailed'      => "Tor برای این کشور راه نیفتاد؛ ۱۰ دقیقه بعد دوباره تلاش می‌شود",
 	'TorExitStConnecting'       => "Tor در حال اتصال است (اولین کشور روی سرور چند دقیقه طول می‌کشد)",
+	'TorExitEtaLeft'            => "باقی‌مانده",
+	'TorExitEtaOver'            => "بیش از انتظار؛ هنوز در حال تلاش",
+	'TorExitApplying'           => "در حال اعمال تغییر",
+	'TorExitOkMsg'              => "«%server%» حالا از «%exit%» خارج می‌شود (IP: %ip%) — %time% طول کشید.",
+	'TorExitFailMsg'            => "تغییر «%server%» به «%exit%» انجام نشد: %reason%",
+	'TorExitTimeoutMsg'         => "بیش از %min% دقیقه طول کشید و خروجی جدید برقرار نشد",
+	'TorExitDismiss'            => "فهمیدم",
+	'TorExitSearch'             => "جستجوی کشور (فارسی یا English)",
+	'TorExitNodeOff'            => "برنامه‌ی نود گزارش نمی‌دهد؛ تغییر تا وصل شدنش اعمال نمی‌شود",
 );

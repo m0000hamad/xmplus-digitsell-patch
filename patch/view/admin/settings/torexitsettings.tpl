@@ -12,6 +12,7 @@
 		<button type="button" class="btn btn-outline-secondary btn-sm" id="teReload">🔄 {$translate->get('TorExitReload')}</button>
 	</div>
 	<div class="card-body">
+		<div id="teAlerts"></div>
 		<p class="text-muted small">{$translate->get('TorExitIntro')}</p>
 		<div class="table-responsive">
 			<table class="table table-sm te-table">
@@ -61,6 +62,15 @@
 	window.TorExitWords.stStartWait    = "{$translate->get('TorExitStStartWait')|escape:'javascript'}";
 	window.TorExitWords.stStartFailed  = "{$translate->get('TorExitStStartFailed')|escape:'javascript'}";
 	window.TorExitWords.stConnecting   = "{$translate->get('TorExitStConnecting')|escape:'javascript'}";
+	window.TorExitWords.etaLeft    = "{$translate->get('TorExitEtaLeft')|escape:'javascript'}";
+	window.TorExitWords.etaOver    = "{$translate->get('TorExitEtaOver')|escape:'javascript'}";
+	window.TorExitWords.applying   = "{$translate->get('TorExitApplying')|escape:'javascript'}";
+	window.TorExitWords.okMsg      = "{$translate->get('TorExitOkMsg')|escape:'javascript'}";
+	window.TorExitWords.failMsg    = "{$translate->get('TorExitFailMsg')|escape:'javascript'}";
+	window.TorExitWords.timeoutMsg = "{$translate->get('TorExitTimeoutMsg')|escape:'javascript'}";
+	window.TorExitWords.dismiss    = "{$translate->get('TorExitDismiss')|escape:'javascript'}";
+	window.TorExitWords.search     = "{$translate->get('TorExitSearch')|escape:'javascript'}";
+	window.TorExitWords.nodeOff    = "{$translate->get('TorExitNodeOff')|escape:'javascript'}";
 </script>
 {literal}
 <style>
@@ -71,7 +81,14 @@
 .te-dot.is-live { background: #10b981; }
 .te-dot.is-down { background: #f43f5e; }
 .te-flag { font-size: 1.15em; margin-inline-end: 4px; }
-.te-select { min-width: 220px; }
+.te-select { min-width: 240px; }
+.te-filter { min-width: 240px; margin-bottom: 4px; }
+.te-flagimg { width: 20px; height: 15px; object-fit: cover; border-radius: 2px; margin-inline-end: 5px; vertical-align: -2px; }
+.te-op { white-space: normal; min-width: 200px; margin-top: 6px; padding: 6px 8px; border-radius: 8px; background: rgba(99,102,241,.08); }
+.te-op .progress { height: 5px; margin: 4px 0; }
+.te-hourglass { display: inline-block; animation: te-flip 2s ease-in-out infinite; }
+@keyframes te-flip { 0%, 45% { transform: rotate(0); } 55%, 100% { transform: rotate(180deg); } }
+.te-eta { font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: embed; }
 </style>
 <script>
 (function () {
@@ -98,25 +115,38 @@
 		}
 	}
 
-	var regionNames = null;
-	try {
-		regionNames = new Intl.DisplayNames([document.documentElement.lang || 'fa', 'en'], { type: 'region' });
-	} catch (error) {
-		regionNames = null;
-	}
+	var IS_WIN = /Win/i.test(navigator.platform || navigator.userAgent || '');
+	// <html lang="en_US"> is not a valid language tag and made Intl throw, so the names fell back to two letters
+	var faNames = null, enNames = null;
+	try { faNames = new Intl.DisplayNames(['fa'], { type: 'region' }); } catch (error) { faNames = null; }
+	try { enNames = new Intl.DisplayNames(['en'], { type: 'region' }); } catch (error) { enNames = null; }
 
-	function countryName(cc) {
-		if (!cc) { return ''; }
+	function nameIn(source, cc) {
 		try {
-			return regionNames ? regionNames.of(cc.toUpperCase()) : cc.toUpperCase();
+			var name = source ? source.of(cc.toUpperCase()) : '';
+			return name && name.toUpperCase() !== cc.toUpperCase() ? name : '';
 		} catch (error) {
-			return cc.toUpperCase();
+			return '';
 		}
 	}
 
+	// full name, Persian and English, so a country can be found in either
+	function countryName(cc) {
+		if (!cc) { return ''; }
+		var fa = nameIn(faNames, cc), en = nameIn(enNames, cc);
+		if (fa && en && fa !== en) { return fa + ' (' + en + ')'; }
+		return fa || en || cc.toUpperCase();
+	}
+
+	// Windows draws flag emoji as two letters; use it only where it is a flag
 	function flag(cc) {
-		if (!/^[a-z]{2}$/.test(cc || '')) { return '🏳️'; }
-		return String.fromCodePoint(0x1F1E6 + cc.charCodeAt(0) - 97, 0x1F1E6 + cc.charCodeAt(1) - 97);
+		if (IS_WIN || !/^[a-z]{2}$/.test(cc || '')) { return ''; }
+		return String.fromCodePoint(0x1F1E6 + cc.charCodeAt(0) - 97, 0x1F1E6 + cc.charCodeAt(1) - 97) + ' ';
+	}
+
+	function flagImg(cc) {
+		if (!/^[a-z]{2}$/.test(cc || '')) { return ''; }
+		return '<img class="te-flagimg" alt="" src="https://flagcdn.com/w40/' + cc + '.png" onerror="this.style.display=\'none\'">';
 	}
 
 	function ago(seconds) {
@@ -153,7 +183,7 @@
 		parts.push('<small class="text-muted">' + (report.torgeo ? 'tor-geo ' + esc(report.torgeo) : esc(words.noTorGeo)) + '</small>');
 		if (report.busy) {
 			var busy = report.busy_code === 'installing' ? words.stInstalling
-				: (report.busy_code === 'starting' ? words.stStarting + ' ' + flag(report.busy_cc) + ' ' + countryName(report.busy_cc) : report.busy);
+				: (report.busy_code === 'starting' ? words.stStarting + ' ' + countryName(report.busy_cc) : report.busy);
 			parts.push('<small class="text-primary">⏳ ' + esc(busy) + '</small>');
 		}
 		if (report.error) {
@@ -168,7 +198,7 @@
 		var exit = report.exit;
 		var line;
 		if (exit.mode === 'tor' && exit.cc) {
-			line = '<span class="te-flag">' + flag(exit.cc) + '</span><b>' + esc(countryName(exit.cc)) + '</b>';
+			line = flagImg(exit.cc) + '<b>' + esc(countryName(exit.cc)) + '</b>';
 		} else if (exit.mode === 'proxy') {
 			line = '🔀 <b>' + esc(words.proxy) + '</b>';
 		} else {
@@ -195,13 +225,13 @@
 			var pendingText = stateWords[report.pending_code] || report.pending_state || '';
 			var failed = report.pending_code === 'install_failed' || report.pending_code === 'start_failed';
 			lines.push('<small class="te-wrap ' + (failed ? 'text-danger' : 'text-primary') + '">' + (failed ? '⚠️ ' : '⏳ ')
-				+ esc(words.pending) + ' ' + flag(report.pending) + ' ' + esc(countryName(report.pending))
+				+ esc(words.pending) + ' ' + esc(countryName(report.pending))
 				+ (pendingText ? ' · ' + esc(pendingText) : '') + '</small>');
 			if (report.pending_detail) {
 				lines.push('<small class="te-wrap text-muted" dir="ltr">' + esc(report.pending_detail) + '</small>');
 			}
 		}
-		return lines.join('<br>');
+		return lines.join('<br>') + opCell(server);
 	}
 
 	function selectCell(server) {
@@ -213,23 +243,151 @@
 			'<option value="direct"' + (current === 'direct' ? ' selected' : '') + '>🏠 ' + esc(words.direct) + '</option>'
 		];
 		var seen = {};
+		var items = [];
 		(list || FALLBACK.map(function (cc) { return [cc, null]; })).forEach(function (item) {
 			var cc = String(item[0] || '').toLowerCase();
 			if (!/^[a-z]{2}$/.test(cc) || seen[cc]) { return; }
 			seen[cc] = true;
-			options.push('<option value="' + cc + '"' + (current === cc ? ' selected' : '') + '>' + flag(cc) + ' '
-				+ esc(countryName(cc)) + (item[1] != null ? ' — ' + Number(item[1]) + ' ' + esc(words.exits) : '') + '</option>');
+			items.push({ cc: cc, name: countryName(cc), count: item[1] });
+		});
+		items.sort(function (a, b) { return a.name.localeCompare(b.name, 'fa'); });
+		items.forEach(function (item) {
+			options.push('<option value="' + item.cc + '"' + (current === item.cc ? ' selected' : '') + '>' + esc(flag(item.cc) + item.name)
+				+ (item.count != null ? ' — ' + Number(item.count) + ' ' + esc(words.exits) : '') + '</option>');
 		});
 		// a choice no longer in the node's list stays visible
 		if (current.length === 2 && !seen[current]) {
-			options.push('<option value="' + current + '" selected>' + flag(current) + ' ' + esc(countryName(current)) + '</option>');
+			options.push('<option value="' + current + '" selected>' + esc(flag(current) + countryName(current)) + '</option>');
 		}
 		var note = list ? '' : '<br><small class="text-muted te-wrap">' + esc(words.noList) + '</small>';
-		return '<select class="form-select form-select-sm te-select" data-te-select="' + server.id + '"'
+		var filter = server.report ? '<input type="search" class="form-control form-control-sm te-filter" data-te-filter="' + server.id
+			+ '" placeholder="🔍 ' + esc(words.search) + '"><br>' : '';
+		return filter + '<select class="form-select form-select-sm te-select" data-te-select="' + server.id + '"'
 			+ (server.report ? '' : ' disabled') + '>' + options.join('') + '</select>' + note;
 	}
 
+	// ---- a choice being carried out: live countdown, then a success or failure message ----
+	var clockOffset = 0;          // server time minus browser time, seconds
+	var lastNow = 0;
+	var running = false;
+	var seenRunning = {};
+	var ACK = 'teAck:';
+
+	function ackKey(server) { return ACK + server.id + ':' + server.want_at; }
+	function isAcked(server) { try { return localStorage.getItem(ackKey(server)) === '1'; } catch (e) { return false; } }
+	function setAcked(server) { try { localStorage.setItem(ackKey(server), '1'); } catch (e) { /* private mode */ } }
+
+	function clock(seconds) {
+		seconds = Math.max(0, Math.round(seconds));
+		var m = Math.floor(seconds / 60), s = seconds % 60;
+		return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+	}
+
+	function stageText(report) {
+		var map = {
+			installing: words.stInstalling, install_wait: words.stInstallWait, install_failed: words.stInstallFailed,
+			starting: words.stStarting, start_wait: words.stStartWait, start_failed: words.stStartFailed,
+			connecting: words.stConnecting
+		};
+		return (report && (map[report.pending_code] || report.pending_state)) || words.applying;
+	}
+
+	// kind: run | ok | fail | null (nothing chosen from the panel)
+	function opState(server, now) {
+		if (!server.managed || !server.want_at) { return null; }
+		var target = server.want || 'direct';
+		var report = server.report || {};
+		var exit = report.exit || {};
+		var elapsed = now - server.want_at;
+		var eta = report.torgeo ? 240 : 600;
+		var maxWait = report.torgeo ? 900 : 1500;
+		var matches = target === 'direct' ? exit.mode === 'direct' : (exit.mode === 'tor' && exit.cc === target);
+		var fresh = server.seen_at >= server.want_at;
+		var state = { target: target, elapsed: elapsed, eta: eta, report: report, exit: exit };
+		if (matches && fresh && exit.ok !== false && !report.pending) { state.kind = 'ok'; return state; }
+		if (/_failed$/.test(report.pending_code || '') && report.pending === target) {
+			state.kind = 'fail';
+			state.reason = stageText(report) + (report.pending_detail ? ' · ' + report.pending_detail : '');
+			return state;
+		}
+		if (elapsed > maxWait) {
+			state.kind = 'fail';
+			state.reason = words.timeoutMsg.replace('%min%', Math.round(maxWait / 60)) + (report.error ? ' · ' + report.error : '')
+				+ (exit.error ? ' · ' + exit.error : '');
+			return state;
+		}
+		state.kind = 'run';
+		return state;
+	}
+
+	function serverById(id) {
+		return servers.filter(function (s) { return String(s.id) === String(id); })[0];
+	}
+
+	function opCell(server) {
+		var state = opState(server, lastNow);
+		if (!state || state.kind !== 'run') { return ''; }
+		var html = '<div class="te-op" data-te-op="' + server.id + '">'
+			+ '<span class="te-hourglass">⏳</span> <b>' + esc(words.applying) + '</b> '
+			+ '<span class="te-eta" data-te-eta="' + server.id + '"></span>'
+			+ '<div class="progress"><div class="progress-bar" data-te-bar="' + server.id + '" style="width:3%"></div></div>'
+			+ '<small class="text-muted">' + esc(stageText(state.report)) + '</small>';
+		if (!server.live) {
+			html += '<br><small class="text-danger">⚠️ ' + esc(words.nodeOff) + '</small>';
+		}
+		return html + '</div>';
+	}
+
+	function tick() {
+		var now = Date.now() / 1000 + clockOffset;
+		var nodes = document.querySelectorAll('[data-te-eta]');
+		Array.prototype.forEach.call(nodes, function (node) {
+			var id = node.getAttribute('data-te-eta');
+			var server = serverById(id);
+			if (!server) { return; }
+			var state = opState(server, now);
+			if (!state || state.kind !== 'run') { return; }
+			var left = state.eta - state.elapsed;
+			node.textContent = left > 0 ? clock(left) + ' ' + words.etaLeft : '+' + clock(-left) + ' ' + words.etaOver;
+			var bar = document.querySelector('[data-te-bar="' + id + '"]');
+			if (bar) { bar.style.width = Math.max(3, Math.min(95, state.elapsed / state.eta * 100)) + '%'; }
+		});
+	}
+
+	function describeExit(state) {
+		if (state.target === 'direct') { return words.direct; }
+		return countryName(state.target);
+	}
+
+	function alertsHtml(now) {
+		var out = [];
+		servers.forEach(function (server) {
+			var state = opState(server, now);
+			if (!state) { return; }
+			var key = server.id + ':' + server.want_at;
+			if (state.kind === 'run') { seenRunning[key] = true; return; }
+			// only recent choices are reported; an old, unacknowledged one would just be noise
+			if (isAcked(server) || state.elapsed > 21600) { return; }
+			var ok = state.kind === 'ok';
+			var text = (ok ? words.okMsg : words.failMsg)
+				.replace('%server%', server.name).replace('%exit%', describeExit(state))
+				.replace('%ip%', (state.exit && state.exit.ip) || '').replace('%reason%', state.reason || '')
+				.replace('%time%', clock(state.elapsed));
+			if (seenRunning[key] && !seenRunning[key + ':told']) {
+				seenRunning[key + ':told'] = true;
+				say((ok ? '✅ ' : '❌ ') + text);
+			}
+			out.push('<div class="alert ' + (ok ? 'alert-success' : 'alert-danger') + ' d-flex justify-content-between align-items-start py-2 mb-2" role="alert">'
+				+ '<span>' + (ok ? '✅ ' : '❌ ') + esc(text) + '</span>'
+				+ '<button type="button" class="btn btn-sm btn-outline-secondary ms-2" data-te-ack="' + server.id + '">' + esc(words.dismiss) + '</button></div>');
+		});
+		return out.join('');
+	}
+
 	function render(now) {
+		lastNow = now;
+		running = servers.some(function (server) { var state = opState(server, now); return state && state.kind === 'run'; });
+		$('teAlerts').innerHTML = alertsHtml(now);
 		var body = $('teRows');
 		if (!servers.length) {
 			body.innerHTML = '<tr><td colspan="5" class="text-muted">' + esc(words.none) + '</td></tr>';
@@ -246,6 +404,7 @@
 				+ (server.report ? '' : ' disabled') + '>💾 ' + esc(words.save) + '</button></td>'
 				+ '</tr>';
 		}).join('');
+		tick();
 	}
 
 	function load() {
@@ -256,6 +415,7 @@
 			}
 			token = data.token;
 			servers = data.servers || [];
+			clockOffset = data.now - Date.now() / 1000;
 			render(data.now);
 		}).catch(function () {
 			$('teRows').innerHTML = '<tr><td colspan="5" class="text-danger">' + esc(words.failed) + '</td></tr>';
@@ -290,13 +450,38 @@
 		if (event.target.matches('select[data-te-select]')) { dirty = true; }
 	});
 
+	$('teAlerts').addEventListener('click', function (event) {
+		var button = event.target.closest('button[data-te-ack]');
+		if (!button) { return; }
+		var server = serverById(button.getAttribute('data-te-ack'));
+		if (server) { setAcked(server); }
+		render(lastNow);
+	});
+
+	$('teRows').addEventListener('input', function (event) {
+		var box = event.target.closest('input[data-te-filter]');
+		if (!box) { return; }
+		var select = document.querySelector('select[data-te-select="' + box.getAttribute('data-te-filter') + '"]');
+		if (!select) { return; }
+		var needle = box.value.trim().toLowerCase();
+		Array.prototype.forEach.call(select.options, function (option) {
+			var keep = !needle || option.value.length > 2 || option.selected
+				|| option.text.toLowerCase().indexOf(needle) !== -1 || option.value.indexOf(needle) !== -1;
+			option.hidden = !keep;
+		});
+	});
+
 	$('teReload').addEventListener('click', function () { dirty = false; load(); });
 
 	load();
-	// the agents report every minute; keep the page roughly in step
-	setInterval(function () {
-		if (!document.hidden && !dirty) { load(); }
-	}, 60000);
+	setInterval(tick, 1000);
+	// the agents report every minute; while a change is being carried out look more often
+	(function poll() {
+		setTimeout(function () {
+			if (!document.hidden && !dirty) { load(); }
+			poll();
+		}, running ? 10000 : 60000);
+	})();
 })();
 </script>
 {/literal}

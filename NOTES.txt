@@ -1,5 +1,1 @@
-The Xray node installer now asks before it installs: the panel address and
-API key, then it lists all servers of the panel, marks the ones that point at
-the server it runs on, and asks which of them this server runs (certificate
-files and e-mail too). This release adds the list it reads from the panel.
-On a node: bash <(curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main/node/xray/install.sh)
+Exit location page: after you save a country the server row shows an hourglass with a live countdown, a progress bar and the current step, and the result (success with the exit IP, or failure with the reason) stays on top of the table until dismissed. Country names are shown in full, Persian and English, sorted, with a search box; before, a page language of en_US made the browser fall back to two-letter codes, and Windows drew the flag emoji as letters, so flags are now small images.
