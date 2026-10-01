@@ -31,7 +31,7 @@ Run as root at a terminal, the installer asks before it changes anything:
    API settings; typed hidden). A wrong key is refused on the spot.
 2. It lists **every server of the panel** — id, name, protocol, port, domain / IP — and marks
    **HERE** the ones whose domain or IP points at this machine. Those are the default answer.
-3. **Which node ids this server runs** (comma separated). Each one is checked against the panel.
+3. **Which node ids this server runs**: ids (comma separated), `all` for every server listed, or `here` for the HERE ones. Each one is checked against the panel.
 4. What the chosen nodes need: a Let's Encrypt e-mail (cert mode http / tls / dns), the DNS
    provider and its keys (mode dns), the certificate files (mode file, with the files already on
    the server suggested). Warnings: two nodes on one port, a port another program holds, a domain

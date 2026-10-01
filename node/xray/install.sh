@@ -399,12 +399,32 @@ if not preset and os.path.isfile(os.path.join(etc, "agent.json")):
 default = preset or sorted(n for n in rows if rows[n]["here"])
 
 while True:
-    answer = ask("Node id(s) this server runs, comma separated", ",".join(map(str, default)))
-    try:
-        chosen = list(dict.fromkeys(int(x) for x in re.split(r"[\s,]+", answer) if x))
-    except ValueError:
-        print("  numbers only, e.g. 69,74")
-        continue
+    if rows:
+        print("Type node ids (e.g. 69,74), 'all' for every server above, or 'here' for the ones marked HERE.")
+    answer = ask("Node id(s) this server runs", ",".join(map(str, default)))
+    word = answer.strip().lower()
+    if word in ("all", "همه", "*", "here", "اینجا"):
+        if not rows:
+            print("  this panel cannot list its servers, so type the ids")
+            continue
+        if word in ("here", "اینجا"):
+            chosen = sorted(n for n in rows if rows[n]["here"])
+        else:
+            # servers without settings from the panel (switched off, no type) cannot run
+            skipped = sorted(n for n in rows if rows[n]["info"] is None)
+            chosen = sorted(n for n in rows if rows[n]["info"] is not None)
+            if skipped:
+                print("  left out, the panel gives no settings for them: %s" % ", ".join(map(str, skipped)))
+        if not chosen:
+            print("  none matches")
+            continue
+        print("  chosen: %s" % ", ".join(map(str, chosen)))
+    else:
+        try:
+            chosen = list(dict.fromkeys(int(x) for x in re.split(r"[\s,]+", answer) if x))
+        except ValueError:
+            print("  numbers, 'all' or 'here' - e.g. 69,74")
+            continue
     if not chosen:
         continue
     problems = []
