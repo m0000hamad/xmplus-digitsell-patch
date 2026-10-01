@@ -69,6 +69,12 @@
 	</div>
 	<div class="row">
 			<div class="col-12">
+				{* exit location (country) per Xray server, carried out by the node's agent through tor-geo *}
+				{include file='admin/settings/torexitsettings.tpl'}
+			</div>
+	</div>
+	<div class="row">
+			<div class="col-12">
 				{* OpenVPN servers: nodes, install command, bypass, messages *}
 				{include file='admin/settings/ovpnsettings.tpl'}
 			</div>

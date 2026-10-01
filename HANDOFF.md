@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-09-30 · installed version **1.9.2** · latest release **1.17.1** · repo
+Last updated: 2026-10-01 · installed version **1.9.2** · latest release **1.18.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -172,6 +172,7 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Sign-up page | `view/auth/register.tpl` in the sign-in page's design (1.9.1) — see below |
 | Promotions | Discount / special / prize on subscription plans, with occasion text, countdown and sales limit (1.10.0) — see below |
 | Charge wallet | Pay-as-you-go wallet: top up any amount (min 200k toman, tiered bonus), the plan runs out → usage billed per server at a price per GB, no billing on a down server, plan-ending / balance notices; separate commission wallet for plans only (1.11.0) — see below |
+| Exit location | Per Xray server: the country customers come out of, through tor-geo on the node, set from the Servers page and carried out by the node's own agent (1.18.0) — see below |
 | OpenVPN | OpenVPN servers on the same subscription: logins and traffic go through the panel, usage counts against the plan's data and the charge wallet, cut-off when the plan ends; admin server list with install command, dashboard card with profile download and credentials (1.12.0) — see below |
 
 ### Time plans — how days are sold without touching the order pipeline
@@ -1132,6 +1133,82 @@ profile stops too. Only Happ reads routing from a subscription; v2rayNG /
 V2Box / Shadowrocket users turn on the app's own Iran preset. Only links
 served by `?do=sub` carry it. Not tested inside the Happ app itself.
 
+### Exit location per server from the panel (1.18.0, agent 1.2.0)
+
+Asked for: pick the country each Xray server's customers come out of on the
+servers page, and have everything on the node done by itself — install
+tor-geo, add the country, switch. Options weighed with the owner: tor-geo on
+the panel's own server (useless: customer traffic never passes the panel) or
+the panel holding root SSH logins of every node (a panel break-in becomes
+every server's). Chosen: **pull** — the node's own agent, already root and
+already polling the panel, asks for the choice and does the work.
+
+- **Panel:** `migrations/015_torexit.php` → `torexit_node` (`server_id` =
+  `servers.id` = XMPlus node id, `managed`, `want` '' / ISO code, `want_at`,
+  `report_json`, `seen_at`). `app/Patch/TorExit.php`, dispatched from
+  `xmplus-patch.php` **before** `requireAdmin()`:
+  - `torexit.sync` (POST, JSON `{"nodes": {"<id>": report}}`) for the agents.
+    Auth: header `X-Panel-Key` against **every setting whose name contains
+    `apikey`** (constant-time, ≥ 8 chars). The encoded settings page keeps the
+    node API key under a name not visible in plain source (`webapikey` in the
+    form); matching any *apikey* row avoids guessing it. Reports for ids not in
+    `servers` and reports over 64 KB are dropped. Answers only servers with
+    `managed = 1`: `{"69": {"want": "fr"}}`; a server left out stays on its
+    agent.json.
+  - `torexit.admin` (GET) / `torexit.save` (POST, `patch_csrf`) for the card.
+    `want` = `agent` (managed 0) / `direct` / a country code.
+- **Card:** `view/admin/settings/torexitsettings.tpl`, included by
+  `admin/servers/index.tpl` above the OpenVPN card. One row per `servers` row:
+  agent state (live within 5 min, agent / tor-geo versions, busy, errors),
+  current exit (country, IP, source panel / agent.json, pending country with a
+  state code worded by the card), and a picker built from the countries the
+  node reported (`Intl.DisplayNames` gives the names in the page language, so
+  no country table ships). Rows without a report (XMPlus node, old agent) are
+  disabled. Auto-refresh every minute, skipped while a picker was changed and
+  not saved. Strings `TorExit*` in all three locales.
+- **Agent 1.2.0** (`node/xray/xray-agent.py`): `torexit_sync()` runs before
+  every `sync()`. A `TorExit` thread does the slow parts so the main loop never
+  waits on apt or Tor: installs tor-geo from tor-multi-location `main`
+  (download, `bash tor-geo.sh install`; retried after 10 min on failure),
+  `tor-geo add <cc>`, probes every wanted / used exit each minute with its own
+  SOCKS5 + TLS client against api.ipify.org, lists countries (`tor-geo
+  countries`, else onionoo), and removes tor-geo nodes **it created**
+  (`torexit_created` in state.json) once nothing wants or uses them.
+  `compute_exits()`: panel choice > agent.json; a wanted country takes over
+  only after its probe answered, until then the node keeps its previous exit.
+  The exits are part of the config fingerprint, so a change = one Xray
+  restart. Wants persist in state.json (`exit_wants`): a reboot with the panel
+  down moves nobody.
+- **Tested** in WSL against a stand-in panel (PHP 8.5 built-in server running
+  the real `xmplus-patch.php` + `TorExit.php`, MariaDB with stub `settings` /
+  `servers` / `user`, the encoded node API faked in a router) and the real
+  agent in `process` mode with Xray 26.3.27: key / method / body / CSRF / role
+  refusals; admin picks France → agent installed tor-geo (14 s), added `fr`,
+  switched node 69 after the exit answered (~2.5 min on a throttled Iranian
+  link); fr → de (VLESS traffic from a German IP) → direct (the server's own
+  IP) → agent; each agent-made tor-geo node removed once unused; all 90
+  templates compile with Smarty 3; card rendered with the real Persian strings.
+- **Bug found by that test, fixed:** restarting the agent (as `digitsell-xray
+  update` does) put node 69 back on direct for a few minutes and the worker
+  removed the `fr` node it was about to need — on start the worker ran before
+  the first `set_targets()` (empty = "nothing wanted"), and no probe had
+  answered yet. Now the worker does nothing until the first `set_targets()`,
+  and each node's exit is saved in state.json (`exit_current`) and restored
+  (if its tor-geo node still exists), so a restart keeps every node where it
+  was and does not restart Xray. Checked with a unit test (restore, stale name
+  dropped, no switch without probe, idle worker); the live-restart run was cut
+  short because the test machine's disk filled (MariaDB died), so **verify
+  after the first `digitsell-xray update` on a node with a Tor exit** that
+  `status` keeps the exit and the log shows no Xray restart.
+- PHP 7.4 not run (code avoids 8.x syntax). Not yet run on the live panel or a
+  live node.
+- `manifest.json` on main (1.17.1) carried stale hashes for `PromoJob.php`,
+  `SubInfo.php` and `paygsettings.tpl` (changed in PR #47 after the manifest
+  was built), so the updater would have refused 1.17.1. The 1.18.0 manifest is
+  built from the files as they are; it was built by a Python port of
+  `tools/build_manifest.php` (no PHP on that machine) that re-dumps the old
+  manifest byte for byte.
+
 ### Gift card redeem (1.8.9)
 
 - **Dialog:** `#redeem_modal` in `view/user/dashboard/order.tpl`, opened by
@@ -1338,3 +1415,4 @@ served by `?do=sub` carry it. Not tested inside the Happ app itself.
 | 1.16.1 | Copy buttons work on iPhone / iPad after downloading the OpenVPN profile (synchronous copy inside the tap first). OpenVPN nodes on servers that already run Xray or a firewall: live socket skip, atomic redirect, openings kept first and mirrored into iptables-legacy / nftables, `digitsell-ovpn-nat doctor` (run the install command again) |
 | 1.17.0 | Direct routes for Xray customers: "Xray customers too (Happ)" switch on the OpenVPN direct-routes card sends the Iran / custom list to Happ with the subscription (`routing` header). `node/xray/`: our own Xray node with the official Xray-core in place of the XMPlus node binary (node files, not copied into the panel) |
 | 1.17.1 | The panel's own link builders (`app/Http/Schema`) are fixed automatically so an xhttp node cannot take the subscription link and the Servers page down: once at install (migration 014) and every hour (`bin/schemafix.php`), since a panel update puts the originals back |
+| 1.18.0 | Exit location per server: card on the Servers page picks a Tor exit country per Xray server; the node's agent (digitsell-xray 1.2.0) installs tor-geo, starts the country and switches once it answers (`torexit.*`, migration 015) |

@@ -52,16 +52,18 @@ import shutil
 import signal
 import socket
 import ssl
+import struct
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import uuid as uuidlib
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 ETC = "/etc/digitsell-xray"
 LIB = "/usr/local/lib/digitsell-xray"
@@ -304,6 +306,32 @@ class Panel:
 
     def post(self, path, rows):
         self.call("POST", path, body={"data": rows})
+
+    def patch_call(self, action, body):
+        """An action of the Digitsell patch's endpoint (public/xmplus-patch.php).
+        The key goes in a header, not in the URL, so it stays out of access logs.
+        The endpoint answers 200 with {"ok": false} for most failures."""
+        url = "%s/xmplus-patch.php?do=%s" % (self.base, urllib.parse.quote(action, safe="."))
+        headers = {"User-Agent": "digitsell-xray/" + VERSION, "Accept": "application/json",
+                   "Content-Type": "application/json", "X-Panel-Key": self.key}
+        request = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST")
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout, context=self.context) as response:
+                raw = response.read()
+        except urllib.error.HTTPError as error:
+            text = error.read().decode("utf-8", "replace")
+            raise PanelError("%s: HTTP %d %s" % (action, error.code, text[:200].strip()))
+        except (urllib.error.URLError, socket.timeout, OSError) as error:
+            raise PanelError("%s: %s" % (action, getattr(error, "reason", error)))
+        try:
+            answer = json.loads(raw.decode("utf-8", "replace"))
+        except ValueError:
+            answer = None
+        if not isinstance(answer, dict):
+            raise PanelError("%s: the panel did not answer JSON - is the Digitsell patch 1.18.0 or later installed?" % action)
+        if not answer.get("ok"):
+            raise PanelError("%s: %s" % (action, as_str(answer.get("error")) or "refused"))
+        return answer
 
 
 # --------------------------------------------------------------- node parsing
@@ -805,6 +833,370 @@ def exit_tags_of(outbounds):
     return {o["tag"] for o in outbounds if o.get("tag", "").startswith("exit-")}
 
 
+# ----------------------------------------------- exit location from the panel
+
+TORGEO_BIN = "/usr/local/bin/tor-geo"
+TORGEO_URL = "https://raw.githubusercontent.com/m0000hamad/tor-multi-location/main/tor-geo.sh"
+ONIONOO_EXITS = "https://onionoo.torproject.org/details?type=relay&running=true&flag=Exit&fields=country"
+TOREXIT_TICK = 30           # seconds between rounds of the background worker
+TOREXIT_PROBE_EVERY = 60    # how often each Tor exit in use or wanted is tried
+TOREXIT_INFO_EVERY = 1800   # country list and the server's own IP
+TOREXIT_RETRY = 600         # wait after a failed install or a country that would not start
+
+
+def country_code(value):
+    value = as_str(value).strip().lower()
+    return value if re.match(r"^[a-z]{2}$", value) else ""
+
+
+def torgeo_nodes():
+    """tor-geo node name -> its country, read from the torrc files tor-geo writes."""
+    found = {}
+    try:
+        names = sorted(os.listdir(TOR_GEO_NODES))
+    except OSError:
+        return found
+    for file_name in names:
+        if not file_name.endswith(".torrc"):
+            continue
+        country = ""
+        try:
+            with open(os.path.join(TOR_GEO_NODES, file_name), "r") as handle:
+                for line in handle:
+                    match = re.match(r"#\s*country:\s*([a-z]{2})\s*$", line)
+                    if match:
+                        country = match.group(1)
+                        break
+        except OSError:
+            continue
+        found[file_name[:-len(".torrc")]] = country
+    return found
+
+
+def recv_exact(sock, size):
+    data = b""
+    while len(data) < size:
+        chunk = sock.recv(size - len(data))
+        if not chunk:
+            raise OSError("connection closed")
+        data += chunk
+    return data
+
+
+def socks_exit_ip(host, port, timeout=25):
+    """The public address a SOCKS5 proxy's traffic comes from, asked of
+    https://api.ipify.org through it. Raises OSError when it does not work."""
+    target = b"api.ipify.org"
+    sock = socket.create_connection((host, port), timeout=timeout)
+    try:
+        sock.settimeout(timeout)
+        sock.sendall(b"\x05\x01\x00")
+        if recv_exact(sock, 2) != b"\x05\x00":
+            raise OSError("the SOCKS5 proxy refused the greeting")
+        sock.sendall(b"\x05\x01\x00\x03" + bytes([len(target)]) + target + struct.pack(">H", 443))
+        head = recv_exact(sock, 4)
+        if head[1] != 0:
+            raise OSError("no route through the exit (SOCKS5 reply %d)" % head[1])
+        if head[3] == 1:
+            recv_exact(sock, 4 + 2)
+        elif head[3] == 4:
+            recv_exact(sock, 16 + 2)
+        else:
+            recv_exact(sock, recv_exact(sock, 1)[0] + 2)
+        tls = ssl.create_default_context().wrap_socket(sock, server_hostname="api.ipify.org")
+        tls.sendall(b"GET / HTTP/1.1\r\nHost: api.ipify.org\r\nUser-Agent: digitsell-xray\r\nConnection: close\r\n\r\n")
+        data = b""
+        while len(data) < 8192:
+            chunk = tls.recv(4096)
+            if not chunk:
+                break
+            data += chunk
+        body = data.split(b"\r\n\r\n", 1)[-1].decode("ascii", "replace").strip()
+        if not re.match(r"^[0-9a-fA-F:.]{3,45}$", body):
+            raise OSError("unexpected answer from api.ipify.org")
+        return body
+    finally:
+        sock.close()
+
+
+def short_error(text, limit=300):
+    lines = [l.strip() for l in as_str(text).splitlines() if l.strip()]
+    return (lines[-1] if lines else "")[:limit]
+
+
+class TorExit(threading.Thread):
+    """Carries out the exit countries the panel asks for, in the background:
+    installs tor-geo the first time a country is wanted, starts one tor-geo
+    node per wanted country, tries every exit in use, lists the countries this
+    server can offer, and removes the tor-geo nodes it started once no server
+    wants them any more. Slow work (apt, Tor bootstrapping) never holds up the
+    agent's main loop, which only reads what this thread found."""
+
+    def __init__(self, agent):
+        super().__init__(name="torexit", daemon=True)
+        self.agent = agent
+        self.lock = threading.Lock()
+        self.wake = threading.Event()
+        self.wanted = set()          # countries some node wants
+        self.keep = set()            # tor-geo nodes in use or named in agent.json
+        self.targets_known = False   # nothing is added or removed before the first set_targets
+        self.created = list(agent.state.get("torexit_created") or [])
+        self.version = ""
+        self.busy = ""
+        self.error = ""
+        self.countries = []          # [[cc, exits], ...], most exits first
+        self.countries_at = 0
+        self.server_ip = ""
+        self.info_at = 0
+        self.probes = {}             # name -> {"ip", "ok", "at", "error"}
+        self.install_failed_at = 0
+        self.add_failed = {}         # cc -> (error, time)
+
+    # ------------------------------------------------ main thread interface
+
+    def set_targets(self, wanted, keep):
+        with self.lock:
+            changed = wanted != self.wanted or not self.targets_known
+            self.wanted, self.keep = set(wanted), set(keep)
+            self.targets_known = True
+        if changed:
+            self.wake.set()
+
+    def created_names(self):
+        with self.lock:
+            return list(self.created)
+
+    def usable(self, country):
+        """A tor-geo node for this country whose exit answered, or ''."""
+        nodes = torgeo_nodes()
+        names = [n for n in sorted(nodes) if nodes[n] == country]
+        for name in names:
+            probe = self.probes.get(name)
+            if probe and probe.get("ok"):
+                return name
+        return ""
+
+    STATES = {
+        "installing": "installing tor-geo",
+        "install_wait": "waiting to install tor-geo",
+        "install_failed": "tor-geo install failed, retrying",
+        "starting": "starting Tor",
+        "start_wait": "waiting to start Tor",
+        "start_failed": "Tor did not start, retrying",
+        "connecting": "Tor is connecting",
+    }
+
+    def state_of(self, country):
+        """Why a wanted country is not in use yet: (code, detail). The panel
+        words the code in its own language; the detail is the raw reason."""
+        if self.busy == "installing tor-geo":
+            return "installing", ""
+        if self.busy == "starting Tor for %s" % country:
+            return "starting", ""
+        failed = self.add_failed.get(country)
+        if failed:
+            return "start_failed", failed[0]
+        if not os.path.isfile(TORGEO_BIN):
+            if self.install_failed_at:
+                return "install_failed", self.error
+            return "install_wait", ""
+        nodes = torgeo_nodes()
+        names = [n for n in nodes if nodes[n] == country]
+        if not names:
+            return "start_wait", ""
+        return "connecting", (self.probes.get(names[0]) or {}).get("error", "")
+
+    def describe(self, country):
+        code, detail = self.state_of(country)
+        return self.STATES[code] + (" (%s)" % detail if detail else "")
+
+    # ----------------------------------------------------- worker thread
+
+    def run(self):
+        while self.agent.running:
+            try:
+                self.tick()
+            except Exception as error:  # the worker must outlive any one round
+                self.error = short_error(str(error))
+                log("exit locations: %s" % error)
+            self.busy = ""
+            self.wake.wait(TOREXIT_TICK)
+            self.wake.clear()
+
+    def tick(self):
+        with self.lock:
+            wanted, keep, known = set(self.wanted), set(self.keep), self.targets_known
+
+        # the country list first: the admin needs it before anything is chosen
+        if time.time() - self.info_at >= TOREXIT_INFO_EVERY:
+            self.refresh_info()
+        # until the main loop has said what is wanted and in use, an empty set
+        # means "not known yet", and acting on it would remove nodes in use
+        if not known:
+            return
+
+        if wanted and not os.path.isfile(TORGEO_BIN):
+            if time.time() - self.install_failed_at < TOREXIT_RETRY:
+                return
+            if not self.install():
+                return
+            self.version = ""
+            self.info_at = 0  # count the countries again, now from tor-geo
+        if not os.path.isfile(TORGEO_BIN):
+            self.version = ""
+            return
+        if not self.version:
+            self.version = short_error(self.run_torgeo(["version"], 30)[1], 20)
+
+        nodes = torgeo_nodes()
+        for country in sorted(wanted):
+            if country in nodes.values():
+                continue
+            failed = self.add_failed.get(country)
+            if failed and time.time() - failed[1] < TOREXIT_RETRY:
+                continue
+            self.add(country)
+        nodes = torgeo_nodes()
+        self.probe_round(nodes, wanted, keep)
+        self.remove_unused(nodes, wanted, keep)
+
+    def run_torgeo(self, args, timeout):
+        try:
+            done = subprocess.run([TORGEO_BIN] + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                  universal_newlines=True, timeout=timeout, env=dict(os.environ, TERM="dumb"))
+            return done.returncode, done.stdout
+        except subprocess.TimeoutExpired:
+            return 124, "tor-geo %s did not finish within %ds" % (" ".join(args), timeout)
+        except OSError as error:
+            return 127, str(error)
+
+    def install(self):
+        self.busy = "installing tor-geo"
+        log("exit locations: installing tor-geo from %s" % TORGEO_URL)
+        handle, path = tempfile.mkstemp(prefix="tor-geo-", suffix=".sh")
+        os.close(handle)
+        try:
+            request = urllib.request.Request(TORGEO_URL, headers={"User-Agent": "digitsell-xray/" + VERSION})
+            with urllib.request.urlopen(request, timeout=60, context=ssl.create_default_context()) as response:
+                script = response.read()
+            if not script.startswith(b"#!"):
+                raise OSError("the downloaded tor-geo script is not a shell script")
+            with open(path, "wb") as out:
+                out.write(script)
+            done = subprocess.run(["bash", path, "install"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                  universal_newlines=True, timeout=1800, env=dict(os.environ, TERM="dumb"))
+            if done.returncode != 0 or not os.path.isfile(TORGEO_BIN):
+                raise OSError(short_error(done.stdout) or "tor-geo install exited with %d" % done.returncode)
+        except (OSError, ValueError, urllib.error.URLError, subprocess.TimeoutExpired) as error:
+            self.install_failed_at = time.time()
+            self.error = short_error(getattr(error, "reason", error))
+            log("exit locations: tor-geo install failed: %s" % self.error)
+            return False
+        finally:
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+        self.install_failed_at = 0
+        self.error = ""
+        log("exit locations: tor-geo installed")
+        return True
+
+    def add(self, country):
+        self.busy = "starting Tor for %s" % country
+        log("exit locations: adding a tor-geo node for %s" % country)
+        before = set(torgeo_nodes())
+        code, out = self.run_torgeo(["add", country], 900)
+        new = [n for n, c in torgeo_nodes().items() if c == country and n not in before]
+        if not new:
+            reason = short_error(out) or "tor-geo add exited with %d" % code
+            self.add_failed[country] = (reason, time.time())
+            log("exit locations: %s did not start: %s" % (country, reason))
+            return
+        self.add_failed.pop(country, None)
+        with self.lock:
+            for name in new:
+                if name not in self.created:
+                    self.created.append(name)
+
+    def probe_round(self, nodes, wanted, keep):
+        now = time.time()
+        probes = dict(self.probes)
+        for name, country in nodes.items():
+            if country not in wanted and name not in keep:
+                probes.pop(name, None)
+                continue
+            last = probes.get(name)
+            if last and now - last["at"] < TOREXIT_PROBE_EVERY:
+                continue
+            try:
+                host, port, _, _ = exit_proxy({"tor": name})
+                ip = socks_exit_ip(host, port)
+                probes[name] = {"ip": ip, "ok": True, "at": now, "error": ""}
+            except (OSError, ValueError, ssl.SSLError) as error:
+                probes[name] = {"ip": (last or {}).get("ip", ""), "ok": False, "at": now,
+                                "error": short_error(str(error), 120)}
+        for name in list(probes):
+            if name not in nodes:
+                probes.pop(name)
+        self.probes = probes
+
+    def remove_unused(self, nodes, wanted, keep):
+        for name in self.created_names():
+            if name not in nodes:
+                with self.lock:
+                    self.created.remove(name)
+                continue
+            if nodes[name] in wanted or name in keep:
+                continue
+            code, out = self.run_torgeo(["remove", name], 120)
+            if code == 0:
+                log("exit locations: removed tor-geo node %s, no server uses it any more" % name)
+                with self.lock:
+                    self.created.remove(name)
+                self.probes.pop(name, None)
+            else:
+                log("exit locations: could not remove tor-geo node %s: %s" % (name, short_error(out)))
+
+    def refresh_info(self):
+        countries = []
+        if os.path.isfile(TORGEO_BIN):
+            code, out = self.run_torgeo(["countries"], 120)
+            for line in out.splitlines():
+                match = re.match(r"^\s*([a-z]{2})\s+\S+\s+(\d+)\s*$", line)
+                if match:
+                    countries.append([match.group(1), int(match.group(2))])
+        if not countries:
+            # tor-geo not here yet, or no node has a Tor directory to count from
+            try:
+                request = urllib.request.Request(ONIONOO_EXITS, headers={"User-Agent": "digitsell-xray/" + VERSION})
+                with urllib.request.urlopen(request, timeout=30, context=ssl.create_default_context()) as response:
+                    relays = json.loads(response.read().decode("utf-8", "replace")).get("relays") or []
+                counts = {}
+                for relay in relays:
+                    country = country_code(relay.get("country"))
+                    if country:
+                        counts[country] = counts.get(country, 0) + 1
+                countries = sorted(([c, n] for c, n in counts.items()), key=lambda item: (-item[1], item[0]))
+            except (OSError, ValueError, urllib.error.URLError):
+                countries = []
+        if countries:
+            self.countries = countries
+            self.countries_at = int(time.time())
+        if os.path.isfile(TORGEO_BIN):
+            self.version = short_error(self.run_torgeo(["version"], 30)[1], 20)
+        try:
+            request = urllib.request.Request("https://api.ipify.org", headers={"User-Agent": "digitsell-xray/" + VERSION})
+            with urllib.request.urlopen(request, timeout=15, context=ssl.create_default_context()) as response:
+                ip = response.read().decode("ascii", "replace").strip()
+            if re.match(r"^[0-9a-fA-F:.]{3,45}$", ip):
+                self.server_ip = ip
+        except (OSError, ValueError, urllib.error.URLError):
+            pass
+        # a failed lookup is tried again in 5 minutes rather than half an hour
+        self.info_at = time.time() if countries else time.time() - TOREXIT_INFO_EVERY + 300
+
+
 # ----------------------------------------------------------------- the agent
 
 class XrayError(Exception):
@@ -839,6 +1231,28 @@ class Agent:
         self.applied_fp = None  # what the panel said when the config was last built
         self.exit_tags = set()  # exit-proxy outbounds in the config Xray runs
         self.exit_errors = {}   # node id -> why its exit proxy is not used
+        # node id -> country the panel wants ('' = direct); a node missing
+        # here follows its agent.json. Kept across restarts, so a panel that
+        # is down at boot does not move anyone.
+        self.exit_wants = {}
+        for key, value in (self.state.get("exit_wants") or {}).items():
+            if as_int(key) > 0:
+                self.exit_wants[as_int(key)] = country_code(value)
+        # node id -> ({"tor": name} | {"proxy": url} | {}, source). Restored from
+        # the last run, so restarting or updating the agent keeps every node on
+        # the exit it had instead of falling back until the exit is probed again
+        self.exit_current = {}
+        known = torgeo_nodes()
+        for key, value in (self.state.get("exit_current") or {}).items():
+            if not isinstance(value, list) or len(value) != 2 or not isinstance(value[0], dict):
+                continue
+            chosen = {k: as_str(v) for k, v in value[0].items() if k in ("tor", "proxy") and as_str(v)}
+            if chosen.get("tor") and chosen["tor"] not in known:
+                continue
+            if as_int(key) > 0:
+                self.exit_current[as_int(key)] = (chosen, as_str(value[1]))
+        self.torexit_error = None
+        self.torexit = TorExit(self)
         self.last_restart = 0
         self.process = None     # xray_manager "process": the child Xray
         self.running = True
@@ -1181,7 +1595,7 @@ class Agent:
             direct = "direct-%s" % spec["tag"] if spec["send_through"] else "direct"
             out = "exit-%s" % spec["tag"]
             if out in exit_tags:
-                if self.node_conf.get(node_id, {}).get("tor"):
+                if self.exit_conf(node_id).get("tor"):
                     # Tor carries TCP only. QUIC is refused so browsers fall
                     # back to TCP through Tor; other UDP (DNS, games) goes direct.
                     rules.append({"ruleTag": "exit-quic-%s" % spec["tag"], "inboundTag": [spec["tag"]],
@@ -1194,23 +1608,140 @@ class Agent:
                               "outboundTag": direct})
         return rules
 
+    # ------------------------------------------------------- exit location
+
+    def file_exit(self, node_id):
+        """The exit agent.json gives a node: {"tor": ...}, {"proxy": ...} or {}."""
+        node = self.node_conf.get(node_id, {})
+        return {key: node[key] for key in ("tor", "proxy") if as_str(node.get(key))}
+
+    def exit_conf(self, node_id):
+        """The exit a node uses in the config being built."""
+        if node_id in self.exit_current:
+            return self.exit_current[node_id][0]
+        return self.file_exit(node_id)
+
+    def compute_exits(self):
+        """Each node's exit for the next config. The panel's choice wins over
+        agent.json; a wanted country takes over only once its Tor exit has
+        answered, so customers never land on an exit that does not work yet.
+        Until then the node keeps what it had."""
+        result = {}
+        for node in self.conf["nodes"]:
+            node_id = node["id"]
+            from_file = self.file_exit(node_id)
+            fallback = self.exit_current.get(node_id) or (from_file, "agent.json" if from_file else "")
+            if node_id not in self.exit_wants:
+                result[node_id] = (from_file, "agent.json" if from_file else "")
+            elif self.exit_wants[node_id] == "":
+                result[node_id] = ({}, "panel")
+            else:
+                name = self.torexit.usable(self.exit_wants[node_id])
+                result[node_id] = ({"tor": name}, "panel") if name else fallback
+        return result
+
+    def torexit_report(self, node_id):
+        chosen, source = self.exit_current.get(node_id) or (self.file_exit(node_id), "")
+        worker = self.torexit
+        exit_info = {"source": source, "mode": "direct"}
+        if chosen.get("tor"):
+            name = chosen["tor"]
+            probe = worker.probes.get(name) or {}
+            exit_info.update({"mode": "tor", "name": name, "cc": torgeo_nodes().get(name, ""),
+                              "ip": probe.get("ip", ""), "ok": probe.get("ok"), "at": int(probe.get("at", 0))})
+        elif chosen.get("proxy"):
+            exit_info["mode"] = "proxy"
+        else:
+            exit_info["ip"] = worker.server_ip
+        if node_id in self.exit_errors:
+            exit_info["error"] = self.exit_errors[node_id]
+        if "exit-n%d" % node_id not in self.exit_tags and exit_info["mode"] != "direct" and node_id in self.specs:
+            exit_info["error"] = exit_info.get("error") or "not in Xray's config yet"
+
+        want = self.exit_wants.get(node_id)
+        report = {
+            "agent": VERSION,
+            "host": socket.gethostname(),
+            "torgeo": worker.version,
+            "busy": worker.busy,
+            "error": worker.error,
+            "countries": worker.countries,
+            "countries_at": worker.countries_at,
+            "want": want,
+            "exit": exit_info,
+        }
+        if worker.busy == "installing tor-geo":
+            report["busy_code"] = "installing"
+        elif worker.busy.startswith("starting Tor for "):
+            report["busy_code"] = "starting"
+            report["busy_cc"] = worker.busy[len("starting Tor for "):]
+        if want and exit_info.get("cc") != want:
+            code, detail = worker.state_of(want)
+            report["pending"] = want
+            report["pending_code"] = code
+            report["pending_detail"] = detail
+            report["pending_state"] = worker.describe(want)
+        return report
+
+    def torexit_sync(self):
+        """Report every node's exit to its panel and take back the countries
+        the admin picked. A panel without the patch (or older than 1.18.0)
+        leaves every node on its agent.json."""
+        groups = {}
+        for node in self.conf["nodes"]:
+            groups.setdefault((node["panel"], node["key"]), []).append(node["id"])
+        problems = []
+        for ids in groups.values():
+            body = {"nodes": {str(node_id): self.torexit_report(node_id) for node_id in ids}}
+            try:
+                answer = self.panels[ids[0]].patch_call("torexit.sync", body)
+            except PanelError as error:
+                problems.append(str(error))
+                continue
+            wanted = answer.get("nodes") if isinstance(answer.get("nodes"), dict) else {}
+            for node_id in ids:
+                entry = wanted.get(str(node_id))
+                if isinstance(entry, dict):
+                    self.exit_wants[node_id] = country_code(entry.get("want"))
+                else:
+                    self.exit_wants.pop(node_id, None)
+        problem = "; ".join(problems) or None
+        if problem != self.torexit_error:
+            log("exit locations: %s" % (problem or "the panel answers again"))
+        self.torexit_error = problem
+
+        keep = set()
+        for node_id in [n["id"] for n in self.conf["nodes"]]:
+            for chosen in (self.exit_conf(node_id), self.file_exit(node_id)):
+                if chosen.get("tor"):
+                    keep.add(as_str(chosen["tor"]))
+        self.torexit.set_targets({c for c in self.exit_wants.values() if c}, keep)
+        self.state["exit_wants"] = {str(k): v for k, v in self.exit_wants.items()}
+        self.state["torexit_created"] = self.torexit.created_names()
+
     def exit_summary(self, node):
+        chosen, source = self.exit_current.get(node["id"]) or (self.file_exit(node["id"]), "")
         if node["id"] in self.exit_errors:
             return "DIRECT - exit proxy unusable: " + self.exit_errors[node["id"]]
+        want = self.exit_wants.get(node["id"])
+        waiting = ""
+        if want and torgeo_nodes().get(as_str(chosen.get("tor"))) != want:
+            waiting = "; panel wants %s: %s" % (want, self.torexit.describe(want))
         if "exit-n%d" % node["id"] not in self.exit_tags:
-            return ""
-        name = as_str(node.get("tor"))
+            return ("direct (%s)%s" % (source or "default", waiting)) if source == "panel" or waiting else ""
+        name = as_str(chosen.get("tor"))
         try:
-            host, port, _, _ = exit_proxy(node)
+            host, port, _, _ = exit_proxy(chosen)
         except (ValueError, TypeError):
-            return ""
-        return ("tor-geo %s (socks5 %s:%d)" % (name, host, port)) if name else ("socks5 %s:%d" % (host, port))
+            return waiting.lstrip("; ")
+        text = ("tor-geo %s (socks5 %s:%d)" % (name, host, port)) if name else ("socks5 %s:%d" % (host, port))
+        return "%s, from %s%s" % (text, source or "agent.json", waiting)
 
     def exit_outbound(self, spec):
-        """The socks outbound for a node with an exit proxy in agent.json, or None."""
+        """The socks outbound for a node with an exit proxy, or None."""
         node_id = spec["id"]
         try:
-            found = exit_proxy(self.node_conf.get(node_id, {}))
+            found = exit_proxy(self.exit_conf(node_id))
         except ValueError as error:
             if self.exit_errors.get(node_id) != str(error):
                 log("node %d: %s - its traffic leaves this server directly" % (node_id, error))
@@ -1353,7 +1884,17 @@ class Agent:
 
         # the panel's settings plus the certificates in use; the specs may be
         # trimmed below (rules Xray refused), so compare what the panel said
-        panel_fp = fingerprint({"specs": new_specs, "certs": {str(k): list(self.certs.get(k) or []) for k in new_specs}})
+        # each node's exit (panel choice or agent.json); a change rebuilds the config
+        new_exits = self.compute_exits()
+        if new_exits != self.exit_current and self.exit_current:
+            for node_id, (chosen, source) in sorted(new_exits.items()):
+                if self.exit_current.get(node_id, ({}, ""))[0] != chosen:
+                    log("node %d: exit now %s (%s)" % (node_id, chosen.get("tor") or chosen.get("proxy") or "direct",
+                                                       source or "default"))
+        self.exit_current = new_exits
+        self.state["exit_current"] = {str(k): [v[0], v[1]] for k, v in new_exits.items()}
+        panel_fp = fingerprint({"specs": new_specs, "certs": {str(k): list(self.certs.get(k) or []) for k in new_specs},
+                                "exits": {str(k): v[0] for k, v in new_exits.items()}})
         restarted_elsewhere = self.xray_identity is not None and self.xray_ident() != self.xray_identity
 
         if first or panel_fp != self.applied_fp or not self.xray_active():
@@ -1740,6 +2281,8 @@ class Agent:
             pass  # not the main thread (tests)
         log("digitsell-xray agent %s, Xray %s, node(s) %s" % (
             VERSION, xray_version(self.xray) or "?", ", ".join(str(n["id"]) for n in self.conf["nodes"])))
+        self.torexit.start()
+        self.guard("exit locations", self.torexit_sync)
         # restore what the last run reported, so the device limit starts right
         self.guard("start", self.sync, True)
         self.write_status()
@@ -1751,6 +2294,7 @@ class Agent:
             now = time.time()
             if now >= next_sync:
                 next_sync = now + self.conf["interval"]
+                self.guard("exit locations", self.torexit_sync)
                 self.guard("sync", self.sync)
                 self.guard("traffic report", self.report_traffic)
                 self.guard("online report", self.report_online)

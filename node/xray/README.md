@@ -278,6 +278,27 @@ Tor carries TCP only: for a `tor` node QUIC (UDP 443) is refused, so browsers fa
 through Tor, and other UDP (DNS, games, calls) leaves directly from the server. The panel's block
 rules and the device limit still apply first.
 
+### From the panel (agent 1.2.0, patch 1.18.0)
+
+With the patch 1.18.0 or later on the panel, none of the above has to be done by hand:
+**Servers → Exit location per server (Tor)** lists every server with its agent's report and a
+country picker (the list, with exit counts, comes from the node itself). After a choice is saved
+the agent, within a minute:
+
+1. installs tor-geo if the server does not have it yet;
+2. starts a tor-geo node for that country (`tor-geo add`);
+3. waits until that exit answers (checked through it against api.ipify.org);
+4. only then switches the server over (one Xray restart).
+
+Until step 4 the server keeps its previous exit, so customers never land on an exit that does not
+work yet. tor-geo nodes the agent started and no server wants any more are removed again; nodes
+you added by hand are never touched. "As set on the server (agent.json)" hands the choice back to
+`agent.json`. The panel's choice is kept in `state.json`, so a reboot while the panel is down
+keeps every server where it was.
+
+The agent calls `xmplus-patch.php?do=torexit.sync` with the panel's API key (in an `X-Panel-Key`
+header) every minute. The panel never connects to the servers and stores no server password.
+
 ## How it works
 
 - **Two services:** `digitsell-xray` (the official Xray) and `digitsell-xray-agent` (Python,
