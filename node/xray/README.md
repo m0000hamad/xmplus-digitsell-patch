@@ -33,8 +33,9 @@ Run as root at a terminal, the installer asks before it changes anything:
    **HERE** the ones whose domain or IP points at this machine. Those are the default answer.
 3. **Which node ids this server runs**: ids (comma separated), `all` for every server listed, or `here` for the HERE ones. Each one is checked against the panel.
 4. What the chosen nodes need: a Let's Encrypt e-mail (cert mode http / tls / dns), the DNS
-   provider and its keys (mode dns), the certificate files (mode file, with the files already on
-   the server suggested). Warnings: two nodes on one port, a port another program holds, a domain
+   provider and its keys (mode dns), the certificate files (mode file: a certificate on the server made out for the node's domain
+   is found by itself - /root, /root/cert, /etc/XMPlus, letsencrypt... - with the key that really
+   belongs to it, its expiry checked, and a key other users can read made root-only). Warnings: two nodes on one port, a port another program holds, a domain
    that does not point here yet (its certificate would fail).
 5. A summary, and **"Install? [Y/n]"**. Nothing is installed before this answer.
 
