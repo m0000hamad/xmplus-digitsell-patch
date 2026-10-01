@@ -251,6 +251,32 @@ for links that come from `xmplus-patch.php?do=sub` (the "subscription info in ap
 | `cert.email` | — | Let's Encrypt e-mail |
 | `cert.provider` / `cert.env` | — | DNS provider and its keys for certificate mode `dns` (lego names) |
 | `cert.file` / `cert.key` | — | ready-made certificate for mode `file` (or `/etc/digitsell-xray/certs/<domain>.crt` and `.key`) |
+| `nodes[].tor` | — | this node's traffic leaves through a [tor-geo](https://github.com/m0000hamad/tor-multi-location) node on this server, e.g. `"fr"` (see below) |
+| `nodes[].proxy` | — | this node's traffic leaves through a SOCKS5 proxy: `"socks5://host:port"` or `"socks5://user:pass@host:port"` |
+
+## Exit location per node (Tor / SOCKS5)
+
+One server can sell several countries: each panel server (node) gets its own exit.
+
+1. Install [tor-geo](https://github.com/m0000hamad/tor-multi-location) on the node server and
+   add the countries: `tor-geo add fr de us`. `tor-geo list` shows the node names (`fr`, `de`, …).
+2. In the panel, add one server per country on its own port (and set its flag).
+3. In `agent.json` (`digitsell-xray config`) give each of those nodes its exit:
+
+```json
+"nodes": [
+  {"id": 74, "tor": "fr"},
+  {"id": 75, "tor": "de"},
+  {"id": 76}
+]
+```
+
+Node 76 keeps leaving directly from the server's own IP. `digitsell-xray status` shows each
+node's exit; a `tor` name that does not exist is reported there and that node leaves directly.
+
+Tor carries TCP only: for a `tor` node QUIC (UDP 443) is refused, so browsers fall back to TCP
+through Tor, and other UDP (DNS, games, calls) leaves directly from the server. The panel's block
+rules and the device limit still apply first.
 
 ## How it works
 
