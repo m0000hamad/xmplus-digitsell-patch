@@ -260,6 +260,7 @@
 
         <ul class="lg:hidden mt-4 pt-4 border-t border-white/10 grid grid-cols-2 gap-2 list-none p-0 text-[11px] font-bold text-slate-300">
           <li class="flex items-center gap-1.5"><span aria-hidden="true">⚡</span> فعال‌سازی فوری</li>
+          {if isset($Config['payg_enabled']) && $Config['payg_enabled'] == 1}<li class="flex items-center gap-1.5"><span aria-hidden="true">💳</span> پرداخت به‌ازای مصرف</li>{/if}
           <li class="flex items-center gap-1.5"><span aria-hidden="true">🌍</span> سرور در چند کشور</li>
           <li class="flex items-center gap-1.5"><span aria-hidden="true">📱</span> همه دستگاه‌ها</li>
           <li class="flex items-center gap-1.5"><span aria-hidden="true">💰</span> درآمد از دعوت</li>
@@ -289,6 +290,18 @@
       </div>
 
       <ul class="space-y-2 list-none p-0 m-0">
+        {if isset($Config['payg_enabled']) && $Config['payg_enabled'] == 1}
+        <li class="feature-card rounded-2xl p-3 flex items-center gap-3.5">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-lime-400 via-green-500 to-emerald-600 flex items-center justify-center text-2xl shadow-lg shadow-green-500/35 flex-shrink-0" aria-hidden="true">💳</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="text-sm font-bold text-white m-0">پرداخت به‌ازای مصرف، بدون خرید بسته</h3>
+              <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold whitespace-nowrap">جدید</span>
+            </div>
+            <p class="text-xs text-slate-300 mt-0.5 mb-0">حسابت را شارژ کن؛ مصرف از موجودی کم می‌شود و با تمام شدن بسته هم قطع نمی‌شوی.</p>
+          </div>
+        </li>
+        {/if}
         <li class="feature-card rounded-2xl p-3 flex items-center gap-3.5">
           <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 via-orange-500 to-red-500 flex items-center justify-center text-2xl shadow-lg shadow-orange-500/35 flex-shrink-0" aria-hidden="true">⚡</div>
           <div class="flex-1 min-w-0">
