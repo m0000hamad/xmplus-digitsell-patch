@@ -264,6 +264,89 @@ def my_addresses():
     return clean
 
 
+CERT_DIRS = ("/root", "/root/cert", "/root/certs", "/etc/XMPlus", "/etc/XMPlus/cert/certificates",
+             "/usr/local/XMPlus/cert/certificates", "/etc/digitsell-xray/certs", "/etc/ssl/certs", "/etc/ssl/private")
+
+
+def cert_candidates(domain=""):
+    """Certificate files on this server, newest first."""
+    found = []
+    folders = list(CERT_DIRS) + (["/etc/letsencrypt/live/" + domain] if domain else [])
+    for folder in folders:
+        try:
+            names = os.listdir(folder)
+        except OSError:
+            continue
+        for name in names:
+            path = os.path.join(folder, name)
+            low = name.lower()
+            if (low.endswith((".crt", ".pem", ".cer")) and "key" not in low and not low.startswith("ca-")
+                    and os.path.isfile(path) and os.path.getsize(path) < 65536):
+                found.append(path)
+    return sorted(set(found), key=lambda p: -os.path.getmtime(p))
+
+
+def openssl(*args):
+    try:
+        return subprocess.run(["openssl"] + list(args), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                              universal_newlines=True, timeout=10).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
+def cert_info(path):
+    """(names the certificate is for, days left) or None for a file that is not one."""
+    # -text rather than -ext: the latter is missing from OpenSSL before 1.1.1
+    out = openssl("x509", "-in", path, "-noout", "-enddate", "-subject", "-text")
+    if "notAfter=" not in out:
+        return None
+    names = set(n.lower() for n in re.findall(r"DNS:([^\s,]+)", out))
+    cn = re.search(r"CN\s*=\s*([^\s,/]+)", out)
+    if cn:
+        names.add(cn.group(1).lower())
+    end = re.search(r"notAfter=(.+)", out).group(1).strip()
+    try:
+        import datetime
+        left = (datetime.datetime.strptime(end.replace(" GMT", ""), "%b %d %H:%M:%S %Y") - datetime.datetime.utcnow()).days
+    except ValueError:
+        left = 0
+    return names, left
+
+
+def covers(names, domain):
+    domain = domain.lower()
+    for name in names:
+        if name == domain or (name.startswith("*.") and domain.count(".") >= 2 and domain.split(".", 1)[1] == name[2:]):
+            return True
+    return False
+
+
+def key_for(cert):
+    """The private key next to a certificate that really belongs to it."""
+    base = re.sub(r"\.(crt|pem|cer)$", "", cert)
+    folder = os.path.dirname(cert)
+    guesses = [base + ".key", base + ".key.pem", base + "-key.pem", base.replace("fullchain", "privkey") + ".pem",
+               base.replace("cert", "privkey") + ".pem", os.path.join(folder, "privkey.pem")]
+    want = openssl("x509", "-in", cert, "-noout", "-pubkey").strip()
+    for guess in dict.fromkeys(guesses):
+        if guess != cert and os.path.isfile(guess) and want and openssl("pkey", "-in", guess, "-pubout").strip() == want:
+            return guess
+    return None
+
+
+def find_cert(domain):
+    """(certificate, key, days left) on this server made out for the domain, the one valid longest."""
+    best = None
+    for cert in cert_candidates(domain):
+        info = cert_info(cert)
+        if not info or not covers(info[0], domain):
+            continue
+        key = key_for(cert)
+        if key and (best is None or info[1] > best[2]):
+            best = (cert, key, info[1])
+    return best
+
+
 def resolve(name):
     try:
         return {str(ipaddress.ip_address(name))}
@@ -448,13 +531,16 @@ while True:
 # ------------------------------------------------------------ the checks
 
 warnings = []
+clash = False
 ports = {}
 for nid in chosen:
     info = rows[nid]["info"]
     ports.setdefault(info["port"], []).append(nid)
 for port, ids in ports.items():
     if len(ids) > 1:
-        warnings.append("nodes %s all use port %s - only one of them can listen on it" % (", ".join(map(str, ids)), port))
+        clash = True
+        warnings.append("nodes %s all use port %s - one server can run only one of them; pick fewer nodes"
+                        % (", ".join(map(str, ids)), port))
 try:
     listening = subprocess.run(["ss", "-Htlnp"], stdout=subprocess.PIPE, universal_newlines=True, timeout=5).stdout
 except (OSError, subprocess.TimeoutExpired):
@@ -485,20 +571,22 @@ for nid in chosen:
         standard = os.path.join(etc, "certs", (info["domain"] or "-") + ".crt")
         if os.path.isfile(standard) and os.path.isfile(standard[:-4] + ".key"):
             continue
-        # certificate files already on this server, newest first, as the suggestion
-        found = []
-        for folder in ("/root", "/etc/XMPlus", "/etc/ssl/private", "/etc/letsencrypt/live/" + (info["domain"] or "-")):
-            try:
-                for name in os.listdir(folder):
-                    if name.endswith((".crt", ".pem", ".cer")) and "key" not in name.lower():
-                        found.append(os.path.join(folder, name))
-            except OSError:
-                pass
-        found.sort(key=lambda p: -os.path.getmtime(p))
-        print("Node %d (%s) uses certificate mode 'file'.%s" % (nid, info["domain"] or "no domain",
-              (" Found: " + ", ".join(found[:5])) if found else ""))
+        # a certificate on this server made out for the node's domain, with its key
+        match = find_cert(info["domain"]) if info["domain"] else None
+        if match:
+            cert_files[nid] = match[:2]
+            print("Node %d (%s): using %s and %s%s" % (nid, info["domain"], match[0], match[1],
+                  "" if match[2] > 7 else " - WARNING: %s" % ("expired" if match[2] < 0 else "%d day(s) left" % match[2])))
+            if match[2] <= 7:
+                warnings.append("node %d: the certificate %s %s" % (nid, match[0],
+                                "has expired" if match[2] < 0 else "runs out in %d day(s)" % match[2]))
+            continue
+        found = cert_candidates(info["domain"])
+        print("Node %d (%s) uses certificate mode 'file' and no certificate for this domain was found.%s"
+              % (nid, info["domain"] or "no domain", (" Files: " + ", ".join(found[:5])) if found else ""))
         while True:
-            crt = ask("  certificate file (Enter to set it later)", found[0] if found else "")
+            # no default: none of the files on disk is made out for this domain
+            crt = ask("  certificate file (Enter to set it later)")
             if not crt:
                 warnings.append("node %d: no certificate file yet - put %s.crt / .key in %s/certs, or set cert_file / key_file in agent.json"
                                 % (nid, info["domain"] or "<domain>", etc))
@@ -546,8 +634,21 @@ for nid in chosen:
         print("            certificate %s" % cert_files[nid][0])
 for w in warnings:
     print("  warning: " + w)
-if not yes("Install the Xray node for these on this server?"):
+# two nodes on one port cannot both run: the safe answer becomes "no"
+if clash:
+    print("  Some nodes share a port. Answer n and run the installer again with fewer nodes (e.g. 'here').")
+if not yes("Install the Xray node for these on this server?", default=not clash):
     sys.exit("stopped - nothing was changed")
+
+# a private key other users on the server can read is made root-only; it stays where it is
+for nid in chosen:
+    pair = cert_files.get(nid)
+    if pair and os.path.isfile(pair[1]) and os.stat(pair[1]).st_mode & 0o077:
+        try:
+            os.chmod(pair[1], 0o600)
+            print("  %s was readable by other users; now root only (600)" % pair[1])
+        except OSError:
+            pass
 
 with open(out_path, "w") as handle:
     json.dump({"panel": panel, "key": key, "nodes": chosen, "email": email,
