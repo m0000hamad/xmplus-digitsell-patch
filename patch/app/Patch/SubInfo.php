@@ -172,7 +172,7 @@ function subinfoHost(): string
 
 /**
  * The panel's own link for the same token and query, as fetched from here:
- * `sub_origin` (e.g. https://my.digitsell-shop.ir) when set, else the host the
+ * `sub_origin` (e.g. https://origin.example.com) when set, else the host the
  * app used.
  */
 function subinfoOrigin(string $token): string

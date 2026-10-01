@@ -433,7 +433,7 @@ class PromoJob
 			return;
 		}
 
-		$site = rtrim(trim((string) $this->setting('promo_site_url')) ?: 'https://p.digitsell-shop.ir', '/');
+		$site = rtrim(trim((string) $this->setting('promo_site_url')) ?: 'https://panel.example.com', '/');
 		$params = [
 			'chat_id'      => $chat,
 			'text'         => $text,
@@ -640,7 +640,7 @@ class PromoJob
 	private function announcement($packageId, array $entry)
 	{
 		$name = (string) DB::table('package')->where('id', $packageId)->value('name');
-		$site = rtrim(trim((string) $this->setting('promo_site_url')) ?: 'https://p.digitsell-shop.ir', '/');
+		$site = rtrim(trim((string) $this->setting('promo_site_url')) ?: 'https://panel.example.com', '/');
 
 		return "🔥 پروموشن جدید: «{$name}»\n"
 			. $this->describe($entry)

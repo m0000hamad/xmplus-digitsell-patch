@@ -40,7 +40,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main/node/xray/install.sh) \
-  --panel https://my.digitsell-shop.ir --key <ApiKey> --node 74
+  --panel https://origin.example.com --key <ApiKey> --node 74
 ```
 
 - `--key` همان `ApiKey` در config.yml نود XMPlus است (کلید API پنل).
@@ -242,7 +242,7 @@ digitsell-xray uninstall  # حذف (--keep-config ، --restore-xmplus)
 
 | کلید | پیش‌فرض | معنی |
 |---|---|---|
-| `panel` | — | آدرس پنل (آدرسی که پشت CDN نیست، مثلاً `https://my.digitsell-shop.ir`) |
+| `panel` | — | آدرس پنل (آدرسی که پشت CDN نیست، مثلاً `https://origin.example.com`) |
 | `key` | — | ApiKey پنل |
 | `nodes` | — | شمارهٔ نودها: `[74, 75]`، یا شیء برای تنظیم جدا: `{"id": 74, "panel": "...", "key": "...", "cert_file": "...", "key_file": "...", "fallbacks": [...]}` |
 | `interval` | `60` | هر چند ثانیه از پنل بپرسد و ترافیک را گزارش کند |
@@ -312,7 +312,7 @@ python3 -c "import re,html;t=open('/tmp/err.html',errors='ignore').read();t=re.s
 راه‌حل دستی: روی **سرور پنل** یک بار. همهٔ فایل‌های `app/Http/Schema/` را بررسی می‌کند و فقط جایی که لازم است دست می‌زند (از هر فایل پشتیبان می‌گیرد، syntax را می‌سنجد، در صورت خطا برمی‌گرداند):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main/node/xray/fix-panel-xhttp.py | python3 - /www/wwwroot/p.digitsell-shop.ir
+curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main/node/xray/fix-panel-xhttp.py | python3 - /www/wwwroot/panel.example.com
 ```
 
 بعد از آن نود xhttp را فعال کنید و همان `curl` بالا را بزنید: باید `200` بدهد. اگر ۵۰۰ ماند، نود را فوراً
