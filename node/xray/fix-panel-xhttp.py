@@ -18,7 +18,7 @@ the keys that file only ever reads without a check. Keys that are there are not
 touched (array union), and a key the file guards anywhere is left alone, so
 links of nodes that work today stay the same.
 
-    python3 fix-panel-xhttp.py [/www/wwwroot/p.digitsell-shop.ir]
+    python3 fix-panel-xhttp.py [/www/wwwroot/panel.example.com]
 
 Each changed file is saved to /root/<name>.bak-<time> first, syntax-checked
 afterwards, and put back if the check fails. A panel update that replaces these
@@ -33,7 +33,7 @@ import subprocess
 import sys
 import time
 
-ROOT = sys.argv[1] if len(sys.argv) > 1 else "/www/wwwroot/p.digitsell-shop.ir"
+ROOT = sys.argv[1] if len(sys.argv) > 1 else "/www/wwwroot/panel.example.com"
 SCHEMA = os.path.join(ROOT, "app/Http/Schema")
 MARKER = "// digitsell: defaults"
 

@@ -34,7 +34,7 @@ by the updater; it is fetched by the server that runs OpenVPN.
    download, a username (`u<account id>`) and a password.
 
 Use the panel address that is not behind the CDN for `--panel`
-(`my.digitsell-shop.ir`).
+(`origin.example.com`).
 
 ## How it works
 

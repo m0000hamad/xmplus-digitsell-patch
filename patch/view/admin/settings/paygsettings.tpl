@@ -88,7 +88,7 @@
 		<div class="row g-3 mt-1">
 			<div class="col-md-6">
 				<label class="form-label" for="pa_sub_origin">{$translate->get('SubInfoOrigin')}</label>
-				<input type="text" class="form-control" id="pa_sub_origin" dir="ltr" placeholder="https://my.digitsell-shop.ir">
+				<input type="text" class="form-control" id="pa_sub_origin" dir="ltr" placeholder="https://origin.example.com">
 			</div>
 			<div class="col-md-6">
 				<label class="form-label" for="pa_sub_origin_ip">{$translate->get('SubInfoOriginIp')}</label>

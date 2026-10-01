@@ -14,7 +14,7 @@ Last updated: 2026-09-30 · installed version **1.9.2** · latest release **1.17
 
 ## 1. What this is
 
-`p.digitsell-shop.ir` is an **XMPlus** proxy-subscription panel. This repository
+`panel.example.com` is an **XMPlus** proxy-subscription panel. This repository
 holds every customisation made to it, plus an updater that lets the owner apply
 new releases from inside the admin panel instead of over SSH.
 
@@ -101,14 +101,14 @@ applied through the panel. Live, repo and manifest are in sync at 1.4.4.
 
 | Thing | Value |
 |---|---|
-| Panel root | `/www/wwwroot/p.digitsell-shop.ir` |
+| Panel root | `/www/wwwroot/panel.example.com` |
 | Web user | `www` |
 | PHP | 7.4 · MySQL 5.7 · nginx via aaPanel |
 | Session cookie | **`xmplus`**, not `PHPSESSID` |
 | Session store | files in `/tmp/sess_*`, owner `www` |
 | DB config | `config/config.php`, `$DB` array |
-| Public hostname | `p.digitsell-shop.ir` — **behind an Iranian CDN** |
-| Direct hostname | `my.digitsell-shop.ir` — resolves straight to the origin |
+| Public hostname | `panel.example.com` — **behind an Iranian CDN** |
+| Direct hostname | `origin.example.com` — resolves straight to the origin |
 | Backups | hourly encrypted zips in `storage/backup/`, password in the `backuppass` setting |
 
 ### Traps that have each cost an outage
@@ -512,7 +512,7 @@ migration `005_promo.php`, keys `Promo*` in all three locales.
   reopened promotion is announced afresh. Accounts whose `notification`
   JSON has `sendnotices` = 0 (the "notices" switch on their settings page) are
   skipped. Only a running promotion is announced. The link's host is the
-  `promo_site_url` setting, default `https://p.digitsell-shop.ir`.
+  `promo_site_url` setting, default `https://panel.example.com`.
 - **Channel posts (1.10.4):** setting `promo_channel_id` (numeric id or
   `@name`), edited in the "promotion channel" card that
   `view/admin/settings/promochannel.tpl` adds under the patch updater
@@ -1220,7 +1220,7 @@ served by `?do=sub` carry it. Not tested inside the Happ app itself.
      900001) and at the admin dashboard's traffic chart.
   2. That the Xray nodes do not stumble over `online_ip` rows with serverid
      900000+ (they should only read their own).
-  3. Put `--panel https://my.digitsell-shop.ir` (not the CDN host) in the
+  3. Put `--panel https://origin.example.com` (not the CDN host) in the
      install command; the CDN may cache or block the node's POSTs.
   4. Set a wallet price for the OpenVPN server if it should differ from the
      default.
