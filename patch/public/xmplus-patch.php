@@ -19,7 +19,7 @@ declare(strict_types=1);
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
-const PATCH_ENDPOINT_VERSION = '1.5.0';
+const PATCH_ENDPOINT_VERSION = '1.6.0';
 
 /** Where releases come from. Overridable by the `patch_repo` setting. */
 const DEFAULT_REPO = 'm0000hamad/xmplus-digitsell-patch';
@@ -443,6 +443,12 @@ if (strpos($action, 'ovpn.') === 0) {
 if (strpos($action, 'torexit.') === 0) {
     require ROOT . '/app/Patch/TorExit.php';
     fail('unknown exit location action');
+}
+
+// A node server's installer listing the panel's servers, with the API key.
+if (strpos($action, 'node.') === 0) {
+    require ROOT . '/app/Patch/NodeApi.php';
+    fail('unknown node action');
 }
 
 requireAdmin();

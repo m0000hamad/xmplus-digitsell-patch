@@ -1,6 +1,5 @@
-Exit location per server: a new card on the Servers page picks the country
-each Xray server's customers come out of (through Tor). The server's own
-digitsell-xray node does everything by itself within a minute - installs
-tor-geo, starts Tor for that country, and switches over only once it works.
-No SSH and no server passwords in the panel. Needs digitsell-xray 1.2.0 on the
-node: run "digitsell-xray update" there.
+The Xray node installer now asks before it installs: the panel address and
+API key, then it lists all servers of the panel, marks the ones that point at
+the server it runs on, and asks which of them this server runs (certificate
+files and e-mail too). This release adds the list it reads from the panel.
+On a node: bash <(curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main/node/xray/install.sh)

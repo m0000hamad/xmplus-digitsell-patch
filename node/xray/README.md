@@ -19,10 +19,38 @@ change; servers are still defined and edited in the panel and this node pulls th
 
 ## Install
 
-### Automatic (servers that already run XMPlus)
+### Guided (any server)
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main/node/xray/install.sh)
+```
+
+Run as root at a terminal, the installer asks before it changes anything:
+
+1. **Panel address** (the origin, not one behind a CDN) and **API key** (the ApiKey in the panel's
+   API settings; typed hidden). A wrong key is refused on the spot.
+2. It lists **every server of the panel** — id, name, protocol, port, domain / IP — and marks
+   **HERE** the ones whose domain or IP points at this machine. Those are the default answer.
+3. **Which node ids this server runs** (comma separated). Each one is checked against the panel.
+4. What the chosen nodes need: a Let's Encrypt e-mail (cert mode http / tls / dns), the DNS
+   provider and its keys (mode dns), the certificate files (mode file, with the files already on
+   the server suggested). Warnings: two nodes on one port, a port another program holds, a domain
+   that does not point here yet (its certificate would fail).
+5. A summary, and **"Install? [Y/n]"**. Nothing is installed before this answer.
+
+On a server that runs XMPlus, `config.yml` fills in every answer (panel, key, nodes, certificate
+files), so it is Enter, Enter, `y`. `--yes` takes the defaults without asking (scripts).
+
+The list needs the Digitsell patch **1.19.0** on the panel (`xmplus-patch.php?do=node.list`). With
+an older panel the installer says so and asks for the node ids, checking each against the
+panel's node API.
+
+`--pick` asks again on a server that is already set up — to add or drop nodes.
+
+### Automatic (servers that already run XMPlus, no questions)
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main/node/xray/install.sh) --yes
 ```
 
 The installer:
