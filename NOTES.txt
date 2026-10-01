@@ -1,6 +1,6 @@
-Xray nodes on the xhttp transport no longer take the panel down: the panel's
-own link builders (app/Http/Schema) crashed on them, so the subscription link
-and the user's Servers page answered "Internal Server Error" for every account
-that could see such a node. The patch now fixes those files by itself when it is
-installed, and checks them every hour, because a panel update puts the
-originals back. Nothing to run by hand any more.
+Exit location per server: a new card on the Servers page picks the country
+each Xray server's customers come out of (through Tor). The server's own
+digitsell-xray node does everything by itself within a minute - installs
+tor-geo, starts Tor for that country, and switches over only once it works.
+No SSH and no server passwords in the panel. Needs digitsell-xray 1.2.0 on the
+node: run "digitsell-xray update" there.
