@@ -202,3 +202,4 @@
 
   <main id="content" class="main">
     <div class="content container-fluid">
+{include file='user/layout/paygbanner.tpl'}

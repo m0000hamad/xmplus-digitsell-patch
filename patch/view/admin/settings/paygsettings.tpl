@@ -38,6 +38,7 @@
 			<label class="pa-check"><input type="checkbox" id="pa_payg_enabled"> {$translate->get('PaygAdmEnabled')}</label>
 			<label class="pa-check"><input type="checkbox" id="pa_payg_outage_free"> {$translate->get('PaygAdmOutage')}</label>
 			<label class="pa-check"><input type="checkbox" id="pa_payg_show_toman"> {$translate->get('PaygAdmToman')}</label>
+			<label class="pa-check"><input type="checkbox" id="pa_payg_banner"> {$translate->get('PaygAdmBanner')}</label>
 			<label class="pa-check"><input type="checkbox" id="pa_commission_wallet_enabled"> {$translate->get('PaygAdmCommissionEnabled')}</label>
 		</div>
 		<div class="row g-3 mt-1">
@@ -267,10 +268,10 @@
 	var W = window.PaygAdmWords;
 	var token = '';
 	var page = 1;
-	var fields = ['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'commission_wallet_enabled',
+	var fields = ['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'payg_banner', 'commission_wallet_enabled',
 		'payg_min_charge', 'payg_charge_step', 'payg_default_price', 'payg_low_balance',
 		'payg_warn_percent', 'payg_warn_days', 'payg_group', 'sub_info_enabled', 'sub_origin', 'sub_origin_ip'];
-	var checks = ['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'commission_wallet_enabled', 'sub_info_enabled'];
+	var checks = ['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'payg_banner', 'commission_wallet_enabled', 'sub_info_enabled'];
 	var moneyFields = ['payg_min_charge', 'payg_charge_step', 'payg_default_price', 'payg_low_balance'];
 
 	/* rial in the database; toman on screen while "show in toman" is on */
