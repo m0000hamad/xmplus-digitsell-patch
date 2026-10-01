@@ -61,7 +61,7 @@ import urllib.parse
 import urllib.request
 import uuid as uuidlib
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 ETC = "/etc/digitsell-xray"
 LIB = "/usr/local/lib/digitsell-xray"
@@ -766,6 +766,45 @@ def relay_tag(spec, email):
     return "relay-%s-%d" % (spec["tag"], uid or 0)
 
 
+TOR_GEO_NODES = "/etc/tor-geo/nodes"
+
+
+def exit_proxy(node):
+    """Where a node's traffic leaves, from its agent.json entry:
+    "tor": "<name>" - a tor-geo node on this server (github.com/m0000hamad/tor-multi-location),
+    "proxy": "socks5://[user:pass@]host:port" - any SOCKS5 proxy.
+    Returns (host, port, user, password), None for neither, ValueError if unusable."""
+    tor = as_str(node.get("tor"))
+    if tor:
+        path = os.path.join(TOR_GEO_NODES, tor + ".torrc")
+        try:
+            with open(path, "r") as handle:
+                for line in handle:
+                    match = re.match(r"\s*SocksPort\s+(?:([0-9.]+):)?([0-9]+)", line)
+                    if match:
+                        host = match.group(1) or "127.0.0.1"
+                        return ("127.0.0.1" if host == "0.0.0.0" else host), int(match.group(2)), "", ""
+        except OSError:
+            raise ValueError("tor-geo node %r not found (%s; see 'tor-geo list')" % (tor, path))
+        raise ValueError("no SocksPort in %s" % path)
+    proxy = as_str(node.get("proxy"))
+    if proxy:
+        url = urllib.parse.urlsplit(proxy)
+        try:
+            port = url.port
+        except ValueError:
+            port = None
+        if url.scheme not in ("socks", "socks5", "socks5h") or not url.hostname or not port:
+            raise ValueError("proxy %r is not socks5://host:port" % proxy)
+        return (url.hostname, port, urllib.parse.unquote(url.username or ""),
+                urllib.parse.unquote(url.password or ""))
+    return None
+
+
+def exit_tags_of(outbounds):
+    return {o["tag"] for o in outbounds if o.get("tag", "").startswith("exit-")}
+
+
 # ----------------------------------------------------------------- the agent
 
 class XrayError(Exception):
@@ -798,6 +837,8 @@ class Agent:
         self.cert_failed = {}   # domain -> time of the last failed issue
         self.self_signed_used = set()
         self.applied_fp = None  # what the panel said when the config was last built
+        self.exit_tags = set()  # exit-proxy outbounds in the config Xray runs
+        self.exit_errors = {}   # node id -> why its exit proxy is not used
         self.last_restart = 0
         self.process = None     # xray_manager "process": the child Xray
         self.running = True
@@ -1125,12 +1166,64 @@ class Agent:
                     if email in self.subs.get(node_id, {}):
                         tag = relay_tag(spec, email)
                         rules.append({"ruleTag": tag, "user": [email], "outboundTag": tag})
-        for node_id in sorted(self.specs):
-            spec = self.specs[node_id]
-            if spec["send_through"]:
-                rules.append({"ruleTag": "via-%s" % spec["tag"], "inboundTag": [spec["tag"]],
-                              "outboundTag": "direct-%s" % spec["tag"]})
         return rules
+
+    def exit_rules(self, specs=None, exit_tags=None):
+        """Catch-all rules that pick a node's way out (exit proxy or
+        sendthrough). They match every connection of the node, so they go
+        after the block and device-limit rules, or those would never be hit.
+        Only exit outbounds that exist in Xray's config get a rule."""
+        specs = self.specs if specs is None else specs
+        exit_tags = self.exit_tags if exit_tags is None else exit_tags
+        rules = []
+        for node_id in sorted(specs):
+            spec = specs[node_id]
+            direct = "direct-%s" % spec["tag"] if spec["send_through"] else "direct"
+            out = "exit-%s" % spec["tag"]
+            if out in exit_tags:
+                if self.node_conf.get(node_id, {}).get("tor"):
+                    # Tor carries TCP only. QUIC is refused so browsers fall
+                    # back to TCP through Tor; other UDP (DNS, games) goes direct.
+                    rules.append({"ruleTag": "exit-quic-%s" % spec["tag"], "inboundTag": [spec["tag"]],
+                                  "network": "udp", "port": "443", "outboundTag": "block"})
+                    rules.append({"ruleTag": "exit-udp-%s" % spec["tag"], "inboundTag": [spec["tag"]],
+                                  "network": "udp", "outboundTag": direct})
+                rules.append({"ruleTag": out, "inboundTag": [spec["tag"]], "outboundTag": out})
+            elif spec["send_through"]:
+                rules.append({"ruleTag": "via-%s" % spec["tag"], "inboundTag": [spec["tag"]],
+                              "outboundTag": direct})
+        return rules
+
+    def exit_summary(self, node):
+        if node["id"] in self.exit_errors:
+            return "DIRECT - exit proxy unusable: " + self.exit_errors[node["id"]]
+        if "exit-n%d" % node["id"] not in self.exit_tags:
+            return ""
+        name = as_str(node.get("tor"))
+        try:
+            host, port, _, _ = exit_proxy(node)
+        except (ValueError, TypeError):
+            return ""
+        return ("tor-geo %s (socks5 %s:%d)" % (name, host, port)) if name else ("socks5 %s:%d" % (host, port))
+
+    def exit_outbound(self, spec):
+        """The socks outbound for a node with an exit proxy in agent.json, or None."""
+        node_id = spec["id"]
+        try:
+            found = exit_proxy(self.node_conf.get(node_id, {}))
+        except ValueError as error:
+            if self.exit_errors.get(node_id) != str(error):
+                log("node %d: %s - its traffic leaves this server directly" % (node_id, error))
+            self.exit_errors[node_id] = str(error)
+            return None
+        self.exit_errors.pop(node_id, None)
+        if not found:
+            return None
+        host, port, user, password = found
+        server = {"address": host, "port": port}
+        if user:
+            server["users"] = [{"user": user, "pass": password}]
+        return {"tag": "exit-%s" % spec["tag"], "protocol": "socks", "settings": {"servers": [server]}}
 
     def limit_rules(self):
         rules = []
@@ -1168,6 +1261,9 @@ class Agent:
                                           self.conf.get("trusted_xff")))
             if spec["send_through"]:
                 outbounds.append(self.freedom("direct-%s" % spec["tag"], spec["send_through"]))
+            exit_out = self.exit_outbound(spec)
+            if exit_out:
+                outbounds.append(exit_out)
             if spec["relay"]:
                 for email in sorted(clients.get(node_id, {})):
                     sub = self.subs.get(node_id, {}).get(email)
@@ -1186,7 +1282,8 @@ class Agent:
                        "system": {"statsInboundUplink": False, "statsInboundDownlink": False}},
             "inbounds": inbounds,
             "outbounds": outbounds,
-            "routing": {"domainStrategy": "AsIs", "rules": self.static_rules()},
+            "routing": {"domainStrategy": "AsIs",
+                        "rules": self.static_rules() + self.exit_rules(specs, exit_tags_of(outbounds))},
         }
         if self.conf.get("dns"):
             config["dns"] = self.conf["dns"]
@@ -1211,6 +1308,7 @@ class Agent:
 
     def write_config(self, config):
         write_atomic(self.conf["xray_config"], dumps(config))
+        self.exit_tags = exit_tags_of(config["outbounds"])
 
     # --------------------------------------------------------------- sync
 
@@ -1407,7 +1505,8 @@ class Agent:
         if tags:
             # rules first, or they would point at a missing outbound
             self.pushed_rules = None
-            wanted = [r for r in self.static_rules() if r.get("ruleTag") not in tags] + self.limit_rules()
+            wanted = ([r for r in self.static_rules() if r.get("ruleTag") not in tags]
+                      + self.limit_rules() + self.exit_rules())
             self.set_rules(wanted)
             for start in range(0, len(tags), 200):
                 try:
@@ -1427,7 +1526,7 @@ class Agent:
         self.pushed_rules = fingerprint(rules)
 
     def push_rules(self):
-        rules = self.static_rules() + self.limit_rules()
+        rules = self.static_rules() + self.limit_rules() + self.exit_rules()
         if not rules and self.pushed_rules is None:
             self.pushed_rules = fingerprint(rules)
             return
@@ -1618,6 +1717,7 @@ class Agent:
                     (" (%s)" % spec["cert_domain"]) if spec["cert_domain"] else "")
                 cert = self.certs.get(node_id)
                 status["cert"] = cert_summary(cert[0]) if cert else ""
+            status["exit"] = self.exit_summary(node)
         self.state["status"]["_agent"] = {"version": VERSION, "at": int(time.time()), "pid": os.getpid()}
         self.save_state()
 
@@ -1779,6 +1879,8 @@ def cmd_status(conf):
         print(line)
         if st.get("cert"):
             print("    certificate: " + st["cert"])
+        if st.get("exit"):
+            print("    exit: " + st["exit"])
         if st.get("traffic_at"):
             print("    usage last reported %ds ago (%d account(s))" % (int(time.time()) - st["traffic_at"], st.get("traffic_accounts", 0)))
         if st.get("error"):

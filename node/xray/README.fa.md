@@ -349,8 +349,36 @@ digitsell-xray uninstall  # حذف (--keep-config ، --restore-xmplus)
 <td>—</td>
 <td>گواهی آماده برای حالت <code>file</code> (یا <code>/etc/digitsell-xray/certs/&lt;domain&gt;.crt</code> و <code>.key</code>)</td>
 </tr>
+<tr>
+<td><code>nodes[].tor</code></td>
+<td>—</td>
+<td>ترافیک این نود از یک نود <a href="https://github.com/m0000hamad/tor-multi-location">tor-geo</a> روی همین سرور خارج شود، مثلاً <code>"fr"</code> (پایین‌تر)</td>
+</tr>
+<tr>
+<td><code>nodes[].proxy</code></td>
+<td>—</td>
+<td>ترافیک این نود از یک پروکسی SOCKS5 خارج شود: <code>"socks5://host:port"</code> یا <code>"socks5://user:pass@host:port"</code></td>
+</tr>
 </tbody>
 </table>
+<h2 dir="rtl">لوکیشن خروجی برای هر نود (Tor / SOCKS5)</h2>
+<p dir="rtl">یک سرور می‌تواند چند کشور بفروشد: هر سرورِ پنل (نود) خروجی خودش را دارد.</p>
+<ol dir="rtl">
+<li><a href="https://github.com/m0000hamad/tor-multi-location">tor-geo</a> را روی سرور نود نصب کنید و کشورها را اضافه کنید: <code>tor-geo add fr de us</code>. نام نودها را <code>tor-geo list</code> نشان می‌دهد (<code>fr</code>، <code>de</code>، …).</li>
+<li>در پنل برای هر کشور یک سرور با پورت جدا بسازید (و پرچمش را بگذارید).</li>
+<li>در <code>agent.json</code> (<code>digitsell-xray config</code>) خروجی هر نود را بنویسید:</li>
+</ol>
+
+```json
+"nodes": [
+  {"id": 74, "tor": "fr"},
+  {"id": 75, "tor": "de"},
+  {"id": 76}
+]
+```
+
+<p dir="rtl">نود 76 مثل قبل مستقیم از IP خود سرور خارج می‌شود. <code>digitsell-xray status</code> خروجی هر نود را نشان می‌دهد؛ اگر نام <code>tor</code> وجود نداشته باشد همان‌جا گزارش می‌شود و آن نود مستقیم خارج می‌شود.</p>
+<p dir="rtl">Tor فقط TCP می‌برد: برای نود <code>tor</code>، QUIC (UDP 443) رد می‌شود تا مرورگر به TCP از مسیر Tor برگردد، و بقیهٔ UDP (DNS، بازی، تماس) مستقیم از سرور خارج می‌شود. قانون‌های بلاک پنل و محدودیت دستگاه همچنان اول اعمال می‌شوند.</p>
 <h2 dir="rtl">چطور کار می‌کند</h2>
 <ul dir="rtl">
 <li><strong>دو سرویس:</strong> <code>digitsell-xray</code> (خود Xray رسمی) و <code>digitsell-xray-agent</code> (ایجنت پایتون، فقط

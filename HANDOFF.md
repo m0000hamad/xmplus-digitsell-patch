@@ -1094,6 +1094,31 @@ nothing renews them unless the owner's own tooling does). Findings:
   that failed was the panel's own `/link/`, which never carries it), traffic
   and online numbers once customers connect.
 
+**Exit location per node (agent 1.1.0, 2026-10-01):** asked for selling
+several countries from one German server. Countries come from
+[tor-geo](https://github.com/m0000hamad/tor-multi-location) (one Tor client
+per exit country, each a SOCKS5 port on 127.0.0.1, ports read from
+`/etc/tor-geo/nodes/<name>.torrc`). `agent.json` node entries take
+`"tor": "<name>"` or `"proxy": "socks5://[user:pass@]host:port"`; the node gets
+a `socks` outbound `exit-n<id>` and a catch-all rule on its inbound tag.
+
+- **Rule order matters:** catch-all rules (the exit, and the old
+  `via-n<id>` sendthrough rule) now go in `exit_rules()`, after
+  `limit_rules()`. Before, `via-n<id>` sat in `static_rules()` in front of the
+  `iplimit-*` blocks, so on a sendthrough node the device limit never blocked
+  anything; fixed by the same move.
+- A `tor` node refuses UDP 443 (QUIC, browsers fall back to TCP through Tor)
+  and sends other UDP directly (Tor has no UDP; DNS would die otherwise).
+- A missing tor-geo name is logged once, shown by `status` as
+  `exit: DIRECT - ...`, and the node leaves directly (keeps customers up).
+  Rules only point at exit outbounds that are in the config Xray runs
+  (`exit_tags`, set in `write_config`), so a tor-geo node created later is
+  picked up on the next agent restart, never as a rule to a missing outbound.
+- Tested in WSL with Xray 26.3.27 and tor-geo: `xray run -test` passes,
+  VLESS traffic on the `tor: fr` node left from a French Tor exit, a node
+  without `tor` from the server's own IP; limit rules come before exit rules
+  in the live list. Not yet run on the real node server.
+
 ### Direct routes for Xray customers (1.17.0)
 
 Asked for right after: "a place for the servers to bypass Iran or chosen sites,
