@@ -325,6 +325,12 @@ you added by hand are never touched. "As set on the server (agent.json)" hands t
 `agent.json`. The panel's choice is kept in `state.json`, so a reboot while the panel is down
 keeps every server where it was.
 
+**New IP (agent 1.3.0, patch 1.20.0).** A server that leaves through a Tor exit chosen in the panel
+gets a **New IP** button. The agent restarts that country's tor-geo node (`tor-geo rotate`), waits
+for the exit to answer again and reports the old and the new IP; the panel shows a countdown and
+then the result. Users of that country are cut for one to two minutes, and Tor picks the IP, so it
+can hand out the same one again. Update the node first: `digitsell-xray update`.
+
 The agent calls `xmplus-patch.php?do=torexit.sync` with the panel's API key (in an `X-Panel-Key`
 header) every minute. The panel never connects to the servers and stores no server password.
 

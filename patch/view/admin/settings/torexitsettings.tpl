@@ -71,6 +71,15 @@
 	window.TorExitWords.dismiss    = "{$translate->get('TorExitDismiss')|escape:'javascript'}";
 	window.TorExitWords.search     = "{$translate->get('TorExitSearch')|escape:'javascript'}";
 	window.TorExitWords.nodeOff    = "{$translate->get('TorExitNodeOff')|escape:'javascript'}";
+	window.TorExitWords.rotate        = "{$translate->get('TorExitRotate')|escape:'javascript'}";
+	window.TorExitWords.rotateConfirm = "{$translate->get('TorExitRotateConfirm')|escape:'javascript'}";
+	window.TorExitWords.rotating      = "{$translate->get('TorExitRotating')|escape:'javascript'}";
+	window.TorExitWords.rotOkMsg      = "{$translate->get('TorExitRotOkMsg')|escape:'javascript'}";
+	window.TorExitWords.rotSameMsg    = "{$translate->get('TorExitRotSameMsg')|escape:'javascript'}";
+	window.TorExitWords.rotFailMsg    = "{$translate->get('TorExitRotFailMsg')|escape:'javascript'}";
+	window.TorExitWords.rotTimeout    = "{$translate->get('TorExitRotTimeout')|escape:'javascript'}";
+	window.TorExitWords.rotOldAgent   = "{$translate->get('TorExitRotOldAgent')|escape:'javascript'}";
+	window.TorExitWords.rotAsked      = "{$translate->get('TorExitRotAsked')|escape:'javascript'}";
 </script>
 {literal}
 <style>
@@ -231,7 +240,7 @@
 				lines.push('<small class="te-wrap text-muted" dir="ltr">' + esc(report.pending_detail) + '</small>');
 			}
 		}
-		return lines.join('<br>') + opCell(server);
+		return lines.join('<br>') + opCell(server) + rotCell(server);
 	}
 
 	function selectCell(server) {
@@ -324,6 +333,54 @@
 		return servers.filter(function (s) { return String(s.id) === String(id); })[0];
 	}
 
+	function versionBelow(version, wanted) {
+		var a = String(version || '0').split('.'), b = wanted.split('.');
+		for (var i = 0; i < 3; i++) {
+			var x = parseInt(a[i], 10) || 0, y = parseInt(b[i], 10) || 0;
+			if (x !== y) { return x < y; }
+		}
+		return false;
+	}
+
+	function rotAckKey(server) { return 'teAckR:' + server.id + ':' + server.rotate_at; }
+	function rotAcked(server) { try { return localStorage.getItem(rotAckKey(server)) === '1'; } catch (e) { return false; } }
+	function setRotAcked(server) { try { localStorage.setItem(rotAckKey(server), '1'); } catch (e) { /* private mode */ } }
+
+	// a new exit IP asked for: run | ok | fail | null
+	function rotState(server, now) {
+		if (!server.rotate_at) { return null; }
+		var report = server.report || {};
+		var rotate = report.rotate || null;
+		var elapsed = now - server.rotate_at;
+		var state = { elapsed: elapsed, eta: 120, rotate: rotate };
+		if (report.agent && versionBelow(report.agent, '1.3.0')) {
+			state.kind = 'fail';
+			state.reason = words.rotOldAgent;
+			return state;
+		}
+		if (rotate && rotate.at === server.rotate_at) {
+			if (rotate.state === 'done') { state.kind = 'ok'; return state; }
+			if (rotate.state === 'failed') { state.kind = 'fail'; state.reason = rotate.error || ''; return state; }
+		}
+		if (elapsed > 420) {
+			state.kind = 'fail';
+			state.reason = words.rotTimeout;
+			return state;
+		}
+		state.kind = 'run';
+		return state;
+	}
+
+	function rotCell(server) {
+		var state = rotState(server, lastNow);
+		if (!state || state.kind !== 'run') { return ''; }
+		return '<div class="te-op" data-te-op-rot="' + server.id + '">'
+			+ '<span class="te-hourglass">⏳</span> <b>' + esc(words.rotating) + '</b> '
+			+ '<span class="te-eta" data-te-eta-rot="' + server.id + '"></span>'
+			+ '<div class="progress"><div class="progress-bar" data-te-bar-rot="' + server.id + '" style="width:3%"></div></div>'
+			+ (server.live ? '' : '<small class="text-danger">⚠️ ' + esc(words.nodeOff) + '</small>') + '</div>';
+	}
+
 	function opCell(server) {
 		var state = opState(server, lastNow);
 		if (!state || state.kind !== 'run') { return ''; }
@@ -340,6 +397,7 @@
 
 	function tick() {
 		var now = Date.now() / 1000 + clockOffset;
+		tickRotations(now);
 		var nodes = document.querySelectorAll('[data-te-eta]');
 		Array.prototype.forEach.call(nodes, function (node) {
 			var id = node.getAttribute('data-te-eta');
@@ -354,6 +412,19 @@
 		});
 	}
 
+	function tickRotations(now) {
+		Array.prototype.forEach.call(document.querySelectorAll('[data-te-eta-rot]'), function (node) {
+			var id = node.getAttribute('data-te-eta-rot');
+			var server = serverById(id);
+			var state = server && rotState(server, now);
+			if (!state || state.kind !== 'run') { return; }
+			var left = state.eta - state.elapsed;
+			node.textContent = left > 0 ? clock(left) + ' ' + words.etaLeft : '+' + clock(-left) + ' ' + words.etaOver;
+			var bar = document.querySelector('[data-te-bar-rot="' + id + '"]');
+			if (bar) { bar.style.width = Math.max(3, Math.min(95, state.elapsed / state.eta * 100)) + '%'; }
+		});
+	}
+
 	function describeExit(state) {
 		if (state.target === 'direct') { return words.direct; }
 		return countryName(state.target);
@@ -362,6 +433,27 @@
 	function alertsHtml(now) {
 		var out = [];
 		servers.forEach(function (server) {
+			var rot = rotState(server, now);
+			if (rot) {
+				var rkey = server.id + ':r' + server.rotate_at;
+				if (rot.kind === 'run') { seenRunning[rkey] = true; }
+				else if (!rotAcked(server) && rot.elapsed <= 21600) {
+					var good = rot.kind === 'ok';
+					var info = rot.rotate || {};
+					var same = good && info.old_ip && info.old_ip === info.new_ip;
+					var rtext = (good ? (same ? words.rotSameMsg : words.rotOkMsg) : words.rotFailMsg)
+						.replace('%server%', server.name).replace('%ip%', info.new_ip || '').replace('%old%', info.old_ip || '-')
+						.replace('%reason%', rot.reason || '').replace('%time%', clock(rot.elapsed));
+					if (seenRunning[rkey] && !seenRunning[rkey + ':told']) {
+						seenRunning[rkey + ':told'] = true;
+						say((good ? (same ? '⚠️ ' : '✅ ') : '❌ ') + rtext);
+					}
+					out.push('<div class="alert ' + (good ? (same ? 'alert-warning' : 'alert-success') : 'alert-danger')
+						+ ' d-flex justify-content-between align-items-start py-2 mb-2" role="alert"><span>'
+						+ (good ? (same ? '⚠️ ' : '✅ ') : '❌ ') + esc(rtext) + '</span>'
+						+ '<button type="button" class="btn btn-sm btn-outline-secondary ms-2" data-te-ack-rot="' + server.id + '">' + esc(words.dismiss) + '</button></div>');
+				}
+			}
 			var state = opState(server, now);
 			if (!state) { return; }
 			var key = server.id + ':' + server.want_at;
@@ -384,9 +476,22 @@
 		return out.join('');
 	}
 
+	// only where the server leaves through a Tor exit chosen in the panel
+	function rotateButton(server) {
+		var report = server.report || {};
+		var exit = report.exit || {};
+		if (!server.managed || !server.want || exit.mode !== 'tor') { return ''; }
+		var state = rotState(server, lastNow);
+		return '<br><button type="button" class="btn btn-outline-primary btn-sm mt-1" data-te-rotate="' + server.id + '"'
+			+ (state && state.kind === 'run' ? ' disabled' : '') + '>🔄 ' + esc(words.rotate) + '</button>';
+	}
+
 	function render(now) {
 		lastNow = now;
-		running = servers.some(function (server) { var state = opState(server, now); return state && state.kind === 'run'; });
+		running = servers.some(function (server) {
+			var state = opState(server, now), rot = rotState(server, now);
+			return (state && state.kind === 'run') || (rot && rot.kind === 'run');
+		});
 		$('teAlerts').innerHTML = alertsHtml(now);
 		var body = $('teRows');
 		if (!servers.length) {
@@ -401,7 +506,7 @@
 				+ '<td>' + exitCell(server) + '</td>'
 				+ '<td>' + selectCell(server) + '</td>'
 				+ '<td><button type="button" class="btn btn-primary btn-sm" data-te-save="' + server.id + '"'
-				+ (server.report ? '' : ' disabled') + '>💾 ' + esc(words.save) + '</button></td>'
+				+ (server.report ? '' : ' disabled') + '>💾 ' + esc(words.save) + '</button>' + rotateButton(server) + '</td>'
 				+ '</tr>';
 		}).join('');
 		tick();
@@ -444,6 +549,23 @@
 		});
 	});
 
+	$('teRows').addEventListener('click', function (event) {
+		var button = event.target.closest('button[data-te-rotate]');
+		if (!button) { return; }
+		var id = button.getAttribute('data-te-rotate');
+		var server = serverById(id);
+		if (!confirm(words.rotateConfirm.replace('%server%', server ? server.name : '#' + id))) { return; }
+		button.disabled = true;
+		post('torexit.rotate', { id: id }).then(function (data) {
+			if (!data.ok) { button.disabled = false; say(words.failed + ': ' + data.error); return; }
+			say(words.rotAsked);
+			load();
+		}).catch(function () {
+			button.disabled = false;
+			say(words.failed);
+		});
+	});
+
 	// a choice not saved yet must not be wiped by the automatic refresh
 	var dirty = false;
 	$('teRows').addEventListener('change', function (event) {
@@ -451,6 +573,13 @@
 	});
 
 	$('teAlerts').addEventListener('click', function (event) {
+		var rotButton = event.target.closest('button[data-te-ack-rot]');
+		if (rotButton) {
+			var rotServer = serverById(rotButton.getAttribute('data-te-ack-rot'));
+			if (rotServer) { setRotAcked(rotServer); }
+			render(lastNow);
+			return;
+		}
 		var button = event.target.closest('button[data-te-ack]');
 		if (!button) { return; }
 		var server = serverById(button.getAttribute('data-te-ack'));

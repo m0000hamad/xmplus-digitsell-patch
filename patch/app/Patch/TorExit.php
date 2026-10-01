@@ -21,6 +21,7 @@
  *   admin, panel session (+ patch_csrf token for writes):
  *     torexit.admin   every server with its report and choice (GET)
  *     torexit.save    pick an exit for one server (POST)
+ *     torexit.rotate  ask for a new exit IP on a server that leaves through Tor (POST)
  */
 
 declare(strict_types=1);
@@ -94,10 +95,13 @@ function torexitSync(): void
     $wanted = new stdClass();
     if ($ids) {
         $marks = implode(',', array_fill(0, count($ids), '?'));
-        $rows = db()->prepare("SELECT server_id, want FROM torexit_node WHERE managed = 1 AND server_id IN ($marks)");
+        $rows = db()->prepare("SELECT server_id, want, rotate_at FROM torexit_node WHERE managed = 1 AND server_id IN ($marks)");
         $rows->execute($ids);
         foreach ($rows as $row) {
-            $wanted->{(string) $row['server_id']} = ['want' => torexitCountry($row['want'])];
+            $wanted->{(string) $row['server_id']} = [
+                'want'      => torexitCountry($row['want']),
+                'rotate_at' => (int) $row['rotate_at'],
+            ];
         }
     }
 
@@ -134,6 +138,7 @@ function torexitAdmin(): void
             'managed'  => $row !== null && (int) $row['managed'] === 1,
             'want'     => $row === null ? '' : torexitCountry($row['want']),
             'want_at'  => $row === null ? 0 : (int) $row['want_at'],
+            'rotate_at' => $row === null ? 0 : (int) $row['rotate_at'],
             'seen_at'  => $seen,
             'live'     => $seen > 0 && $now - $seen <= TOREXIT_STALE,
             'report'   => $report,
@@ -177,11 +182,38 @@ function torexitSave(): void
     done(['id' => $id, 'managed' => $managed === 1, 'want' => $want]);
 }
 
+function torexitRotate(): void
+{
+    requireAdmin();
+    requireToken();
+
+    $id = (int) ($_POST['id'] ?? 0);
+    if ($id <= 0 || !isset(torexitServerIds()[$id])) {
+        fail('unknown server');
+    }
+
+    $row = db()->prepare('SELECT managed, want, rotate_at FROM torexit_node WHERE server_id = ?');
+    $row->execute([$id]);
+    $row = $row->fetch();
+    if (!$row || (int) $row['managed'] !== 1 || torexitCountry($row['want']) === '') {
+        fail('pick a country for this server first');
+    }
+
+    $now = time();
+    if ($now - (int) $row['rotate_at'] < 60) {
+        fail('a new IP was asked for a moment ago');
+    }
+
+    db()->prepare('UPDATE torexit_node SET rotate_at = ? WHERE server_id = ?')->execute([$now, $id]);
+
+    done(['id' => $id, 'rotate_at' => $now]);
+}
+
 // --------------------------------------------------------------- dispatch
 
 $torexitAction = (string) ($_GET['do'] ?? '');
 
-if (in_array($torexitAction, ['torexit.sync', 'torexit.save'], true) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+if (in_array($torexitAction, ['torexit.sync', 'torexit.save', 'torexit.rotate'], true) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     fail('this action needs POST', 405);
 }
 
@@ -192,6 +224,8 @@ switch ($torexitAction) {
         torexitAdmin();
     case 'torexit.save':
         torexitSave();
+    case 'torexit.rotate':
+        torexitRotate();
 }
 
 fail('unknown exit location action');
