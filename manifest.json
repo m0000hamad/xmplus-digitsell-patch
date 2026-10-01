@@ -1,7 +1,7 @@
 {
-    "version": "1.21.0",
+    "version": "1.21.1",
     "released": "2026-10-01",
-    "notes": "Charge wallet banner: a slim bar at the top of every page tells customers that when their plan ends the connection is not cut - they can top up their account with any amount and keep using it without buying a plan. It shows their balance while they are on it and a warning when it is empty, opens the wallet in one tap, and can be closed (back after 3 days). Admins can switch it off in the wallet settings.",
+    "notes": "Charge wallet on the sign-in and sign-up pages: when the wallet is switched on, both pages show a new 'pay per use, no plan needed' card (a short line under the form on phones), so visitors learn about it before they sign up.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -88,9 +88,9 @@
         "view/admin/settings/torexitsettings.tpl": "ac393e0f52c95d8663128eab616e01467ceb7d6c41c6ac1812019babb291bf5f",
         "view/admin/tickets/index.tpl": "18c9d5d95b50eee05d4640bca49893cebcd3a77e695800fee331bbf4c7a7445b",
         "view/admin/tickets/view.tpl": "804c43bfcc1cb3e1117b710552e4767048dd1d99c94111e723a98bbfac715ea4",
-        "view/auth/login.tpl": "6f3894f0afe82b8cda5725cb73590cb224af788b0a395b9c9b5cbe8e3f744a58",
+        "view/auth/login.tpl": "7c36d4d9a0dfc9b5e91947bd129e679191849a506b4027c45f730d31ddfd9a5d",
         "view/auth/loginsocial.tpl": "b44928ee2d7b207ef79542afddc989329ac09a25d3f4940774d2baa175515b7f",
-        "view/auth/register.tpl": "e65c46a4ae2f33bacedc2c714fcff7f659c829e3387434c45d049751c28687d6",
+        "view/auth/register.tpl": "ffa489caca8867ae73ac15c15c1100c688c149cc353b914dc131e01e093e68a9",
         "view/common/copy.tpl": "344425205fce8ad4cfaec67c55037efafe3084e2e28c3fec88998421f25263f0",
         "view/common/orderresult.tpl": "1383136e8b1dfef82c73fc10568a1334972d17321e822df51630a68821e26bcf",
         "view/common/ovpnicon.tpl": "1408b2ae82f9408f28052acbab0c27533f60e3c2a6f49db62560b36b45429158",
