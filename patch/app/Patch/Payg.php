@@ -604,7 +604,7 @@ function paygAdminSettings(): array
     foreach (['payg_enabled' => '0', 'payg_min_charge' => '2000000', 'payg_charge_step' => '100000',
               'payg_default_price' => '0', 'payg_low_balance' => '500000', 'payg_outage_free' => '1',
               'payg_warn_percent' => '80,95', 'payg_warn_days' => '3,1', 'payg_show_toman' => '1',
-              'payg_group' => '0', 'commission_wallet_enabled' => '0', 'sub_info_enabled' => '0',
+              'payg_group' => '0', 'payg_banner' => '1', 'commission_wallet_enabled' => '0', 'sub_info_enabled' => '0',
               'sub_origin' => ''] as $name => $fallback) {
         $settings[$name] = paygSetting($name, $fallback);
     }
@@ -790,7 +790,7 @@ function paygAdminSave(): void
         putSetting('sub_origin_ip', $ip);
     }
 
-    foreach (['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'commission_wallet_enabled',
+    foreach (['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'payg_banner', 'commission_wallet_enabled',
               'sub_info_enabled'] as $name) {
         if (isset($_POST[$name])) {
             putSetting($name, (int) $_POST[$name] === 1 ? '1' : '0');
