@@ -57,6 +57,7 @@
 <h2 dir="rtl">نصب</h2>
 <h3 dir="rtl">نصب خودکار (سرورهایی که الان XMPlus دارند)</h3>
 <p dir="rtl">بدون هیچ گزینه‌ای:</p>
+
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main/node/xray/install.sh)
 ```
@@ -73,6 +74,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-
 <li>تنظیمات هر نود را از پنل می‌گیرد، خلاصه‌اش را چاپ می‌کند و اگر پورتی در ufw بسته بود باز می‌کند.</li>
 </ol>
 <h3 dir="rtl">نصب دستی (سرور تازه)</h3>
+
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main/node/xray/install.sh) \
   --panel https://origin.example.com --key <ApiKey> --node 74
@@ -90,6 +92,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-
 </ul>
 <p dir="rtl">اجرای دوبارهٔ نصب‌کننده امن است: <code>agent.json</code> ادغام می‌شود، جایگزین نمی‌شود.</p>
 <h3 dir="rtl">دستورها</h3>
+
 ```bash
 digitsell-xray status     # نودها، تعداد کاربر، آنلاین‌ها، گواهی، آخرین گزارش ترافیک
 digitsell-xray log        # لاگ زنده (ایجنت + Xray)
@@ -116,6 +119,7 @@ digitsell-xray uninstall  # حذف (--keep-config ، --restore-xmplus)
 <p dir="rtl">نوع سرور: VLESS · پورت: <code>443</code> (یا یکی از پورت‌های HTTPS کلادفلر: 2053، 2083، 2087، 2096، 8443) ·
 امنیت: tls · حالت گواهی: <code>dns</code> (بهترین حالت پشت CDN) یا <code>http</code></p>
 <p dir="rtl">تنظیمات شبکه:</p>
+
 ```json
 {
   "transport": "xhttp",
@@ -128,6 +132,7 @@ digitsell-xray uninstall  # حذف (--keep-config ، --restore-xmplus)
 ```
 
 <p dir="rtl">تنظیمات امنیتی:</p>
+
 ```json
 {
   "serverName": "s1.example.com",
@@ -151,11 +156,13 @@ digitsell-xray uninstall  # حذف (--keep-config ، --restore-xmplus)
 <h3 dir="rtl">۳. VLESS + REALITY + Vision (سریع‌ترین؛ بدون دامنه و گواهی)</h3>
 <p dir="rtl">نوع سرور: VLESS · پورت: <code>443</code> · امنیت: reality</p>
 <p dir="rtl">کلید بسازید (PrivateKey را در پنل بگذارید؛ Password/PublicKey برای لینک‌هاست):</p>
+
 ```bash
 /usr/local/lib/digitsell-xray/xray x25519
 ```
 
 <p dir="rtl">تنظیمات شبکه:</p>
+
 ```json
 {
   "transport": "tcp",
@@ -166,6 +173,7 @@ digitsell-xray uninstall  # حذف (--keep-config ، --restore-xmplus)
 ```
 
 <p dir="rtl">تنظیمات امنیتی:</p>
+
 ```json
 {
   "show": false,
@@ -188,6 +196,7 @@ digitsell-xray uninstall  # حذف (--keep-config ، --restore-xmplus)
 </ul>
 <h3 dir="rtl">۴. VLESS + XHTTP + REALITY</h3>
 <p dir="rtl">مثل پروفایل ۳، ولی با تنظیمات شبکهٔ XHTTP:</p>
+
 ```json
 {
   "transport": "xhttp",
@@ -200,6 +209,7 @@ digitsell-xray uninstall  # حذف (--keep-config ، --restore-xmplus)
 <p dir="rtl">تنظیمات امنیتی مثل پروفایل ۳، فقط با <code>"flow": "none"</code>.</p>
 <h3 dir="rtl">۵. VMess / VLESS + WebSocket + TLS (قدیمی، هنوز کار می‌کند)</h3>
 <p dir="rtl">همان تنظیمات فعلی شما، فقط <code>allowInsecure</code> را <code>false</code> کنید:</p>
+
 ```json
 {
   "transport": "ws",
@@ -365,6 +375,7 @@ digitsell-xray uninstall  # حذف (--keep-config ، --restore-xmplus)
 <li><strong>Relay</strong> (زنجیره به نود دیگر) و <strong>sendthrough</strong> پنل پشتیبانی می‌شوند.</li>
 </ul>
 <h2 dir="rtl">برگشتن به XMPlus</h2>
+
 ```bash
 digitsell-xray uninstall --restore-xmplus
 ```
@@ -378,6 +389,7 @@ digitsell-xray uninstall --restore-xmplus
 تبدیل می‌کند و اشتراک <strong>همهٔ</strong> اکانت‌هایی که آن نود را می‌بینند خراب می‌شود. پیام خطا:
 <code>Undefined index: headerType</code> در <code>Xray.php:85</code> (اشتراک) یا <code>VlessURI.php:12</code> (صفحهٔ سرورها).
 برای دیدن پیام واقعی (روی سرور پنل):</p>
+
 ```bash
 curl -sk --resolve <دامنه‌ی پنل>:443:127.0.0.1 "https://<دامنه‌ی پنل>/link/<توکن>?config=1" -o /tmp/err.html
 python3 -c "import re,html;t=open('/tmp/err.html',errors='ignore').read();t=re.sub(r'(?s)<(style|script).*?</\1>','',t);t=re.sub(r'<[^>]+>','\n',t);print('\n'.join(l.strip() for l in html.unescape(t).splitlines() if l.strip())[:700])"
@@ -391,6 +403,7 @@ python3 -c "import re,html;t=open('/tmp/err.html',errors='ignore').read();t=re.s
 <p dir="rtl">راه‌حل دستی (یک بار، روی <strong>سرور پنل</strong>): همهٔ فایل‌های <code>app/Http/Schema/</code> را بررسی می‌کند و فقط
 جایی که لازم است دست می‌زند؛ از هر فایل پشتیبان می‌گیرد، syntax را می‌سنجد و در صورت خطا
 برمی‌گرداند:</p>
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main/node/xray/fix-panel-xhttp.py | python3 - /www/wwwroot/panel.example.com
 ```
@@ -400,6 +413,7 @@ curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/m
 را عوض کند از بین می‌رود؛ دوباره اجرا کنید. (غیرفعال کردن هر نودی که ۵۰۰ می‌دهد اشتراک را
 فوراً برمی‌گرداند.)</p>
 <h3 dir="rtl">نود بالاست ولی «0 آنلاین» است و مصرفی گزارش نمی‌شود</h3>
+
 ```bash
 ss -tn state established '( sport = :PORT )'     # اگر خالی است، کسی به این سرور نمی‌رسد
 ss -ltnp | grep ':PORT '                         # باید xray باشد، نه XMPlus
