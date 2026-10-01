@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-01 · installed version **1.9.2** · latest release **1.18.0** · repo
+Last updated: 2026-10-01 · installed version **1.9.2** · latest release **1.19.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -1209,6 +1209,54 @@ already polling the panel, asks for the choice and does the work.
   `tools/build_manifest.php` (no PHP on that machine) that re-dumps the old
   manifest byte for byte.
 
+### Guided node install (1.19.0, node/xray/install.sh)
+
+Asked for: the node installer should take the panel address and API key, see
+the panel's servers itself, say which ones this server is for, and install
+only after that.
+
+- **Panel:** `app/Patch/NodeApi.php`, `node.list` (POST, `X-Panel-Key`),
+  dispatched before `requireAdmin()`. Returns every `servers` row as id, name,
+  type, enabled (from `enable` / `enabled` / `status` when numeric) and
+  `addresses`. The `servers` columns are the encoded panel's and undocumented,
+  so addresses come from columns named like ip / host / domain / address /
+  server, minus names with key / pass / secret / token / cert / private /
+  path / group / port / ending in id, and only values that parse as an IP or
+  a host name leave. The key check moved to `app/Patch/NodeKey.php`
+  (`patchRequireNodeKey()`), shared with `TorExit.php`.
+- **Installer:** a Python wizard (written to `$TMP` from a heredoc, since the
+  installer runs as `bash <(curl ...)` and must stay one file; stdin from
+  the terminal, `/dev/tty` under `curl | bash`). It runs when there is
+  nothing to go on (new server: no XMPlus config, no agent.json), when only
+  `--panel` / `--key` are given, with `--pick`, and — new — **also when
+  XMPlus's config.yml is found** at a terminal: config.yml fills every
+  default (panel, key, node ids, per-node `CertFile` / `KeyFile`) and the
+  admin confirms. `--yes` keeps the old silent path. Steps: address (must be
+  a web address) and hidden key, checked by `node.list` (403 → asked again);
+  this machine's addresses (ipify v4 / v6 + `hostname -I`); every server's
+  node settings from `/api/server/<id>` (8 in parallel) and its addresses
+  resolved; table with HERE where an address resolves to this machine
+  (default answer = those, else config.yml / agent.json nodes); ids checked;
+  per chosen node: e-mail (cert http / tls / dns), DNS provider + NAME=value
+  lines (dns), certificate + key file with on-disk suggestions (file);
+  warnings for two nodes on one port, a port held by another program, a TLS
+  domain not resolving here; summary and `[Y/n]`. Its JSON answer is read back
+  into PANEL / KEY / NODES / EMAIL / DNS_* and `NODE_FILES_JSON`, which the
+  agent.json writer applies as per-node `cert_file` / `key_file` after the
+  XMPlus merge (kept nodes keep their XMPlus settings, dropped ones go).
+  An older panel without `node.list`: said once, ids asked and each checked
+  with `/api/server/<id>`.
+- **Tested:** wizard (extracted from install.sh) against a stand-in panel on
+  Windows Python: bad address, wrong key then right, table, default, id not
+  on the panel, far node with DNS warning, file certificate picked, the
+  config.yml path with everything prefilled, old panel with checked ids,
+  answering no. In WSL: `php -l`, `nodeApiAddresses()` on a row with an api
+  key, a `server_key`, a comma list and IPv6 (only hosts / IPs came out),
+  `bash -n install.sh`, and the parse glue + agent.json writer on the
+  owner's config.yml shape (69 kept with its XMPlus cert files, 74 dropped,
+  80 added with picked files, DNS env). Not run end to end on a real server
+  (the full install downloads Xray / lego; the test machine was low on disk).
+
 ### Gift card redeem (1.8.9)
 
 - **Dialog:** `#redeem_modal` in `view/user/dashboard/order.tpl`, opened by
@@ -1416,3 +1464,4 @@ already polling the panel, asks for the choice and does the work.
 | 1.17.0 | Direct routes for Xray customers: "Xray customers too (Happ)" switch on the OpenVPN direct-routes card sends the Iran / custom list to Happ with the subscription (`routing` header). `node/xray/`: our own Xray node with the official Xray-core in place of the XMPlus node binary (node files, not copied into the panel) |
 | 1.17.1 | The panel's own link builders (`app/Http/Schema`) are fixed automatically so an xhttp node cannot take the subscription link and the Servers page down: once at install (migration 014) and every hour (`bin/schemafix.php`), since a panel update puts the originals back |
 | 1.18.0 | Exit location per server: card on the Servers page picks a Tor exit country per Xray server; the node's agent (digitsell-xray 1.2.0) installs tor-geo, starts the country and switches once it answers (`torexit.*`, migration 015) |
+| 1.19.0 | Guided node install: `node.list` (servers with their domains / IPs, API key) so `node/xray/install.sh` asks for the panel and key, lists the panel's servers with the ones pointing at the machine marked, asks which nodes it runs (and their certificates), then installs; also for servers moving from XMPlus (`--yes` = old silent path) |

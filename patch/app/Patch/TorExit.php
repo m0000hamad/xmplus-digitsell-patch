@@ -39,29 +39,7 @@ function torexitToken(): string
     return (string) $_SESSION['patch_csrf'];
 }
 
-/**
- * The agent sends the same key it uses for the panel's own node API. The
- * encoded settings page stores it under a name this patch cannot read from
- * source, so every *apikey* setting is a candidate; the comparison is
- * constant-time and an empty or short value never matches.
- */
-function torexitRequireNodeKey(): void
-{
-    $sent = (string) ($_SERVER['HTTP_X_PANEL_KEY'] ?? '');
-    if (strlen($sent) < 8) {
-        fail('panel key missing', 403);
-    }
-
-    $rows = db()->query("SELECT value FROM settings WHERE name LIKE '%apikey%'")->fetchAll();
-    foreach ($rows as $row) {
-        $value = (string) $row['value'];
-        if (strlen($value) >= 8 && hash_equals($value, $sent)) {
-            return;
-        }
-    }
-
-    fail('wrong panel key', 403);
-}
+require_once __DIR__ . '/NodeKey.php';
 
 function torexitServerIds(): array
 {
@@ -84,7 +62,7 @@ function torexitCountry($value): string
 
 function torexitSync(): void
 {
-    torexitRequireNodeKey();
+    patchRequireNodeKey();
 
     $body = json_decode((string) file_get_contents('php://input'), true);
     if (!is_array($body) || !is_array($body['nodes'] ?? null)) {
