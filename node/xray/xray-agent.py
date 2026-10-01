@@ -63,7 +63,7 @@ import urllib.parse
 import urllib.request
 import uuid as uuidlib
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 
 ETC = "/etc/digitsell-xray"
 LIB = "/usr/local/lib/digitsell-xray"
@@ -842,6 +842,7 @@ TOREXIT_TICK = 30           # seconds between rounds of the background worker
 TOREXIT_PROBE_EVERY = 60    # how often each Tor exit in use or wanted is tried
 TOREXIT_INFO_EVERY = 1800   # country list and the server's own IP
 TOREXIT_RETRY = 600         # wait after a failed install or a country that would not start
+TOREXIT_ROTATE_WAIT = 300   # how long a restarted Tor node gets to bootstrap before the new IP is given up on
 
 
 def country_code(value):
@@ -951,6 +952,8 @@ class TorExit(threading.Thread):
         self.probes = {}             # name -> {"ip", "ok", "at", "error"}
         self.install_failed_at = 0
         self.add_failed = {}         # cc -> (error, time)
+        self.rotate_req = {}         # node id -> (tor-geo node name, request time from the panel)
+        self.rotations = {}          # node id -> {"at", "state", "old_ip", "new_ip", "error"}
 
     # ------------------------------------------------ main thread interface
 
@@ -961,6 +964,17 @@ class TorExit(threading.Thread):
             self.targets_known = True
         if changed:
             self.wake.set()
+
+    def request_rotate(self, node_id, name, at):
+        with self.lock:
+            if self.rotate_req.get(node_id) == (name, at):
+                return
+            self.rotate_req[node_id] = (name, at)
+        self.wake.set()
+
+    def rotation_report(self, node_id):
+        record = self.rotations.get(node_id)
+        return dict(record) if record else None
 
     def created_names(self):
         with self.lock:
@@ -1058,6 +1072,7 @@ class TorExit(threading.Thread):
             self.add(country)
         nodes = torgeo_nodes()
         self.probe_round(nodes, wanted, keep)
+        self.do_rotations()
         self.remove_unused(nodes, wanted, keep)
 
     def run_torgeo(self, args, timeout):
@@ -1140,6 +1155,43 @@ class TorExit(threading.Thread):
             if name not in nodes:
                 probes.pop(name)
         self.probes = probes
+
+    def do_rotations(self):
+        """A new exit IP, asked for in the panel: restart the country's tor-geo
+        node (new circuits), then wait for its next probe to answer and report
+        the old and the new IP. A request is done once, whatever the outcome."""
+        with self.lock:
+            requests = dict(self.rotate_req)
+        handled = self.agent.state.setdefault("torexit_rotated", {})
+        for node_id, (name, at) in requests.items():
+            if as_int(handled.get(str(node_id))) >= at:
+                continue
+            record = self.rotations.get(node_id)
+            if not record or record["at"] != at:
+                old_ip = (self.probes.get(name) or {}).get("ip", "")
+                record = {"at": at, "state": "restarting", "name": name, "old_ip": old_ip, "new_ip": "", "error": ""}
+                self.rotations[node_id] = record
+                self.busy = "restarting Tor node %s for a new IP" % name
+                log("exit locations: new IP for node %d, restarting tor-geo node %s" % (node_id, name))
+                code, out = self.run_torgeo(["rotate", name], 120)
+                if code != 0:
+                    record.update(state="failed", error=short_error(out) or "tor-geo rotate exited with %d" % code)
+                    handled[str(node_id)] = at
+                    continue
+                record.update(state="waiting", restarted=time.time())
+                probes = dict(self.probes)
+                probes.pop(name, None)  # the next round probes it again right away
+                self.probes = probes
+                continue
+            if record["state"] == "waiting":
+                probe = self.probes.get(name) or {}
+                if probe.get("ok") and probe.get("at", 0) > record["restarted"]:
+                    record.update(state="done", new_ip=probe.get("ip", ""))
+                    handled[str(node_id)] = at
+                elif time.time() - record["restarted"] > TOREXIT_ROTATE_WAIT:
+                    record.update(state="failed",
+                                  error="Tor did not come back within %d minutes" % (TOREXIT_ROTATE_WAIT // 60))
+                    handled[str(node_id)] = at
 
     def remove_unused(self, nodes, wanted, keep):
         for name in self.created_names():
@@ -1235,6 +1287,7 @@ class Agent:
         # here follows its agent.json. Kept across restarts, so a panel that
         # is down at boot does not move anyone.
         self.exit_wants = {}
+        self.exit_rotates = {}  # node id -> when the admin last asked for a new IP
         for key, value in (self.state.get("exit_wants") or {}).items():
             if as_int(key) > 0:
                 self.exit_wants[as_int(key)] = country_code(value)
@@ -1669,6 +1722,8 @@ class Agent:
             "countries_at": worker.countries_at,
             "want": want,
             "exit": exit_info,
+            "rotate": worker.rotation_report(node_id),
+            "rotated_at": as_int((self.state.get("torexit_rotated") or {}).get(str(node_id))),
         }
         if worker.busy == "installing tor-geo":
             report["busy_code"] = "installing"
@@ -1703,6 +1758,7 @@ class Agent:
                 entry = wanted.get(str(node_id))
                 if isinstance(entry, dict):
                     self.exit_wants[node_id] = country_code(entry.get("want"))
+                    self.exit_rotates[node_id] = as_int(entry.get("rotate_at"))
                 else:
                     self.exit_wants.pop(node_id, None)
         problem = "; ".join(problems) or None
@@ -1716,6 +1772,11 @@ class Agent:
                 if chosen.get("tor"):
                     keep.add(as_str(chosen["tor"]))
         self.torexit.set_targets({c for c in self.exit_wants.values() if c}, keep)
+        handled = self.state.setdefault("torexit_rotated", {})
+        for node_id, at in self.exit_rotates.items():
+            tor = as_str((self.exit_current.get(node_id) or ({}, ""))[0].get("tor"))
+            if at > as_int(handled.get(str(node_id))) and tor and self.exit_wants.get(node_id):
+                self.torexit.request_rotate(node_id, tor, at)
         self.state["exit_wants"] = {str(k): v for k, v in self.exit_wants.items()}
         self.state["torexit_created"] = self.torexit.created_names()
 

@@ -1911,4 +1911,13 @@ $i18n['zh_CN'] = array(
 	'TorExitDismiss'            => "Got it",
 	'TorExitSearch'             => "Search a country",
 	'TorExitNodeOff'            => "The node agent is not reporting; the change is applied once it is back",
+	'TorExitRotate'             => "New IP",
+	'TorExitRotateConfirm'      => "Get a new exit IP for \"%server%\"? The Tor node of that country on the server restarts and its users are cut for one to two minutes.",
+	'TorExitRotating'           => "Getting a new IP",
+	'TorExitRotOkMsg'           => "The exit IP of \"%server%\" changed: %ip% (was %old%) - took %time%.",
+	'TorExitRotSameMsg'         => "Tor gave \"%server%\" the same IP again (%ip%). Try once more.",
+	'TorExitRotFailMsg'         => "A new IP for \"%server%\" failed: %reason%",
+	'TorExitRotTimeout'         => "The node agent did not answer within 7 minutes, or Tor did not come back",
+	'TorExitRotOldAgent'        => "The node agent is too old; run digitsell-xray update on the server (needs 1.3.0 or newer)",
+	'TorExitRotAsked'           => "A new IP was asked for. The server carries it out within a minute.",
 );

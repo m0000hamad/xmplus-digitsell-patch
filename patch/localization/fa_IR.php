@@ -1912,4 +1912,13 @@ $i18n['fa_IR'] = array(
 	'TorExitDismiss'            => "فهمیدم",
 	'TorExitSearch'             => "جستجوی کشور (فارسی یا English)",
 	'TorExitNodeOff'            => "برنامه‌ی نود گزارش نمی‌دهد؛ تغییر تا وصل شدنش اعمال نمی‌شود",
+	'TorExitRotate'             => "IP جدید",
+	'TorExitRotateConfirm'      => "برای «%server%» IP خروجی جدید گرفته شود؟ Tor همان کشور روی سرور ری‌استارت می‌شود و کاربران آن حدود یک تا دو دقیقه قطع می‌شوند.",
+	'TorExitRotating'           => "در حال گرفتن IP جدید",
+	'TorExitRotOkMsg'           => "IP خروجی «%server%» عوض شد: %ip% (قبلی: %old%) — %time% طول کشید.",
+	'TorExitRotSameMsg'         => "Tor برای «%server%» دوباره همان IP را داد (%ip%). یک بار دیگر امتحان کن.",
+	'TorExitRotFailMsg'         => "گرفتن IP جدید برای «%server%» انجام نشد: %reason%",
+	'TorExitRotTimeout'         => "برنامه‌ی نود تا ۷ دقیقه جواب نداد یا Tor بالا نیامد",
+	'TorExitRotOldAgent'        => "برنامه‌ی نود قدیمی است؛ روی سرور digitsell-xray update بزن (نیاز به نسخه‌ی 1.3.0 یا جدیدتر)",
+	'TorExitRotAsked'           => "درخواست IP جدید ثبت شد. سرور در یک دقیقه‌ی آینده آن را اجرا می‌کند.",
 );
