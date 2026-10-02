@@ -1,6 +1,1 @@
-Direct routes for Xray customers on Happ: Filimo, Aparat, Digikala, Telewebion
-and other Iranian services that are not under .ir are now on the direct list
-when the Iran switch is on, and the subscription also sends the routing-enable
-header so Happ applies the profile. It only reaches Happ through the link the
-dashboard shows (xmplus-patch.php?do=sub); links imported earlier (/link/...)
-need the nginx line from HANDOFF or to be added again.
+Nothing changes for customers. When the patch cannot get the panel's own subscription link it sends the app back to that link; that redirect now carries a marker so an optional nginx rule (tools/nginx/digitsell-sub.conf, not applied on any server) can never send it round in a circle.
