@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-01 · installed version **1.9.2** · latest release **1.19.0** · repo
+Last updated: 2026-10-01 · installed version **1.9.2** · latest release **1.21.2** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -1467,3 +1467,4 @@ only after that.
 | 1.19.0 | Guided node install: `node.list` (servers with their domains / IPs, API key) so `node/xray/install.sh` asks for the panel and key, lists the panel's servers with the ones pointing at the machine marked, asks which nodes it runs (and their certificates), then installs; also for servers moving from XMPlus (`--yes` = old silent path) |
 | 1.21.0 | Charge wallet banner: a slim closable bar at the top of every customer page (`view/user/layout/paygbanner.tpl`, included from `usermenu.tpl`) tells people the connection is not cut when the plan ends and the balance pays per GB; wording follows the wallet mode (plan / balance / empty), the button opens the wallet drawer (`#wallet-charge`), close hides it 3 days per mode in this browser. Admin switch `payg_banner` in the wallet settings (default on, migration 017) |
 | 1.21.1 | Sign-in and sign-up pages announce the charge wallet (a "new" card at the top of the benefits list, a short line on phones; only while `payg_enabled` is on). Sources in `tools/login/login.src.tpl` and `tools/register/register.src.tpl`, rebuilt with their `build.js` |
+| 1.21.2 | Happ direct routes: Iranian services outside .ir (filimo.com, aparat.com, digikala.com, ...) added to the Iran list; `routing-enable` header sent with `routing`. The profile still only reaches Happ through `xmplus-patch.php?do=sub` links, not `/link/` |

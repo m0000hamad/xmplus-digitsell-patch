@@ -32,6 +32,15 @@ const SUBINFO_PASS = ['subscription-userinfo', 'profile-title', 'profile-update-
     'routing', 'providerid', 'update-always', 'hide-settings'];
 
 /**
+ * Iranian services that are NOT under .ir, so `domain:ir` does not cover them
+ * and the app's own geosite list may not either (Filimo is the one customers
+ * noticed: it refuses a foreign address). Sent as direct sites when the Iran
+ * switch is on; the admin's own lines are added to these.
+ */
+const SUBINFO_IRAN_DOMAINS = ['filimo.com', 'aparat.com', 'digikala.com', 'telewebion.com', 'torob.com',
+    'sheypoor.com', 'zarinpal.com', 'eitaa.com', 'bale.ai'];
+
+/**
  * Direct routes for Happ, which takes a routing profile from the subscription
  * (`routing: happ://routing/onadd/<base64 JSON>`): the list on the admin's
  * OpenVPN "direct routes" card, when "Xray apps too" is on there. Iranian
@@ -55,6 +64,9 @@ function subinfoHappRouting(): ?string
     if ((string) setting('ovpn_bypass_iran', '0') === '1') {
         $sites[] = 'domain:ir';
         $sites[] = 'geosite:category-ir';
+        foreach (SUBINFO_IRAN_DOMAINS as $domain) {
+            $sites[] = 'domain:' . $domain;
+        }
         $ips[] = 'geoip:ir';
     }
     // the same lines OpenVPN uses, checked when they were saved
@@ -443,6 +455,9 @@ if (preg_match('~\bhapp\b~i', (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''))) {
     $routing = subinfoHappRouting();
     if ($routing !== null) {
         header('routing: ' . $routing);
+        // 3x-ui sends the pair too; without the switch Happ may keep the profile
+        // stored but not apply it
+        header('routing-enable: ' . ($routing === 'happ://routing/off' ? '0' : 'true'));
     }
 }
 
