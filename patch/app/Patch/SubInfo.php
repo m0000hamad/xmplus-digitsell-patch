@@ -198,11 +198,20 @@ function subinfoOrigin(string $token): string
     return $base . '/link/' . $token . subinfoQuery();
 }
 
-/** Go back to the panel's own public link: never leave the app with nothing. */
+/**
+ * Go back to the panel's own public link: never leave the app with nothing.
+ * `nosub=1` tells the nginx rule (tools/nginx/digitsell-sub.conf), if the
+ * server has it, not to send this request through the patch again - without it
+ * a failing panel link would bounce between here and the panel until the app
+ * gives up. The panel ignores the extra parameter.
+ */
 function subinfoBail(string $token): void
 {
+    $query = subinfoQuery();
+    $query .= ($query === '' ? '?' : '&') . 'nosub=1';
+
     header_remove('Content-Type');
-    header('Location: https://' . subinfoHost() . '/link/' . $token . subinfoQuery(), true, 302);
+    header('Location: https://' . subinfoHost() . '/link/' . $token . $query, true, 302);
     exit;
 }
 

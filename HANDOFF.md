@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-01 · installed version **1.9.2** · latest release **1.21.2** · repo
+Last updated: 2026-10-01 · installed version **1.9.2** · latest release **1.21.3** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -687,15 +687,31 @@ rides in information-only rows. The wrapper
 Apps in use (owner, 2026-09-29): Happ, V2Box, v2rayNG, Shadowrocket — all read
 base64 URI lists. The dashboard hands out the wrapper link only when
 `sub_info_enabled` = 1 (application.tpl, `$subLink`); links already imported
-keep pointing at `/link/`. To move those too, one nginx line on the server
-(not part of the patch), inside the panel's `server {}`:
+keep pointing at `/link/`. To move those too, an nginx rule on the server
+(not part of the patch):
 
-```nginx
-location ~ ^/link/([A-Za-z0-9_-]+)$ {
-    if ($http_x_sub_raw = "") { rewrite ^/link/([A-Za-z0-9_-]+)$ /xmplus-patch.php?do=sub&t=$1 last; }
-    try_files $uri /index.php$is_args$args;
-}
+The tested rule is `tools/nginx/digitsell-sub.conf` (server level `if` + `rewrite ... last`,
+so nothing else in the vhost is touched). It skips the patch's own fetch
+(`X-Sub-Raw`) and the patch's fallback redirect (`nosub=1`, added in 1.21.3 - the
+older one-liner here let a failing panel link bounce between wrapper and panel).
+**Not deployed anywhere yet** (owner, 2026-10-02: write it, deploy later). On
+the aaPanel box the vhost includes `vhost/nginx/extension/<site>/*.conf` before
+its own locations, so:
+
+```bash
+D=/www/server/panel/vhost/nginx/extension/p.digitsell-shop.ir
+mkdir -p "$D"
+curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main/tools/nginx/digitsell-sub.conf -o "$D/digitsell-sub.conf"
+nginx -t && nginx -s reload || rm -f "$D/digitsell-sub.conf"   # aaPanel: /www/server/nginx/sbin/nginx
 ```
+
+Checked with a local nginx 1.24 stand-in: `/link/<t>?config=1` -> wrapper with
+the query kept; with `X-Sub-Raw` or `nosub=1`, an extra path segment, odd
+characters, or any other URL -> untouched. Not tried on the live vhost
+(`vhost/rewrite/<site>.conf`, which holds the panel's own routing, was not seen).
+Needs 1.21.3 on the panel for the `nosub` guard, then every existing `/link/`
+import (all apps) goes through the wrapper, which is what gives Happ users who
+imported the old link their direct routes without adding it again.
 
 (`X-Sub-Raw` stops the wrapper's own fetch from looping; check the panel's
 existing `location /` before adding it.) Tested locally with a stand-in
@@ -1468,3 +1484,4 @@ only after that.
 | 1.21.0 | Charge wallet banner: a slim closable bar at the top of every customer page (`view/user/layout/paygbanner.tpl`, included from `usermenu.tpl`) tells people the connection is not cut when the plan ends and the balance pays per GB; wording follows the wallet mode (plan / balance / empty), the button opens the wallet drawer (`#wallet-charge`), close hides it 3 days per mode in this browser. Admin switch `payg_banner` in the wallet settings (default on, migration 017) |
 | 1.21.1 | Sign-in and sign-up pages announce the charge wallet (a "new" card at the top of the benefits list, a short line on phones; only while `payg_enabled` is on). Sources in `tools/login/login.src.tpl` and `tools/register/register.src.tpl`, rebuilt with their `build.js` |
 | 1.21.2 | Happ direct routes: Iranian services outside .ir (filimo.com, aparat.com, digikala.com, ...) added to the Iran list; `routing-enable` header sent with `routing`. The profile still only reaches Happ through `xmplus-patch.php?do=sub` links, not `/link/` |
+| 1.21.3 | The patch's fallback redirect to the panel's own link carries `nosub=1`, so the optional nginx rule (`tools/nginx/digitsell-sub.conf`, not deployed) cannot loop when the panel's link fails |
