@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-01 · installed version **1.9.2** · latest release **1.21.2** · repo
+Last updated: 2026-10-02 · installed version **1.9.2** · latest release **1.21.2** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -606,6 +606,12 @@ priced at the amount, rounded up to `payg_charge_step`; the browser then posts
 on such a package once — `payg_ledger.ref = 'order:<id>'` is UNIQUE — minus the
 order's coupon discount, plus the bonus tier (`bonus:<id>` row). Unsold rows are
 deleted after a day. `Package::topupList()` and the admin plan list hide them.
+
+**Server groups.** Settings now has a multi-select of groups allowed after a
+subscription ends (`payg_allowed_groups`) and a default group for an account
+that never had a subscription (`payg_group`). A previous group is preserved
+only when allowed; an account on another group stays cut off and its wallet is
+not spent. The no-subscription default must be a real selected group.
 
 **Modes** (`payg_wallet.mode`), moved by the job:
 
@@ -1465,6 +1471,7 @@ only after that.
 | 1.17.1 | The panel's own link builders (`app/Http/Schema`) are fixed automatically so an xhttp node cannot take the subscription link and the Servers page down: once at install (migration 014) and every hour (`bin/schemafix.php`), since a panel update puts the originals back |
 | 1.18.0 | Exit location per server: card on the Servers page picks a Tor exit country per Xray server; the node's agent (digitsell-xray 1.2.0) installs tor-geo, starts the country and switches once it answers (`torexit.*`, migration 015) |
 | 1.19.0 | Guided node install: `node.list` (servers with their domains / IPs, API key) so `node/xray/install.sh` asks for the panel and key, lists the panel's servers with the ones pointing at the machine marked, asks which nodes it runs (and their certificates), then installs; also for servers moving from XMPlus (`--yes` = old silent path) |
+| 1.20.0 | Charge wallet server-group routing: admin selects groups allowed after subscription expiry and a default group for accounts without subscription; invalid groups stay disconnected without wallet spending |
 | 1.21.0 | Charge wallet banner: a slim closable bar at the top of every customer page (`view/user/layout/paygbanner.tpl`, included from `usermenu.tpl`) tells people the connection is not cut when the plan ends and the balance pays per GB; wording follows the wallet mode (plan / balance / empty), the button opens the wallet drawer (`#wallet-charge`), close hides it 3 days per mode in this browser. Admin switch `payg_banner` in the wallet settings (default on, migration 017) |
 | 1.21.1 | Sign-in and sign-up pages announce the charge wallet (a "new" card at the top of the benefits list, a short line on phones; only while `payg_enabled` is on). Sources in `tools/login/login.src.tpl` and `tools/register/register.src.tpl`, rebuilt with their `build.js` |
 | 1.21.2 | Happ direct routes: Iranian services outside .ir (filimo.com, aparat.com, digikala.com, ...) added to the Iran list; `routing-enable` header sent with `routing`. The profile still only reaches Happ through `xmplus-patch.php?do=sub` links, not `/link/` |

@@ -84,8 +84,8 @@ class PaygJob
 		$billed = 0;
 
 		if ($this->setting('payg_enabled') == 1) {
-			$billed = $this->bill();
 			$this->transitions();
+			$billed = $this->bill();
 
 			if ((int) date('i') % 5 === 0) {
 				$this->warnings();
@@ -521,7 +521,8 @@ class PaygJob
 			})
 			->select('w.userid', 'w.balance', 'w.mode', 'w.since', 'w.auto', 'w.last_used',
 				'usr.transfer_enable', 'usr.u as used_up', 'usr.d as used_down', 'usr.expire_in',
-				'usr.server_group')
+				'usr.server_group',
+				DB::raw("EXISTS (SELECT 1 FROM orders o WHERE o.userid = usr.id AND o.status = 1 AND o.packagetype = 2) AS had_plan"))
 			->get();
 
 		foreach ($rows as $row) {
@@ -546,6 +547,11 @@ class PaygJob
 			$planLive = $expire > $now + self::PLAN_MARGIN && (float) $row->transfer_enable > $used;
 
 			if ($planLive || !$auto || $balance <= 0) {
+				return;
+			}
+
+			if (!$this->prepareGroup($row)) {
+				$this->cut($userId);
 				return;
 			}
 
@@ -586,6 +592,12 @@ class PaygJob
 				return;
 			}
 
+			if (!$this->prepareGroup($row)) {
+				$this->cut($userId);
+				$this->setMode($userId, 'empty', $used);
+				return;
+			}
+
 			$this->grant($row, $balance, $used);
 			$this->touchUsed($userId, $used);
 			$this->lowBalance($userId, $balance);
@@ -594,7 +606,7 @@ class PaygJob
 		}
 
 		// empty
-		if ($auto && $balance > 0) {
+		if ($auto && $balance > 0 && $this->prepareGroup($row)) {
 			$this->setMode($userId, 'balance', $used);
 			$this->grant($row, $balance, $used);
 			$this->notify($userId, 'resumed', (string) $now, '✅ اتصال برقرار شد',
@@ -623,6 +635,29 @@ class PaygJob
 		DB::table('payg_wallet')->where('userid', $userId)->update(['last_used' => (int) $used]);
 	}
 
+	private function prepareGroup($row)
+	{
+		$allowed = json_decode((string) $this->setting('payg_allowed_groups', '[]'), true);
+		$allowed = is_array($allowed) ? array_values(array_unique(array_map('intval', $allowed))) : [];
+		$current = (int) $row->server_group;
+
+		if ((int) $row->had_plan === 1) {
+			return $allowed === [] || in_array($current, $allowed, true);
+		}
+
+		$default = (int) $this->setting('payg_group', 0);
+		if ($default <= 0 || ($allowed !== [] && !in_array($default, $allowed, true))) {
+			return false;
+		}
+
+		if ($current !== $default) {
+			DB::table('user')->where('id', $row->userid)->update(['server_group' => $default]);
+			$row->server_group = $default;
+		}
+
+		return true;
+	}
+
 	private function headroom($balance)
 	{
 		$max = $this->maxPrice();
@@ -642,11 +677,6 @@ class PaygJob
 
 		if ((int) $row->transfer_enable !== $target) {
 			$update['transfer_enable'] = $target;
-		}
-
-		$group = (int) $this->setting('payg_group', 0);
-		if ($group > 0 && (int) $row->server_group <= 0) {
-			$update['server_group'] = $group;
 		}
 
 		if ($update !== []) {

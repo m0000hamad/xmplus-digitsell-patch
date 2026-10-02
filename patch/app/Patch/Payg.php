@@ -609,10 +609,20 @@ function paygAdminSettings(): array
         $settings[$name] = paygSetting($name, $fallback);
     }
 
+    $allowed = json_decode(paygSetting('payg_allowed_groups', '[]'), true);
+    $settings['payg_allowed_groups'] = is_array($allowed)
+        ? array_values(array_unique(array_map('intval', $allowed)))
+        : [];
+
     // an empty origin IP is a real choice (do not pin), not "unset"
     $settings['sub_origin_ip'] = (string) setting('sub_origin_ip', '127.0.0.1');
 
     return $settings;
+}
+
+function paygAdminGroups(): array
+{
+    return db()->query('SELECT id, name FROM `group` ORDER BY id ASC')->fetchAll();
 }
 
 function paygAdminBootstrap(): void
@@ -662,6 +672,7 @@ function paygAdminBootstrap(): void
         'settings'   => $settings,
         'tiers'      => paygTiers(),
         'servers'    => paygServers(),
+        'groups'     => paygAdminGroups(),
         'totals'     => $totals,
         'usage'      => $usage->fetch(),
         'per_server' => $perServer->fetchAll(),
@@ -756,7 +767,6 @@ function paygAdminSave(): void
         'payg_charge_step'   => [1, PAYG_MAX_CHARGE],
         'payg_default_price' => [0, PAYG_MAX_CHARGE],
         'payg_low_balance'   => [0, PAYG_MAX_CHARGE],
-        'payg_group'         => [0, 1000000],
     ];
 
     foreach ($numbers as $name => [$low, $high]) {
@@ -771,6 +781,37 @@ function paygAdminSave(): void
         }
 
         putSetting($name, (string) (floor($value) == $value ? (int) $value : $value));
+    }
+
+    $defaultGroup = isset($_POST['payg_group'])
+        ? (int) paygNumber($_POST['payg_group'])
+        : (int) paygSetting('payg_group', '0');
+    $allowedGroups = paygAdminSettings()['payg_allowed_groups'];
+
+    if (isset($_POST['payg_allowed_groups'])) {
+        $raw = is_array($_POST['payg_allowed_groups']) ? $_POST['payg_allowed_groups'] : [];
+        $allowedGroups = array_values(array_unique(array_filter(array_map('intval', $raw), static function ($id) {
+            return $id > 0;
+        })));
+    }
+
+    $toCheck = array_values(array_unique(array_merge($allowedGroups, $defaultGroup > 0 ? [$defaultGroup] : [])));
+    if ($toCheck !== []) {
+        $marks = implode(',', array_fill(0, count($toCheck), '?'));
+        $check = db()->prepare('SELECT id FROM `group` WHERE id IN (' . $marks . ')');
+        $check->execute($toCheck);
+        if (count($check->fetchAll(PDO::FETCH_COLUMN)) !== count($toCheck)) {
+            fail('an invalid server group was selected');
+        }
+    }
+    if ($defaultGroup > 0 && $allowedGroups !== [] && !in_array($defaultGroup, $allowedGroups, true)) {
+        fail('the default group must be one of the allowed groups');
+    }
+    if (isset($_POST['payg_group'])) {
+        putSetting('payg_group', (string) $defaultGroup);
+    }
+    if (isset($_POST['payg_allowed_groups'])) {
+        putSetting('payg_allowed_groups', (string) json_encode($allowedGroups));
     }
 
     // where SubInfo.php fetches the panel's own /link/ from

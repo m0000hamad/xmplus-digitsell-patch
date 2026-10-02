@@ -68,8 +68,14 @@
 				<input type="text" class="form-control" id="pa_payg_warn_days" dir="ltr">
 			</div>
 			<div class="col-md-6">
+				<label class="form-label" for="pa_payg_allowed_groups">{$translate->get('PaygAdmAllowedGroups')}</label>
+				<select class="form-select" id="pa_payg_allowed_groups" multiple size="5"></select>
+				<small class="text-muted">{$translate->get('PaygAdmAllowedGroupsHint')}</small>
+			</div>
+			<div class="col-md-6">
 				<label class="form-label" for="pa_payg_group">{$translate->get('PaygAdmGroup')}</label>
-				<input type="text" class="form-control" id="pa_payg_group" dir="ltr">
+				<select class="form-select" id="pa_payg_group"></select>
+				<small class="text-muted">{$translate->get('PaygAdmGroupHint')}</small>
 			</div>
 			<div class="col-md-6">
 				<label class="form-label" for="pa_payg_bonus_tiers">{$translate->get('PaygAdmTiers')}</label>
@@ -232,6 +238,8 @@
 	window.PaygAdmWords.savedMin  = "{$translate->get('PaygAdmSavedMin')|escape:'javascript'}";
 	window.PaygAdmWords.noMin     = "{$translate->get('PaygAdmNoMin')|escape:'javascript'}";
 	window.PaygAdmWords.failed    = "{$translate->get('PaygAdmSaveFailed')|escape:'javascript'}";
+	window.PaygAdmWords.allGroups = "{$translate->get('PaygAdmAllGroups')|escape:'javascript'}";
+	window.PaygAdmWords.noGroup   = "{$translate->get('PaygAdmNoGroup')|escape:'javascript'}";
 </script>
 {literal}
 <style>
@@ -268,6 +276,7 @@
 	var W = window.PaygAdmWords;
 	var token = '';
 	var page = 1;
+var groups = [];
 	var fields = ['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'payg_banner', 'commission_wallet_enabled',
 		'payg_min_charge', 'payg_charge_step', 'payg_default_price', 'payg_low_balance',
 		'payg_warn_percent', 'payg_warn_days', 'payg_group', 'sub_info_enabled', 'sub_origin', 'sub_origin_ip'];
@@ -371,8 +380,24 @@
 		return mode === 'balance' ? W.onBalance : (mode === 'empty' ? W.empty : W.plan);
 	}
 
-	function fillForm(settings, tiers) {
+	function fillGroups(groups, settings) {
+		var allowed = (settings.payg_allowed_groups || []).map(Number);
+		var defaultGroup = String(settings.payg_group || '0');
+		$id('pa_payg_allowed_groups').innerHTML = (groups || []).map(function (g) {
+			return '<option value="' + g.id + '">' + esc(g.name) + ' (#' + g.id + ')</option>';
+		}).join('');
+		$id('pa_payg_group').innerHTML = '<option value="0">' + esc(W.noGroup) + '</option>' + (groups || []).map(function (g) {
+			return '<option value="' + g.id + '">' + esc(g.name) + ' (#' + g.id + ')</option>';
+		}).join('');
+		Array.prototype.forEach.call($id('pa_payg_allowed_groups').options, function (option) {
+			option.selected = allowed.indexOf(Number(option.value)) >= 0;
+		});
+		$id('pa_payg_group').value = defaultGroup;
+	}
+
+	function fillForm(settings, tiers, groups) {
 		factor = String(settings.payg_show_toman) === '0' ? 1 : 10;
+		fillGroups(groups, settings);
 
 		document.querySelectorAll('#PaygSettings .pa-unit').forEach(function (el) {
 			el.textContent = '(' + (factor === 10 ? W.toman : W.rial) + ')';
@@ -402,7 +427,8 @@
 				return;
 			}
 			token = data.token;
-			fillForm(data.settings, data.tiers);
+			groups = data.groups || [];
+			fillForm(data.settings, data.tiers, groups);
 
 			var t = data.totals || {};
 			var u = data.usage || {};
@@ -517,6 +543,12 @@
 				body.append(name, el.value);
 			}
 		});
+		Array.prototype.forEach.call($id('pa_payg_allowed_groups').selectedOptions, function (option) {
+			body.append('payg_allowed_groups[]', option.value);
+		});
+		if ($id('pa_payg_allowed_groups').selectedOptions.length === 0) {
+			body.append('payg_allowed_groups', '');
+		}
 		body.append('payg_bonus_tiers', $id('pa_payg_bonus_tiers').value.split(/\r?\n/).map(function (line) {
 			var parts = line.split(/[:=]/);
 			return parts.length === 2 ? toRial(parts[0]) + ':' + parts[1].replace(/[^0-9.۰-۹]/g, '') : '';
@@ -534,7 +566,7 @@
 				return;
 			}
 
-			fillForm(data.settings, data.tiers);
+			fillForm(data.settings, data.tiers, groups);
 			var min = Number(data.settings.payg_min_charge) || 0;
 			var text = W.savedMin.replace('%min%', min > 0 ? money(min) : W.noMin);
 			status(text, true);

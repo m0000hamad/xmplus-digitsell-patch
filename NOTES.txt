@@ -4,3 +4,8 @@ when the Iran switch is on, and the subscription also sends the routing-enable
 header so Happ applies the profile. It only reaches Happ through the link the
 dashboard shows (xmplus-patch.php?do=sub); links imported earlier (/link/...)
 need the nginx line from HANDOFF or to be added again.
+
+Pay-as-you-go accounts now use server groups chosen in Settings. Select which
+existing groups may keep connecting after a subscription ends, plus a default
+group for customers who charge an account without ever buying a subscription.
+Accounts on other groups stay disconnected and their wallet is not spent.
