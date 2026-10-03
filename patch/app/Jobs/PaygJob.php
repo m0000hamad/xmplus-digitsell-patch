@@ -679,6 +679,11 @@ class PaygJob
 			$update['transfer_enable'] = $target;
 		}
 
+		$iplimit = (int) $this->setting('payg_iplimit', 0);
+		if ($iplimit > 0 && (int) $row->iplimit !== $iplimit) {
+			$update['iplimit'] = $iplimit;
+		}
+
 		if ($update !== []) {
 			DB::table('user')->where('id', $row->userid)->update($update);
 		}

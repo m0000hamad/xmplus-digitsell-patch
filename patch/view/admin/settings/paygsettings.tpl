@@ -60,6 +60,11 @@
 				<input type="text" class="form-control" id="pa_payg_low_balance" dir="ltr">
 			</div>
 			<div class="col-md-6">
+				<label class="form-label" for="pa_payg_iplimit">{$translate->get('PaygAdmIplimit')}</label>
+				<input type="number" class="form-control" id="pa_payg_iplimit" min="0" max="1000" dir="ltr">
+				<small class="text-muted">{$translate->get('PaygAdmIplimitHint')}</small>
+			</div>
+			<div class="col-md-6">
 				<label class="form-label" for="pa_payg_warn_percent">{$translate->get('PaygAdmWarnPct')}</label>
 				<input type="text" class="form-control" id="pa_payg_warn_percent" dir="ltr">
 			</div>
@@ -278,10 +283,10 @@
 	var page = 1;
 var groups = [];
 	var fields = ['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'payg_banner', 'commission_wallet_enabled',
-		'payg_min_charge', 'payg_charge_step', 'payg_default_price', 'payg_low_balance',
+		'payg_min_charge', 'payg_charge_step', 'payg_default_price', 'payg_low_balance', 'payg_iplimit',
 		'payg_warn_percent', 'payg_warn_days', 'payg_group', 'sub_info_enabled', 'sub_origin', 'sub_origin_ip'];
 	var checks = ['payg_enabled', 'payg_outage_free', 'payg_show_toman', 'payg_banner', 'commission_wallet_enabled', 'sub_info_enabled'];
-	var moneyFields = ['payg_min_charge', 'payg_charge_step', 'payg_default_price', 'payg_low_balance'];
+	var moneyFields = ['payg_min_charge', 'payg_charge_step', 'payg_default_price', 'payg_low_balance', 'payg_iplimit'];
 
 	/* rial in the database; toman on screen while "show in toman" is on */
 	var factor = 10;

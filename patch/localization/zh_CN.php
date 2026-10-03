@@ -1681,6 +1681,8 @@ $i18n['zh_CN'] = array(
 	'PaygAdmAllowedGroupsHint'  => "仅当当前组在此列表中时才保留；留空表示允许所有组。",
 	'PaygAdmAllGroups'          => "服务器组",
 	'PaygAdmNoGroup'            => "无默认组（0）",
+	'PaygAdmIplimit'            => "钱包模式下的同时连接限制（0 = 不更改）",
+	'PaygAdmIplimitHint'        => "套餐结束后回退到钱包余额时，应用此连接限制。0 表示保留套餐的值。",
 	'PaygAdmTiers'              => "Top-up bonus tiers (one per line: amount:percent)",
 	'PaygAdmTiersHint'          => "E.g. 1000000:5 = 5% extra from 1,000,000 (in the unit above). The highest tier reached applies.",
 	'PaygAdmRates'              => "Price per GB by server",

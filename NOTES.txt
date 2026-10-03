@@ -1,11 +1,3 @@
-Direct routes for Xray customers on Happ: Filimo, Aparat, Digikala, Telewebion
-and other Iranian services that are not under .ir are now on the direct list
-when the Iran switch is on, and the subscription also sends the routing-enable
-header so Happ applies the profile. It only reaches Happ through the link the
-dashboard shows (xmplus-patch.php?do=sub); links imported earlier (/link/...)
-need the nginx line from HANDOFF or to be added again.
+PAYG iplimit override: admin sets a connection limit (`payg_iplimit`) applied when a plan expires and the account falls back to wallet balance; server_group stays unchanged from the subscription; 0 = keep package value.
 
-Pay-as-you-go accounts now use server groups chosen in Settings. Select which
-existing groups may keep connecting after a subscription ends, plus a default
-group for customers who charge an account without ever buying a subscription.
-Accounts on other groups stay disconnected and their wallet is not spent.
+Pay-as-you-go charge mint: cancel any pending payg order for the user when a new amount is chosen, so changing the amount on the wallet page always creates a fresh package instead of reusing an old pending order.

@@ -465,6 +465,11 @@ function paygUserMint(): void
         paygReturnHolds((int) $user['id']);
     }
 
+    // cancel any pending payg orders for this user so a new amount creates a fresh package
+    db()->prepare("UPDATE orders SET status = -1 WHERE userid = ? AND status = 0
+        AND packageid IN (SELECT id FROM package WHERE type = 1 AND order_note LIKE ?)")
+        ->execute([$user['id'], '%' . PAYG_MARKER . '%']);
+
     $name = 'شارژ حساب ' . paygMoneyText($amount);
     $note = (string) json_encode(['paygcharge' => ['v' => 1, 'amount' => $amount, 'created' => time()]]);
     $price = number_format($amount, 2, '.', '');
@@ -604,7 +609,7 @@ function paygAdminSettings(): array
     foreach (['payg_enabled' => '0', 'payg_min_charge' => '2000000', 'payg_charge_step' => '100000',
               'payg_default_price' => '0', 'payg_low_balance' => '500000', 'payg_outage_free' => '1',
               'payg_warn_percent' => '80,95', 'payg_warn_days' => '3,1', 'payg_show_toman' => '1',
-              'payg_group' => '0', 'payg_banner' => '1', 'commission_wallet_enabled' => '0', 'sub_info_enabled' => '0',
+              'payg_group' => '0', 'payg_iplimit' => '0', 'payg_banner' => '1', 'commission_wallet_enabled' => '0', 'sub_info_enabled' => '0',
               'sub_origin' => ''] as $name => $fallback) {
         $settings[$name] = paygSetting($name, $fallback);
     }
@@ -767,6 +772,7 @@ function paygAdminSave(): void
         'payg_charge_step'   => [1, PAYG_MAX_CHARGE],
         'payg_default_price' => [0, PAYG_MAX_CHARGE],
         'payg_low_balance'   => [0, PAYG_MAX_CHARGE],
+        'payg_iplimit'       => [0, 1000],
     ];
 
     foreach ($numbers as $name => [$low, $high]) {
