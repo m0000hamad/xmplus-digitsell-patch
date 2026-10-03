@@ -1,5 +1,5 @@
 {
-    "version": "1.22.4",
+    "version": "1.22.5",
     "released": "2026-10-03",
     "notes": "Header countdown shows nicer payg balance format (💰 balance · 📶 GB) when wallet balance > 0.\n\nPAYG iplimit override: admin sets a connection limit (`payg_iplimit`) applied when a plan expires and the account falls back to wallet balance; server_group stays unchanged from the subscription; 0 = keep package value.\n\nPay-as-you-go charge mint: cancel any pending payg order for the user when a new amount is chosen, so changing the amount on the wallet page always creates a fresh package instead of reusing an old pending order.\n\nShow wallet state in subscription card immediately after charge (payg balance > 0).\n\nPayg banner now shows balance mode immediately when wallet balance > 0.\n\nHeader countdown shows payg balance instead of Expired text when wallet balance > 0.",
     "migrations": [
@@ -30,7 +30,7 @@
         "app/Http/Models/Package.php": "a9dd16537274e0426a851e1b18d2426c44c343b21172f9726c03c85078ebd876",
         "app/Http/Models/Ticket.php": "2725842f26f84d4f01be5d30001468591221cd7d95571ddbc47304840ee5c2a0",
         "app/Http/Models/TrafficDaily.php": "f67b2efe0fb0a261f17ef7aae4aebe133db2e9b5608288112890d8a28bf75906",
-        "app/Http/Models/User.php": "512424b199954af83d2041e4407a91ef46f5eba324d502ad12a7aafa9abbfba7",
+        "app/Http/Models/User.php": "b1fbfea0bdab670b5a8b85af7efc58c67761d3efcbbc59107fe21b6a533b8480",
         "app/Jobs/CommissionJob.php": "a43661cc8bfb851e5a96a637401c96863cc4d52b45bd2de63eea0b7c2935fda2",
         "app/Jobs/GiftCardNotifyJob.php": "8b9d1d517e33c2e5ac515649fc26b1910879c69f5eb202f454f71296a0ea45b0",
         "app/Jobs/LogsJob.php": "1226dc5987cd1b81692b3a86347f7fd6ae32ddc84c4f4a2f1f2546d71c340139",
@@ -129,7 +129,7 @@
         "view/user/knowledgebase/index.tpl": "56734909a2273153f33e7eef3078075a77a9570ca1390a6ac8ce9f809bd400f3",
         "view/user/knowledgebase/show.tpl": "30eb542a241bad2678750e9e432ddc26d17fa952ee999b1c4ae98624bd3007ba",
         "view/user/layout/footer.tpl": "af2fa1a5d01278f2fb77117afa5f6c9fe129dde6361cb879d98a58d633d2a2c5",
-        "view/user/layout/header.tpl": "01e4fbfb7fd38a1c9a702ce00525ddb8c44a2c78a37a5718d8ecfa13384d478d",
+        "view/user/layout/header.tpl": "05d3b7729e696b19d52a3fc6db785f605d729bfc35f8c513a975644b8c7bea40",
         "view/user/layout/paygbanner.tpl": "6351188ea225cc45637f35f8d6c13b0bed10733e84a3a36e1d83bd4df1d1fa3e",
         "view/user/layout/style.tpl": "9da583de7ac5f193cc5c964f108b02a04636fd9d00726377536a80300ec430dd",
         "view/user/layout/usermenu.tpl": "3a527ff2828981f2e066076602ac179cea325c3ff4bfea6a227370a0c3538a93",

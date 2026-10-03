@@ -863,6 +863,21 @@ final class User extends Model
 		return round(max(0.0, $this->paygBalance()) / $max, 1);
 	}
 
+	/* English-formatted balance (toman/rial with comma thousands separator) */
+	public function paygBalanceEn()
+	{
+		$balance = $this->paygBalance();
+		$shown = $this->paygToman() ? $balance / 10 : $balance;
+		return number_format(round($shown), 0, '.', ',');
+	}
+
+	/* English-formatted GB (with dot decimal) */
+	public function paygGbEn()
+	{
+		$gb = $this->paygHeadroomGb();
+		return $gb !== null ? number_format($gb, 1, '.', ',') : 'unlimited';
+	}
+
 	/* messages from the billing job not shown yet */
 	public function paygUnseen()
 	{

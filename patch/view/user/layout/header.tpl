@@ -127,7 +127,7 @@
 			{if $session->get('locale') == "zh_CN"}
 				cdEl.innerHTML = "💰 {$user->paygBalanceShown()} {$pgbUnit}  ·  📶 ≈ {$pgbGb} GB";
 			{else}
-				cdEl.innerHTML = "💰 {$user->paygBalanceShown()} {$pgbUnit}  ·  📶 ≈ {$pgbGb} GB";
+				cdEl.innerHTML = "💰 {$user->paygBalanceShown()} {$pgbUnit} ({$user->paygBalanceEn()})  ·  📶 ≈ {$pgbGb} GB ({$user->paygGbEn()})";
 			{/if}
 		}
 		{else}
