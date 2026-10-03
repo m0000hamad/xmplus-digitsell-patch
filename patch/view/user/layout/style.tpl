@@ -311,6 +311,8 @@ html[data-hs-theme="dark"] .navbar-nav-wrap-content-start {
 .countdown-pill.cd-crit,
 .countdown-pill.cd-dead { --cd: #ef4444; --cd-rgb: 239, 68, 68; }
 .countdown-pill.cd-crit { animation: cd-pulse 1.1s ease-in-out infinite; }
+.countdown-pill.cd-payg { --cd: #f59e0b; --cd-rgb: 245, 158, 11; }
+.countdown-pill.cd-payg .cd-n { font-family: Tahoma, sans-serif; font-size: 13px; }
 @keyframes cd-pulse {
 	50% { box-shadow: inset 0 2px 5px rgba(0, 0, 0, .35), 0 0 16px rgba(var(--cd-rgb), 1); }
 }

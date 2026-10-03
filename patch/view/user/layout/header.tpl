@@ -119,6 +119,18 @@
 		var seconds = Math.floor((distance % (1000 * 60)) / 1000);
 		// neon tone by time left: green > 7d, yellow > 3d, orange > 1d, red (pulsing) under a day
 		var cdEl = document.getElementById("countdown");
+		{if $user->paygEnabled() && $user->paygBalance() > 0}
+		if (cdEl) {
+			cdEl.className = cdEl.className.replace(/\s*cd-(ok|mid|low|crit|dead)\b/g, "") + " cd-payg";
+			{if $user->paygToman()}{$pgbUnit = $translate->get('PaygToman')}{else}{$pgbUnit = $translate->get('PaygRial')}{/if}
+			{$pgbGb = $user->paygHeadroomGb()}
+			{if $session->get('locale') == "zh_CN"}
+				cdEl.innerHTML = "⚡ {$translate->get('PaygBannerBalanceTitle')|replace:'%balance%':{$user->paygBalanceShown()}|replace:'%unit%':{$pgbUnit}|replace:'%gb%':{$pgbGb}}";
+			{else}
+				cdEl.innerHTML = "⚡ {$translate->get('PaygBannerBalanceTitle')|replace:'%balance%':{$user->paygBalanceShown()}|replace:'%unit%':{$pgbUnit}|replace:'%gb%':{$pgbGb}}";
+			{/if}
+		}
+		{else}
 		if (cdEl) {
 			var cdTone = distance <= 0 ? "cd-dead" : days >= 7 ? "cd-ok" : days >= 3 ? "cd-mid" : days >= 1 ? "cd-low" : "cd-crit";
 			cdEl.className = cdEl.className.replace(/\s*cd-(ok|mid|low|crit|dead)\b/g, "") + " " + cdTone;
@@ -137,6 +149,7 @@
 			if (distance < 0) {
 				document.getElementById("countdown").innerHTML = "Expired";
 			}
+		{/if}
 		{/if}
 		display_shw();
 	}

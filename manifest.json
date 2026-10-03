@@ -1,5 +1,5 @@
 {
-    "version": "1.22.2",
+    "version": "1.22.3",
     "released": "2026-10-03",
     "notes": "PAYG iplimit override: admin sets a connection limit (`payg_iplimit`) applied when a plan expires and the account falls back to wallet balance; server_group stays unchanged from the subscription; 0 = keep package value.\n\nPay-as-you-go charge mint: cancel any pending payg order for the user when a new amount is chosen, so changing the amount on the wallet page always creates a fresh package instead of reusing an old pending order.",
     "migrations": [
@@ -129,9 +129,9 @@
         "view/user/knowledgebase/index.tpl": "56734909a2273153f33e7eef3078075a77a9570ca1390a6ac8ce9f809bd400f3",
         "view/user/knowledgebase/show.tpl": "30eb542a241bad2678750e9e432ddc26d17fa952ee999b1c4ae98624bd3007ba",
         "view/user/layout/footer.tpl": "af2fa1a5d01278f2fb77117afa5f6c9fe129dde6361cb879d98a58d633d2a2c5",
-        "view/user/layout/header.tpl": "97a881a4d9344737ecd0422d302a454438e5ac1700badb7923b1a8d80abbe678",
+        "view/user/layout/header.tpl": "37751b4902fe8b1f93a221e96fcb90b33558e27bc98e8138a1dd06b99392d406",
         "view/user/layout/paygbanner.tpl": "6351188ea225cc45637f35f8d6c13b0bed10733e84a3a36e1d83bd4df1d1fa3e",
-        "view/user/layout/style.tpl": "5f826c26c1d03c80384da348105128c8d9e240e88c75f014d49c80e368941d9d",
+        "view/user/layout/style.tpl": "9da583de7ac5f193cc5c964f108b02a04636fd9d00726377536a80300ec430dd",
         "view/user/layout/usermenu.tpl": "3a527ff2828981f2e066076602ac179cea325c3ff4bfea6a227370a0c3538a93",
         "view/user/notice/notice.tpl": "f6409604fc8916676346395d67b23092bdd6136541db415a81438bf03d936da2",
         "view/user/order/invoice.tpl": "6d5d1020127cc41af0fa284ce5507bd11106d00facd164e99809696fbfa8822d",
