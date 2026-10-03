@@ -642,7 +642,12 @@ class PaygJob
 		$current = (int) $row->server_group;
 
 		if ((int) $row->had_plan === 1) {
-			return $allowed === [] || in_array($current, $allowed, true);
+			// user had a subscription: allow their current group even if not in payg_allowed_groups
+			// (they were using it with their plan, so it should continue in balance mode)
+			if ($allowed !== [] && !in_array($current, $allowed, true)) {
+				echo date('Y-m-d H:i:s') . " user {$row->userid}: group $current not in payg_allowed_groups but had_plan=1, allowing anyway" . PHP_EOL;
+			}
+			return true;
 		}
 
 		$default = (int) $this->setting('payg_group', 0);

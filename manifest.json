@@ -1,5 +1,5 @@
 {
-    "version": "1.22.7",
+    "version": "1.22.8",
     "released": "2026-10-03",
     "notes": "Header countdown shows nicer payg balance format (💰 balance · 📶 GB) when wallet balance > 0.\n\nPAYG iplimit override: admin sets a connection limit (`payg_iplimit`) applied when a plan expires and the account falls back to wallet balance; server_group stays unchanged from the subscription; 0 = keep package value.\n\nPay-as-you-go charge mint: cancel any pending payg order for the user when a new amount is chosen, so changing the amount on the wallet page always creates a fresh package instead of reusing an old pending order.\n\nShow wallet state in subscription card immediately after charge (payg balance > 0).\n\nPayg banner now shows balance mode immediately when wallet balance > 0.\n\nHeader countdown shows payg balance instead of Expired text when wallet balance > 0.",
     "migrations": [
@@ -35,7 +35,7 @@
         "app/Jobs/GiftCardNotifyJob.php": "8b9d1d517e33c2e5ac515649fc26b1910879c69f5eb202f454f71296a0ea45b0",
         "app/Jobs/LogsJob.php": "1226dc5987cd1b81692b3a86347f7fd6ae32ddc84c4f4a2f1f2546d71c340139",
         "app/Jobs/OvpnJob.php": "b63cfe015b93aa008595b2599833fff17d4b335ffcb3c5c899663b10e3941caa",
-        "app/Jobs/PaygJob.php": "a99793130373bf27beb038ebb1c1b57dd8cf21c81ed67a2d46a0a6c95fe17dd1",
+        "app/Jobs/PaygJob.php": "14dafecc5a4f3ce206adc011c3d00f27f723d00e6fc0d1de9d79dab26e9d82cd",
         "app/Jobs/PromoJob.php": "6799b42e5a709930ed4b5121482ed96e28bdb32a6b68f20f29cd31d71980e0ea",
         "app/Jobs/TgJoinJob.php": "99bae0bb02af148aa1c07b549ea410aa6b7f43d272872b15f814c61f5aba5c70",
         "app/Jobs/TimePlanJob.php": "808e2a531426df8543a310a9d67a24f1de9700ff82c296ae1b5dce3cf8a88bda",
