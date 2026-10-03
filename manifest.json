@@ -1,7 +1,7 @@
 {
     "version": "1.22.4",
     "released": "2026-10-03",
-    "notes": "PAYG iplimit override: admin sets a connection limit (`payg_iplimit`) applied when a plan expires and the account falls back to wallet balance; server_group stays unchanged from the subscription; 0 = keep package value.\n\nPay-as-you-go charge mint: cancel any pending payg order for the user when a new amount is chosen, so changing the amount on the wallet page always creates a fresh package instead of reusing an old pending order.",
+    "notes": "Header countdown shows nicer payg balance format (💰 balance · 📶 GB) when wallet balance > 0.\n\nPAYG iplimit override: admin sets a connection limit (`payg_iplimit`) applied when a plan expires and the account falls back to wallet balance; server_group stays unchanged from the subscription; 0 = keep package value.\n\nPay-as-you-go charge mint: cancel any pending payg order for the user when a new amount is chosen, so changing the amount on the wallet page always creates a fresh package instead of reusing an old pending order.\n\nShow wallet state in subscription card immediately after charge (payg balance > 0).\n\nPayg banner now shows balance mode immediately when wallet balance > 0.\n\nHeader countdown shows payg balance instead of Expired text when wallet balance > 0.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",

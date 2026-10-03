@@ -1,3 +1,11 @@
+Header countdown shows nicer payg balance format (💰 balance · 📶 GB) when wallet balance > 0.
+
 PAYG iplimit override: admin sets a connection limit (`payg_iplimit`) applied when a plan expires and the account falls back to wallet balance; server_group stays unchanged from the subscription; 0 = keep package value.
 
 Pay-as-you-go charge mint: cancel any pending payg order for the user when a new amount is chosen, so changing the amount on the wallet page always creates a fresh package instead of reusing an old pending order.
+
+Show wallet state in subscription card immediately after charge (payg balance > 0).
+
+Payg banner now shows balance mode immediately when wallet balance > 0.
+
+Header countdown shows payg balance instead of Expired text when wallet balance > 0.
