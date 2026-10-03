@@ -13,6 +13,7 @@
  *}
 {if isset($Config['payg_enabled']) && $Config['payg_enabled'] == 1 && (!isset($Config['payg_banner']) || $Config['payg_banner'] != '0')}
 {$pgbMode = $user->paygMode()}
+{if $pgbMode == 'plan' && $user->paygBalance() > 0}{$pgbMode = 'balance'}{/if}
 {if $user->paygToman()}{$pgbUnit = $translate->get('PaygToman')}{else}{$pgbUnit = $translate->get('PaygRial')}{/if}
 <div class="pgb pgb-{$pgbMode}" id="pgBanner" data-mode="{$pgbMode}" role="note" hidden>
 	<span class="pgb-icon" aria-hidden="true">{if $pgbMode == 'empty'}⚠️{else}💳{/if}</span>
