@@ -23,7 +23,7 @@ templates and the localization files — plus one standalone PHP file under
 | Time plans | A third plan type that sells days on their own — fixed bundles or a per-day rate, limited to chosen plans, offered near the end of a subscription |
 | Plan scoping | Traffic top-ups and time plans can each be limited to chosen subscription plans and server groups |
 | Menu | Labelled glass toggle instead of a bar icon, per-item colours, current page marked, works on phones |
-| Charge wallet | Pay-as-you-go: top up any amount, usage billed per server at a price per GB once the plan runs out, spent/unspent report for the admin, separate commission wallet for plans only (off until switched on) |
+| Charge wallet | Pay-as-you-go: top up any amount, usage billed per server at a price per GB once the plan runs out, configurable allowed server groups and a default group for accounts without subscriptions, spent/unspent report for the admin, separate commission wallet for plans only (off until switched on) |
 | OpenVPN | OpenVPN servers on the same subscription: logins checked and traffic counted by the panel, same data allowance, end date and charge wallet; setup in `node/openvpn/` (off until switched on) |
 | Xray node | `node/xray/`: replaces the XMPlus node binary with the official, newest Xray-core plus an agent that speaks the panel's node API (XHTTP, REALITY, device limit, Let's Encrypt, automatic migration from XMPlus). Direct routes (Iran / chosen sites) for Happ through the subscription (1.17.0) |
 | Themes | Dark mode fixed panel-wide (see the note below) |

@@ -125,10 +125,12 @@ class TimePlanJob
 
 		$expired = strtotime($user->expire_in) < time();
 
-		// days bought after expiry start from now, not from a date in the past
+		// days bought after expiry start from now, not from a date in the past.
+		// "Now" comes from PHP: MySQL's NOW() runs on UTC here while expire_in
+		// is stored in the panel's local time, 3.5 hours apart.
 		DB::statement(
-			'UPDATE user SET expire_in = DATE_ADD(GREATEST(expire_in, NOW()), INTERVAL ? DAY) WHERE id = ?',
-			[$days, $order->userid]
+			'UPDATE user SET expire_in = DATE_ADD(GREATEST(expire_in, CAST(? AS DATETIME)), INTERVAL ? DAY) WHERE id = ?',
+			[date('Y-m-d H:i:s'), $days, $order->userid]
 		);
 
 		$restored = $expired ? $this->restoreTraffic($user) : false;
