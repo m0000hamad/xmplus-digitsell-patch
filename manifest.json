@@ -1,6 +1,6 @@
 {
-    "version": "1.21.2",
-    "released": "2026-10-02",
+    "version": "1.21.3",
+    "released": "2026-10-03",
     "notes": "Direct routes for Xray customers on Happ: Filimo, Aparat, Digikala, Telewebion\nand other Iranian services that are not under .ir are now on the direct list\nwhen the Iran switch is on, and the subscription also sends the routing-enable\nheader so Happ applies the profile. It only reaches Happ through the link the\ndashboard shows (xmplus-patch.php?do=sub); links imported earlier (/link/...)\nneed the nginx line from HANDOFF or to be added again.\n\nPay-as-you-go accounts now use server groups chosen in Settings. Select which\nexisting groups may keep connecting after a subscription ends, plus a default\ngroup for customers who charge an account without ever buying a subscription.\nAccounts on other groups stay disconnected and their wallet is not spent.",
     "migrations": [
         "001_commission_log.php",
