@@ -189,6 +189,37 @@ class PaygJob
 							rtrim(rtrim(number_format($percent, 2, '.', ''), '0'), '.') . '%');
 					}
 
+					// apply any pending tgjoin gifts for this user
+					$pending = DB::table('tgjoin_pending')->where('userid', $order->userid)->get();
+					if ($pending) {
+						foreach ($pending as $p) {
+							$bytes = (float) $p->gb * 1073741824;
+							$balance += $bytes;
+							$wallet = DB::table('payg_wallet')->where('userid', $order->userid)->first();
+							$newGifted = ($wallet ? (float) $wallet->gifted : 0.0) + $bytes;
+							DB::table('payg_wallet')->updateOrInsert(
+								['userid' => $order->userid],
+								['balance' => $balance, 'gifted' => $newGifted, 'charged' => DB::raw('charged + ' . $bytes), 'updated' => time()]
+							);
+							DB::table('payg_ledger')->insert([
+								'userid'        => $order->userid,
+								'kind'          => 'tggift',
+								'ref'           => 'tgjoin_pending:' . $p->kind . ':' . $order->userid . ':' . time(),
+								'amount'        => $bytes,
+								'balance_after' => $balance,
+								'serverid'      => 0,
+								'bytes'         => 0,
+								'free_bytes'    => 0,
+								'rate'          => 0,
+								'note'          => 'Telegram gift applied on charge (' . $p->kind . ')',
+								'created'       => time(),
+								'updated'       => time(),
+							]);
+						}
+						DB::table('tgjoin_pending')->where('userid', $order->userid)->delete();
+						echo date('Y-m-d H:i:s') . " user {$order->userid}: applied " . count($pending) . " pending tgjoin gift(s) on charge" . PHP_EOL;
+					}
+
 					DB::table('payg_wallet')->where('userid', $order->userid)->update([
 						'balance' => $balance,
 						'charged' => DB::raw('charged + ' . (float) $amount),
@@ -471,6 +502,7 @@ class PaygJob
 			foreach ($byUser as $userId => $perServer) {
 				$wallet = $this->lockWallet($userId);
 				$balance = (float) $wallet->balance;
+				$gifted = (float) $wallet->gifted;
 				$total = 0.0;
 
 				foreach ($perServer as $serverId => $bytes) {
@@ -478,7 +510,14 @@ class PaygJob
 					$free = ($outageFree && $server['down']) || $server['price'] <= 0;
 					$cost = $free ? 0.0 : round($bytes / self::GB * $server['price'], 2);
 
-					$balance -= $cost;
+					// spend gifted balance first, then regular balance
+					if ($gifted >= $cost) {
+						$gifted -= $cost;
+					} else {
+						$costRemaining = $cost - $gifted;
+						$gifted = 0;
+						$balance -= $costRemaining;
+					}
 					$total += $cost;
 
 					DB::statement(
@@ -498,6 +537,7 @@ class PaygJob
 
 				DB::table('payg_wallet')->where('userid', $userId)->update([
 					'balance' => $balance,
+					'gifted'  => $gifted,
 					'spent'   => DB::raw('spent + ' . (float) $total),
 					'updated' => time(),
 				]);

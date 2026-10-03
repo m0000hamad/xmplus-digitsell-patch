@@ -207,16 +207,24 @@ class TgJoinJob
 			return 0;
 		}
 
+		$paygEnabled = $this->setting('payg_enabled') == 1;
+
 		$users = DB::table('user')
 			->where('telegram_id', '>', 0)
-			->where('expire_in', '>', date('Y-m-d H:i:s'))
+			->where(function ($q) use ($paygEnabled) {
+				$q->where('expire_in', '>', date('Y-m-d H:i:s'));
+				if ($paygEnabled) {
+					$q->orWhere(function ($qq) {
+						$qq->whereExists(function ($qqq) {
+							$qqq->select(DB::raw(1))->from('payg_wallet')
+								->whereRaw('payg_wallet.userid = user.id AND payg_wallet.balance > 0');
+						});
+					});
+				}
+			})
 			->whereNotExists(function ($q) {
 				$q->select(DB::raw(1))->from('tgbind_log')
 					->whereRaw('tgbind_log.userid = user.id OR tgbind_log.telegram_id = user.telegram_id');
-			})
-			->whereExists(function ($q) {
-				$q->select(DB::raw(1))->from('orders')
-					->whereRaw('orders.userid = user.id AND orders.status = 1');
 			})
 			->limit(self::BATCH)
 			->get(['id', 'telegram_id']);
@@ -224,6 +232,8 @@ class TgJoinJob
 		$granted = 0;
 		foreach ($users as $user) {
 			$gb = $this->draw(self::BIND_TIERS);
+			$paygBalance = $paygEnabled ? $this->paygBalance($user->id) : 0.0;
+
 			try {
 				DB::table('tgbind_log')->insert([
 					'userid'      => $user->id,
@@ -236,9 +246,36 @@ class TgJoinJob
 				continue;
 			}
 
-			DB::update('UPDATE user SET transfer_enable = transfer_enable + ? WHERE id = ?',
-				[$gb * 1073741824, $user->id]);
-			echo date('Y-m-d H:i:s') . sprintf(' user %d (tg %s): bot-link gift +%d GB', $user->id, $user->telegram_id, $gb) . PHP_EOL;
+			if ($paygEnabled && $paygBalance > 0) {
+				// add to payg_wallet so it's spent first
+				$bytes = $gb * 1073741824;
+				$wallet = DB::table('payg_wallet')->where('userid', $user->id)->first();
+				$newBalance = ($wallet ? (float) $wallet->balance : 0.0) + $bytes;
+				DB::table('payg_wallet')->updateOrInsert(
+					['userid' => $user->id],
+					['balance' => $newBalance, 'gifted' => (($wallet ? (float) $wallet->gifted : 0.0) + $bytes), 'charged' => DB::raw('charged + ' . $bytes), 'updated' => time()]
+				);
+				DB::table('payg_ledger')->insert([
+					'userid'        => $user->id,
+					'kind'          => 'tgbind',
+					'ref'           => 'tgbind:' . $user->id . ':' . time(),
+					'amount'        => $bytes,
+					'balance_after' => $newBalance,
+					'serverid'      => 0,
+					'bytes'         => 0,
+					'free_bytes'    => 0,
+					'rate'          => 0,
+					'note'          => 'Telegram bot-link gift',
+					'created'       => time(),
+					'updated'       => time(),
+				]);
+
+				echo date('Y-m-d H:i:s') . sprintf(' user %d (tg %s): bot-link gift +%d GB to payg_wallet', $user->id, $user->telegram_id, $gb) . PHP_EOL;
+			} else {
+				DB::update('UPDATE user SET transfer_enable = transfer_enable + ? WHERE id = ?',
+					[$gb * 1073741824, $user->id]);
+				echo date('Y-m-d H:i:s') . sprintf(' user %d (tg %s): bot-link gift +%d GB', $user->id, $user->telegram_id, $gb) . PHP_EOL;
+			}
 
 			$text = "🎉 تلگرامت به حساب دیجیتسل وصل شد و {$gb} گیگ جایزه بردی!\n\n"
 				. $this->balanceLine($user->id);
@@ -360,11 +397,44 @@ class TgJoinJob
 		$active = DB::table('user')->where('id', $user->id)
 			->where('expire_in', '>', date('Y-m-d H:i:s'))->exists();
 
-		if ($active) {
+		$paygEnabled = $this->setting('payg_enabled') == 1;
+		$paygBalance = $paygEnabled ? (float) $this->paygBalance($user->id) : 0.0;
+
+		if ($active || ($paygEnabled && $paygBalance > 0)) {
 			$gb = $this->draw(self::GB_TIERS);
 			if (!$this->claim($user, 'gb', $gb, 0)) {
 				return null;
 			}
+
+			if ($paygEnabled && $paygBalance > 0) {
+				// add to payg_wallet so it's spent first
+				$bytes = $gb * 1073741824;
+				$wallet = DB::table('payg_wallet')->where('userid', $user->id)->first();
+				$newBalance = ($wallet ? (float) $wallet->balance : 0.0) + $bytes;
+				DB::table('payg_wallet')->updateOrInsert(
+					['userid' => $user->id],
+					['balance' => $newBalance, 'gifted' => (($wallet ? (float) $wallet->gifted : 0.0) + $bytes), 'charged' => DB::raw('charged + ' . $bytes), 'updated' => time()]
+				);
+				DB::table('payg_ledger')->insert([
+					'userid'        => $user->id,
+					'kind'          => 'tggift',
+					'ref'           => 'tgjoin:' . $user->id . ':' . time(),
+					'amount'        => $bytes,
+					'balance_after' => $newBalance,
+					'serverid'      => 0,
+					'bytes'         => 0,
+					'free_bytes'    => 0,
+					'rate'          => 0,
+					'note'          => 'Telegram channel gift',
+					'created'       => time(),
+					'updated'       => time(),
+				]);
+
+				echo date('Y-m-d H:i:s') . sprintf(' user %d (tg %s): +%d GB to payg_wallet (gift)', $user->id, $user->telegram_id, $gb) . PHP_EOL;
+				return ['kind' => 'tggift', 'gb' => $gb, 'days' => 0];
+			}
+
+			// active subscription: add to transfer_enable (existing behavior)
 			DB::update('UPDATE user SET transfer_enable = transfer_enable + ? WHERE id = ?',
 				[$gb * 1073741824, $user->id]);
 
@@ -386,6 +456,39 @@ class TgJoinJob
 			return null;
 		}
 
+		if ($paygEnabled && $paygBalance > 0) {
+			// free plan but user has payg balance -> add GB to payg_wallet instead
+			$bytes = $mb * 1048576;
+			$wallet = DB::table('payg_wallet')->where('userid', $user->id)->first();
+			$newBalance = ($wallet ? (float) $wallet->balance : 0.0) + $bytes;
+			DB::table('payg_wallet')->updateOrInsert(
+				['userid' => $user->id],
+				['balance' => $newBalance, 'gifted' => (($wallet ? (float) $wallet->gifted : 0.0) + $bytes), 'charged' => DB::raw('charged + ' . $bytes), 'updated' => time()]
+			);
+			DB::table('payg_ledger')->insert([
+				'userid'        => $user->id,
+				'kind'          => 'tggift',
+				'ref'           => 'tgjoin_free:' . $user->id . ':' . time(),
+				'amount'        => $bytes,
+				'balance_after' => $newBalance,
+				'serverid'      => 0,
+				'bytes'         => 0,
+				'free_bytes'    => 0,
+				'rate'          => 0,
+				'note'          => 'Telegram channel free-plan gift',
+				'created'       => time(),
+				'updated'       => time(),
+			]);
+
+			echo date('Y-m-d H:i:s') . sprintf(' user %d (tg %s): +%d MB to payg_wallet (free gift)', $user->id, $user->telegram_id, $mb) . PHP_EOL;
+			return ['kind' => 'tggift', 'gb' => $gb, 'days' => 0];
+		}
+
+		// no payg balance: create free plan (existing behavior)
+		if (!$this->claim($user, 'free', $gb, $days)) {
+			return null;
+		}
+
 		// a fresh plan: the same fields the panel resets when a subscription starts.
 		// The expiry is computed in PHP: MySQL's NOW() runs on UTC here while
 		// expire_in is stored in the panel's local time, 3.5 hours apart.
@@ -400,6 +503,11 @@ class TgJoinJob
 		echo date('Y-m-d H:i:s') . sprintf(' user %d (tg %s): free plan %d MB / %d days (package %d)',
 			$user->id, $user->telegram_id, $mb, $days, $package->id) . PHP_EOL;
 		return ['kind' => 'free', 'gb' => $gb, 'days' => $days];
+	}
+
+	private function paygBalance(int $userId): float
+	{
+		return (float) DB::table('payg_wallet')->where('userid', $userId)->value('balance') ?? 0.0;
 	}
 
 	private function notify($token, $telegramId, array $gift, $userId)
