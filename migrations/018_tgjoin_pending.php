@@ -13,7 +13,9 @@ return static function (PDO $db): void {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
     );
 
-    $db->exec(
-        "ALTER TABLE `payg_wallet` ADD COLUMN IF NOT EXISTS `gifted` DECIMAL(16,2) NOT NULL DEFAULT 0 AFTER `bonus`"
-    );
+    // MySQL 5.7 doesn't support ADD COLUMN IF NOT EXISTS
+    $col = $db->query("SHOW COLUMNS FROM `payg_wallet` LIKE 'gifted'");
+    if (!$col->fetch()) {
+        $db->exec("ALTER TABLE `payg_wallet` ADD COLUMN `gifted` DECIMAL(16,2) NOT NULL DEFAULT 0 AFTER `bonus`");
+    }
 };
