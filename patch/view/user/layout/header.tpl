@@ -125,9 +125,9 @@
 			{if $user->paygToman()}{$pgbUnit = $translate->get('PaygToman')}{else}{$pgbUnit = $translate->get('PaygRial')}{/if}
 			{$pgbGb = $user->paygHeadroomGb()}
 			{if $session->get('locale') == "zh_CN"}
-				cdEl.innerHTML = "⚡ {$translate->get('PaygBannerBalanceTitle')|replace:'%balance%':{$user->paygBalanceShown()}|replace:'%unit%':{$pgbUnit}|replace:'%gb%':{$pgbGb}}";
+				cdEl.innerHTML = "💰 {$user->paygBalanceShown()} {$pgbUnit}  ·  📶 ≈ {$pgbGb} GB";
 			{else}
-				cdEl.innerHTML = "⚡ {$translate->get('PaygBannerBalanceTitle')|replace:'%balance%':{$user->paygBalanceShown()}|replace:'%unit%':{$pgbUnit}|replace:'%gb%':{$pgbGb}}";
+				cdEl.innerHTML = "💰 {$user->paygBalanceShown()} {$pgbUnit}  ·  📶 ≈ {$pgbGb} GB";
 			{/if}
 		}
 		{else}
