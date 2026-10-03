@@ -1,5 +1,5 @@
 {
-    "version": "1.22.5",
+    "version": "1.22.6",
     "released": "2026-10-03",
     "notes": "Header countdown shows nicer payg balance format (💰 balance · 📶 GB) when wallet balance > 0.\n\nPAYG iplimit override: admin sets a connection limit (`payg_iplimit`) applied when a plan expires and the account falls back to wallet balance; server_group stays unchanged from the subscription; 0 = keep package value.\n\nPay-as-you-go charge mint: cancel any pending payg order for the user when a new amount is chosen, so changing the amount on the wallet page always creates a fresh package instead of reusing an old pending order.\n\nShow wallet state in subscription card immediately after charge (payg balance > 0).\n\nPayg banner now shows balance mode immediately when wallet balance > 0.\n\nHeader countdown shows payg balance instead of Expired text when wallet balance > 0.",
     "migrations": [
@@ -129,7 +129,7 @@
         "view/user/knowledgebase/index.tpl": "56734909a2273153f33e7eef3078075a77a9570ca1390a6ac8ce9f809bd400f3",
         "view/user/knowledgebase/show.tpl": "30eb542a241bad2678750e9e432ddc26d17fa952ee999b1c4ae98624bd3007ba",
         "view/user/layout/footer.tpl": "af2fa1a5d01278f2fb77117afa5f6c9fe129dde6361cb879d98a58d633d2a2c5",
-        "view/user/layout/header.tpl": "05d3b7729e696b19d52a3fc6db785f605d729bfc35f8c513a975644b8c7bea40",
+        "view/user/layout/header.tpl": "e47132541c580d18ddf068637bea37e34f8e5e9569f7168c93b1d86b387fd531",
         "view/user/layout/paygbanner.tpl": "6351188ea225cc45637f35f8d6c13b0bed10733e84a3a36e1d83bd4df1d1fa3e",
         "view/user/layout/style.tpl": "9da583de7ac5f193cc5c964f108b02a04636fd9d00726377536a80300ec430dd",
         "view/user/layout/usermenu.tpl": "3a527ff2828981f2e066076602ac179cea325c3ff4bfea6a227370a0c3538a93",

@@ -124,11 +124,7 @@
 			cdEl.className = cdEl.className.replace(/\s*cd-(ok|mid|low|crit|dead)\b/g, "") + " cd-payg";
 			{if $user->paygToman()}{$pgbUnit = $translate->get('PaygToman')}{else}{$pgbUnit = $translate->get('PaygRial')}{/if}
 			{$pgbGb = $user->paygHeadroomGb()}
-			{if $session->get('locale') == "zh_CN"}
-				cdEl.innerHTML = "💰 {$user->paygBalanceShown()} {$pgbUnit}  ·  📶 ≈ {$pgbGb} GB";
-			{else}
-				cdEl.innerHTML = "💰 {$user->paygBalanceShown()} {$pgbUnit} ({$user->paygBalanceEn()})  ·  📶 ≈ {$pgbGb} GB ({$user->paygGbEn()})";
-			{/if}
+			cdEl.innerHTML = "💰 {$user->paygBalanceEn()} {$pgbUnit}  ·  📶 ≈ {$user->paygGbEn()} GB";
 		}
 		{else}
 		if (cdEl) {
