@@ -126,6 +126,15 @@
 			{$pgbGb = $user->paygHeadroomGb()}
 			cdEl.innerHTML = "💰 {$user->paygBalanceEn()} {$pgbUnit}  ·  📶 ≈ {$user->paygGbEn()} GB";
 		}
+		setInterval(function () {
+			fetch('/xmplus-patch.php?do=payg.live', { credentials: 'same-origin', cache: 'no-store' })
+				.then(function (r) { return r.json(); })
+				.then(function (data) {
+					if (data.ok && cdEl && data.balance_f !== undefined) {
+						cdEl.innerHTML = "💰 " + data.balance_f + " " + (data.unit === 'toman' ? "{$translate->get('PaygToman')}" : "{$translate->get('PaygRial')}") + "  ·  📶 ≈ " + data.gb_f + " GB";
+					}
+				});
+		}, 120000);
 		{else}
 		if (cdEl) {
 			var cdTone = distance <= 0 ? "cd-dead" : days >= 7 ? "cd-ok" : days >= 3 ? "cd-mid" : days >= 1 ? "cd-low" : "cd-crit";

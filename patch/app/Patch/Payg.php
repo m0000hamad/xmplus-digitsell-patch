@@ -1006,6 +1006,19 @@ function paygAdminAdjust(): void
  * One-off: every positive user.money balance moves into the commission wallet,
  * so from now on it pays for subscription plans only. Refused a second time.
  */
+function paygLive(): void
+{
+    $user = paygRequireUser();
+
+    done([
+        'balance'   => $user->paygBalance(),
+        'balance_f' => $user->paygBalanceEn(),
+        'unit'      => $user->paygToman() ? 'toman' : 'rial',
+        'gb'        => $user->paygHeadroomGb(),
+        'gb_f'      => $user->paygGbEn(),
+    ]);
+}
+
 function paygCommissionMigrate(): void
 {
     $admin = requireAdmin();
@@ -1070,6 +1083,8 @@ if (in_array($paygAction, $paygNeedsPost, true) && $_SERVER['REQUEST_METHOD'] !=
 }
 
 switch ($paygAction) {
+    case 'payg.live':
+        paygLive();
     case 'payg.me':
         paygUserMe();
     case 'payg.mint':
