@@ -461,7 +461,8 @@ function wgHello(): void
     $mtu = (int) ($body['mtu'] ?? WG_MTU_DEFAULT);
     $mtu = $mtu >= 1280 && $mtu <= 1500 ? $mtu : WG_MTU_DEFAULT;
 
-    db()->prepare('UPDATE wg_node SET host = ?, listen_port = ?, pubkey = ?, agent_version = ?, dns = ?, mtu = ?,
+    db()->prepare('UPDATE wg_node SET host = ?, listen_port = ?, pubkey = ?, agent_version = ?, dns = ?,
+                          mtu = IF(mtu >= 1280 AND mtu <= 1500, mtu, ?),
                           heartbeat = IF(heartbeat = 0, ?, heartbeat), updated = ? WHERE id = ?')
         ->execute([$host, $port, $pubkey, $version, $dns, $mtu, time(), time(), (int) $node['id']]);
 
@@ -919,6 +920,11 @@ function wgAdminNodeSave(): void
     $groups = implode(',', vpnGroups($_POST['groups'] ?? []));
     $enabled = !empty($_POST['enabled']) && $_POST['enabled'] !== '0' ? 1 : 0;
     $sort = (int) ($_POST['sort'] ?? 0);
+    $mtuText = trim((string) ($_POST['mtu'] ?? ''));
+    $mtu = (int) $mtuText;
+    if ($mtu < 1280 || $mtu > 1500) {
+        $mtu = WG_MTU_DEFAULT;
+    }
     $now = time();
 
     if ($id > 0) {
@@ -936,17 +942,17 @@ function wgAdminNodeSave(): void
         }
 
         db()->prepare('UPDATE wg_node SET name = ?, allowed_groups = ?, rate = ?, enabled = ?, sort = ?,
-                              host_override = ?, updated = ? WHERE id = ?')
-            ->execute([$name, $groups, $rate, $enabled, $sort, $host, $now, $id]);
+                              host_override = ?, mtu = ?, updated = ? WHERE id = ?')
+            ->execute([$name, $groups, $rate, $enabled, $sort, $host, $mtu, $now, $id]);
 
         done(['node' => wgNodeView(wgNode($id))]);
     }
 
     $key = vpnNewKey();
-    db()->prepare('INSERT INTO wg_node (name, keyhash, allowed_groups, rate, enabled, sort, host_override,
+    db()->prepare('INSERT INTO wg_node (name, keyhash, allowed_groups, rate, enabled, sort, host_override, mtu,
                                           created, updated)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-        ->execute([$name, hash('sha256', $key), $groups, $rate, $enabled, $sort, $host, $now, $now]);
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        ->execute([$name, hash('sha256', $key), $groups, $rate, $enabled, $sort, $host, $mtu, $now, $now]);
     $id = (int) db()->lastInsertId();
 
     // the key is shown this once; only its hash is kept

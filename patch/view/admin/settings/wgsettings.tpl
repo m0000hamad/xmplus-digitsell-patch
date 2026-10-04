@@ -67,10 +67,15 @@
 				<input type="text" class="form-control" id="wvHost" dir="ltr" placeholder="vpn.example.com">
 				<small class="text-muted">{$translate->get('WgAdmHostHint')}</small>
 			</div>
-			<div class="col-md-6">
+			<div class="col-md-3">
 				<label class="form-label" for="wvPort">{$translate->get('WgAdmPort')}</label>
 				<input type="text" class="form-control" id="wvPort" dir="ltr" placeholder="{$translate->get('WgAdmPortHint')}">
 				<small class="text-muted">{$translate->get('WgAdmPortHint2')}</small>
+			</div>
+			<div class="col-md-3">
+				<label class="form-label" for="wvMtu">{$translate->get('WgAdmMtu')}</label>
+				<input type="number" class="form-control" id="wvMtu" dir="ltr" min="1280" max="1500" value="1420" placeholder="1420">
+				<small class="text-muted">{$translate->get('WgAdmMtuHint')}</small>
 			</div>
 		</div>
 
@@ -88,13 +93,17 @@
 			<h5 class="wv-h">🚀 {$translate->get('WgAdmInstall')}</h5>
 			<p class="small text-muted mb-2">{$translate->get('WgAdmInstallHint')}</p>
 			<div class="row g-2 mb-2">
-				<div class="col-md-8">
+				<div class="col-md-6">
 					<label class="form-label small" for="wvPanelUrl">{$translate->get('WgAdmPanelUrl')}</label>
 					<input type="text" class="form-control form-control-sm" id="wvPanelUrl" dir="ltr">
 				</div>
-				<div class="col-md-2">
+				<div class="col-md-3">
 					<label class="form-label small" for="wvListenPort">Port</label>
 					<input type="text" class="form-control form-control-sm" id="wvListenPort" dir="ltr" value="auto">
+				</div>
+				<div class="col-md-3">
+					<label class="form-label small" for="wvInstallMtu">MTU</label>
+					<input type="number" class="form-control form-control-sm" id="wvInstallMtu" dir="ltr" value="1420" min="1280" max="1500">
 				</div>
 			</div>
 			<pre class="wv-cmd copy-text" id="wvCmd" dir="ltr"></pre>
@@ -252,7 +261,7 @@
 			// WireGuard has one socket: the port customers use is the port the
 			// server listens on, so there is nothing to choose here
 			var address = node.heartbeat
-				? '<span dir="ltr">UDP ' + esc(host) + ' : ' + esc(node.port) + '</span>'
+				? '<span dir="ltr">UDP ' + esc(host) + ' : ' + esc(node.port) + '</span> <span class="badge badge-light" dir="ltr">MTU ' + (node.mtu || 1420) + '</span>'
 				: '<span class="text-muted">UDP ' + esc(host || '—') + ' : ' + esc(words.noPort) + '</span>';
 
 			var groups = node.groups.length ? node.groups.map(groupName).join('، ') : words.all;
@@ -289,6 +298,7 @@
 		$('wvSort').value = '0';
 		$('wvHost').value = '';
 		$('wvPort').value = '';
+		$('wvMtu').value = '1420';
 		$('wvNodeEnabled').checked = true;
 		$('wvFormTitle').textContent = '➕ ' + words.add;
 		$('wvCancel').classList.add('d-none');
@@ -305,6 +315,7 @@
 		$('wvHost').value = node.host_override;
 		// blank: the port the server itself reported, which is the only one it has
 		$('wvPort').value = '';
+		$('wvMtu').value = String(node.mtu || 1420);
 		$('wvNodeEnabled').checked = !!node.enabled;
 		$('wvFormTitle').textContent = '✏️ ' + words.editing + ' ' + node.name;
 		$('wvCancel').classList.remove('d-none');
@@ -323,11 +334,14 @@
 		}
 		var panel = $('wvPanelUrl').value.trim().replace(/\/+$/, '');
 		var script = 'https://raw.githubusercontent.com/' + state.repo + '/' + state.branch + '/node/wireguard/install.sh';
+		var mtu = parseInt($('wvInstallMtu') ? $('wvInstallMtu').value : '', 10) || 1420;
+		if (mtu < 1280 || mtu > 1500) { mtu = 1420; }
 		$('wvCmd').textContent = 'curl -fsSL ' + script + ' -o wg-install.sh && sudo bash wg-install.sh'
 			+ ' --panel ' + shellQuote(panel)
 			+ ' --node ' + lastKey.id
 			+ ' --key ' + lastKey.key
-			+ ' --listen ' + (parseInt($('wvListenPort').value, 10) || 'auto');
+			+ ' --listen ' + (parseInt($('wvListenPort').value, 10) || 'auto')
+			+ ' --mtu ' + mtu;
 		$('wvCmd').setAttribute('data-clipboard-text', $('wvCmd').textContent);
 		$('wvInstall').classList.remove('d-none');
 	}
@@ -405,7 +419,7 @@
 	});
 
 	$('wvPanelUrl').value = location.origin;
-	['wvPanelUrl', 'wvListenPort'].forEach(function (id) {
+	['wvPanelUrl', 'wvListenPort', 'wvInstallMtu'].forEach(function (id) {
 		$(id).addEventListener('input', renderInstall);
 		$(id).addEventListener('change', renderInstall);
 	});
@@ -427,6 +441,7 @@
 			sort: $('wvSort').value,
 			host_override: $('wvHost').value,
 			port: $('wvPort').value,
+			mtu: $('wvMtu').value,
 			enabled: $('wvNodeEnabled').checked ? '1' : '0',
 			groups: groups
 		}).then(function (data) {
