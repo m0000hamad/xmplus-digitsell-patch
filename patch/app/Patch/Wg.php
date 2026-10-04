@@ -628,16 +628,18 @@ function wgPush(): void
     }
 
     $add = [];
-    $allowed = $remove === [];
-    if ($allowed && wgEnabled()) {
+    if (wgEnabled()) {
         foreach (wgPendingPeers($node) as $pubkey => $userId) {
             if (!isset($live[$pubkey])) {
                 // the address the customer's file already carries: the agent is
                 // told it rather than deriving it, so the two can never differ
+                $user = vpnUser($userId);
+                $psk = ($user !== null) ? wgPresharedKey($userId, (string) ($user['uuid'] ?? '')) : '';
                 $add[] = [
                     'pubkey'  => $pubkey,
                     'userid'  => $userId,
                     'address' => wgPeerAddress($node, $pubkey, $userId),
+                    'psk'     => $psk,
                 ];
             }
         }
@@ -680,10 +682,9 @@ function wgPendingPeers(array $node): array
         $statement = db()->prepare(
             'SELECT c.userid, c.pubkey FROM wg_credential c
               WHERE c.pubkey <> \'\' AND c.nodeid = ?
-                AND c.userid NOT IN (SELECT userid FROM wg_session WHERE nodeid = ? AND closed = 0)
               ORDER BY c.userid
               LIMIT 500');
-        $statement->execute([(int) $node['id'], (int) $node['id']]);
+        $statement->execute([(int) $node['id']]);
     } catch (Throwable $error) {
         return [];
     }

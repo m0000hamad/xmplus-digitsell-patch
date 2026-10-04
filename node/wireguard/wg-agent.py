@@ -42,7 +42,7 @@ import time
 import urllib.error
 import urllib.request
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 
 DEFAULT_CONFIG = "/etc/digitsell-wg/agent.json"
 PUSH_INTERVAL = 60
@@ -183,11 +183,15 @@ class Interface:
                 continue
         return peers
 
-    def set_peer(self, pubkey, address):
+    def set_peer(self, pubkey, address, psk=None):
         """Add a peer, or give an existing one its address again."""
-        run("wg", "set", self.name, "peer", pubkey,
-            "allowed-ips", address + "/32",
-            "persistent-keepalive", str(KEEPALIVE))
+        cmd = ["wg", "set", self.name, "peer", pubkey,
+               "allowed-ips", address + "/32"]
+        if psk and valid_key(psk):
+            cmd += ["preshared-key", "/dev/stdin"]
+            run(*cmd, input_lines=psk.strip() + "\n", check=False)
+        else:
+            run(*cmd, check=False)
 
     def drop_peer(self, pubkey):
         run("wg", "set", self.name, "peer", pubkey, "remove", check=False)
@@ -264,20 +268,28 @@ class Bypass:
 
     # ---------------------------------------------------------- the routing
 
-    def get_gateway(self):
-        if self._gateway:
-            return self._gateway
+    def get_default_route(self):
+        if self._gateway and hasattr(self, "_dev"):
+            return self._gateway, self._dev, getattr(self, "_onlink", False)
         code, out = run("ip", "route", "show", "default", check=False)
-        match = re.search(r"default via (\d+\.\d+\.\d+\.\d+)", out)
-        if not match:
+        gw_match = re.search(r"default via (\d+\.\d+\.\d+\.\d+)", out)
+        dev_match = re.search(r"dev (\S+)", out)
+        onlink = "onlink" in out
+        if not gw_match:
             code2, out2 = run("ip", "-4", "route", "get", "1.1.1.1", check=False)
-            match2 = re.search(r"via (\d+\.\d+\.\d+\.\d+)", out2)
-            if match2:
-                self._gateway = match2.group(1)
-                return self._gateway
+            gw_match = re.search(r"via (\d+\.\d+\.\d+\.\d+)", out2)
+            dev_match = re.search(r"dev (\S+)", out2)
+            onlink = "onlink" in out2
+        if not gw_match:
             raise RuntimeError("this server has no default route, so the direct list cannot be used")
-        self._gateway = match.group(1)
-        return self._gateway
+        self._gateway = gw_match.group(1)
+        self._dev = dev_match.group(1) if dev_match else None
+        self._onlink = onlink
+        return self._gateway, self._dev, self._onlink
+
+    def get_gateway(self):
+        gw, _, _ = self.get_default_route()
+        return gw
 
     def start(self):
         """
@@ -286,7 +298,7 @@ class Bypass:
         """
         self.ensure_set()
 
-        gateway = self.get_gateway()
+        gateway, dev, onlink = self.get_default_route()
         node_id = int(self.config.get("node", 1))
         subnet = "10.%d.0.0/16" % node_id
 
@@ -307,9 +319,19 @@ class Bypass:
         # everything else on the interface goes through the table
         run("iptables", "-t", "mangle", "-A", self.CHAIN,
             "-i", self.iface, "-j", "MARK", "--set-mark", self.mark)
-        # and the marked traffic is answered from the main routing table
+
+        # policy routing rule: remove duplicates then add exactly one
+        while run("ip", "rule", "del", "fwmark", self.mark, "table", self.table, check=False)[0] == 0:
+            pass
         run("ip", "rule", "add", "fwmark", self.mark, "table", self.table, check=False)
-        run("ip", "route", "replace", "default", "via", gateway, "onlink", "table", self.table, check=False)
+
+        route_cmd = ["ip", "route", "replace", "default", "via", gateway]
+        if dev:
+            route_cmd += ["dev", dev]
+        if onlink:
+            route_cmd += ["onlink"]
+        route_cmd += ["table", self.table]
+        run(*route_cmd, check=False)
 
         # NAT for WireGuard subnet
         while run("iptables", "-t", "nat", "-D", "POSTROUTING", "-s", subnet, "-j", "MASQUERADE", check=False)[0] == 0:
@@ -457,10 +479,11 @@ class Agent:
         for item in answer.get("add", []):
             pubkey = str(item.get("pubkey", "")).strip()
             address = str(item.get("address", "")).strip()
+            psk = str(item.get("psk", "")).strip() or None
             if not valid_key(pubkey) or not ADDRESS_RE.match(address):
                 continue
             try:
-                self.iface.set_peer(pubkey, address)
+                self.iface.set_peer(pubkey, address, psk)
                 self.peers[pubkey] = address
                 log("peer added:", pubkey[:12] + "…", address)
             except Exception as error:
