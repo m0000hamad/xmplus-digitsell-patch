@@ -109,13 +109,20 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	padding: 7px 12px;
-	border-radius: 10px;
-	background: linear-gradient(135deg, #0f766e, #14b8a6);
+	padding: 8px 14px;
+	border-radius: 11px;
+	background: linear-gradient(135deg, #0d9488, #14b8a6);
+	box-shadow: 0 2px 6px rgba(13, 148, 136, .28);
 	color: #fff !important;
-	font-size: 12px;
+	font-size: 12.5px;
 	font-weight: 700;
 	text-decoration: none;
+	transition: all .2s ease;
+}
+.wg-get:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 4px 10px rgba(13, 148, 136, .38);
+	color: #fff !important;
 }
 .wg-proto {
 	flex: 0 0 auto;
@@ -132,12 +139,49 @@
 .wg-proto.is-static { background: rgba(23, 32, 61, .06); color: #5b6b86 !important; }
 html[data-hs-theme="dark"] .wg-proto { color: #5eead4 !important; background: rgba(45, 212, 191, .18); }
 html[data-hs-theme="dark"] .wg-proto.is-static { color: #b6c0d3 !important; background: rgba(255, 255, 255, .08); }
-.wg-steps { margin: 0; padding-inline-start: 18px; font-size: 12.5px; color: #3b4a6b; line-height: 1.9; }
+.wg-steps {
+	margin: 12px 0 0;
+	padding: 12px 14px;
+	border-radius: 12px;
+	background: rgba(15, 118, 110, .05);
+	border: 1px solid rgba(15, 118, 110, .15);
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 9px;
+	font-size: 12.5px;
+	color: #334155;
+	line-height: 1.7;
+}
+.wg-steps li {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+}
+.wg-steps li::before {
+	content: "✓";
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: #10b981;
+	color: #fff;
+	font-size: 10px;
+	font-weight: bold;
+	flex: 0 0 auto;
+	margin-top: 2px;
+}
 .wg-note { font-size: 11.5px; color: #8c98ab; margin-top: 10px; }
 
 html[data-hs-theme="dark"] .wg-badge { color: #6ee7b7; background: rgba(16, 185, 129, .18); }
-html[data-hs-theme="dark"] .wg-intro,
-html[data-hs-theme="dark"] .wg-steps { color: #b6c0d3; }
+html[data-hs-theme="dark"] .wg-intro { color: #b6c0d3; }
+html[data-hs-theme="dark"] .wg-steps {
+	background: rgba(45, 212, 191, .07);
+	border-color: rgba(45, 212, 191, .2);
+	color: #cbd5e1;
+}
 html[data-hs-theme="dark"] .wg-box { background: linear-gradient(135deg, rgba(15, 118, 110, .12), rgba(20, 184, 166, .1)); border-color: rgba(45, 212, 191, .35); }
 html[data-hs-theme="dark"] .wg-box-title,
 html[data-hs-theme="dark"] .wg-server-name { color: #e7eaf3; }

@@ -1,5 +1,5 @@
 {
-    "version": "1.23.4",
+    "version": "1.23.5",
     "released": "2026-10-04",
     "notes": "WireGuard nodes: fix node installer and agent (generate wg0.conf, enable ip_forward, fix bypass-start argument order and gateway method, add subnet NAT/forwarding rules).",
     "migrations": [
@@ -70,7 +70,7 @@
         "bin/timeplans.php": "4aa8ebf67961220dfb9f9a78aa31a73bfac1161ebaa337ddae12940eb4f42269",
         "bin/wg.php": "0c7bcfdecd9aaec6ea2e319105c7bd7e7afbade24549b5de5d9061ebb8815071",
         "localization/en_US.php": "2392e4692a3b1733b867f208366a82083375cb824acbe612117a20ad4c73b5e3",
-        "localization/fa_IR.php": "b4d7c52ce51b7c9050b7321da464998b935b9cce7997a02e075491b3b1932cf4",
+        "localization/fa_IR.php": "772b0473e0f438ad691f477b1637f60483b4eef472bf52baf43e56f5be5a1478",
         "localization/zh_CN.php": "fb2b9d297a255dc3f2ff92d79b62a161fa58cbedb9d9c8f85384aec9baa1d6be",
         "public/xmplus-patch.php": "bed7f8150245a09a9ea33ccad728a562ce86b5f467896fe3642588311374adc6",
         "view/admin/dashboard/dashboard.tpl": "68a06883efd1396df376eefb238203ee92507c8e8332883dd97341f8a4e2e806",
@@ -137,7 +137,7 @@
         "view/user/dashboard/wg.tpl": "25b6b193790f9f2c6177b34a3e78c5c677f9e59583dc5d870a7e1e5071e042ac",
         "view/user/dashboard/wgapp.tpl": "0f1df25f920e87021731206bafc83667f68c5d56b3f408074d364d1c9d9a3027",
         "view/user/dashboard/wgnode.tpl": "4ff99bf8590e537d9e87c911c4826b4e23151fb87f28dccf1ed38d5c3b1ce137",
-        "view/user/dashboard/wgstyle.tpl": "b1eced6752b25d8b68fef2d866f9fbfededa2b3dc590f0f5e54e74ac33a97fda",
+        "view/user/dashboard/wgstyle.tpl": "bca1ff2cc1904f83079a71a8d4bfdb7a5bbbeced483317efda075ef55addd482",
         "view/user/knowledgebase/index.tpl": "56734909a2273153f33e7eef3078075a77a9570ca1390a6ac8ce9f809bd400f3",
         "view/user/knowledgebase/show.tpl": "30eb542a241bad2678750e9e432ddc26d17fa952ee999b1c4ae98624bd3007ba",
         "view/user/layout/footer.tpl": "af2fa1a5d01278f2fb77117afa5f6c9fe129dde6361cb879d98a58d633d2a2c5",
