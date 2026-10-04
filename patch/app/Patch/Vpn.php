@@ -315,12 +315,32 @@ function vpnRefusal(?array $user, array $node, string $enabled): string
     return '';
 }
 
-/** Empty node groups means every account; otherwise the account's group must be in them. */
+/**
+ * A node serves an account only when its group is explicitly in the node's allowed_groups.
+ * Empty node groups means no account can access this server until the admin assigns groups.
+ */
 function vpnNodeServes(array $node, array $user): bool
 {
-    $groups = vpnGroups($node['allowed_groups']);
+    $groups = vpnGroups($node['allowed_groups'] ?? '');
+    if ($groups === []) {
+        return false;
+    }
 
-    return $groups === [] || in_array((int) ($user['server_group'] ?? 0), $groups, true);
+    $userGroup = (int) ($user['server_group'] ?? 0);
+    if ($userGroup > 0 && in_array($userGroup, $groups, true)) {
+        return true;
+    }
+
+    if (!empty($user['user_group'])) {
+        foreach (explode(',', (string) $user['user_group']) as $g) {
+            $gid = (int) trim($g);
+            if ($gid > 0 && in_array($gid, $groups, true)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 /**

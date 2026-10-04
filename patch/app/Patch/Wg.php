@@ -802,7 +802,7 @@ function wgProfile(): void
 
     if ($node === null || !wgNodeUsable($node)
         || (!$staff && (!wgEnabled() || !vpnNodeServes($node, $user)))) {
-        fail('this server is not available for your account');
+        fail('این سرور برای گروه کاربری شما در دسترس نیست', 403);
     }
 
     $reason = $staff ? '' : wgRefusal($user, $node);
@@ -1219,10 +1219,42 @@ function wgRequireCustomer(): array
     return $user;
 }
 
+function wgUserNodes(array $user): array
+{
+    if (!wgEnabled()) {
+        return [];
+    }
+
+    $nodes = [];
+    try {
+        $stmt = db()->prepare('SELECT * FROM wg_node WHERE enabled = 1 ORDER BY sort ASC, id ASC');
+        $stmt->execute();
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $node) {
+            if (wgNodeUsable($node) && vpnNodeServes($node, $user)) {
+                $nodes[] = $node;
+            }
+        }
+    } catch (Throwable $e) {}
+
+    return $nodes;
+}
+
 function wgDeviceList(): void
 {
     $user = wgRequireCustomer();
     $userId = (int) $user['id'];
+
+    if (wgUserNodes($user) === []) {
+        done([
+            'ok' => false,
+            'devices' => [],
+            'limit' => 0,
+            'count' => 0,
+            'can_add' => false,
+            'error' => 'هیچ سرور وایرگاردی برای گروه کاربری شما فعال نیست',
+        ]);
+    }
+
     $uuid = (string) ($user['uuid'] ?? '');
     $limit = wgUserLimit($user);
     $devices = wgUserDevices($userId, $uuid);
@@ -1240,6 +1272,11 @@ function wgDeviceAdd(): void
 {
     $user = wgRequireCustomer();
     $userId = (int) $user['id'];
+
+    if (wgUserNodes($user) === []) {
+        fail('هیچ سرور وایرگاردی برای گروه کاربری شما فعال نیست', 403);
+    }
+
     $uuid = (string) ($user['uuid'] ?? '');
     $limit = wgUserLimit($user);
     $devices = wgUserDevices($userId, $uuid);

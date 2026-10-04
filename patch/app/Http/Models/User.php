@@ -647,7 +647,17 @@ final class User extends Model
 
 			$groups = array_values(array_filter(array_map('intval', explode(',', (string) $node->allowed_groups))));
 
-			if ($groups !== [] && !in_array($group, $groups, true)) {
+			$userGroups = [$group];
+			if (!empty($this->user_group)) {
+				foreach (explode(',', (string) $this->user_group) as $g) {
+					$gid = (int) trim($g);
+					if ($gid > 0) {
+						$userGroups[] = $gid;
+					}
+				}
+			}
+
+			if ($groups === [] || array_intersect($userGroups, $groups) === []) {
 				continue;
 			}
 
@@ -793,7 +803,17 @@ final class User extends Model
 
 			$groups = array_values(array_filter(array_map('intval', explode(',', (string) $node->allowed_groups))));
 
-			if ($groups !== [] && !in_array($group, $groups, true)) {
+			$userGroups = [$group];
+			if (!empty($this->user_group)) {
+				foreach (explode(',', (string) $this->user_group) as $g) {
+					$gid = (int) trim($g);
+					if ($gid > 0) {
+						$userGroups[] = $gid;
+					}
+				}
+			}
+
+			if ($groups === [] || array_intersect($userGroups, $groups) === []) {
 				continue;
 			}
 

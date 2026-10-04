@@ -80,6 +80,7 @@
 		</div>
 
 		<h5 class="wv-h">{$translate->get('WgAdmGroups')}</h5>
+		<p class="small text-muted mb-2">فقط کاربرانی که در گروه‌های انتخاب‌شده باشند به این سرور دسترسی خواهند داشت. در صورت انتخاب نکردن هیچ گروهی، سرور برای هیچ کاربری فعال نخواهد شد.</p>
 		<div class="wv-groups" id="wvGroups"></div>
 
 		<label class="wv-check mt-2"><input type="checkbox" id="wvNodeEnabled"> {$translate->get('WgAdmNodeEnabled')}</label>
@@ -297,13 +298,13 @@
 				}
 			}
 
-			var groups = node.groups.length ? node.groups.map(groupName).join('، ') : words.all;
+			var groups = node.groups.length ? esc(node.groups.map(groupName).join('، ')) : '<span class="text-danger small fw-bold">⚠️ بدون گروه (غیرفعال)</span>';
 
 			return '<tr>'
 				+ '<td><b>' + esc(node.name) + '</b>' + (node.version ? ' <small class="text-muted">v' + esc(node.version) + '</small>' : '') + '</td>'
 				+ '<td><span class="wv-dot ' + dot + '"></span>' + esc(stateText) + '</td>'
 				+ '<td>' + address + '</td>'
-				+ '<td>' + esc(groups) + '</td>'
+				+ '<td>' + groups + '</td>'
 				+ '<td dir="ltr">×' + esc(node.rate) + '</td>'
 				+ '<td dir="ltr">' + gb(node.today_bytes) + '</td>'
 				+ '<td><div class="wv-actions">'
