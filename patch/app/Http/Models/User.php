@@ -747,6 +747,128 @@ final class User extends Model
 	}
 
 	/* ------------------------------------------------------------------
+	 * WireGuard servers on the same subscription - app/Patch/Wg.php
+	 * ------------------------------------------------------------------ */
+
+	private static $wgRows = null;
+
+	private static function wgSetting($name)
+	{
+		try {
+			return (string) DB::connection('default')->table('settings')->where('name', $name)->value('value');
+		} catch (\Throwable $e) {
+			return '';
+		}
+	}
+
+	/* the WireGuard servers this account can download a file for */
+	public function wgNodes()
+	{
+		if (self::$wgRows === null) {
+			self::$wgRows = [];
+
+			if (self::wgSetting('wg_enabled') === '1') {
+				try {
+					self::$wgRows = DB::connection('default')->table('wg_node')
+						->where('enabled', 1)
+						->orderBy('sort', 'asc')->orderBy('id', 'asc')
+						->get()
+						->all();
+				} catch (\Throwable $e) {
+					self::$wgRows = [];
+				}
+			}
+		}
+
+		$group = (int) $this->server_group;
+		$list = [];
+
+		foreach (self::$wgRows as $node) {
+			$host = trim((string) $node->host_override) !== '' ? $node->host_override : $node->host;
+
+			// its agent has not reported in yet, or the panel cannot derive a key
+			if (trim((string) $host) === '' || trim((string) $node->pubkey) === '') {
+				continue;
+			}
+
+			$groups = array_values(array_filter(array_map('intval', explode(',', (string) $node->allowed_groups))));
+
+			if ($groups !== [] && !in_array($group, $groups, true)) {
+				continue;
+			}
+
+			$list[] = [
+				'id'   => (int) $node->id,
+				'name' => htmlspecialchars((string) $node->name, ENT_QUOTES, 'UTF-8'),
+				'live' => (int) $node->heartbeat > time() - 180,
+			];
+		}
+
+		return $list;
+	}
+
+	public function wgEnabled()
+	{
+		return count($this->wgNodes()) > 0;
+	}
+
+	/* WireGuard has no login; this account's name is only shown on the card */
+	public function wgLogin()
+	{
+		return 'u' . (int) $this->id;
+	}
+
+	/*
+	 * The account's public key, which is what the node's agent reports its peers
+	 * by. '' when the panel is missing the sodium extension, or when wg_secret
+	 * is not set - the card then says why instead of offering a file that
+	 * cannot work. Keep in step with wgPublicKey() in app/Patch/Wg.php.
+	 */
+	public function wgPublicKey()
+	{
+		$secret = self::wgSetting('wg_secret');
+		$uuid = strtolower(trim((string) $this->uuid));
+
+		if ($secret === '' || $uuid === ''
+			|| !function_exists('sodium_crypto_box_secretkey')) {
+			return '';
+		}
+
+		try {
+			$known = DB::connection('default')->table('wg_credential')
+				->where('userid', (int) $this->id)
+				->value('pubkey');
+
+			if (!empty($known)) {
+				return (string) $known;
+			}
+		} catch (\Throwable $e) {
+			// no table yet: carry on and derive it
+		}
+
+		// the same derivation wgPrivateKey() / wgPublicKey() in app/Patch/Wg.php
+		// take, so the card and the file can never disagree
+		$scalar = hash_hmac('sha256', 'key:' . (int) $this->id . ':' . $uuid, $secret, true);
+		$scalar[0] = chr(ord($scalar[0]) & 248);
+		$scalar[31] = chr((ord($scalar[31]) & 127) | 64);
+		$key = sodium_bin2base64(
+			sodium_crypto_scalarmult($scalar, "\x09" . str_repeat("\0", 31)),
+			SODIUM_BASE64_VARIANT_ORIGINAL);
+
+		try {
+			DB::connection('default')->table('wg_credential')->insert([
+				'userid'   => (int) $this->id,
+				'pubkey'   => $key,
+				'updated'  => time(),
+			]);
+		} catch (\Throwable $e) {
+			// the key is still good for this page; it is written next time
+		}
+
+		return $key;
+	}
+
+	/* ------------------------------------------------------------------
 	 * Pay-as-you-go wallet - app/Jobs/PaygJob.php
 	 * ------------------------------------------------------------------ */
 

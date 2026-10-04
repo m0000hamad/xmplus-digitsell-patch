@@ -30,9 +30,13 @@
  *     ovpn.save / ovpn.nodesave / ovpn.nodekey / ovpn.nodedel
  *
  * Logins are "u<user id>". The password is derived from the account's uuid
- * and the `ovpn_secret` setting (see ovpnPassword(); User::ovpnPassword()
+ * and the `ovpn_secret` setting (see vpnPassword(); User::ovpnPassword()
  * must stay identical), so resetting the subscription link in the panel also
  * changes the OpenVPN password, and nothing extra has to be stored.
+ *
+ * What is not about OpenVPN - the derived password, the account checks, the
+ * direct-route lists, writing into the panel's own tables - lives in
+ * app/Patch/Vpn.php and is shared with WireGuard (app/Patch/Wg.php).
  *
  * Nodes are not rows in `servers`: the panel's encoded subscription builder
  * would put them into every customer's Xray link. Their traffic is logged
@@ -42,19 +46,18 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/Vpn.php';
+
 const OVPN_SERVER_BASE = 900000;
 /* a session not pushed for this long has gone; a node silent this long is down */
 const OVPN_STALE = 180;
 const OVPN_PUSH_INTERVAL = 60;
-const OVPN_PASS_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
 
 // ------------------------------------------------------------------ helpers
 
 function ovpnSetting(string $name, string $fallback): string
 {
-    $value = setting($name, null);
-
-    return $value === null || $value === '' ? $fallback : (string) $value;
+    return vpnSetting($name, $fallback);
 }
 
 function ovpnEnabled(): bool
@@ -62,172 +65,15 @@ function ovpnEnabled(): bool
     return ovpnSetting('ovpn_enabled', '0') === '1';
 }
 
-/** expire_in is written in the panel's local time, so compare it there. */
-function ovpnTimezone(): void
-{
-    db(); // loads config/config.php, which fills $_ENV['timeZone']
-    $zone = (string) ($_ENV['timeZone'] ?? '');
-    if ($zone !== '' && in_array($zone, timezone_identifiers_list(), true)) {
-        date_default_timezone_set($zone);
-    }
-}
-
-function ovpnLogin(int $userId): string
-{
-    return 'u' . $userId;
-}
-
-function ovpnUserIdFromLogin(string $login): int
-{
-    return preg_match('~^u([1-9][0-9]{0,9})$~', trim($login), $match) ? (int) $match[1] : 0;
-}
-
-/** Keep in step with User::ovpnPassword(). */
-function ovpnPassword(int $userId, string $uuid): string
-{
-    $secret = ovpnSetting('ovpn_secret', '');
-
-    if ($secret === '' || trim($uuid) === '') {
-        return '';
-    }
-
-    $raw = hash_hmac('sha256', $userId . ':' . strtolower(trim($uuid)), $secret, true);
-    $size = strlen(OVPN_PASS_ALPHABET);
-    $out = '';
-
-    for ($i = 0; $i < 12; $i++) {
-        $out .= OVPN_PASS_ALPHABET[ord($raw[$i]) % $size];
-    }
-
-    return $out;
-}
-
-/** "3,8" -> [3, 8]; empty means every group. */
-function ovpnGroups($value): array
-{
-    $list = is_array($value) ? $value : explode(',', (string) $value);
-    $ids = [];
-
-    foreach ($list as $item) {
-        $id = (int) trim((string) $item);
-        if ($id > 0) {
-            $ids[$id] = $id;
-        }
-    }
-
-    return array_values($ids);
-}
-
 function ovpnServerId(int $nodeId): int
 {
     return OVPN_SERVER_BASE + $nodeId;
 }
 
-function ovpnJsonBody(): array
+/** Keep in step with User::ovpnPassword(). */
+function ovpnPassword(int $userId, string $uuid): string
 {
-    $raw = (string) file_get_contents('php://input');
-    $body = json_decode($raw, true);
-
-    if (!is_array($body)) {
-        fail('the body must be a JSON object');
-    }
-
-    return $body;
-}
-
-/**
- * The columns of a panel table that the patch does not own. trafficlog and
- * online_ip belong to the encoded panel, so rows are written with whatever
- * columns are really there: unknown keys are dropped, and a NOT NULL column
- * without a default gets 0 or '' instead of failing the insert.
- */
-function ovpnColumns(string $table): array
-{
-    static $cache = [];
-
-    if (!isset($cache[$table])) {
-        $cache[$table] = [];
-        try {
-            foreach (db()->query('SHOW COLUMNS FROM `' . str_replace('`', '', $table) . '`') as $row) {
-                $cache[$table][(string) $row['Field']] = $row;
-            }
-        } catch (Throwable $error) {
-            $cache[$table] = [];
-        }
-    }
-
-    return $cache[$table];
-}
-
-function ovpnHasColumn(string $table, string $column): bool
-{
-    return isset(ovpnColumns($table)[$column]);
-}
-
-/** Insert into a panel-owned table; $upsert columns are refreshed on a duplicate key. */
-function ovpnInsert(string $table, array $values, array $upsert = []): void
-{
-    $columns = ovpnColumns($table);
-
-    if ($columns === []) {
-        return;
-    }
-
-    $row = [];
-
-    foreach ($columns as $name => $column) {
-        if (array_key_exists($name, $values)) {
-            $row[$name] = $values[$name];
-            continue;
-        }
-
-        $autoIncrement = stripos((string) $column['Extra'], 'auto_increment') !== false;
-        $required = strtoupper((string) $column['Null']) === 'NO' && $column['Default'] === null;
-
-        if ($required && !$autoIncrement) {
-            $type = (string) $column['Type'];
-            if (preg_match('~^(datetime|timestamp)~i', $type)) {
-                $row[$name] = date('Y-m-d H:i:s');
-            } elseif (preg_match('~^date~i', $type)) {
-                $row[$name] = date('Y-m-d');
-            } else {
-                $row[$name] = preg_match('~int|decimal|float|double|bit|year~i', $type) ? 0 : '';
-            }
-        }
-    }
-
-    if ($row === []) {
-        return;
-    }
-
-    $names = array_keys($row);
-    $sql = sprintf('INSERT INTO `%s` (`%s`) VALUES (%s)', $table, implode('`, `', $names),
-        implode(', ', array_fill(0, count($names), '?')));
-
-    $refresh = [];
-    foreach ($upsert as $name) {
-        if (isset($row[$name])) {
-            $refresh[] = sprintf('`%s` = VALUES(`%s`)', $name, $name);
-        }
-    }
-    if ($refresh !== []) {
-        $sql .= ' ON DUPLICATE KEY UPDATE ' . implode(', ', $refresh);
-    }
-
-    db()->prepare($sql)->execute(array_values($row));
-}
-
-function ovpnBytesText(float $bytes): string
-{
-    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    $i = 0;
-
-    while ($bytes >= 1024 && $i < count($units) - 1) {
-        $bytes /= 1024;
-        $i++;
-    }
-
-    return round($bytes, 2) . $units[$i];
+    return vpnPassword($userId, $uuid, 'ovpn_secret');
 }
 
 // -------------------------------------------------------------------- nodes
@@ -260,22 +106,6 @@ function ovpnRequireNode(): array
     return $node;
 }
 
-function ovpnNodeHost(array $node): string
-{
-    $override = trim((string) $node['host_override']);
-
-    return $override !== '' ? $override : trim((string) $node['host']);
-}
-
-/** A host name that can carry a certificate: letters in it, not an IP. Lower case, or ''. */
-function ovpnDomainName(string $host): string
-{
-    $host = strtolower(trim($host));
-
-    return strlen($host) <= 253
-        && preg_match('~^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]([a-z0-9-]{0,61}[a-z0-9])?$~', $host) ? $host : '';
-}
-
 /**
  * The domain OpenVPN's certificate should be for: the one customers connect
  * to, or '' when they get an IP. Agents from 1.4.0 issue it themselves
@@ -283,7 +113,7 @@ function ovpnDomainName(string $host): string
  */
 function ovpnCertWanted(array $node): string
 {
-    return ovpnDomainName(ovpnNodeHost($node));
+    return vpnDomainName(vpnNodeHost($node));
 }
 
 /** The name customer files may check the server by: only once the server has it. */
@@ -443,16 +273,9 @@ function ovpnNodeLive(array $node): bool
 /** A node a customer can be given a profile for. */
 function ovpnNodeUsable(array $node): bool
 {
-    return (int) $node['enabled'] === 1 && ovpnNodeHost($node) !== ''
+    return (int) $node['enabled'] === 1 && vpnNodeHost($node) !== ''
         && trim((string) $node['ca']) !== '' && trim((string) $node['tls_crypt']) !== ''
         && ovpnOffered($node) !== [];
-}
-
-function ovpnNodeServes(array $node, array $user): bool
-{
-    $groups = ovpnGroups($node['allowed_groups']);
-
-    return $groups === [] || in_array((int) ($user['server_group'] ?? 0), $groups, true);
 }
 
 // ------------------------------------------------------------------ bypass
@@ -461,276 +284,17 @@ function ovpnNodeServes(array $node, array $user): bool
  * Addresses that go outside the tunnel. The customer's file carries
  * `route <network> <mask> net_gateway` for each of them: net_gateway is the
  * client's own default gateway, and a route to it is more specific than the
- * tunnel's default, so those destinations leave directly. What goes there:
- *
- *   - the Iranian IPv4 ranges (ovpn_bypass_iran = 1), from
- *     app/Patch/data/iran-ipv4.txt or, once refreshed from the panel,
- *     storage/patch/iran-ipv4.txt
- *   - the extra list (ovpn_bypass_custom): one address, network (a.b.c.d/nn,
- *     nn 8 to 32) or domain per line, # starts a comment. A domain is looked up
- *     by the panel (here on saving, and every six hours from OvpnJob) and its
- *     addresses are put in the file, so a site behind a CDN that is not in
- *     the Iranian ranges can still be sent direct.
+ * tunnel's default, so those destinations leave directly. The lists themselves
+ * live in app/Patch/Vpn.php, shared with WireGuard, which applies them on the
+ * server instead; see that file for what they hold and where they come from.
  */
-const OVPN_BYPASS_MAX_LINES = 200;
-const OVPN_BYPASS_MAX_DOMAINS = 40;
-// routes in one file. OpenVPN Connect (OpenVPN 3) refuses a profile over
-// 262144 bytes as it counts them (64 per line, 16 + length per word): about
-// 166 per route, so 1745 Iran routes failed with "profile is too large".
-// 1200 routes stay near 205000 with the rest of the file.
-const OVPN_BYPASS_MAX_ROUTES = 1200;
-const OVPN_BYPASS_MIN_PREFIX = 8;
-const OVPN_IRAN_SOURCE = 'https://raw.githubusercontent.com/ipverse/rir-ip/master/country/ir/ipv4-aggregated.txt';
 
-function ovpnIranFile(): string
-{
-    $refreshed = ROOT . '/storage/patch/iran-ipv4.txt';
-
-    return is_file($refreshed) ? $refreshed : __DIR__ . '/data/iran-ipv4.txt';
-}
-
-/** "a.b.c.d/nn" lines of a list -> [[network as int, prefix]], sorted, valid ones only. */
-function ovpnParseRanges(string $text): array
-{
-    $nets = [];
-
-    foreach (preg_split('~\R~', $text) ?: [] as $line) {
-        $line = trim(preg_replace('~\s*#.*$~', '', $line));
-
-        if (!preg_match('~^(\d{1,3}(?:\.\d{1,3}){3})/(\d{1,2})$~', $line, $match)
-            || filter_var($match[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
-            continue;
-        }
-
-        $bits = (int) $match[2];
-        if ($bits < OVPN_BYPASS_MIN_PREFIX || $bits > 32) {
-            continue;
-        }
-
-        $mask = (0xFFFFFFFF << (32 - $bits)) & 0xFFFFFFFF;
-        $network = ip2long($match[1]) & $mask;
-        $nets[$network . '/' . $bits] = [$network, $bits];
-    }
-
-    $nets = array_values($nets);
-    usort($nets, static function (array $a, array $b): int {
-        return $a[0] <=> $b[0] ?: $a[1] <=> $b[1];
-    });
-
-    return $nets;
-}
-
-function ovpnIranRanges(): array
-{
-    static $cache = null;
-
-    if ($cache === null) {
-        $file = ovpnIranFile();
-        $cache = is_file($file) ? ovpnParseRanges((string) file_get_contents($file)) : [];
-    }
-
-    return $cache;
-}
-
-function ovpnNetInside(array $net, array $outer): bool
-{
-    return $outer[1] <= $net[1] && ($net[0] & ((0xFFFFFFFF << (32 - $outer[1])) & 0xFFFFFFFF)) === $outer[0];
-}
-
-function ovpnNetInAny(array $net, array $list): bool
-{
-    foreach ($list as $outer) {
-        if (ovpnNetInside($net, $outer)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-function ovpnDomainOk(string $name): bool
-{
-    return (bool) preg_match('~^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{1,62}$~', $name);
-}
-
-/**
- * The extra list, line by line: ['nets' => [[int, prefix]], 'domains' => [name],
- * 'errors' => ["line 3: ..."]].
- */
-function ovpnBypassParse(string $text): array
-{
-    $out = ['nets' => [], 'domains' => [], 'errors' => []];
-    $lines = preg_split('~\R~', $text) ?: [];
-
-    if (count($lines) > OVPN_BYPASS_MAX_LINES) {
-        $out['errors'][] = 'at most ' . OVPN_BYPASS_MAX_LINES . ' lines';
-        return $out;
-    }
-
-    foreach ($lines as $number => $raw) {
-        $line = strtolower(trim(preg_replace('~\s*#.*$~', '', $raw)));
-
-        if ($line === '') {
-            continue;
-        }
-
-        $where = 'line ' . ($number + 1) . ' (' . mb_substr($line, 0, 60) . ')';
-
-        if (preg_match('~^(\d{1,3}(?:\.\d{1,3}){3})(?:/(\d{1,2}))?$~', $line, $match)) {
-            $bits = isset($match[2]) && $match[2] !== '' ? (int) $match[2] : 32;
-
-            if (filter_var($match[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
-                $out['errors'][] = $where . ': not an IPv4 address';
-            } elseif ($bits < OVPN_BYPASS_MIN_PREFIX || $bits > 32) {
-                $out['errors'][] = $where . ': the prefix must be from ' . OVPN_BYPASS_MIN_PREFIX . ' to 32';
-            } else {
-                $mask = (0xFFFFFFFF << (32 - $bits)) & 0xFFFFFFFF;
-                $network = ip2long($match[1]) & $mask;
-                $out['nets'][$network . '/' . $bits] = [$network, $bits];
-            }
-            continue;
-        }
-
-        // a domain; an accented one is converted to its ASCII form
-        $name = $line;
-        if (preg_match('~[^\x20-\x7e]~', $name) && function_exists('idn_to_ascii')) {
-            $ascii = idn_to_ascii($name, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
-            $name = is_string($ascii) ? $ascii : $name;
-        }
-
-        if (ovpnDomainOk($name)) {
-            $out['domains'][$name] = $name;
-        } else {
-            $out['errors'][] = $where . ': not an address, a network or a domain';
-        }
-    }
-
-    $out['nets'] = array_values($out['nets']);
-    $out['domains'] = array_values($out['domains']);
-
-    if (count($out['domains']) > OVPN_BYPASS_MAX_DOMAINS) {
-        $out['errors'][] = 'at most ' . OVPN_BYPASS_MAX_DOMAINS . ' domains';
-    }
-
-    return $out;
-}
-
-/** The addresses each domain last resolved to: ['domain' => ['1.2.3.4']] and when. */
-function ovpnBypassCache(): array
-{
-    $decoded = json_decode(ovpnSetting('ovpn_bypass_cache', ''), true);
-
-    return [
-        'at'    => is_array($decoded) ? (int) ($decoded['at'] ?? 0) : 0,
-        'hosts' => is_array($decoded) && is_array($decoded['hosts'] ?? null) ? $decoded['hosts'] : [],
-    ];
-}
-
-/** Look the domains up now, keeping what is known for one that does not answer. */
-function ovpnBypassResolve(array $domains): array
-{
-    $known = ovpnBypassCache()['hosts'];
-    $result = [];
-    $deadline = microtime(true) + 25;
-    $failed = [];
-
-    foreach (array_slice($domains, 0, OVPN_BYPASS_MAX_DOMAINS) as $domain) {
-        $result[$domain] = isset($known[$domain]) && is_array($known[$domain]) ? $known[$domain] : [];
-
-        if (microtime(true) > $deadline) {
-            $failed[] = $domain;
-            continue;
-        }
-
-        $ips = @gethostbynamel($domain);
-        if (is_array($ips) && $ips !== []) {
-            $result[$domain] = array_slice(array_values(array_unique($ips)), 0, 16);
-        } elseif ($result[$domain] === []) {
-            $failed[] = $domain;
-        }
-    }
-
-    putSetting('ovpn_bypass_cache', $domains === [] ? '' : json_encode(['at' => time(), 'hosts' => $result]));
-
-    return ['hosts' => $result, 'failed' => $failed];
-}
-
-/**
- * Everything that goes direct: [[network int, prefix]], the Iranian ranges
- * first. Custom entries that an Iranian range already covers are left out.
- */
-/**
- * The networks that skip the tunnel: the custom ones, and as many Iran ranges
- * as the rest of OVPN_BYPASS_MAX_ROUTES allows, largest first. A range left
- * out (the smallest; about 1.5% of Iran's addresses) goes through the tunnel,
- * as without the bypass; merging ranges instead would send foreign addresses
- * around the tunnel. $info: iran_total, iran_used, iran_share (0..1).
- */
-function ovpnBypassNets(?array &$info = null): array
-{
-    $iran = ovpnSetting('ovpn_bypass_iran', '0') === '1' ? ovpnIranRanges() : [];
-    $custom = ovpnBypassParse(ovpnSetting('ovpn_bypass_custom', ''));
-    $extra = [];
-
-    $candidates = $custom['nets'];
-    foreach (ovpnBypassCache()['hosts'] as $domain => $ips) {
-        if (!in_array($domain, $custom['domains'], true)) {
-            continue; // a domain that is no longer on the list
-        }
-        foreach (is_array($ips) ? $ips : [] as $ip) {
-            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
-                $candidates[] = [ip2long($ip), 32];
-            }
-        }
-    }
-    foreach ($candidates as $net) {
-        $extra[$net[0] . '/' . $net[1]] = $net;
-    }
-
-    // the custom entries always fit; the Iran ranges share what is left
-    $extra = array_slice($extra, 0, OVPN_BYPASS_MAX_ROUTES, true);
-    $room = max(0, OVPN_BYPASS_MAX_ROUTES - count($extra));
-    $kept = $iran;
-    if (count($kept) > $room) {
-        usort($kept, static function (array $a, array $b): int {
-            return $a[1] <=> $b[1] ?: $a[0] <=> $b[0]; // shorter prefix = larger range
-        });
-        $kept = array_slice($kept, 0, $room);
-        usort($kept, static function (array $a, array $b): int {
-            return $a[0] <=> $b[0];
-        });
-    }
-
-    $all = 0;
-    $used = 0;
-    foreach ($iran as [, $bits]) {
-        $all += 2 ** (32 - $bits);
-    }
-    foreach ($kept as [, $bits]) {
-        $used += 2 ** (32 - $bits);
-    }
-    $info = [
-        'iran_total' => count($iran),
-        'iran_used'  => count($kept),
-        'iran_share' => $all > 0 ? $used / $all : 0.0,
-    ];
-
-    $nets = $kept;
-    foreach ($extra as $net) {
-        // inside a range already in the file: nothing to add
-        if ($kept === [] || !ovpnNetInAny($net, $kept)) {
-            $nets[] = $net;
-        }
-    }
-
-    return $nets;
-}
-
+/** One `route … net_gateway` line per destination that skips the tunnel. */
 function ovpnBypassLines(): array
 {
     $lines = [];
 
-    foreach (ovpnBypassNets() as [$network, $bits]) {
+    foreach (vpnBypassNets() as [$network, $bits]) {
         $mask = (0xFFFFFFFF << (32 - $bits)) & 0xFFFFFFFF;
         $lines[] = 'route ' . long2ip($network) . ' ' . long2ip($mask) . ' net_gateway';
     }
@@ -740,57 +304,15 @@ function ovpnBypassLines(): array
 
 // -------------------------------------------------------------------- users
 
-function ovpnUser(int $id): ?array
-{
-    if ($id <= 0) {
-        return null;
-    }
-
-    $statement = db()->prepare('SELECT * FROM user WHERE id = ? LIMIT 1');
-    $statement->execute([$id]);
-    $row = $statement->fetch();
-
-    return $row === false ? null : $row;
-}
-
 /**
- * Why this account may not use this node right now, or '' when it may. The
- * same reading of the account the admin dashboard uses: status 1 is active,
- * the plan runs until expire_in, and a quota is used up at u + d.
+ * Why this account may not use this node right now, or '' when it may.
+ * OpenVPN keeps no list of who is connected, so this is the reading the admin
+ * dashboard uses, and ovpnPush() applies it again to cut the sessions of
+ * accounts that may no longer connect.
  */
 function ovpnRefusal(?array $user, array $node): string
 {
-    if (!ovpnEnabled()) {
-        return 'off';
-    }
-
-    if ((int) $node['enabled'] !== 1) {
-        return 'node';
-    }
-
-    if ($user === null) {
-        return 'account';
-    }
-
-    if (isset($user['status']) && (int) $user['status'] !== 1) {
-        return 'disabled';
-    }
-
-    $expire = strtotime((string) ($user['expire_in'] ?? ''));
-    if ($expire === false || $expire <= time()) {
-        return 'expired';
-    }
-
-    $quota = (float) ($user['transfer_enable'] ?? 0);
-    if ($quota > 0 && (float) $user['u'] + (float) $user['d'] >= $quota) {
-        return 'quota';
-    }
-
-    if (!ovpnNodeServes($node, $user)) {
-        return 'group';
-    }
-
-    return '';
+    return vpnRefusal($user, $node, ovpnEnabled() ? '1' : '0');
 }
 
 /**
@@ -800,33 +322,7 @@ function ovpnRefusal(?array $user, array $node): string
  */
 function ovpnOverIpLimit(array $user, string $ip): bool
 {
-    $limit = (int) ($user['iplimit'] ?? 0);
-
-    if ($limit <= 0) {
-        return false;
-    }
-
-    $ips = [];
-
-    try {
-        $statement = db()->prepare('SELECT DISTINCT ip FROM online_ip WHERE userid = ? AND datetime >= ?');
-        $statement->execute([(int) $user['id'], time() - 120]);
-        foreach ($statement->fetchAll(PDO::FETCH_COLUMN) as $seen) {
-            $ips[(string) $seen] = true;
-        }
-    } catch (Throwable $error) {
-        // no online_ip table: count OpenVPN alone
-    }
-
-    $statement = db()->prepare('SELECT DISTINCT ip FROM ovpn_session WHERE userid = ? AND closed = 0 AND seen >= ?');
-    $statement->execute([(int) $user['id'], time() - OVPN_STALE]);
-    foreach ($statement->fetchAll(PDO::FETCH_COLUMN) as $seen) {
-        $ips[(string) $seen] = true;
-    }
-
-    unset($ips['']);
-
-    return !isset($ips[$ip]) && count($ips) >= $limit;
+    return vpnOverIpLimit($user, $ip, 'ovpn_session', OVPN_STALE);
 }
 
 // ------------------------------------------------------------- node actions
@@ -852,7 +348,7 @@ function ovpnPem(string $text, string $begin, string $end): string
 function ovpnHello(): void
 {
     $node = ovpnRequireNode();
-    $body = ovpnJsonBody();
+    $body = vpnJsonBody();
 
     $host = trim((string) ($body['host'] ?? ''));
     if ($host !== '' && !preg_match('~^[A-Za-z0-9.:-]{1,253}$~', $host)) {
@@ -929,7 +425,7 @@ function ovpnHello(): void
                           all_ports = ?, excluded_ports = ?, listen_json = ?, cert_name = ?,
                           heartbeat = IF(heartbeat = 0, ?, heartbeat), updated = ? WHERE id = ?')
         ->execute([$host, $port, $proto, $ca, $tlsCrypt, $version, $allPorts, implode(',', $excluded),
-            $listen === [] ? null : json_encode($listen), ovpnDomainName((string) ($body['cert_name'] ?? '')),
+            $listen === [] ? null : json_encode($listen), vpnDomainName((string) ($body['cert_name'] ?? '')),
             time(), time(), (int) $node['id']]);
 
     $node['host'] = $host;
@@ -939,15 +435,15 @@ function ovpnHello(): void
 
 function ovpnAuth(): void
 {
-    ovpnTimezone();
+    vpnTimezone();
     $node = ovpnRequireNode();
-    $body = ovpnJsonBody();
+    $body = vpnJsonBody();
 
     $login = (string) ($body['user'] ?? '');
     $pass = (string) ($body['pass'] ?? '');
     $ip = substr(trim((string) ($body['ip'] ?? '')), 0, 64);
 
-    $user = ovpnUser(ovpnUserIdFromLogin($login));
+    $user = vpnUser(vpnUserIdFromLogin($login));
     $expected = $user === null ? '' : ovpnPassword((int) $user['id'], (string) ($user['uuid'] ?? ''));
 
     if ($user === null || $expected === '' || !hash_equals($expected, strtolower(trim($pass)))) {
@@ -960,14 +456,14 @@ function ovpnAuth(): void
         $reason = 'iplimit';
     }
 
-    done(['allow' => $reason === '', 'reason' => $reason, 'user' => ovpnLogin((int) $user['id'])]);
+    done(['allow' => $reason === '', 'reason' => $reason, 'user' => vpnLogin((int) $user['id'])]);
 }
 
 function ovpnPush(): void
 {
-    ovpnTimezone();
+    vpnTimezone();
     $node = ovpnRequireNode();
-    $body = ovpnJsonBody();
+    $body = vpnJsonBody();
     $pdo = db();
     $now = time();
     $nodeId = (int) $node['id'];
@@ -987,7 +483,7 @@ function ovpnPush(): void
             }
             $reports[] = [
                 'sid'    => $sid,
-                'userid' => ovpnUserIdFromLogin((string) ($item['user'] ?? '')),
+                'userid' => vpnUserIdFromLogin((string) ($item['user'] ?? '')),
                 'ip'     => substr(trim((string) ($item['ip'] ?? '')), 0, 64),
                 'vip'    => substr(trim((string) ($item['vip'] ?? '')), 0, 64),
                 'rx'     => max(0, (int) ($item['rx'] ?? 0)),
@@ -1045,8 +541,8 @@ function ovpnPush(): void
             }
         }
 
-        $total = ovpnHasColumn('user', 'total_data_used');
-        $touch = ovpnHasColumn('user', 't');
+        $total = vpnHasColumn('user', 'total_data_used');
+        $touch = vpnHasColumn('user', 't');
         $sql = 'UPDATE user SET u = u + ?, d = d + ?'
             . ($total ? ', total_data_used = total_data_used + ?' : '')
             . ($touch ? ', t = ?' : '')
@@ -1068,7 +564,7 @@ function ovpnPush(): void
             $charge->execute($params);
 
             // raw bytes, as the nodes log them; PaygJob bills from these
-            ovpnInsert('trafficlog', [
+            vpnInsert('trafficlog', [
                 'userid'     => $userId,
                 'serverid'   => $serverId,
                 'servername' => $serverName,
@@ -1076,7 +572,7 @@ function ovpnPush(): void
                 'd'          => $down,
                 'total'      => $up + $down,
                 'rate'       => $rate,
-                'traffic'    => ovpnBytesText((float) ($up + $down)),
+                'traffic'    => vpnBytesText((float) ($up + $down)),
                 'datetime'   => $now,
             ]);
         }
@@ -1096,7 +592,7 @@ function ovpnPush(): void
             && !isset($seenIp[$report['userid'] . '|' . $report['ip']])) {
             $seenIp[$report['userid'] . '|' . $report['ip']] = true;
             try {
-                ovpnInsert('online_ip', [
+                vpnInsert('online_ip', [
                     'userid'   => $report['userid'],
                     'serverid' => $serverId,
                     'ip'       => $report['ip'],
@@ -1113,7 +609,7 @@ function ovpnPush(): void
     $verdicts = [];
     foreach ($live as $sid => $userId) {
         if (!array_key_exists($userId, $verdicts)) {
-            $verdicts[$userId] = ovpnRefusal(ovpnUser($userId), $node);
+            $verdicts[$userId] = ovpnRefusal(vpnUser($userId), $node);
         }
         if ($verdicts[$userId] !== '') {
             $kick[] = ['sid' => $sid, 'reason' => $verdicts[$userId]];
@@ -1135,7 +631,7 @@ function ovpnPush(): void
     // agents from 1.4.0 say which domain OpenVPN's certificate is for
     if (array_key_exists('cert_name', $body)) {
         $pdo->prepare('UPDATE ovpn_node SET cert_name = ? WHERE id = ?')
-            ->execute([ovpnDomainName((string) $body['cert_name']), $nodeId]);
+            ->execute([vpnDomainName((string) $body['cert_name']), $nodeId]);
     }
 
     // a session the agent stopped reporting (agent or OpenVPN restarted) is over
@@ -1152,32 +648,9 @@ function ovpnPush(): void
 
 function ovpnRequireUser(): array
 {
-    startPanelSession();
-
-    $login = $_SESSION['login_session'] ?? null;
-
-    if (!is_array($login) || empty($login['uid'])) {
-        fail('login required', 403);
-    }
-
-    if (!empty($login['expire']) && (int) $login['expire'] < time()) {
-        fail('session expired', 403);
-    }
-
-    $user = ovpnUser((int) $login['uid']);
-
-    if ($user === null) {
-        fail('account not found', 403);
-    }
-
-    return $user;
+    return vpnRequireUser();
 }
 
-/**
- * The .ovpn file. $mode is 'udp', 'tcp' or 'both': with both, the UDP remotes
- * come first and the TCP ones after, each line naming its protocol, so the app
- * falls back to TCP where UDP is blocked.
- */
 function ovpnProfileText(array $node, string $login, string $mode): string
 {
     $protos = $mode === 'both' ? ovpnOffered($node) : [$mode];
@@ -1195,7 +668,7 @@ function ovpnProfileText(array $node, string $login, string $mode): string
     $remotes = 0;
     foreach ($protos as $proto) {
         foreach (ovpnNodePorts($node, $proto) as $port) {
-            $lines[] = 'remote ' . ovpnNodeHost($node) . ' ' . $port . ($single ? '' : ' ' . $proto);
+            $lines[] = 'remote ' . vpnNodeHost($node) . ' ' . $port . ($single ? '' : ' ' . $proto);
             $remotes++;
         }
     }
@@ -1258,7 +731,7 @@ function ovpnProfile(): void
     $staff = (int) ($user['role'] ?? 0) > 0;
 
     if ($node === null || !ovpnNodeUsable($node)
-        || (!$staff && (!ovpnEnabled() || !ovpnNodeServes($node, $user)))) {
+        || (!$staff && (!ovpnEnabled() || !vpnNodeServes($node, $user)))) {
         fail('this server is not available for your account');
     }
 
@@ -1277,7 +750,7 @@ function ovpnProfile(): void
     header('Content-Type: application/x-openvpn-profile');
     header('Content-Disposition: attachment; filename="' . $file . '"');
     header('Cache-Control: no-store, private');
-    echo ovpnProfileText($node, ovpnLogin((int) $user['id']), $mode);
+    echo ovpnProfileText($node, vpnLogin((int) $user['id']), $mode);
     exit;
 }
 
@@ -1308,7 +781,7 @@ function ovpnNodeView(array $node): array
     return [
         'id'            => (int) $node['id'],
         'name'          => (string) $node['name'],
-        'groups'        => ovpnGroups($node['allowed_groups']),
+        'groups'        => vpnGroups($node['allowed_groups']),
         'rate'          => (float) $node['rate'],
         'enabled'       => (int) $node['enabled'] === 1,
         'sort'          => (int) $node['sort'],
@@ -1362,9 +835,9 @@ function ovpnAdminBootstrap(): void
     $adminId = requireAdmin();
 
     // the admin's own login, to try a server before customers see it
-    $me = ovpnUser($adminId);
+    $me = vpnUser($adminId);
     $test = $me === null ? null : [
-        'login' => ovpnLogin($adminId),
+        'login' => vpnLogin($adminId),
         'pass'  => ovpnPassword($adminId, (string) ($me['uuid'] ?? '')),
     ];
 
@@ -1404,7 +877,7 @@ function ovpnAdminBootstrap(): void
         // when OvpnJob last ran; 0 means the scheduler never started it
         'job_last' => (int) ovpnSetting('ovpn_job_last', '0'),
         'now'      => time(),
-        'bypass'   => ovpnBypassView(),
+        'bypass'   => vpnBypassView(),
         'repo'    => repo(),
         'branch'  => branch(),
     ]);
@@ -1425,144 +898,24 @@ function ovpnAdminSave(): void
     done(['enabled' => ovpnEnabled(), 'notify' => ovpnSetting('ovpn_notify', '1') === '1']);
 }
 
-/** Send a message to the admin chats the way OvpnJob does; per chat: 'sent' or Telegram's reason. */
-function ovpnTelegram(string $text): array
-{
-    $token = trim(ovpnSetting('telegramtoken', ''));
-    $chats = trim(ovpnSetting('tgjoin_admin_chats', ''));
-    if ($chats === '') {
-        $chats = trim(ovpnSetting('telegramchatid', ''));
-    }
-
-    if ($token === '') {
-        fail('the panel has no Telegram bot token (settings: telegramtoken)');
-    }
-    if ($chats === '') {
-        fail('no admin chat: set the panel Telegram chat id (telegramchatid) or tgjoin_admin_chats');
-    }
-
-    $results = [];
-    foreach (preg_split('~[\s,]+~', $chats, -1, PREG_SPLIT_NO_EMPTY) as $chat) {
-        $handle = curl_init('https://api.telegram.org/bot' . $token . '/sendMessage');
-        curl_setopt_array($handle, [
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => http_build_query(['chat_id' => $chat, 'text' => $text]),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_TIMEOUT        => 10,
-        ]);
-        $body = curl_exec($handle);
-        $error = curl_error($handle);
-        curl_close($handle);
-
-        $reply = is_string($body) ? json_decode($body, true) : null;
-        $results[$chat] = !empty($reply['ok']) ? 'sent'
-            : ($body === false ? 'cannot reach Telegram: ' . $error : (string) ($reply['description'] ?? 'unreadable answer'));
-    }
-
-    return $results;
-}
-
 function ovpnAdminNotifyTest(): void
 {
-    requireAdmin();
-    requireToken();
-
-    $results = ovpnTelegram("✅ آزمایش پیام سرورهای OpenVPN\nاین پیام از پنل فرستاده شد؛ پیام‌های آنلاین و آفلاین شدن سرورها به همین‌جا می‌آید.");
-
-    done(['results' => $results]);
-}
-
-/** The day the list was fetched, from its header (an update resets the file time). */
-function ovpnIranDate(string $file): string
-{
-    $head = is_file($file) ? (string) @file_get_contents($file, false, null, 0, 600) : '';
-
-    return preg_match('~fetched (\d{4}-\d{2}-\d{2})~i', $head, $match) ? $match[1] : '';
-}
-
-function ovpnBypassView(): array
-{
-    $file = ovpnIranFile();
-    $cache = ovpnBypassCache();
-
-    return [
-        'iran'        => ovpnSetting('ovpn_bypass_iran', '0') === '1',
-        'custom'      => ovpnSetting('ovpn_bypass_custom', ''),
-        // the same list for Xray customers on Happ, through the subscription (SubInfo.php)
-        'xray'        => ovpnSetting('xray_bypass', '0') === '1',
-        'iran_ranges' => count(ovpnIranRanges()),
-        'iran_date'   => ovpnIranDate($file),
-        'iran_source' => strpos($file, '/storage/') !== false ? 'refreshed' : 'shipped',
-        'hosts'       => (object) $cache['hosts'],
-        'resolved_at' => $cache['at'],
-        'routes'      => count(ovpnBypassNets($info)),
-        // how many Iran ranges the file has room for (OVPN_BYPASS_MAX_ROUTES)
-        'iran_used'   => $info['iran_used'],
-        'iran_share'  => round($info['iran_share'] * 100, 1),
-    ];
+    vpnNotifyTest('OpenVPN');
 }
 
 function ovpnAdminBypassSave(): void
 {
-    requireAdmin();
-    requireToken();
-
-    $custom = str_replace("\r", '', (string) ($_POST['custom'] ?? ''));
-    $parsed = ovpnBypassParse($custom);
-
-    if ($parsed['errors'] !== []) {
-        fail(implode(' · ', array_slice($parsed['errors'], 0, 5)));
-    }
-
-    putSetting('ovpn_bypass_iran', !empty($_POST['iran']) && $_POST['iran'] !== '0' ? '1' : '0');
-    putSetting('ovpn_bypass_custom', trim($custom));
-
-    // turned off after being on: 'off' tells Happ to drop the profile it was given
-    $xrayWas = ovpnSetting('xray_bypass', '0');
-    $xrayOn = !empty($_POST['xray']) && $_POST['xray'] !== '0';
-    putSetting('xray_bypass', $xrayOn ? '1' : ($xrayWas === '0' ? '0' : 'off'));
-
-    // the domains are looked up now, so the next file downloaded carries them
-    $resolved = ovpnBypassResolve($parsed['domains']);
-
-    done(['bypass' => ovpnBypassView(), 'failed' => $resolved['failed']]);
+    vpnBypassSave();
 }
 
 function ovpnAdminIranRefresh(): void
 {
-    requireAdmin();
-    requireToken();
-
-    $text = (string) fetch(OVPN_IRAN_SOURCE);
-    $ranges = ovpnParseRanges($text);
-
-    // a short or empty answer must never replace a good list
-    if (count($ranges) < 500) {
-        fail('the downloaded list looks wrong (' . count($ranges) . ' ranges); the current one is kept');
-    }
-
-    $dir = ROOT . '/storage/patch';
-    if (!is_dir($dir) && !@mkdir($dir, 0755, true)) {
-        fail('cannot create storage/patch');
-    }
-
-    $lines = ["# Iran (IR) IPv4 ranges from " . OVPN_IRAN_SOURCE . " (CC0), fetched " . date('Y-m-d H:i')];
-    foreach ($ranges as [$network, $bits]) {
-        $lines[] = long2ip($network) . '/' . $bits;
-    }
-
-    if (@file_put_contents($dir . '/iran-ipv4.txt.tmp', implode("\n", $lines) . "\n") === false
-        || !@rename($dir . '/iran-ipv4.txt.tmp', $dir . '/iran-ipv4.txt')) {
-        fail('cannot write storage/patch/iran-ipv4.txt');
-    }
-
-    done(['bypass' => ovpnBypassView()]);
+    vpnIranRefresh();
 }
 
 function ovpnNewKey(): string
 {
-    return bin2hex(random_bytes(24));
+    return vpnNewKey();
 }
 
 function ovpnAdminNodeSave(): void
@@ -1603,7 +956,7 @@ function ovpnAdminNodeSave(): void
         fail('unknown protocol choice');
     }
 
-    $groups = implode(',', ovpnGroups($_POST['groups'] ?? []));
+    $groups = implode(',', vpnGroups($_POST['groups'] ?? []));
     $enabled = !empty($_POST['enabled']) && $_POST['enabled'] !== '0' ? 1 : 0;
     $sort = (int) ($_POST['sort'] ?? 0);
     $now = time();

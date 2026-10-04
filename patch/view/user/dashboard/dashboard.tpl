@@ -13,12 +13,18 @@
 	</div>
 	{* the OpenVPN card, unless OpenVPN is already an app in the apps card above *}
 	{$ovpnInApps = false}
+	{$wgInApps = false}
 	{foreach $clients as $ovpnClient}
 		{$ovpnClientName = $ovpnClient->client|lower}
 		{if strpos($ovpnClientName, 'openvpn') !== false}{$ovpnInApps = true}{/if}
+		{if strpos($ovpnClientName, 'wireguard') !== false}{$wgInApps = true}{/if}
 	{/foreach}
 	{if $user->ovpnEnabled() && !$ovpnInApps}
 		{include file='user/dashboard/ovpn.tpl'}
+	{/if}
+	{* the WireGuard card, on the same terms *}
+	{if $user->wgEnabled() && !$wgInApps}
+		{include file='user/dashboard/wg.tpl'}
 	{/if}
 	<div class="row match-height">
 		{include file='user/dashboard/statistics.tpl'}	

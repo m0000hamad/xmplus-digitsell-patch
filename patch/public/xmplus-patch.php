@@ -438,6 +438,12 @@ if (strpos($action, 'ovpn.') === 0) {
     fail('unknown OpenVPN action');
 }
 
+// WireGuard servers on the same subscription, the same way round.
+if (strpos($action, 'wg.') === 0) {
+    require ROOT . '/app/Patch/Wg.php';
+    fail('unknown WireGuard action');
+}
+
 // Exit location per Xray server: the nodes' agents report in with the panel's
 // API key, the admin half checks for itself.
 if (strpos($action, 'torexit.') === 0) {

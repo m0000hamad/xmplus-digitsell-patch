@@ -135,38 +135,80 @@ function paygServers(): array
         // no OpenVPN table yet
     }
 
+    // WireGuard servers, under the virtual ids their traffic is logged with
+    try {
+        foreach (db()->query('SELECT id, name, enabled, heartbeat FROM wg_node ORDER BY sort, id') as $row) {
+            $id = 950000 + (int) $row['id'];
+            $age = (int) $row['heartbeat'] > 0 ? time() - (int) $row['heartbeat'] : PHP_INT_MAX;
+
+            $list[] = [
+                'id'      => $id,
+                'name'    => 'WireGuard · ' . (string) $row['name'],
+                'enabled' => (int) $row['enabled'] === 1,
+                'custom'  => array_key_exists($id, $rates),
+                'price'   => array_key_exists($id, $rates) ? $rates[$id] : $default,
+                'down'    => $age > 300,
+            ];
+        }
+    } catch (Throwable $error) {
+        // no WireGuard table yet
+    }
+
     return $list;
 }
 
 /**
  * Ledger rows name their server by id; OpenVPN servers live in ovpn_node under
- * 900000 + node id. Both pieces of SQL fall back to servers alone while that
- * table does not exist.
+ * 900000 + node id, WireGuard ones in wg_node under 950000 + node id. Both
+ * pieces of SQL fall back to servers alone while those tables do not exist.
+ *
+ * The two id ranges must not overlap: 950000 + 1 would match o.id = 50001 with
+ * a plain `serverid - 900000`, and name an OpenVPN row that is not there.
  */
 function paygLedgerServerJoin(): string
 {
     static $ovpn = null;
+    static $wg = null;
 
-    if ($ovpn === null) {
+    if ($ovpn === null || $wg === null) {
         try {
-            $ovpn = db()->query("SHOW TABLES LIKE 'ovpn_node'")->fetch() !== false;
+            if ($ovpn === null) {
+                $ovpn = db()->query("SHOW TABLES LIKE 'ovpn_node'")->fetch() !== false;
+            }
+            if ($wg === null) {
+                $wg = db()->query("SHOW TABLES LIKE 'wg_node'")->fetch() !== false;
+            }
         } catch (Throwable $error) {
             $ovpn = false;
+            $wg = false;
         }
     }
 
     return 'LEFT JOIN servers s ON s.id = l.serverid'
-        . ($ovpn ? ' LEFT JOIN ovpn_node o ON l.serverid > 900000 AND o.id = l.serverid - 900000' : '');
+        . ($ovpn ? ' LEFT JOIN ovpn_node o ON l.serverid > 900000 AND l.serverid < 950000 AND o.id = l.serverid - 900000' : '')
+        . ($wg ? ' LEFT JOIN wg_node w ON l.serverid > 950000 AND w.id = l.serverid - 950000' : '');
 }
 
 function paygLedgerServerName(): string
 {
-    return strpos(paygLedgerServerJoin(), 'ovpn_node') !== false
-        // explicit collation on both sides: the panel's servers table may not
-        // share the new table's, and COALESCE refuses a mix
-        ? "COALESCE(CONVERT(s.name USING utf8mb4) COLLATE utf8mb4_general_ci,"
-          . " CONVERT(CONCAT('OpenVPN · ', o.name) USING utf8mb4) COLLATE utf8mb4_general_ci)"
-        : 's.name';
+    $join = paygLedgerServerJoin();
+
+    if (strpos($join, 'ovpn_node') === false && strpos($join, 'wg_node') === false) {
+        return 's.name';
+    }
+
+    // explicit collation on every side: the panel's servers table may not share
+    // the new tables', and COALESCE refuses a mix
+    $parts = ["CONVERT(s.name USING utf8mb4) COLLATE utf8mb4_general_ci"];
+
+    if (strpos($join, 'ovpn_node') !== false) {
+        $parts[] = "CONVERT(CONCAT('OpenVPN · ', o.name) USING utf8mb4) COLLATE utf8mb4_general_ci";
+    }
+    if (strpos($join, 'wg_node') !== false) {
+        $parts[] = "CONVERT(CONCAT('WireGuard · ', w.name) USING utf8mb4) COLLATE utf8mb4_general_ci";
+    }
+
+    return 'COALESCE(' . implode(', ', $parts) . ')';
 }
 
 function paygMaxPrice(array $servers): float

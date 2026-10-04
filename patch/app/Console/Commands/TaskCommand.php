@@ -145,6 +145,15 @@ final class TaskCommand extends Command
 			'enabled' => true,
 		));
 
+		// WireGuard servers: the same messages, for the same reason
+		$scheduler->add('WgJob', array(
+			'command' => 'php '.BASE_PATH.'/bin/wg.php',
+			'schedule' => "* * * * *",
+			'output' => BASE_PATH.'/storage/logs/wg.log',
+			'lock_dir' => BASE_PATH.'/storage/cron/',
+			'enabled' => true,
+		));
+
 		// the panel's own link builders (app/Http/Schema) crash on xhttp nodes and
 		// take every subscription link and the Servers page down; a panel update
 		// puts the original files back, so they are checked every hour

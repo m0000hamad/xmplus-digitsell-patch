@@ -353,10 +353,13 @@ html[data-hs-theme="dark"] .app-howto-item {
 									{$subLink = $SubUrl|regex_replace:'~/link/([A-Za-z0-9_-]+)/?$~':'/xmplus-patch.php?do=sub&t=$1'|cat:$subTail}
 								{/if}
 
-								{* an OpenVPN app gets a server file and a username / password instead of the link *}
+								{* an OpenVPN app gets a server file and a username / password instead of the link;
+								   a WireGuard app gets a .conf file instead *}
 								{$appName = $contentTab->client|lower}
 								{if strpos($appName, 'openvpn') !== false}
 									{include file='user/dashboard/ovpnapp.tpl' app=$contentTab}
+								{elseif strpos($appName, 'wireguard') !== false}
+									{include file='user/dashboard/wgapp.tpl' app=$contentTab}
 								{else}
 								<div class="app-step">
 									<div class="app-step-head">

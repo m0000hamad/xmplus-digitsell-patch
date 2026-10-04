@@ -79,6 +79,12 @@
 				{include file='admin/settings/ovpnsettings.tpl'}
 			</div>
 	</div>
+	<div class="row">
+		<div class="col-12">
+			{* WireGuard servers: the same card, for the same kind of node *}
+			{include file='admin/settings/wgsettings.tpl'}
+		</div>
+	</div>
 	<style>
 		{literal}
 		.su-chart-wrap { position: relative; height: 320px; }
