@@ -309,21 +309,26 @@ class Bypass:
             "-i", self.iface, "-j", "MARK", "--set-mark", self.mark)
         # and the marked traffic is answered from the main routing table
         run("ip", "rule", "add", "fwmark", self.mark, "table", self.table, check=False)
-        run("ip", "route", "replace", "default", "via", gateway, "table", self.table)
+        run("ip", "route", "replace", "default", "via", gateway, "onlink", "table", self.table, check=False)
 
         # NAT for WireGuard subnet
         while run("iptables", "-t", "nat", "-D", "POSTROUTING", "-s", subnet, "-j", "MASQUERADE", check=False)[0] == 0:
             pass
-        run("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", subnet, "-j", "MASQUERADE")
+        run("iptables", "-t", "nat", "-I", "POSTROUTING", "1", "-s", subnet, "-j", "MASQUERADE")
 
         # Forwarding rules
         while run("iptables", "-D", "FORWARD", "-i", self.iface, "-j", "ACCEPT", check=False)[0] == 0:
             pass
-        run("iptables", "-A", "FORWARD", "-i", self.iface, "-j", "ACCEPT")
+        run("iptables", "-I", "FORWARD", "1", "-i", self.iface, "-j", "ACCEPT")
 
         while run("iptables", "-D", "FORWARD", "-o", self.iface, "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT", check=False)[0] == 0:
             pass
-        run("iptables", "-A", "FORWARD", "-o", self.iface, "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT")
+        run("iptables", "-I", "FORWARD", "2", "-o", self.iface, "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT")
+
+        # MSS Clamping (prevents packet loss on mobile / LTE networks)
+        while run("iptables", "-t", "mangle", "-D", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu", check=False)[0] == 0:
+            pass
+        run("iptables", "-t", "mangle", "-I", "FORWARD", "1", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu", check=False)
 
         log("direct routes: table", self.table, "via", gateway, "for everything not in",
             self.set_name)
@@ -347,6 +352,7 @@ class Bypass:
         run("iptables", "-t", "nat", "-D", "POSTROUTING", "-s", subnet, "-j", "MASQUERADE", check=False)
         run("iptables", "-D", "FORWARD", "-i", self.iface, "-j", "ACCEPT", check=False)
         run("iptables", "-D", "FORWARD", "-o", self.iface, "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT", check=False)
+        run("iptables", "-t", "mangle", "-D", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu", check=False)
 
     # ------------------------------------------------------------ the agent
 

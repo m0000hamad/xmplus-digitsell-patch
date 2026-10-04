@@ -184,14 +184,21 @@ ListenPort = $LISTEN
 PrivateKey = $(cat "$SERVER_KEY_FILE")
 MTU = $MTU
 Table = off
+PostUp = iptables -I FORWARD 1 -i %i -j ACCEPT; iptables -I FORWARD 2 -o %i -m state --state RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -I POSTROUTING 1 -s 10.$NODE.0.0/16 -j MASQUERADE; iptables -t mangle -I FORWARD 1 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+PostDown = iptables -D FORWARD -i %i -j ACCEPT 2>/dev/null || true; iptables -D FORWARD -o %i -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true; iptables -t nat -D POSTROUTING -s 10.$NODE.0.0/16 -j MASQUERADE 2>/dev/null || true; iptables -t mangle -D FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
 EOF
 chmod 600 "/etc/wireguard/$IFACE.conf"
 
 echo "==> routing"
 cat > /etc/sysctl.d/99-digitsell-wg.conf <<EOF
 net.ipv4.ip_forward = 1
+net.ipv4.conf.all.rp_filter = 2
+net.ipv4.conf.default.rp_filter = 2
 EOF
-sysctl -q -p /etc/sysctl.d/99-digitsell-wg.conf 2>/dev/null || sysctl -w net.ipv4.ip_forward=1 >/dev/null || true
+sysctl -q -p /etc/sysctl.d/99-digitsell-wg.conf 2>/dev/null || {
+    sysctl -w net.ipv4.ip_forward=1 >/dev/null || true
+    sysctl -w net.ipv4.conf.all.rp_filter=2 >/dev/null || true
+}
 
 echo "==> agent"
 fetch wg-agent.py "$AGENT_DIR/wg-agent.py"
