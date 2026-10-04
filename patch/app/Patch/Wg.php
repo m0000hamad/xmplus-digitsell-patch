@@ -798,6 +798,26 @@ function wgAdminToken(): string
     return (string) $_SESSION['patch_csrf'];
 }
 
+/** The domain status for the admin: wanted domain, where it points, and whether that is the server. */
+function wgDomainView(array $node): ?array
+{
+    $domain = vpnDomainName((string) ($node['host_override'] ?? ''));
+    if ($domain === '') {
+        return null;
+    }
+
+    $serverIp = trim((string) $node['host']);
+    $points = @gethostbynamel($domain) ?: [];
+    sort($points);
+
+    return [
+        'name'      => $domain,
+        'points'    => $points,
+        'points_ok' => filter_var($serverIp, FILTER_VALIDATE_IP) ? in_array($serverIp, $points, true) : null,
+        'server_ip' => filter_var($serverIp, FILTER_VALIDATE_IP) ? $serverIp : '',
+    ];
+}
+
 function wgNodeView(array $node): array
 {
     return [
@@ -809,6 +829,7 @@ function wgNodeView(array $node): array
         'sort'          => (int) $node['sort'],
         'host'          => (string) $node['host'],
         'host_override' => (string) $node['host_override'],
+        'domain'        => wgDomainView($node),
         'port'          => wgNodePort($node),
         'listen_port'   => (int) $node['listen_port'],
         'pubkey'        => (string) $node['pubkey'],

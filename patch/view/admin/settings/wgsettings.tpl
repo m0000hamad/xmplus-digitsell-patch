@@ -164,6 +164,9 @@
 	window.WgWords.download  = "{$translate->get('WgAdmDownload')|escape:'javascript'}";
 	window.WgWords.portInfo  = "{$translate->get('WgAdmPortInfo')|escape:'javascript'}";
 	window.WgWords.noPort    = "{$translate->get('WgAdmNoPort')|escape:'javascript'}";
+	window.WgWords.dnsOk     = "{$translate->get('WgAdmDnsOk')|escape:'javascript'}";
+	window.WgWords.dnsBad    = "{$translate->get('WgAdmDnsBad')|escape:'javascript'}";
+	window.WgWords.notFound  = "{$translate->get('WgAdmNotFound')|escape:'javascript'}";
 </script>
 {literal}
 <style>
@@ -263,6 +266,16 @@
 			var address = node.heartbeat
 				? '<span dir="ltr">UDP ' + esc(host) + ' : ' + esc(node.port) + '</span> <span class="badge badge-light" dir="ltr">MTU ' + (node.mtu || 1420) + '</span>'
 				: '<span class="text-muted">UDP ' + esc(host || '—') + ' : ' + esc(words.noPort) + '</span>';
+
+			if (node.domain) {
+				var dom = node.domain;
+				if (dom.points_ok === true) {
+					address += '<br><small class="text-success">✓ ' + esc(words.dnsOk) + ' <span dir="ltr">(' + esc(dom.name) + ')</span></small>';
+				} else if (dom.points_ok === false) {
+					address += '<br><small class="text-danger">⚠️ ' + esc(words.dnsBad.replace('%ip%', dom.server_ip)) + ' <span dir="ltr">'
+						+ esc(dom.points.length ? dom.points.join(', ') : words.notFound) + '</span></small>';
+				}
+			}
 
 			var groups = node.groups.length ? node.groups.map(groupName).join('، ') : words.all;
 
