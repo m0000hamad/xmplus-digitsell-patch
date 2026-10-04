@@ -177,9 +177,52 @@ html[data-hs-theme="dark"] .wg-proto.is-static { color: #b6c0d3 !important; back
 
 .wg-device-manager {
 	background: rgba(15, 118, 110, .05);
-	border: 1px solid rgba(15, 118, 110, .15);
+	border: 1px solid rgba(15, 118, 110, .18);
 	border-radius: 14px;
 	padding: 12px 14px;
+}
+.wg-device-header-title {
+	font-size: 13px;
+	font-weight: 700;
+	color: #334155;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+.wg-device-count {
+	background: #0f766e;
+	color: #ffffff;
+	font-size: 11.5px;
+	font-weight: 700;
+	padding: 2px 8px;
+	border-radius: 999px;
+	display: inline-block;
+}
+.wg-add-device-btn {
+	background: linear-gradient(135deg, #0f766e, #14b8a6) !important;
+	color: #ffffff !important;
+	border: 1px solid rgba(15, 118, 110, .3) !important;
+	font-weight: 700 !important;
+	font-size: 12px !important;
+	padding: 5px 13px !important;
+	border-radius: 999px !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 6px !important;
+	cursor: pointer !important;
+	transition: all .2s ease !important;
+	box-shadow: 0 2px 6px rgba(15, 118, 110, .25) !important;
+	text-decoration: none !important;
+	line-height: 1.4 !important;
+}
+.wg-add-device-btn:hover {
+	background: linear-gradient(135deg, #115e59, #0f766e) !important;
+	color: #ffffff !important;
+	transform: translateY(-1px);
+	box-shadow: 0 4px 10px rgba(15, 118, 110, .35) !important;
+}
+.wg-add-device-btn:active {
+	transform: translateY(0);
 }
 .wg-dev-pill {
 	display: inline-flex;
@@ -239,30 +282,127 @@ html[data-hs-theme="dark"] .wg-cred-value,
 html[data-hs-theme="dark"] .wg-app,
 html[data-hs-theme="dark"] .wg-server { background: #1b2336; border-color: rgba(255, 255, 255, .1); color: #e7eaf3 !important; }
 html[data-hs-theme="dark"] .wg-icon-btn { background: rgba(45, 212, 191, .18); color: #5eead4; }
-html[data-hs-theme="dark"] .wg-device-manager {
-	background: rgba(45, 212, 191, .06);
-	border-color: rgba(45, 212, 191, .2);
+
+/* Dark mode device manager: high contrast and clear visibility */
+html[data-hs-theme="dark"] .wg-device-manager,
+html[data-bs-theme="dark"] .wg-device-manager,
+body.dark-layout .wg-device-manager,
+.dark-mode .wg-device-manager,
+[data-theme="dark"] .wg-device-manager {
+	background: rgba(45, 212, 191, .07) !important;
+	border: 1px solid rgba(45, 212, 191, .25) !important;
 }
-html[data-hs-theme="dark"] .wg-dev-pill {
-	background: #1b2336;
-	border-color: rgba(255, 255, 255, .12);
-	color: #e7eaf3;
+html[data-hs-theme="dark"] .wg-device-header-title,
+html[data-bs-theme="dark"] .wg-device-header-title,
+body.dark-layout .wg-device-header-title,
+.dark-mode .wg-device-header-title,
+[data-theme="dark"] .wg-device-header-title {
+	color: #f1f5f9 !important;
 }
-html[data-hs-theme="dark"] .wg-dev-pill:hover {
-	border-color: #2dd4bf;
-	background: rgba(45, 212, 191, .1);
+html[data-hs-theme="dark"] .wg-device-count,
+html[data-bs-theme="dark"] .wg-device-count,
+body.dark-layout .wg-device-count,
+.dark-mode .wg-device-count,
+[data-theme="dark"] .wg-device-count {
+	background: rgba(45, 212, 191, .2) !important;
+	color: #2dd4bf !important;
+	border: 1px solid rgba(45, 212, 191, .4) !important;
 }
-html[data-hs-theme="dark"] .wg-dev-pill.is-active {
-	border-color: #2dd4bf;
-	background: rgba(45, 212, 191, .2);
-	color: #5eead4;
+html[data-hs-theme="dark"] .wg-add-device-btn,
+html[data-bs-theme="dark"] .wg-add-device-btn,
+body.dark-layout .wg-add-device-btn,
+.dark-mode .wg-add-device-btn,
+[data-theme="dark"] .wg-add-device-btn {
+	background: linear-gradient(135deg, #0d9488, #14b8a6) !important;
+	color: #ffffff !important;
+	border: 1px solid #2dd4bf !important;
+	box-shadow: 0 0 12px rgba(45, 212, 191, .35), 0 2px 6px rgba(0, 0, 0, .4) !important;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, .3) !important;
 }
-html[data-hs-theme="dark"] .wg-dev-del {
-	color: #64748b;
+html[data-hs-theme="dark"] .wg-add-device-btn:hover,
+html[data-bs-theme="dark"] .wg-add-device-btn:hover,
+body.dark-layout .wg-add-device-btn:hover,
+.dark-mode .wg-add-device-btn:hover,
+[data-theme="dark"] .wg-add-device-btn:hover {
+	background: linear-gradient(135deg, #14b8a6, #2dd4bf) !important;
+	color: #042f2e !important;
+	border-color: #5eead4 !important;
+	box-shadow: 0 0 16px rgba(45, 212, 191, .6), 0 4px 12px rgba(0, 0, 0, .5) !important;
+	text-shadow: none !important;
 }
-html[data-hs-theme="dark"] .wg-dev-del:hover {
-	color: #f87171;
-	background: rgba(239, 68, 68, .2);
+html[data-hs-theme="dark"] .wg-dev-pill,
+html[data-bs-theme="dark"] .wg-dev-pill,
+body.dark-layout .wg-dev-pill,
+.dark-mode .wg-dev-pill,
+[data-theme="dark"] .wg-dev-pill {
+	background: #1e293b !important;
+	border-color: rgba(255, 255, 255, .15) !important;
+	color: #f1f5f9 !important;
+}
+html[data-hs-theme="dark"] .wg-dev-pill:hover,
+html[data-bs-theme="dark"] .wg-dev-pill:hover,
+body.dark-layout .wg-dev-pill:hover,
+.dark-mode .wg-dev-pill:hover,
+[data-theme="dark"] .wg-dev-pill:hover {
+	border-color: #2dd4bf !important;
+	background: rgba(45, 212, 191, .15) !important;
+	color: #ffffff !important;
+}
+html[data-hs-theme="dark"] .wg-dev-pill.is-active,
+html[data-bs-theme="dark"] .wg-dev-pill.is-active,
+body.dark-layout .wg-dev-pill.is-active,
+.dark-mode .wg-dev-pill.is-active,
+[data-theme="dark"] .wg-dev-pill.is-active {
+	border-color: #2dd4bf !important;
+	background: linear-gradient(135deg, rgba(15, 118, 110, .35), rgba(45, 212, 191, .25)) !important;
+	color: #5eead4 !important;
+	box-shadow: 0 2px 8px rgba(45, 212, 191, .25) !important;
+}
+html[data-hs-theme="dark"] .wg-dev-del,
+html[data-bs-theme="dark"] .wg-dev-del,
+body.dark-layout .wg-dev-del,
+.dark-mode .wg-dev-del,
+[data-theme="dark"] .wg-dev-del {
+	color: #94a3b8 !important;
+}
+html[data-hs-theme="dark"] .wg-dev-del:hover,
+html[data-bs-theme="dark"] .wg-dev-del:hover,
+body.dark-layout .wg-dev-del:hover,
+.dark-mode .wg-dev-del:hover,
+[data-theme="dark"] .wg-dev-del:hover {
+	color: #f87171 !important;
+	background: rgba(239, 68, 68, .2) !important;
+}
+
+/* SweetAlert dark mode styling */
+html[data-hs-theme="dark"] .swal2-popup,
+html[data-bs-theme="dark"] .swal2-popup,
+body.dark-layout .swal2-popup,
+.dark-mode .swal2-popup,
+[data-theme="dark"] .swal2-popup {
+	background: #1c2536 !important;
+	color: #e7eaf3 !important;
+}
+html[data-hs-theme="dark"] .swal2-title,
+html[data-bs-theme="dark"] .swal2-title,
+body.dark-layout .swal2-title,
+.dark-mode .swal2-title,
+[data-theme="dark"] .swal2-title,
+html[data-hs-theme="dark"] .swal2-input-label,
+html[data-bs-theme="dark"] .swal2-input-label,
+body.dark-layout .swal2-input-label,
+.dark-mode .swal2-input-label,
+[data-theme="dark"] .swal2-input-label {
+	color: #e7eaf3 !important;
+}
+html[data-hs-theme="dark"] .swal2-input,
+html[data-bs-theme="dark"] .swal2-input,
+body.dark-layout .swal2-input,
+.dark-mode .swal2-input,
+[data-theme="dark"] .swal2-input {
+	background: #131b2e !important;
+	color: #ffffff !important;
+	border: 1px solid rgba(255, 255, 255, .15) !important;
 }
 
 @media (max-width: 575.98px) {

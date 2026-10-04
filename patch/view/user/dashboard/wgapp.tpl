@@ -20,8 +20,8 @@
 			{$wgLimit = $user->wgDeviceLimit()}
 			<div class="wg-device-manager mb-3">
 				<div class="d-flex align-items-center justify-content-between mb-2">
-					<span class="fw-bold fs-13 text-muted">📱 مدیریت دستگاه‌ها: <span class="badge bg-primary text-white ms-1 wg-device-count">{count($wgDevs)} از {$wgLimit}</span></span>
-					<button type="button" class="btn btn-sm btn-outline-primary py-1 px-2 fs-12 rounded-pill wg-add-device-btn" {if count($wgDevs) >= $wgLimit}style="display:none"{/if}>➕ افزودن دستگاه</button>
+					<span class="wg-device-header-title">📱 مدیریت دستگاه‌ها: <span class="wg-device-count">{count($wgDevs)} از {$wgLimit}</span></span>
+					<button type="button" class="wg-add-device-btn" {if count($wgDevs) >= $wgLimit}style="display:none"{/if}>➕ افزودن دستگاه</button>
 				</div>
 				<div class="d-flex flex-wrap gap-2 wg-device-list">
 					{foreach $wgDevs as $dev}
@@ -106,7 +106,7 @@
 
 				var addBtns = document.querySelectorAll('.wg-add-device-btn');
 				for (var b = 0; b < addBtns.length; b++) {
-					addBtns[b].style.display = data.can_add ? 'inline-block' : 'none';
+					addBtns[b].style.display = data.can_add ? 'inline-flex' : 'none';
 				}
 
 				var containers = document.querySelectorAll('.wg-device-list');
