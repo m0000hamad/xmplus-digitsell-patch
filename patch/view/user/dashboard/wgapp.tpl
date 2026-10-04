@@ -29,6 +29,13 @@
 			<p class="wg-note">{$translate->get('WgNoServer')}</p>
 		{/if}
 
+		<div class="app-actions">
+			<a class="app-btn app-btn-get" href="{$app->url}" target="_blank" rel="noopener">⬇️ {$translate->get('Download')} {$app->client}</a>
+			{if $app->uuid || $app->uuid != 0}
+				<a class="app-btn app-btn-help" href="/portal/knowledgebase/{$app->uuid}">📖 {$translate->get('Instruction')}</a>
+			{/if}
+		</div>
+
 		<ol class="wg-steps">
 			<li>{$translate->get('WgHow1')}</li>
 			<li>{$translate->get('WgHow2')}</li>

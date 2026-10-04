@@ -160,7 +160,7 @@ cat > "$CONF_DIR/agent.json" <<EOF
   "key": "$KEY",
   "interface": "$IFACE",
   "listen_port": $LISTEN,
-  "host": "$HOST",
+  "host": "${HOST:-$SERVER_IP}",
   "server_ip": "$SERVER_IP",
   "public_key": "$SERVER_PUBKEY",
   "dns": "$DNS",
@@ -243,7 +243,7 @@ echo "==> telling the panel who we are"
 # right away instead of on the next report
 quiet curl -fsS -X POST \
     -H "X-Wg-Node: $NODE" -H "X-Wg-Key: $KEY" -H "Content-Type: application/json" \
-    -d "{\"host\":\"$HOST\",\"port\":$LISTEN,\"pubkey\":\"$SERVER_PUBKEY\",\"dns\":\"$DNS\",\"mtu\":$MTU}" \
+    -d "{\"host\":\"${HOST:-$SERVER_IP}\",\"port\":$LISTEN,\"pubkey\":\"$SERVER_PUBKEY\",\"dns\":\"$DNS\",\"mtu\":$MTU}" \
     "$PANEL/xmplus-patch.php?do=wg.hello" >/dev/null || \
     echo "    the panel did not answer; the agent will report in a moment"
 

@@ -1,5 +1,5 @@
 {
-    "version": "1.23.3",
+    "version": "1.23.4",
     "released": "2026-10-04",
     "notes": "WireGuard nodes: fix node installer and agent (generate wg0.conf, enable ip_forward, fix bypass-start argument order and gateway method, add subnet NAT/forwarding rules).",
     "migrations": [
@@ -135,7 +135,7 @@
         "view/user/dashboard/walletstate.tpl": "9982f6c129978aa6c424c3dfc39a25446b2a2df1c3a7b1e4b6897fd9c08f638d",
         "view/user/dashboard/wallettile.tpl": "889e1f672e3b99128277eab6bb73aa3870b51df4463d675b2c8e81b4dde293ff",
         "view/user/dashboard/wg.tpl": "25b6b193790f9f2c6177b34a3e78c5c677f9e59583dc5d870a7e1e5071e042ac",
-        "view/user/dashboard/wgapp.tpl": "b758f310cdfab47d139c6964548b07f3e8695d79fb0d5e8622d18db442323758",
+        "view/user/dashboard/wgapp.tpl": "0f1df25f920e87021731206bafc83667f68c5d56b3f408074d364d1c9d9a3027",
         "view/user/dashboard/wgnode.tpl": "4ff99bf8590e537d9e87c911c4826b4e23151fb87f28dccf1ed38d5c3b1ce137",
         "view/user/dashboard/wgstyle.tpl": "b1eced6752b25d8b68fef2d866f9fbfededa2b3dc590f0f5e54e74ac33a97fda",
         "view/user/knowledgebase/index.tpl": "56734909a2273153f33e7eef3078075a77a9570ca1390a6ac8ce9f809bd400f3",
