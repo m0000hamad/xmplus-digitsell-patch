@@ -117,7 +117,7 @@ if [ "$LISTEN" = "auto" ]; then
     LISTEN=""
     # an earlier install's port: files customers already have point at it
     if [ -f "/etc/wireguard/$IFACE.conf" ]; then
-        LISTEN=$(awk '/^ListenPort/ {print $2; exit}' "/etc/wireguard/$IFACE.conf" | cut -d/ -f1)
+        LISTEN=$(awk -F= '/^ListenPort/ {gsub(/[[:space:]]/, "", $2); print $2; exit}' "/etc/wireguard/$IFACE.conf")
     fi
     if [ -z "$LISTEN" ] || port_taken "$LISTEN"; then
         LISTEN=""
