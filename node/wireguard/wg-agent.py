@@ -35,6 +35,7 @@ Two subcommands, both used by install.sh:
 import json
 import os
 import re
+import shutil
 import ssl
 import subprocess
 import sys
@@ -42,7 +43,8 @@ import time
 import urllib.error
 import urllib.request
 
-VERSION = "1.0.1"
+VERSION = "1.0.2"
+WG_BIN = "awg" if shutil.which("awg") else "wg"
 
 DEFAULT_CONFIG = "/etc/digitsell-wg/agent.json"
 PUSH_INTERVAL = 60
@@ -145,7 +147,7 @@ class Interface:
         self.gone = False
 
     def check(self):
-        code, _ = run("wg", "show", self.name, check=False)
+        code, _ = run(WG_BIN, "show", self.name, check=False)
         if code != 0:
             if not self.gone:
                 log("interface", self.name, "is not up yet; waiting")
@@ -158,12 +160,12 @@ class Interface:
 
     def dump(self):
         """
-        `wg show <if> dump`, whose first line is the interface itself and whose
+        `wg/awg show <if> dump`, whose first line is the interface itself and whose
         later lines are one peer each:
             public-key  preshared-key  endpoint  allowed-ips  latest-handshake
             rx  tx  keepalive
         """
-        code, out = run("wg", "show", self.name, "dump", check=False)
+        code, out = run(WG_BIN, "show", self.name, "dump", check=False)
         if code != 0:
             return {}
         peers = {}
@@ -185,7 +187,7 @@ class Interface:
 
     def set_peer(self, pubkey, address, psk=None):
         """Add a peer, or give an existing one its address again."""
-        cmd = ["wg", "set", self.name, "peer", pubkey,
+        cmd = [WG_BIN, "set", self.name, "peer", pubkey,
                "allowed-ips", address + "/32"]
         if psk and valid_key(psk):
             cmd += ["preshared-key", "/dev/stdin"]
@@ -194,7 +196,7 @@ class Interface:
             run(*cmd, check=False)
 
     def drop_peer(self, pubkey):
-        run("wg", "set", self.name, "peer", pubkey, "remove", check=False)
+        run(WG_BIN, "set", self.name, "peer", pubkey, "remove", check=False)
 
 
 # --------------------------------------------------------- direct-route list

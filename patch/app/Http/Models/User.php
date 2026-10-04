@@ -818,6 +818,17 @@ final class User extends Model
 		return 'u' . (int) $this->id;
 	}
 
+	public function wgDevices()
+	{
+		require_once dirname(__DIR__, 2) . '/Patch/Wg.php';
+		return wgUserDevices((int) $this->id, (string) $this->uuid);
+	}
+
+	public function wgDeviceLimit()
+	{
+		return max(1, (int) ($this->iplimit ?? 1));
+	}
+
 	/*
 	 * The account's public key, which is what the node's agent reports its peers
 	 * by. '' when the panel is missing the sodium extension, or when wg_secret

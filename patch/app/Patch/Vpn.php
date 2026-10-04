@@ -32,6 +32,35 @@ const VPN_IRAN_SOURCE = 'https://raw.githubusercontent.com/ipverse/rir-ip/master
 
 // ------------------------------------------------------------------ helpers
 
+if (!function_exists('setting')) {
+    function setting(string $name, ?string $fallback = null): ?string
+    {
+        try {
+            $statement = db()->prepare('SELECT value FROM settings WHERE name = ? LIMIT 1');
+            $statement->execute([$name]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+            return $row === false ? $fallback : (string) $row['value'];
+        } catch (Throwable $e) {
+            return $fallback;
+        }
+    }
+}
+
+if (!function_exists('putSetting')) {
+    function putSetting(string $name, string $value): void
+    {
+        $exists = db()->prepare('SELECT 1 FROM settings WHERE name = ? LIMIT 1');
+        $exists->execute([$name]);
+
+        if ($exists->fetch() === false) {
+            db()->prepare('INSERT INTO settings (name, value) VALUES (?, ?)')->execute([$name, $value]);
+            return;
+        }
+
+        db()->prepare('UPDATE settings SET value = ? WHERE name = ?')->execute([$value, $name]);
+    }
+}
+
 /** A setting as a string, or $fallback when it is unset or empty. */
 function vpnSetting(string $name, string $fallback): string
 {
@@ -240,7 +269,7 @@ function vpnUser(int $id): ?array
 
     $statement = db()->prepare('SELECT * FROM user WHERE id = ? LIMIT 1');
     $statement->execute([$id]);
-    $row = $statement->fetch();
+    $row = $statement->fetch(PDO::FETCH_ASSOC);
 
     return $row === false ? null : $row;
 }

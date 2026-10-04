@@ -50,6 +50,42 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/Vpn.php';
 
+if (!function_exists('db')) {
+    function db(): PDO
+    {
+        static $pdo = null;
+        if ($pdo instanceof PDO) {
+            return $pdo;
+        }
+
+        $root = dirname(__DIR__, 2);
+        $config = $root . '/config/config.php';
+        if (!is_file($config)) {
+            throw new RuntimeException('config/config.php not found');
+        }
+
+        require $config;
+        if (!isset($DB) || !is_array($DB)) {
+            throw new RuntimeException('database configuration not readable');
+        }
+
+        $dsn = sprintf('mysql:host=%s;dbname=%s;charset=utf8mb4',
+            $DB['db_host'] ?? 'localhost', $DB['db_database'] ?? '');
+
+        if (!empty($DB['db_socket'])) {
+            $dsn = sprintf('mysql:unix_socket=%s;dbname=%s;charset=utf8mb4',
+                $DB['db_socket'], $DB['db_database'] ?? '');
+        }
+
+        $pdo = new PDO($dsn, $DB['db_username'] ?? '', $DB['db_password'] ?? '', [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
+
+        return $pdo;
+    }
+}
+
 const WG_SERVER_BASE = 950000;
 /* a peer not pushed for this long has gone; a node silent this long is down */
 const WG_STALE = 180;
@@ -67,7 +103,7 @@ const WG_MTU_DEFAULT = 1420;
  * and base64-encoded as WireGuard writes it. Derived, never stored - see the
  * header for why.
  */
-function wgPrivateKey(int $userId, string $uuid): string
+function wgPrivateKey(int $userId, string $uuid, int $deviceId = 1): string
 {
     $secret = vpnSetting('wg_secret', '');
 
@@ -75,7 +111,8 @@ function wgPrivateKey(int $userId, string $uuid): string
         return '';
     }
 
-    $raw = hash_hmac('sha256', 'key:' . $userId . ':' . strtolower(trim($uuid)), $secret, true);
+    $suffix = $deviceId > 1 ? ':' . $deviceId : '';
+    $raw = hash_hmac('sha256', 'key:' . $userId . ':' . strtolower(trim($uuid)) . $suffix, $secret, true);
 
     return sodium_bin2base64(wgClampScalar($raw), SODIUM_BASE64_VARIANT_ORIGINAL);
 }
@@ -117,29 +154,30 @@ function wgPresharedKey(int $userId, string $uuid): string
  * wg_credential so the agent's peers can be matched by an indexed lookup.
  * '' when sodium is missing, the secret is unset, or the row cannot be read.
  */
-function wgPublicKey(int $userId, string $uuid): string
+function wgPublicKey(int $userId, string $uuid, int $deviceId = 1): string
 {
     static $cache = [];
+    $cacheKey = $userId . ':' . $deviceId;
 
-    if (isset($cache[$userId])) {
-        return $cache[$userId];
+    if (isset($cache[$cacheKey])) {
+        return $cache[$cacheKey];
     }
 
-    $cache[$userId] = '';
+    $cache[$cacheKey] = '';
 
     try {
-        $statement = db()->prepare('SELECT pubkey FROM wg_credential WHERE userid = ? LIMIT 1');
-        $statement->execute([$userId]);
+        $statement = db()->prepare('SELECT pubkey FROM wg_credential WHERE userid = ? AND device_id = ? LIMIT 1');
+        $statement->execute([$userId, $deviceId]);
         $known = $statement->fetch();
     } catch (Throwable $error) {
         return '';
     }
 
     if ($known !== false && trim((string) $known['pubkey']) !== '') {
-        return $cache[$userId] = trim((string) $known['pubkey']);
+        return $cache[$cacheKey] = trim((string) $known['pubkey']);
     }
 
-    $private = wgPrivateKey($userId, $uuid);
+    $private = wgPrivateKey($userId, $uuid, $deviceId);
 
     if ($private === '') {
         return '';
@@ -149,14 +187,15 @@ function wgPublicKey(int $userId, string $uuid): string
         sodium_crypto_box_publickey_from_secretkey(sodium_base642bin($private, SODIUM_BASE64_VARIANT_ORIGINAL)), SODIUM_BASE64_VARIANT_ORIGINAL);
 
     try {
-        db()->prepare('INSERT INTO wg_credential (userid, pubkey, updated) VALUES (?, ?, ?)
+        $devName = $deviceId === 1 ? 'دستگاه اصلی' : ('دستگاه ' . $deviceId);
+        db()->prepare('INSERT INTO wg_credential (userid, device_id, name, pubkey, updated) VALUES (?, ?, ?, ?, ?)
                        ON DUPLICATE KEY UPDATE pubkey = VALUES(pubkey), updated = VALUES(updated)')
-            ->execute([$userId, $key, time()]);
+            ->execute([$userId, $deviceId, $devName, $key, time()]);
     } catch (Throwable $error) {
         // the key is still good for this request; it is written next time
     }
 
-    return $cache[$userId] = $key;
+    return $cache[$cacheKey] = $key;
 }
 
 /** The account behind a peer's public key, or 0. */
@@ -317,8 +356,8 @@ function wgAddressFor(int $nodeId, string $pubkey, int $step = 0): string
 function wgReservedAddress(int $userId, int $nodeId, string $pubkey): ?string
 {
     try {
-        $find = db()->prepare('SELECT address FROM wg_credential WHERE userid = ? AND nodeid = ? LIMIT 1');
-        $find->execute([$userId, $nodeId]);
+        $find = db()->prepare('SELECT address FROM wg_credential WHERE userid = ? AND nodeid = ? AND pubkey = ? LIMIT 1');
+        $find->execute([$userId, $nodeId, $pubkey]);
         $have = $find->fetch();
 
         if ($have !== false && $have['address'] !== null && $have['address'] !== '') {
@@ -335,29 +374,19 @@ function wgReservedAddress(int $userId, int $nodeId, string $pubkey): ?string
         $address = wgAddressFor($nodeId, $pubkey, $step);
 
         try {
-            // address IS NULL: the row exists (its key is known) but nothing
-            // is reserved yet. An empty string would not do - every unclaimed
-            // row would collide on UNIQUE (nodeid, address).
-            //
-            // The UNIQUE index, not rowCount(), is what says the address was
-            // free: when this account already holds it the UPDATE changes
-            // nothing and rowCount() is 0, which is success, not failure.
             $claim = db()->prepare('UPDATE wg_credential SET nodeid = ?, address = ?, updated = ?
-                                    WHERE userid = ?
+                                    WHERE userid = ? AND pubkey = ?
                                     LIMIT 1');
-            $claim->execute([$nodeId, $address, time(), $userId]);
+            $claim->execute([$nodeId, $address, time(), $userId, $pubkey]);
         } catch (Throwable $error) {
-            // taken by somebody else between the read and the write, which is
-            // what the UNIQUE index is for: try the next address, do not give up
             continue;
         }
 
-        // read it back: either this account got it, or somebody else has it
-        $check = db()->prepare('SELECT userid FROM wg_credential WHERE nodeid = ? AND address = ? LIMIT 1');
+        $check = db()->prepare('SELECT userid, pubkey FROM wg_credential WHERE nodeid = ? AND address = ? LIMIT 1');
         $check->execute([$nodeId, $address]);
         $holder = $check->fetch();
 
-        if ($holder !== false && (int) $holder['userid'] === $userId) {
+        if ($holder !== false && (int) $holder['userid'] === $userId && trim((string)$holder['pubkey']) === $pubkey) {
             return $address;
         }
     }
@@ -505,6 +534,7 @@ function wgPush(): void
 
     $usage = [];   // user id => [upload, download] in raw bytes
     $live = [];    // pubkey => user id, peers still connected
+    $remove = [];  // pubkey => reason, peers to remove from interface
 
     $pdo->beginTransaction();
 
@@ -517,6 +547,9 @@ function wgPush(): void
 
         foreach ($reports as $report) {
             if ($report['userid'] <= 0) {
+                if (!$report['closed']) {
+                    $remove[] = ['pubkey' => $report['pubkey'], 'reason' => 'device deleted or not registered'];
+                }
                 continue; // a peer nobody in the panel owns
             }
 
@@ -616,7 +649,6 @@ function wgPush(): void
     }
 
     // peers whose account may not connect any more, and ones to hand out
-    $remove = [];
     $verdicts = [];
     foreach ($live as $pubkey => $userId) {
         if (!array_key_exists($userId, $verdicts)) {
@@ -712,9 +744,9 @@ function wgPendingPeers(array $node): array
  * the direct routes are applied on the server (the agent's ipset), which is
  * what makes this file work in a client that has no routing rules of its own.
  */
-function wgProfileText(array $node, array $user): string
+function wgProfileText(array $node, array $user, int $deviceId = 1): string
 {
-    $pubkey = wgPublicKey((int) $user['id'], (string) ($user['uuid'] ?? ''));
+    $pubkey = wgPublicKey((int) $user['id'], (string) ($user['uuid'] ?? ''), $deviceId);
 
     if ($pubkey === '') {
         fail('this server cannot make a file for your account');
@@ -723,8 +755,17 @@ function wgProfileText(array $node, array $user): string
     $lines = [
         '# ' . preg_replace('~[\r\n]+~', ' ', (string) $node['name']),
         '[Interface]',
-        'PrivateKey = ' . wgPrivateKey((int) $user['id'], (string) ($user['uuid'] ?? '')),
+        'PrivateKey = ' . wgPrivateKey((int) $user['id'], (string) ($user['uuid'] ?? ''), $deviceId),
         'Address = ' . wgPeerAddress($node, $pubkey, (int) $user['id']) . '/32',
+        'Jc = 4',
+        'Jmin = 40',
+        'Jmax = 70',
+        'S1 = 0',
+        'S2 = 0',
+        'H1 = 1',
+        'H2 = 2',
+        'H3 = 3',
+        'H4 = 4',
     ];
 
     $dns = wgDnsList($node['dns'] ?? '');
@@ -778,13 +819,27 @@ function wgProfile(): void
         fail($messages[$reason] ?? 'this server is not available for your account');
     }
 
+    $deviceId = max(1, (int) ($_GET['device'] ?? 1));
     $slug = strtolower(trim(preg_replace('~[^A-Za-z0-9]+~', '-', (string) $node['name']), '-'));
-    $file = 'digitsell-' . ($slug !== '' ? $slug : 'server-' . (int) $node['id']) . '.conf';
+    $devSuffix = '';
+    if ($deviceId > 1) {
+        $devName = 'device-' . $deviceId;
+        try {
+            $stmt = db()->prepare('SELECT name FROM wg_credential WHERE userid = ? AND device_id = ? LIMIT 1');
+            $stmt->execute([(int) $user['id'], $deviceId]);
+            $row = $stmt->fetch();
+            if ($row && !empty($row['name'])) {
+                $devName = strtolower(trim(preg_replace('~[^A-Za-z0-9]+~', '-', (string) $row['name']), '-')) ?: ('device-' . $deviceId);
+            }
+        } catch (Throwable $e) {}
+        $devSuffix = '-' . $devName;
+    }
+    $file = 'digitsell-' . ($slug !== '' ? $slug : 'server-' . (int) $node['id']) . $devSuffix . '.conf';
 
     header('Content-Type: application/octet-stream');
     header('Content-Disposition: attachment; filename="' . $file . '"');
     header('Cache-Control: no-store, private');
-    echo wgProfileText($node, $user);
+    echo wgProfileText($node, $user, $deviceId);
     exit;
 }
 
@@ -1051,18 +1106,171 @@ function wgAdminNotifyTest(): void
     vpnNotifyTest('WireGuard');
 }
 
+
+function wgAdminBypassSave(): void
+{
+    vpnBypassSave();
+}
+
+function wgAdminIranRefresh(): void
+{
+    vpnIranRefresh();
+}
+
+
+function wgUserDevices(int $userId, string $uuid): array
+{
+    try {
+        $stmt = db()->prepare('SELECT device_id, name, pubkey, updated FROM wg_credential WHERE userid = ? ORDER BY device_id ASC');
+        $stmt->execute([$userId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) {
+        $rows = [];
+    }
+
+    if (empty($rows)) {
+        $pk = wgPublicKey($userId, $uuid, 1);
+        return [
+            ['id' => 1, 'name' => 'دستگاه اصلی', 'pubkey' => $pk]
+        ];
+    }
+
+    $devices = [];
+    foreach ($rows as $r) {
+        $devices[] = [
+            'id' => (int) ($r['device_id'] ?? 1),
+            'name' => (string) ($r['name'] ?? ('دستگاه ' . ($r['device_id'] ?? 1))),
+            'pubkey' => (string) ($r['pubkey'] ?? ''),
+        ];
+    }
+
+    return $devices;
+}
+
+function wgDeviceList(): void
+{
+    startPanelSession();
+    $userId = (int) ($_SESSION['user_id'] ?? 0);
+    $user = vpnUser($userId);
+    if ($user === null) {
+        fail('ابتدا وارد حساب کاربری خود شوید', 401);
+    }
+
+    $uuid = (string) ($user['uuid'] ?? '');
+    $limit = max(1, (int) ($user['iplimit'] ?? 1));
+    $devices = wgUserDevices($userId, $uuid);
+
+    done([
+        'ok' => true,
+        'devices' => $devices,
+        'limit' => $limit,
+        'count' => count($devices),
+        'can_add' => count($devices) < $limit,
+    ]);
+}
+
+function wgDeviceAdd(): void
+{
+    startPanelSession();
+    $userId = (int) ($_SESSION['user_id'] ?? 0);
+    $user = vpnUser($userId);
+    if ($user === null) {
+        fail('ابتدا وارد حساب کاربری خود شوید', 401);
+    }
+
+    $uuid = (string) ($user['uuid'] ?? '');
+    $limit = max(1, (int) ($user['iplimit'] ?? 1));
+    $devices = wgUserDevices($userId, $uuid);
+
+    if (count($devices) >= $limit) {
+        fail("سقف تعداد دستگاه‌های مجاز برای اشتراک شما ({$limit} دستگاه) تکمیل شده است.", 400);
+    }
+
+    $maxId = 0;
+    foreach ($devices as $d) {
+        if ($d['id'] > $maxId) {
+            $maxId = $d['id'];
+        }
+    }
+    $nextId = $maxId + 1;
+
+    $name = trim((string) ($_POST['name'] ?? ''));
+    if ($name === '') {
+        $name = 'دستگاه ' . $nextId;
+    }
+    if (mb_strlen($name) > 50) {
+        $name = mb_substr($name, 0, 50);
+    }
+
+    $pubkey = wgPublicKey($userId, $uuid, $nextId);
+    if ($pubkey === '') {
+        fail('خطا در تولید کلید دستگاه', 500);
+    }
+
+    try {
+        $stmt = db()->prepare('INSERT INTO wg_credential (userid, device_id, name, pubkey, updated) VALUES (?, ?, ?, ?, ?)
+                               ON DUPLICATE KEY UPDATE name = VALUES(name), pubkey = VALUES(pubkey), updated = VALUES(updated)');
+        $stmt->execute([$userId, $nextId, $name, $pubkey, time()]);
+    } catch (Throwable $e) {
+        fail('خطا در ذخیره دستگاه در پایگاه داده: ' . $e->getMessage(), 500);
+    }
+
+    done(['ok' => true, 'device' => ['id' => $nextId, 'name' => $name, 'pubkey' => $pubkey]]);
+}
+
+function wgDeviceDel(): void
+{
+    startPanelSession();
+    $userId = (int) ($_SESSION['user_id'] ?? 0);
+    $user = vpnUser($userId);
+    if ($user === null) {
+        fail('ابتدا وارد حساب کاربری خود شوید', 401);
+    }
+
+    $deviceId = (int) ($_POST['device_id'] ?? 0);
+    if ($deviceId <= 1) {
+        fail('دستگاه اصلی قابل حذف نیست', 400);
+    }
+
+    try {
+        $stmt = db()->prepare('SELECT pubkey FROM wg_credential WHERE userid = ? AND device_id = ? LIMIT 1');
+        $stmt->execute([$userId, $deviceId]);
+        $row = $stmt->fetch();
+        $pubkey = $row ? trim((string) $row['pubkey']) : '';
+
+        db()->prepare('DELETE FROM wg_credential WHERE userid = ? AND device_id = ?')->execute([$userId, $deviceId]);
+        if ($pubkey !== '') {
+            db()->prepare('DELETE FROM wg_session WHERE userid = ? AND pubkey = ?')->execute([$userId, $pubkey]);
+        }
+    } catch (Throwable $e) {
+        fail('خطا در حذف دستگاه: ' . $e->getMessage(), 500);
+    }
+
+    done(['ok' => true]);
+}
+
 // ---------------------------------------------------------------- dispatch
 
 $wgAction = (string) ($_GET['do'] ?? '');
 
-$wgNeedsPost = ['wg.hello', 'wg.push', 'wg.save', 'wg.nodesave', 'wg.nodekey',
-    'wg.nodedel', 'wg.notifytest'];
+if (strpos($wgAction, 'wg.') !== 0) {
+    return;
+}
+
+$wgNeedsPost = ['wg.device.add', 'wg.device.del', 'wg.hello', 'wg.push', 'wg.save', 'wg.nodesave', 'wg.nodekey',
+    'wg.nodedel', 'wg.notifytest', 'wg.bypasssave', 'wg.iranrefresh'];
 
 if (in_array($wgAction, $wgNeedsPost, true) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     fail('this action needs POST', 405);
 }
 
 switch ($wgAction) {
+    case 'wg.devices':
+        wgDeviceList();
+    case 'wg.device.add':
+        wgDeviceAdd();
+    case 'wg.device.del':
+        wgDeviceDel();
     case 'wg.hello':
         wgHello();
     case 'wg.push':
@@ -1083,6 +1291,10 @@ switch ($wgAction) {
         wgAdminNodeDelete();
     case 'wg.notifytest':
         wgAdminNotifyTest();
+    case 'wg.bypasssave':
+        wgAdminBypassSave();
+    case 'wg.iranrefresh':
+        wgAdminIranRefresh();
 }
 
 fail('unknown WireGuard action');

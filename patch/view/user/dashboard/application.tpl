@@ -327,7 +327,7 @@ html[data-hs-theme="dark"] .app-howto-item {
 										<a class="nav-link app-pick {if $a == 1}active{/if}" href="#app-{$appid}" data-bs-toggle="pill" data-bs-target="#app-{$appid}" role="presentation" aria-controls="app-{$appid}" aria-selected="false" style="--pick:#6366f1;--pick-soft:rgba(99,102,241,.11)">
 											{* OpenVPN draws its own icon: the panel's icon font has none *}
 											{$pickName = $app->client|lower}
-											<span class="app-pick-icon">{if strpos($pickName, 'openvpn') !== false}{include file='common/ovpnsvg.tpl'}{else}{$app->icon}{/if}</span>
+											<span class="app-pick-icon">{if strpos($pickName, 'openvpn') !== false}{include file='common/ovpnsvg.tpl'}{elseif strpos($pickName, 'amneziavpn') !== false}<img src="/assets/img/amneziavpn.png" class="amnezia-app-icon" width="22" height="22" style="vertical-align:-0.125em;border-radius:4px;display:inline-block;" alt="AmneziaVPN">{elseif strpos($pickName, 'amnezia') !== false}{include file='common/amneziasvg.tpl'}{elseif strpos($pickName, 'happ') !== false}{include file='common/happsvg.tpl'}{else}{$app->icon}{/if}</span>
 											<span class="app-pick-name">{$app->client}</span>
 											{if $a == 1}<span class="app-here">⭐ {$translate->get('Recommended')}</span>{/if}
 										</a>
@@ -358,7 +358,7 @@ html[data-hs-theme="dark"] .app-howto-item {
 								{$appName = $contentTab->client|lower}
 								{if strpos($appName, 'openvpn') !== false}
 									{include file='user/dashboard/ovpnapp.tpl' app=$contentTab}
-								{elseif strpos($appName, 'wireguard') !== false}
+								{elseif strpos($appName, 'wireguard') !== false || strpos($appName, 'amnezia') !== false}
 									{include file='user/dashboard/wgapp.tpl' app=$contentTab}
 								{else}
 								<div class="app-step">

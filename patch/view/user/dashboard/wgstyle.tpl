@@ -175,6 +175,56 @@ html[data-hs-theme="dark"] .wg-proto.is-static { color: #b6c0d3 !important; back
 }
 .wg-note { font-size: 11.5px; color: #8c98ab; margin-top: 10px; }
 
+.wg-device-manager {
+	background: rgba(15, 118, 110, .05);
+	border: 1px solid rgba(15, 118, 110, .15);
+	border-radius: 14px;
+	padding: 12px 14px;
+}
+.wg-dev-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 12px;
+	border-radius: 10px;
+	background: #fff;
+	border: 1.5px solid rgba(23, 32, 61, .12);
+	font-size: 12.5px;
+	font-weight: 600;
+	color: #16203d;
+	cursor: pointer;
+	transition: all .2s ease;
+	user-select: none;
+}
+.wg-dev-pill:hover {
+	border-color: #0f766e;
+	background: rgba(15, 118, 110, .04);
+}
+.wg-dev-pill.is-active {
+	border-color: #0f766e;
+	background: linear-gradient(135deg, rgba(15, 118, 110, .12), rgba(20, 184, 166, .14));
+	color: #0f766e;
+	box-shadow: 0 2px 6px rgba(15, 118, 110, .15);
+}
+.wg-dev-del {
+	background: transparent;
+	border: none;
+	color: #94a3b8;
+	font-size: 16px;
+	line-height: 1;
+	padding: 0 2px;
+	cursor: pointer;
+	border-radius: 4px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	transition: color .15s ease, background .15s ease;
+}
+.wg-dev-del:hover {
+	color: #ef4444;
+	background: rgba(239, 68, 68, .1);
+}
+
 html[data-hs-theme="dark"] .wg-badge { color: #6ee7b7; background: rgba(16, 185, 129, .18); }
 html[data-hs-theme="dark"] .wg-intro { color: #b6c0d3; }
 html[data-hs-theme="dark"] .wg-steps {
@@ -189,6 +239,31 @@ html[data-hs-theme="dark"] .wg-cred-value,
 html[data-hs-theme="dark"] .wg-app,
 html[data-hs-theme="dark"] .wg-server { background: #1b2336; border-color: rgba(255, 255, 255, .1); color: #e7eaf3 !important; }
 html[data-hs-theme="dark"] .wg-icon-btn { background: rgba(45, 212, 191, .18); color: #5eead4; }
+html[data-hs-theme="dark"] .wg-device-manager {
+	background: rgba(45, 212, 191, .06);
+	border-color: rgba(45, 212, 191, .2);
+}
+html[data-hs-theme="dark"] .wg-dev-pill {
+	background: #1b2336;
+	border-color: rgba(255, 255, 255, .12);
+	color: #e7eaf3;
+}
+html[data-hs-theme="dark"] .wg-dev-pill:hover {
+	border-color: #2dd4bf;
+	background: rgba(45, 212, 191, .1);
+}
+html[data-hs-theme="dark"] .wg-dev-pill.is-active {
+	border-color: #2dd4bf;
+	background: rgba(45, 212, 191, .2);
+	color: #5eead4;
+}
+html[data-hs-theme="dark"] .wg-dev-del {
+	color: #64748b;
+}
+html[data-hs-theme="dark"] .wg-dev-del:hover {
+	color: #f87171;
+	background: rgba(239, 68, 68, .2);
+}
 
 @media (max-width: 575.98px) {
 	.wg-cred-label { flex-basis: 56px; }

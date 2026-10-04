@@ -6,3 +6,5 @@
 .DS_Store
 tools/login/fa/
 __pycache__/
+login*.html
+server.mjs

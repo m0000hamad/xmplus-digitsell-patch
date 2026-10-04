@@ -132,7 +132,24 @@
 			</div>
 		</details>
 
-		<p class="small mt-3 mb-1">🇮🇷 {$translate->get('WgAdmBypassNote')}</p>
+		
+		<h5 class="wv-h mt-4" id="WgBypass">🇮🇷 {$translate->get('OvpnAdmBypass')}</h5>
+		<p class="small text-muted">{$translate->get('OvpnAdmBypassIntro')}</p>
+		<label class="wv-check mb-2"><input type="checkbox" id="wvBypassIran"> {$translate->get('OvpnAdmBypassIran')}</label>
+		<p class="small text-muted mb-2">
+			<span id="wvIranInfo"></span>
+			<button type="button" class="btn btn-link btn-sm p-0 ms-2" id="wvIranRefresh">🔄 {$translate->get('OvpnAdmIranRefresh')}</button>
+		</p>
+		<label class="form-label" for="wvBypassCustom">{$translate->get('OvpnAdmBypassCustom')}</label>
+		<textarea class="form-control" id="wvBypassCustom" rows="6" dir="ltr" placeholder="bmi.ir&#10;shaparak.ir&#10;digikala.com&#10;185.143.232.0/22&#10;# 1.2.3.4"></textarea>
+		<small class="text-muted d-block mb-2">{$translate->get('OvpnAdmBypassCustomHint')}</small>
+		<div class="small mb-2" id="wvBypassHosts"></div>
+		<label class="wv-check mb-1"><input type="checkbox" id="wvBypassXray"> {$translate->get('OvpnAdmBypassXray')}</label>
+		<small class="text-muted d-block mb-2">{$translate->get('OvpnAdmBypassXrayHint')}</small>
+		<div class="d-flex justify-content-end">
+			<button type="button" class="btn btn-primary btn-sm" id="wvBypassSave">💾 {$translate->get('Save')}</button>
+		</div>
+
 		<p class="small text-muted mt-3 mb-0">{$translate->get('WgAdmPriceNote')}</p>
 		<p class="small text-muted mt-2 mb-0">📱 {$translate->get('WgAdmAppNote')}</p>
 	</div>
@@ -140,6 +157,9 @@
 <script>
 	/* new Object(), not a brace literal: Smarty would read the brace as a tag */
 	window.WgWords = new Object();
+		window.WgWords.iranInfo   = "{$translate->get('OvpnAdmIranInfo')|escape:'javascript'}";
+	window.WgWords.routes     = "{$translate->get('OvpnAdmRoutes')|escape:'javascript'}";
+	window.WgWords.iranCapped = "{$translate->get('OvpnAdmIranCapped')|escape:'javascript'}";
 	window.WgWords.saved     = "{$translate->get('WgAdmSaved')|escape:'javascript'}";
 	window.WgWords.failed    = "{$translate->get('WgAdmFailed')|escape:'javascript'}";
 	window.WgWords.live      = "{$translate->get('WgAdmLive')|escape:'javascript'}";
@@ -382,6 +402,40 @@
 		}).join('') : '<tr><td colspan="5" class="text-muted">' + esc(words.none) + '</td></tr>';
 	}
 
+	
+	function renderBypass(bypass) {
+		if (!bypass) { return; }
+		$('wvBypassIran').checked = !!bypass.iran;
+		$('wvBypassXray').checked = !!bypass.xray;
+		$('wvBypassCustom').value = bypass.custom || '';
+		$('wvIranInfo').textContent = words.iranInfo.replace('%count%', bypass.iran_ranges).replace('%date%', bypass.iran_date || '—')
+			+ ' · ' + words.routes.replace('%count%', bypass.routes)
+			+ (bypass.iran && bypass.iran_used < bypass.iran_ranges
+				? ' · ' + words.iranCapped.replace('%used%', bypass.iran_used).replace('%share%', bypass.iran_share) : '');
+		var hosts = bypass.hosts || {};
+		$('wvBypassHosts').innerHTML = Object.keys(hosts).map(function (domain) {
+			var ips = hosts[domain] || [];
+			return '<div dir="ltr"><b>' + esc(domain) + '</b> → '
+				+ (ips.length ? esc(ips.join(', ')) : '<span class="text-danger">' + esc(words.notFound) + '</span>') + '</div>';
+		}).join('');
+	}
+
+	$('wvBypassSave').addEventListener('click', function () {
+		post('wg.bypasssave', { iran: $('wvBypassIran').checked ? '1' : '0', xray: $('wvBypassXray').checked ? '1' : '0', custom: $('wvBypassCustom').value }).then(function (data) {
+			if (!data.ok) { say(words.failed + ': ' + data.error); return; }
+			renderBypass(data.bypass);
+			say(words.saved + (data.failed && data.failed.length ? ' · ' + words.notFound + ': ' + data.failed.join(', ') : ''));
+		});
+	});
+
+	$('wvIranRefresh').addEventListener('click', function () {
+		post('wg.iranrefresh', {}).then(function (data) {
+			if (!data.ok) { say(words.failed + ': ' + data.error); return; }
+			renderBypass(data.bypass);
+			say(words.saved);
+		});
+	});
+
 	function load() {
 		return get('wg.admin').then(function (data) {
 			if (!data.ok) { throw new Error(data.error || 'failed'); }
@@ -399,6 +453,7 @@
 			renderJob(data.job_last, data.now);
 			renderNodes();
 			renderUninstall();
+			renderBypass(data.bypass);
 			if ($('wvId').value === '0') { renderGroups([]); }
 		}).catch(function (error) {
 			$('wvNodes').innerHTML = '<tr><td colspan="7" class="text-danger">' + esc(error.message) + '</td></tr>';
