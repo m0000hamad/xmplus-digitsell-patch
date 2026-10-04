@@ -612,3 +612,4 @@ html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link:hover::before { animati
 </style>
 {/literal}
 {include file='common/ovpnicon.tpl'}
+{include file='common/wgicon.tpl'}

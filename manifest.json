@@ -1,5 +1,5 @@
 {
-    "version": "1.23.2",
+    "version": "1.23.3",
     "released": "2026-10-04",
     "notes": "WireGuard nodes: fix node installer and agent (generate wg0.conf, enable ip_forward, fix bypass-start argument order and gateway method, add subnet NAT/forwarding rules).",
     "migrations": [
@@ -75,7 +75,7 @@
         "public/xmplus-patch.php": "bed7f8150245a09a9ea33ccad728a562ce86b5f467896fe3642588311374adc6",
         "view/admin/dashboard/dashboard.tpl": "68a06883efd1396df376eefb238203ee92507c8e8332883dd97341f8a4e2e806",
         "view/admin/dashboard/dashboardjs.tpl": "bab9abf19903481f4a85822cbd4b0ffd9895313edb260c52a4054c34a4f55c05",
-        "view/admin/layout/footer.tpl": "d6061fb7970a4e0fec1a3b621b2fd87027fddab1223fb64c49d5bb6ee23ca288",
+        "view/admin/layout/footer.tpl": "b1c8e9636e62442a958dbefe100cb167d6e1fff904a88796422088055d6a6554",
         "view/admin/notices/add.tpl": "0bd96d3acf9f98507fd2e7a96e829d52a72d389930e5c8a03083cfc2ec6c2281",
         "view/admin/notices/edit.tpl": "5ff03374141bc7562d33f44f8978a52a8a7f180bb429278d0c4330336e028cf5",
         "view/admin/plans/add.tpl": "90f93d9bdfb100a11417e43a16eb8097dc93cf9347cc029303cbadf0b7d51200",
@@ -106,6 +106,7 @@
         "view/common/ovpnsvg.tpl": "ec9bcd9973e062fd2709f6605b64218f756043061848ab911578a54648259959",
         "view/common/ticketchat.tpl": "51bdf66c2834977caf6e9a47ffdeebf67ab2db8315b7d81e0b77f629e0901d3b",
         "view/common/ticketrowlink.tpl": "6f1e8a4dc6c1c5acc82646657844e948abf5a2aea00e05daaab52589b58e0af1",
+        "view/common/wgicon.tpl": "7444def4ea16680bfe835f01e5bb5eee83ce2703f2c9ade56fb89e39106407fd",
         "view/email/promo.tpl": "ea0f0c6441f61a1cd22e1742c31e30b78e440f9d4e5d6eefe4c66934632975c4",
         "view/user/affiliate/affiliate.tpl": "f2248324ac5e544688daf3ef046303eb7089cae34edaad26802c2c645f2fd12f",
         "view/user/affiliate/commissions.tpl": "04be0ff9200ff1b4ec365f54bea7e1ec91af41cd0bf36aed0bf8d10678cc2568",
@@ -142,7 +143,7 @@
         "view/user/layout/footer.tpl": "af2fa1a5d01278f2fb77117afa5f6c9fe129dde6361cb879d98a58d633d2a2c5",
         "view/user/layout/header.tpl": "d9fb5ef9682d04f1987c53277f3a3560365a332e93bf4234d69da7bc794cb1b6",
         "view/user/layout/paygbanner.tpl": "6351188ea225cc45637f35f8d6c13b0bed10733e84a3a36e1d83bd4df1d1fa3e",
-        "view/user/layout/style.tpl": "9da583de7ac5f193cc5c964f108b02a04636fd9d00726377536a80300ec430dd",
+        "view/user/layout/style.tpl": "b85df5786c5606f0350dadae7d7a7f84e022b5e71c564026d45aae5bcc1e9492",
         "view/user/layout/usermenu.tpl": "3a527ff2828981f2e066076602ac179cea325c3ff4bfea6a227370a0c3538a93",
         "view/user/notice/notice.tpl": "f6409604fc8916676346395d67b23092bdd6136541db415a81438bf03d936da2",
         "view/user/order/invoice.tpl": "6d5d1020127cc41af0fa284ce5507bd11106d00facd164e99809696fbfa8822d",

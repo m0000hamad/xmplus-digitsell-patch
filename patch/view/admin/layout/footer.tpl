@@ -134,3 +134,4 @@
 </html>
 {include file='common/copy.tpl'}
 {include file='common/ovpnicon.tpl'}
+{include file='common/wgicon.tpl'}
