@@ -333,6 +333,9 @@
 			return;
 		}
 		var panel = $('wvPanelUrl').value.trim().replace(/\/+$/, '');
+		if (/^https?:\/[^\/]/.test(panel)) {
+			panel = panel.replace(/^(https?):\/([^\/])/, '$1://$2');
+		}
 		var script = 'https://raw.githubusercontent.com/' + state.repo + '/' + state.branch + '/node/wireguard/install.sh';
 		var mtu = parseInt($('wvInstallMtu') ? $('wvInstallMtu').value : '', 10) || 1420;
 		if (mtu < 1280 || mtu > 1500) { mtu = 1420; }

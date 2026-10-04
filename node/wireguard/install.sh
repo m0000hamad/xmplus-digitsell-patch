@@ -69,6 +69,9 @@ done
 [ -n "$NODE" ] || die "--node is required (the server's number in the panel)"
 [ -n "$KEY" ] || die "--key is required (the key the panel showed when the server was added)"
 [[ "$NODE" =~ ^[0-9]+$ ]] || die "--node must be a number, got: $NODE"
+if [[ "$PANEL" =~ ^(https?):/([^/].*) ]]; then
+    PANEL="${BASH_REMATCH[1]}://${BASH_REMATCH[2]}"
+fi
 case "$PANEL" in
     https://*|http://*) ;;
     *) die "--panel must start with http:// or https://" ;;
