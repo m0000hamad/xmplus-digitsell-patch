@@ -1,1 +1,1 @@
-WireGuard nodes on the same subscription: fix PHP 7.4 compatibility in Wg.php (replace match expression with array lookup), admin card, customer card and .conf download, per-peer traffic on the account, live sessions, online/offline messages, and node agent.
+WireGuard nodes: fix node installer and agent (generate wg0.conf, enable ip_forward, fix bypass-start argument order and gateway method, add subnet NAT/forwarding rules).

@@ -58,6 +58,7 @@ rm -f /etc/systemd/system/digitsell-wg-bypass.service
 rm -f /usr/local/sbin/digitsell-wg-agent
 rm -rf /usr/local/lib/digitsell-wg
 rm -f "/etc/wireguard/$IFACE.conf"
+rm -f /etc/sysctl.d/99-digitsell-wg.conf
 systemctl daemon-reload
 
 if [ "$PURGE" = "1" ]; then

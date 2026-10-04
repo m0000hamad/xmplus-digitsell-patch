@@ -173,6 +173,23 @@ cat > "$CONF_DIR/agent.json" <<EOF
 EOF
 chmod 600 "$CONF_DIR/agent.json"
 
+echo "==> WireGuard interface config"
+cat > "/etc/wireguard/$IFACE.conf" <<EOF
+[Interface]
+Address = 10.$NODE.0.1/16
+ListenPort = $LISTEN
+PrivateKey = $(cat "$SERVER_KEY_FILE")
+MTU = $MTU
+Table = off
+EOF
+chmod 600 "/etc/wireguard/$IFACE.conf"
+
+echo "==> routing"
+cat > /etc/sysctl.d/99-digitsell-wg.conf <<EOF
+net.ipv4.ip_forward = 1
+EOF
+sysctl -q -p /etc/sysctl.d/99-digitsell-wg.conf 2>/dev/null || sysctl -w net.ipv4.ip_forward=1 >/dev/null || true
+
 echo "==> agent"
 fetch wg-agent.py "$AGENT_DIR/wg-agent.py"
 chmod 755 "$AGENT_DIR/wg-agent.py"
@@ -189,9 +206,6 @@ Type=simple
 ExecStart=/usr/local/sbin/digitsell-wg-agent $CONF_DIR/agent.json
 Restart=always
 RestartSec=5
-# the agent applies the panel's direct-route list with iptables
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_DAC_OVERRIDE
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
 
 [Install]
 WantedBy=multi-user.target
@@ -217,16 +231,11 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable "digitsell-wg-bypass.service" "digitsell-wg-agent.service" >/dev/null
+systemctl enable "digitsell-wg-bypass.service" "digitsell-wg-agent.service" "wg-quick@$IFACE.service" >/dev/null
 
-# start the interface itself: the agent only fills in the peers
-if ! wg show "$IFACE" >/dev/null 2>&1; then
-    echo "==> starting $IFACE"
-    systemctl enable "wg-quick@$IFACE.service" >/dev/null
-    systemctl start "digitsell-wg-bypass.service" || true
-    systemctl start "wg-quick@$IFACE.service"
-fi
-
+echo "==> starting services"
+systemctl restart "digitsell-wg-bypass.service"
+systemctl restart "wg-quick@$IFACE.service"
 systemctl restart "digitsell-wg-agent.service"
 
 echo "==> telling the panel who we are"

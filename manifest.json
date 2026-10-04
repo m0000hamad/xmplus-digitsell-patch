@@ -1,7 +1,7 @@
 {
-    "version": "1.23.1",
+    "version": "1.23.2",
     "released": "2026-10-04",
-    "notes": "WireGuard nodes on the same subscription: fix PHP 7.4 compatibility in Wg.php (replace match expression with array lookup), admin card, customer card and .conf download, per-peer traffic on the account, live sessions, online/offline messages, and node agent.",
+    "notes": "WireGuard nodes: fix node installer and agent (generate wg0.conf, enable ip_forward, fix bypass-start argument order and gateway method, add subnet NAT/forwarding rules).",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",

@@ -213,11 +213,12 @@ class Bypass:
     CHAIN = "DSBYPASS"
 
     def __init__(self, config):
+        self.config = config
         self.iface = config.get("interface", "wg0")
         self.set_name = config.get("bypass_set", "ds-bypass")
         self.mark = config.get("bypass_mark", "0x51820")
         self.table = str(config.get("bypass_table", "51820"))
-        self.gateway = None
+        self._gateway = None
 
     # ------------------------------------------------------------- the set
 
@@ -263,15 +264,20 @@ class Bypass:
 
     # ---------------------------------------------------------- the routing
 
-    def gateway(self):
-        if self.gateway:
-            return self.gateway
+    def get_gateway(self):
+        if self._gateway:
+            return self._gateway
         code, out = run("ip", "route", "show", "default", check=False)
         match = re.search(r"default via (\d+\.\d+\.\d+\.\d+)", out)
         if not match:
+            code2, out2 = run("ip", "-4", "route", "get", "1.1.1.1", check=False)
+            match2 = re.search(r"via (\d+\.\d+\.\d+\.\d+)", out2)
+            if match2:
+                self._gateway = match2.group(1)
+                return self._gateway
             raise RuntimeError("this server has no default route, so the direct list cannot be used")
-        self.gateway = match.group(1)
-        return self.gateway
+        self._gateway = match.group(1)
+        return self._gateway
 
     def start(self):
         """
@@ -280,7 +286,9 @@ class Bypass:
         """
         self.ensure_set()
 
-        gateway = self.gateway()
+        gateway = self.get_gateway()
+        node_id = int(self.config.get("node", 1))
+        subnet = "10.%d.0.0/16" % node_id
 
         run("iptables", "-t", "mangle", "-N", self.CHAIN, check=False)
         # drop anything left over by an earlier run before rebuilding
@@ -303,10 +311,27 @@ class Bypass:
         run("ip", "rule", "add", "fwmark", self.mark, "table", self.table, check=False)
         run("ip", "route", "replace", "default", "via", gateway, "table", self.table)
 
+        # NAT for WireGuard subnet
+        while run("iptables", "-t", "nat", "-D", "POSTROUTING", "-s", subnet, "-j", "MASQUERADE", check=False)[0] == 0:
+            pass
+        run("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", subnet, "-j", "MASQUERADE")
+
+        # Forwarding rules
+        while run("iptables", "-D", "FORWARD", "-i", self.iface, "-j", "ACCEPT", check=False)[0] == 0:
+            pass
+        run("iptables", "-A", "FORWARD", "-i", self.iface, "-j", "ACCEPT")
+
+        while run("iptables", "-D", "FORWARD", "-o", self.iface, "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT", check=False)[0] == 0:
+            pass
+        run("iptables", "-A", "FORWARD", "-o", self.iface, "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT")
+
         log("direct routes: table", self.table, "via", gateway, "for everything not in",
             self.set_name)
 
     def stop(self):
+        node_id = int(self.config.get("node", 1))
+        subnet = "10.%d.0.0/16" % node_id
+
         while True:
             code, _ = run("iptables", "-t", "mangle", "-C", "PREROUTING",
                           "-j", self.CHAIN, check=False)
@@ -318,6 +343,10 @@ class Bypass:
         run("ip", "rule", "del", "fwmark", self.mark, "table", self.table, check=False)
         run("ip", "route", "flush", "table", self.table, check=False)
         run("ipset", "destroy", self.set_name, check=False)
+
+        run("iptables", "-t", "nat", "-D", "POSTROUTING", "-s", subnet, "-j", "MASQUERADE", check=False)
+        run("iptables", "-D", "FORWARD", "-i", self.iface, "-j", "ACCEPT", check=False)
+        run("iptables", "-D", "FORWARD", "-o", self.iface, "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT", check=False)
 
     # ------------------------------------------------------------ the agent
 
@@ -446,8 +475,15 @@ class Agent:
 # ----------------------------------------------------------------------- main
 
 def main():
-    path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_CONFIG
-    command = sys.argv[2] if len(sys.argv) > 2 else ""
+    if len(sys.argv) > 1 and sys.argv[1] in ("bypass-start", "bypass-stop"):
+        command = sys.argv[1]
+        path = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_CONFIG
+    elif len(sys.argv) > 2 and sys.argv[2] in ("bypass-start", "bypass-stop"):
+        command = sys.argv[2]
+        path = sys.argv[1]
+    else:
+        path = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("-") else DEFAULT_CONFIG
+        command = ""
 
     with open(path) as handle:
         config = json.load(handle)
