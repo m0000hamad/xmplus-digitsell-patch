@@ -1,7 +1,7 @@
 {
-    "version": "1.23.15",
+    "version": "1.23.16",
     "released": "2026-10-04",
-    "notes": "Strict server group access control: nodes with no assigned groups are disabled, and users only access nodes matching their server_group",
+    "notes": "Resolve panel site URL dynamically from General Settings (appName) for promo links and broadcasts",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -39,7 +39,7 @@
         "app/Jobs/LogsJob.php": "1226dc5987cd1b81692b3a86347f7fd6ae32ddc84c4f4a2f1f2546d71c340139",
         "app/Jobs/OvpnJob.php": "b63cfe015b93aa008595b2599833fff17d4b335ffcb3c5c899663b10e3941caa",
         "app/Jobs/PaygJob.php": "9e9338aa57d84530b16caa1c321a63cb9e4d53edaafb826691aec31c838555d4",
-        "app/Jobs/PromoJob.php": "6799b42e5a709930ed4b5121482ed96e28bdb32a6b68f20f29cd31d71980e0ea",
+        "app/Jobs/PromoJob.php": "9fff8ece6f3a2137d2b00c67a44a4aa234d4799393fe1ee4f58d758c57c3eda8",
         "app/Jobs/TgJoinJob.php": "74233f6e34c62a6b286ad4322f0f01a78c6579b0a29fc6ecb91aa230bf681aa0",
         "app/Jobs/TimePlanJob.php": "808e2a531426df8543a310a9d67a24f1de9700ff82c296ae1b5dce3cf8a88bda",
         "app/Jobs/TrafficStatsJob.php": "8cde9d7167ed068664d9f31ce4e25ac43e7884be866d3689d6507c12d34d247e",

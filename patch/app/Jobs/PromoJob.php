@@ -99,6 +99,58 @@ class PromoJob
 		return DB::table('settings')->where('name', $name)->value('value');
 	}
 
+	/**
+	 * Reads the panel URL from General Settings (appName), falling back to baseUrl,
+	 * telegram_url, or other configured hosts.
+	 */
+	private function siteUrl()
+	{
+		// 1. Explicit override if set in database
+		$site = trim((string) $this->setting('promo_site_url'));
+		if (!empty($site)) {
+			return rtrim($site, '/');
+		}
+
+		// 2. Read appName from General Settings (تنظیمات عمومی -> نام سایت)
+		$appName = trim((string) $this->setting('appName'));
+		if (!empty($appName)) {
+			if (preg_match('~^https?://~i', $appName)) {
+				return rtrim($appName, '/');
+			}
+			if (strpos($appName, '.') !== false && !preg_match('/\s/', $appName)) {
+				return 'https://' . rtrim($appName, '/');
+			}
+		}
+
+		// 3. Fallback: baseUrl from settings
+		$baseUrl = trim((string) $this->setting('baseUrl'));
+		if (!empty($baseUrl)) {
+			if (preg_match('~^https?://~i', $baseUrl)) {
+				return rtrim($baseUrl, '/');
+			}
+			if (strpos($baseUrl, '.') !== false && !preg_match('/\s/', $baseUrl)) {
+				return 'https://' . rtrim($baseUrl, '/');
+			}
+		}
+
+		// 4. Fallback: telegram_url from settings
+		$tgUrl = trim((string) $this->setting('telegram_url'));
+		if (!empty($tgUrl) && preg_match('~^https?://~i', $tgUrl)) {
+			return rtrim($tgUrl, '/');
+		}
+
+		// 5. Fallback: SubUrl from config or HTTP host
+		if (!empty($_ENV['SubUrl']) && preg_match('~^https?://~i', $_ENV['SubUrl'])) {
+			return rtrim($_ENV['SubUrl'], '/');
+		}
+		if (!empty($_SERVER['HTTP_HOST'])) {
+			$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+			return $scheme . '://' . $_SERVER['HTTP_HOST'];
+		}
+
+		return 'https://p.digitsell-shop.ir';
+	}
+
 	/* read fresh every time: the admin may save the plan form while this runs */
 	private function map()
 	{
@@ -427,13 +479,13 @@ class PromoJob
 		}
 
 		$text = $this->channelText($packageId, $entry);
-		$hash = md5($text);
+		$site = $this->siteUrl();
+		$hash = md5($text . '|' . $site);
 
 		if ($posted > 0 && $hash === (string) ($entry['channel_hash'] ?? '')) {
 			return;
 		}
 
-		$site = rtrim(trim((string) $this->setting('promo_site_url')) ?: 'https://panel.example.com', '/');
 		$params = [
 			'chat_id'      => $chat,
 			'text'         => $text,
@@ -640,7 +692,7 @@ class PromoJob
 	private function announcement($packageId, array $entry)
 	{
 		$name = (string) DB::table('package')->where('id', $packageId)->value('name');
-		$site = rtrim(trim((string) $this->setting('promo_site_url')) ?: 'https://panel.example.com', '/');
+		$site = $this->siteUrl();
 
 		return "🔥 پروموشن جدید: «{$name}»\n"
 			. $this->describe($entry)
