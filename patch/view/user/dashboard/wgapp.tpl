@@ -20,10 +20,10 @@
 			{$wgLimit = $user->wgDeviceLimit()}
 			<div class="wg-device-manager mb-3">
 				<div class="d-flex align-items-center justify-content-between mb-2">
-					<span class="fw-bold fs-13 text-muted">📱 مدیریت دستگاه‌ها: <span id="wgDeviceCount" class="badge bg-primary text-white ms-1">{count($wgDevs)} از {$wgLimit}</span></span>
-					<button type="button" class="btn btn-sm btn-outline-primary py-1 px-2 fs-12 rounded-pill" id="wgAddDeviceBtn" {if count($wgDevs) >= $wgLimit}style="display:none"{/if}>➕ افزودن دستگاه</button>
+					<span class="fw-bold fs-13 text-muted">📱 مدیریت دستگاه‌ها: <span class="badge bg-primary text-white ms-1 wg-device-count">{count($wgDevs)} از {$wgLimit}</span></span>
+					<button type="button" class="btn btn-sm btn-outline-primary py-1 px-2 fs-12 rounded-pill wg-add-device-btn" {if count($wgDevs) >= $wgLimit}style="display:none"{/if}>➕ افزودن دستگاه</button>
 				</div>
-				<div class="d-flex flex-wrap gap-2" id="wgDeviceList">
+				<div class="d-flex flex-wrap gap-2 wg-device-list">
 					{foreach $wgDevs as $dev}
 						<div class="wg-dev-pill{if $dev@first} is-active{/if}" data-dev-id="{$dev.id}">
 							<span class="wg-dev-name">{if $dev.id == 1}⭐{else}📱{/if} {$dev.name}</span>
@@ -35,7 +35,7 @@
 				</div>
 			</div>
 
-			<ul class="wg-servers mb-3" id="wgServersList">
+			<ul class="wg-servers mb-3 wg-servers-list">
 				{foreach $user->wgNodes() as $wgNode}
 					{include file='user/dashboard/wgnode.tpl' node=$wgNode}
 				{/foreach}
@@ -63,99 +63,58 @@
 {literal}
 <script>
 (function () {
-	var activeDevId = 1;
-	var limit = 1;
+	window.__wgActiveDevId = window.__wgActiveDevId || 1;
 
-	function updateDownloadLinks() {
-		var list = document.getElementById('wgServersList');
-		if (!list) return;
-		var links = list.querySelectorAll('.wg-get');
-		for (var i = 0; i < links.length; i++) {
-			var href = links[i].getAttribute('href') || '';
+	function syncPillsAndLinks() {
+		var activeId = window.__wgActiveDevId || 1;
+		var pills = document.querySelectorAll('.wg-dev-pill');
+		for (var i = 0; i < pills.length; i++) {
+			var id = parseInt(pills[i].getAttribute('data-dev-id'), 10) || 1;
+			if (id === activeId) {
+				pills[i].classList.add('is-active');
+			} else {
+				pills[i].classList.remove('is-active');
+			}
+		}
+
+		var links = document.querySelectorAll('.wg-servers-list .wg-get');
+		for (var j = 0; j < links.length; j++) {
+			var href = links[j].getAttribute('href') || '';
 			href = href.replace(/[?&]device=\d+/g, '');
 			var sep = href.indexOf('?') === -1 ? '?' : '&';
-			links[i].setAttribute('href', href + sep + 'device=' + activeDevId);
+			links[j].setAttribute('href', href + sep + 'device=' + activeId);
 		}
 	}
 
-	function bindPills() {
-		var container = document.getElementById('wgDeviceList');
-		if (!container) return;
-
-		var pills = container.querySelectorAll('.wg-dev-pill');
-		pills.forEach(function (pill) {
-			pill.onclick = function (e) {
-				if (e.target.classList.contains('wg-dev-del')) return;
-				pills.forEach(function (p) { p.classList.remove('is-active'); });
-				pill.classList.add('is-active');
-				activeDevId = parseInt(pill.getAttribute('data-dev-id'), 10) || 1;
-				updateDownloadLinks();
-			};
-		});
-
-		var dels = container.querySelectorAll('.wg-dev-del');
-		dels.forEach(function (btn) {
-			btn.onclick = function (e) {
-				e.stopPropagation();
-				var id = parseInt(btn.getAttribute('data-del-id'), 10);
-				if (!id || id <= 1) return;
-
-				var doDelete = function () {
-					var fd = new FormData();
-					fd.append('device_id', id);
-					fetch('/xmplus-patch.php?do=wg.device.del', { method: 'POST', body: fd })
-						.then(function (r) { return r.json(); })
-						.then(function (res) {
-							if (res.ret || res.ok) {
-								if (activeDevId === id) activeDevId = 1;
-								refreshDevices();
-							} else {
-								alert(res.msg || res.error || 'خطا در حذف دستگاه');
-							}
-						})
-						.catch(function (err) { alert('خطای ارتباط با سرور'); });
-				};
-
-				if (window.Swal) {
-					Swal.fire({
-						title: 'حذف دستگاه؟',
-						text: 'کانفیگ اختصاصی این دستگاه بلافاصله در سرور باطل می‌شود.',
-						icon: 'warning',
-						showCancelButton: true,
-						confirmButtonText: 'بله، حذف شود',
-						cancelButtonText: 'انصراف',
-						customClass: { confirmButton: 'btn btn-danger ms-1', cancelButton: 'btn btn-secondary ms-1' },
-						buttonsStyling: false
-					}).then(function (result) {
-						if (result.isConfirmed) doDelete();
-					});
-				} else if (confirm('آیا از حذف این دستگاه اطمینان دارید؟ کانفیگ آن باطل خواهد شد.')) {
-					doDelete();
-				}
-			};
-		});
-	}
-
-	function refreshDevices() {
+	function refreshAllDevices() {
 		fetch('/xmplus-patch.php?do=wg.devices')
 			.then(function (r) { return r.json(); })
 			.then(function (data) {
 				if (!data.ok) return;
-				limit = data.limit;
-				var container = document.getElementById('wgDeviceList');
-				var counter = document.getElementById('wgDeviceCount');
-				var addBtn = document.getElementById('wgAddDeviceBtn');
+				var activeId = window.__wgActiveDevId || 1;
+				var hasActive = false;
+				data.devices.forEach(function (d) { if (d.id === activeId) hasActive = true; });
+				if (!hasActive && data.devices.length) {
+					activeId = data.devices[0].id;
+					window.__wgActiveDevId = activeId;
+				}
 
-				if (counter) counter.textContent = data.count + ' از ' + data.limit;
-				if (addBtn) addBtn.style.display = data.can_add ? 'inline-block' : 'none';
+				var counters = document.querySelectorAll('.wg-device-count');
+				for (var c = 0; c < counters.length; c++) {
+					counters[c].textContent = data.count + ' از ' + data.limit;
+				}
 
-				if (container) {
-					container.innerHTML = '';
-					var hasActive = false;
+				var addBtns = document.querySelectorAll('.wg-add-device-btn');
+				for (var b = 0; b < addBtns.length; b++) {
+					addBtns[b].style.display = data.can_add ? 'inline-block' : 'none';
+				}
+
+				var containers = document.querySelectorAll('.wg-device-list');
+				for (var k = 0; k < containers.length; k++) {
+					containers[k].innerHTML = '';
 					data.devices.forEach(function (dev) {
-						if (dev.id === activeDevId) hasActive = true;
 						var div = document.createElement('div');
-						div.className = 'wg-dev-pill' + (dev.id === activeDevId ? ' is-active' : '');
+						div.className = 'wg-dev-pill' + (dev.id === activeId ? ' is-active' : '');
 						div.setAttribute('data-dev-id', dev.id);
 
 						var span = document.createElement('span');
@@ -168,87 +127,147 @@
 							del.type = 'button';
 							del.className = 'wg-dev-del';
 							del.setAttribute('data-del-id', dev.id);
+							del.setAttribute('title', 'حذف این دستگاه');
 							del.innerHTML = '&times;';
 							div.appendChild(del);
 						}
-						container.appendChild(div);
+						containers[k].appendChild(div);
 					});
-
-					if (!hasActive && data.devices.length) {
-						activeDevId = data.devices[0].id;
-						var first = container.querySelector('.wg-dev-pill');
-						if (first) first.classList.add('is-active');
-					}
-					bindPills();
-					updateDownloadLinks();
 				}
+
+				syncPillsAndLinks();
 			})
 			.catch(function (e) { console.error('wg.devices refresh error', e); });
 	}
 
-	function setupAdd() {
-		var btn = document.getElementById('wgAddDeviceBtn');
-		if (!btn) return;
-
-		btn.onclick = function () {
-			var doAdd = function (name) {
-				var fd = new FormData();
-				fd.append('name', name);
-				fetch('/xmplus-patch.php?do=wg.device.add', { method: 'POST', body: fd })
-					.then(function (r) { return r.json(); })
-					.then(function (res) {
-						if (res.ret || res.ok) {
-							if (res.device && res.device.id) {
-								activeDevId = res.device.id;
-							}
-							refreshDevices();
-						} else {
-							alert(res.msg || res.error || 'خطا در افزودن دستگاه');
+	function handleAddDevice() {
+		var doSubmit = function (name) {
+			var fd = new FormData();
+			fd.append('name', name);
+			fetch('/xmplus-patch.php?do=wg.device.add', { method: 'POST', body: fd })
+				.then(function (r) { return r.json(); })
+				.then(function (res) {
+					if (res.ret || res.ok) {
+						if (res.device && res.device.id) {
+							window.__wgActiveDevId = res.device.id;
 						}
-					})
-					.catch(function () { alert('خطای ارتباط با سرور'); });
-			};
-
-			if (window.Swal) {
-				Swal.fire({
-					title: 'افزودن دستگاه جدید',
-					input: 'text',
-					inputLabel: 'یک نام دلخواه برای این دستگاه وارد کنید:',
-					inputPlaceholder: 'مثلاً: لپ‌تاپ یا گوشی دوم',
-					showCancelButton: true,
-					confirmButtonText: 'تولید کانفیگ دستگاه',
-					cancelButtonText: 'انصراف',
-					customClass: { confirmButton: 'btn btn-primary ms-1', cancelButton: 'btn btn-secondary ms-1' },
-					buttonsStyling: false,
-					inputValidator: function (value) {
-						if (!value || !value.trim()) {
-							return 'لطفاً نام دستگاه را بنویسید!';
-						}
+						refreshAllDevices();
+					} else {
+						alert(res.msg || res.error || 'خطا در افزودن دستگاه');
 					}
-				}).then(function (result) {
-					if (result.isConfirmed && result.value) {
-						doAdd(result.value.trim());
-					}
-				});
-			} else {
-				var name = prompt('نام دستگاه جدید را وارد کنید (مثلاً: لپ‌تاپ یا گوشی دوم):');
-				if (name && name.trim()) {
-					doAdd(name.trim());
-				}
-			}
+				})
+				.catch(function () { alert('خطای ارتباط با سرور'); });
 		};
+
+		if (typeof Swal !== 'undefined' && typeof Swal.fire === 'function') {
+			Swal.fire({
+				title: 'افزودن دستگاه جدید',
+				input: 'text',
+				inputLabel: 'یک نام دلخواه برای این دستگاه وارد کنید:',
+				inputPlaceholder: 'مثلاً: لپ‌تاپ یا گوشی دوم',
+				showCancelButton: true,
+				confirmButtonText: 'تولید کانفیگ دستگاه',
+				cancelButtonText: 'انصراف',
+				customClass: { confirmButton: 'btn btn-primary ms-1', cancelButton: 'btn btn-secondary ms-1' },
+				buttonsStyling: false,
+				inputValidator: function (value) {
+					if (!value || !value.trim()) {
+						return 'لطفاً نام دستگاه را بنویسید!';
+					}
+				}
+			}).then(function (result) {
+				if (result && result.isConfirmed && result.value) {
+					doSubmit(result.value.trim());
+				}
+			});
+		} else {
+			var name = prompt('نام دستگاه جدید را وارد کنید (مثلاً: لپ‌تاپ یا گوشی دوم):');
+			if (name && name.trim()) {
+				doSubmit(name.trim());
+			}
+		}
 	}
 
-	function start() {
-		bindPills();
-		setupAdd();
-		updateDownloadLinks();
+	function handleDeleteDevice(devId) {
+		var doDelete = function () {
+			var fd = new FormData();
+			fd.append('device_id', devId);
+			fetch('/xmplus-patch.php?do=wg.device.del', { method: 'POST', body: fd })
+				.then(function (r) { return r.json(); })
+				.then(function (res) {
+					if (res.ret || res.ok) {
+						if (window.__wgActiveDevId === devId) {
+							window.__wgActiveDevId = 1;
+						}
+						refreshAllDevices();
+					} else {
+						alert(res.msg || res.error || 'خطا در حذف دستگاه');
+					}
+				})
+				.catch(function () { alert('خطای ارتباط با سرور'); });
+		};
+
+		if (typeof Swal !== 'undefined' && typeof Swal.fire === 'function') {
+			Swal.fire({
+				title: 'حذف دستگاه؟',
+				text: 'کانفیگ اختصاصی این دستگاه بلافاصله در سرور باطل می‌شود.',
+				icon: 'warning',
+				showCancelButton: true,
+				confirmButtonText: 'بله، حذف شود',
+				cancelButtonText: 'انصراف',
+				customClass: { confirmButton: 'btn btn-danger ms-1', cancelButton: 'btn btn-secondary ms-1' },
+				buttonsStyling: false
+			}).then(function (result) {
+				if (result && result.isConfirmed) {
+					doDelete();
+				}
+			});
+		} else if (confirm('آیا از حذف این دستگاه اطمینان دارید؟ کانفیگ آن باطل خواهد شد.')) {
+			doDelete();
+		}
 	}
 
+	// Global event delegation (only bound once)
+	if (!window.__wgDeviceManagerBound) {
+		window.__wgDeviceManagerBound = true;
+
+		document.addEventListener('click', function (e) {
+			var target = e.target;
+			if (!target) return;
+
+			var delBtn = target.closest ? target.closest('.wg-dev-del') : null;
+			if (delBtn) {
+				e.preventDefault();
+				e.stopPropagation();
+				var delId = parseInt(delBtn.getAttribute('data-del-id'), 10);
+				if (delId && delId > 1) {
+					handleDeleteDevice(delId);
+				}
+				return;
+			}
+
+			var addBtn = target.closest ? target.closest('.wg-add-device-btn') : null;
+			if (addBtn) {
+				e.preventDefault();
+				e.stopPropagation();
+				handleAddDevice();
+				return;
+			}
+
+			var pill = target.closest ? target.closest('.wg-dev-pill') : null;
+			if (pill) {
+				e.preventDefault();
+				var pId = parseInt(pill.getAttribute('data-dev-id'), 10) || 1;
+				window.__wgActiveDevId = pId;
+				syncPillsAndLinks();
+				return;
+			}
+		});
+	}
+
+	syncPillsAndLinks();
 	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', start);
-	} else {
-		start();
+		document.addEventListener('DOMContentLoaded', syncPillsAndLinks);
 	}
 })();
 </script>

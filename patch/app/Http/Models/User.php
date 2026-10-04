@@ -826,7 +826,8 @@ final class User extends Model
 
 	public function wgDeviceLimit()
 	{
-		return max(1, (int) ($this->iplimit ?? 1));
+		require_once dirname(__DIR__, 2) . '/Patch/Wg.php';
+		return wgUserLimit($this->toArray());
 	}
 
 	/*

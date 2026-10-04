@@ -1147,6 +1147,48 @@ function wgUserDevices(int $userId, string $uuid): array
     return $devices;
 }
 
+function wgUserLimit(array $user): int
+{
+    $userId = (int) ($user['id'] ?? 0);
+    $limit = (int) ($user['iplimit'] ?? 0);
+    $pkgId = (int) ($user['packageid'] ?? 0);
+
+    if ($pkgId > 0) {
+        try {
+            $stmt = db()->prepare('SELECT iplimit FROM package WHERE id = ? LIMIT 1');
+            $stmt->execute([$pkgId]);
+            $row = $stmt->fetch();
+            if ($row && isset($row['iplimit'])) {
+                $pkgLimit = (int) $row['iplimit'];
+                if ($pkgLimit > 0) {
+                    $limit = max($limit, $pkgLimit);
+                }
+            }
+        } catch (Throwable $e) {}
+    }
+
+    if ($limit <= 0 && $userId > 0) {
+        try {
+            $stmt = db()->prepare('SELECT packageid FROM orders WHERE userid = ? AND status = 1 AND packagetype = 2 ORDER BY id DESC LIMIT 1');
+            $stmt->execute([$userId]);
+            $row = $stmt->fetch();
+            if ($row && !empty($row['packageid'])) {
+                $stmt2 = db()->prepare('SELECT iplimit FROM package WHERE id = ? LIMIT 1');
+                $stmt2->execute([(int) $row['packageid']]);
+                $row2 = $stmt2->fetch();
+                if ($row2 && isset($row2['iplimit'])) {
+                    $pkgLimit = (int) $row2['iplimit'];
+                    if ($pkgLimit > 0) {
+                        $limit = max($limit, $pkgLimit);
+                    }
+                }
+            }
+        } catch (Throwable $e) {}
+    }
+
+    return max(1, $limit);
+}
+
 function wgDeviceList(): void
 {
     startPanelSession();
@@ -1157,7 +1199,7 @@ function wgDeviceList(): void
     }
 
     $uuid = (string) ($user['uuid'] ?? '');
-    $limit = max(1, (int) ($user['iplimit'] ?? 1));
+    $limit = wgUserLimit($user);
     $devices = wgUserDevices($userId, $uuid);
 
     done([
@@ -1179,7 +1221,7 @@ function wgDeviceAdd(): void
     }
 
     $uuid = (string) ($user['uuid'] ?? '');
-    $limit = max(1, (int) ($user['iplimit'] ?? 1));
+    $limit = wgUserLimit($user);
     $devices = wgUserDevices($userId, $uuid);
 
     if (count($devices) >= $limit) {
