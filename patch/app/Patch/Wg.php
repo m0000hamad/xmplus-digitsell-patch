@@ -136,7 +136,7 @@ function wgPublicKey(int $userId, string $uuid): string
     }
 
     if ($known !== false && trim((string) $known['pubkey']) !== '') {
-        return $cache[$userId] = strtolower(trim((string) $known['pubkey']));
+        return $cache[$userId] = trim((string) $known['pubkey']);
     }
 
     $private = wgPrivateKey($userId, $uuid);
@@ -146,7 +146,7 @@ function wgPublicKey(int $userId, string $uuid): string
     }
 
     $key = sodium_bin2base64(
-        sodium_crypto_box_publickey_from_secretkey(sodium_base642bin($private, SODIUM_BASE64_VARIANT_ORIGINAL)), 1);
+        sodium_crypto_box_publickey_from_secretkey(sodium_base642bin($private, SODIUM_BASE64_VARIANT_ORIGINAL)), SODIUM_BASE64_VARIANT_ORIGINAL);
 
     try {
         db()->prepare('INSERT INTO wg_credential (userid, pubkey, updated) VALUES (?, ?, ?)
@@ -162,9 +162,9 @@ function wgPublicKey(int $userId, string $uuid): string
 /** The account behind a peer's public key, or 0. */
 function wgUserIdFromKey(string $pubkey): int
 {
-    $key = strtolower(trim($pubkey));
+    $key = trim($pubkey);
 
-    if (!preg_match('~^[a-z0-9+/]{43}=$~', $key)) {
+    if (!preg_match('~^[A-Za-z0-9+/]{43}=$~', $key)) {
         return 0;
     }
 
@@ -451,7 +451,7 @@ function wgHello(): void
         fail('bad port');
     }
 
-    $pubkey = strtolower(trim((string) ($body['pubkey'] ?? '')));
+    $pubkey = trim((string) ($body['pubkey'] ?? ''));
     if (!wgKeyOk($pubkey)) {
         fail('bad public key');
     }
@@ -486,7 +486,7 @@ function wgPush(): void
             if (!is_array($item)) {
                 continue;
             }
-            $pubkey = strtolower(trim((string) ($item['pubkey'] ?? '')));
+            $pubkey = trim((string) ($item['pubkey'] ?? ''));
             if (!wgKeyOk($pubkey)) {
                 continue;
             }
@@ -696,7 +696,7 @@ function wgPendingPeers(array $node): array
             $verdicts[$userId] = wgRefusal(vpnUser($userId), $node);
         }
         if ($verdicts[$userId] === '') {
-            $out[strtolower((string) $row['pubkey'])] = $userId;
+            $out[trim((string) $row['pubkey'])] = $userId;
         }
     }
 
@@ -735,7 +735,7 @@ function wgProfileText(array $node, array $user): string
     return implode("\n", array_merge($lines, [
         '',
         '[Peer]',
-        'PublicKey = ' . strtolower((string) $node['pubkey']),
+        'PublicKey = ' . trim((string) $node['pubkey']),
         // a second layer of the handshake, so a reader of the server's config
         // cannot tell which customer a packet belongs to
         'PresharedKey = ' . wgPresharedKey((int) $user['id'], (string) ($user['uuid'] ?? '')),
