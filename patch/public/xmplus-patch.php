@@ -26,7 +26,7 @@ const DEFAULT_REPO = 'm0000hamad/xmplus-digitsell-patch';
 const DEFAULT_BRANCH = 'main';
 
 /** Only these prefixes may be written. Anything else in a manifest is refused. */
-const ALLOWED_PREFIXES = ['app/', 'bin/', 'localization/', 'view/', 'public/xmplus-patch.php'];
+const ALLOWED_PREFIXES = ['app/', 'bin/', 'localization/', 'view/', 'public/xmplus-patch.php', 'public/assets/'];
 
 const ROOT = __DIR__ . '/..';
 

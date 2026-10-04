@@ -29,4 +29,15 @@ return static function (PDO $db): void {
     if (!$hasCompositePk) {
         $db->exec("ALTER TABLE `wg_credential` DROP PRIMARY KEY, ADD PRIMARY KEY (`userid`, `device_id`)");
     }
+
+    $destDir = (defined('ROOT') ? ROOT : dirname(__DIR__)) . '/public/assets/img';
+    $srcDir = dirname(__DIR__) . '/resources/assets/img';
+    if (!is_dir($destDir)) {
+        @mkdir($destDir, 0755, true);
+    }
+    foreach (['amneziawg.png', 'amneziavpn.png', 'happ.png'] as $img) {
+        if (is_file($srcDir . '/' . $img) && !is_file($destDir . '/' . $img)) {
+            @copy($srcDir . '/' . $img, $destDir . '/' . $img);
+        }
+    }
 };
