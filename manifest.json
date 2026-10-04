@@ -1,7 +1,7 @@
 {
-    "version": "1.23.0",
+    "version": "1.23.1",
     "released": "2026-10-04",
-    "notes": "WireGuard nodes on the same subscription: admin card, customer card and .conf download, per-peer traffic on the account, live sessions, online/offline messages, and a node agent that reports every minute and applies the direct-route list with ipset and two iptables rules.",
+    "notes": "WireGuard nodes on the same subscription: fix PHP 7.4 compatibility in Wg.php (replace match expression with array lookup), admin card, customer card and .conf download, per-peer traffic on the account, live sessions, online/offline messages, and node agent.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -57,7 +57,7 @@
         "app/Patch/TimePlan.php": "f44e32da8b5ab931ebb6cc2af7bd5282cfad2c86004afc3aebd905e051aa8149",
         "app/Patch/TorExit.php": "481a5d2547e0fe07e5f9c3bdb25be7be281be82a76e9068aac53a91d2a2c0afd",
         "app/Patch/Vpn.php": "25dfc1684a1f632020ed6e7b2dfea8f5cf178d3619b38bdd9aa47e41eaa0e06e",
-        "app/Patch/Wg.php": "fd2adb55e28c57c72299b3c6c56367ee4e2874ab2fbd5bb9317d8e62f053c710",
+        "app/Patch/Wg.php": "2cd0a7838ae209f23c810fce3c58c90c5c22e20009c0b91934a3538c6a514f78",
         "app/Patch/data/iran-ipv4.txt": "e0d4b3a0f8602decf6ba8748235dc346f6fb2eab787e8d36b944dc869d63eae1",
         "app/Provider/SmartyProvider.php": "7c5119f9ff8f399841618851e3a9dc15feb9c5074afd0e8c9eb8f17befdf585e",
         "bin/commissions.php": "bcbd35c28bb31a89ac6ea36fab2a18fa5e23c75f135b584305ada1f3d780c1a9",

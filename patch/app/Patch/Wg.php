@@ -765,14 +765,15 @@ function wgProfile(): void
     $reason = $staff ? '' : wgRefusal($user, $node);
 
     if ($reason !== '' && !in_array($reason, ['group'], true)) {
-        fail(match ($reason) {
+        $messages = [
             'disabled' => 'your account is disabled',
             'expired'  => 'your subscription has ended',
             'quota'    => 'no data left on your subscription',
             'iplimit'  => 'device limit reached',
-            'off', 'node' => 'this server is switched off',
-            default    => 'this server is not available for your account',
-        });
+            'off'      => 'this server is switched off',
+            'node'     => 'this server is switched off',
+        ];
+        fail($messages[$reason] ?? 'this server is not available for your account');
     }
 
     $slug = strtolower(trim(preg_replace('~[^A-Za-z0-9]+~', '-', (string) $node['name']), '-'));

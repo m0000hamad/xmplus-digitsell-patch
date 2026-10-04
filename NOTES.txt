@@ -1,1 +1,1 @@
-WireGuard nodes on the same subscription: admin card, customer card and .conf download, per-peer traffic on the account, live sessions, online/offline messages, and a node agent that reports every minute and applies the direct-route list with ipset and two iptables rules.
+WireGuard nodes on the same subscription: fix PHP 7.4 compatibility in Wg.php (replace match expression with array lookup), admin card, customer card and .conf download, per-peer traffic on the account, live sessions, online/offline messages, and node agent.
