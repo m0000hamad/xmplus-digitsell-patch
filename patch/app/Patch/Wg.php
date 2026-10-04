@@ -1169,7 +1169,7 @@ function wgUserLimit(array $user): int
 
     if ($limit <= 0 && $userId > 0) {
         try {
-            $stmt = db()->prepare('SELECT packageid FROM orders WHERE userid = ? AND status = 1 AND packagetype = 2 ORDER BY id DESC LIMIT 1');
+            $stmt = db()->prepare('SELECT packageid FROM orders WHERE userid = ? AND status = 1 ORDER BY id DESC LIMIT 1');
             $stmt->execute([$userId]);
             $row = $stmt->fetch();
             if ($row && !empty($row['packageid'])) {
@@ -1189,15 +1189,40 @@ function wgUserLimit(array $user): int
     return max(1, $limit);
 }
 
-function wgDeviceList(): void
+function wgRequireCustomer(): array
 {
     startPanelSession();
-    $userId = (int) ($_SESSION['user_id'] ?? 0);
-    $user = vpnUser($userId);
-    if ($user === null) {
+
+    $login = $_SESSION['login_session'] ?? null;
+    $uid = 0;
+
+    if (is_array($login) && !empty($login['uid'])) {
+        if (!empty($login['expire']) && (int) $login['expire'] < time()) {
+            fail('نشست کاربری شما منقضی شده است. لطفاً مجدداً وارد شوید.', 401);
+        }
+        $uid = (int) $login['uid'];
+    } elseif (!empty($_SESSION['uid'])) {
+        $uid = (int) $_SESSION['uid'];
+    } elseif (!empty($_SESSION['user_id'])) {
+        $uid = (int) $_SESSION['user_id'];
+    }
+
+    if ($uid <= 0) {
         fail('ابتدا وارد حساب کاربری خود شوید', 401);
     }
 
+    $user = vpnUser($uid);
+    if ($user === null) {
+        fail('حساب کاربری یافت نشد', 401);
+    }
+
+    return $user;
+}
+
+function wgDeviceList(): void
+{
+    $user = wgRequireCustomer();
+    $userId = (int) $user['id'];
     $uuid = (string) ($user['uuid'] ?? '');
     $limit = wgUserLimit($user);
     $devices = wgUserDevices($userId, $uuid);
@@ -1213,13 +1238,8 @@ function wgDeviceList(): void
 
 function wgDeviceAdd(): void
 {
-    startPanelSession();
-    $userId = (int) ($_SESSION['user_id'] ?? 0);
-    $user = vpnUser($userId);
-    if ($user === null) {
-        fail('ابتدا وارد حساب کاربری خود شوید', 401);
-    }
-
+    $user = wgRequireCustomer();
+    $userId = (int) $user['id'];
     $uuid = (string) ($user['uuid'] ?? '');
     $limit = wgUserLimit($user);
     $devices = wgUserDevices($userId, $uuid);
@@ -1262,12 +1282,8 @@ function wgDeviceAdd(): void
 
 function wgDeviceDel(): void
 {
-    startPanelSession();
-    $userId = (int) ($_SESSION['user_id'] ?? 0);
-    $user = vpnUser($userId);
-    if ($user === null) {
-        fail('ابتدا وارد حساب کاربری خود شوید', 401);
-    }
+    $user = wgRequireCustomer();
+    $userId = (int) $user['id'];
 
     $deviceId = (int) ($_POST['device_id'] ?? 0);
     if ($deviceId <= 1) {

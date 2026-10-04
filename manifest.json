@@ -1,7 +1,7 @@
 {
-    "version": "1.23.12",
+    "version": "1.23.13",
     "released": "2026-10-04",
-    "notes": "Add multi-device support for AmneziaWG with dynamic user/package limit, class-based DOM delegation, and device management",
+    "notes": "Fix customer session authentication in WireGuard/AmneziaWG device manager and enforce dynamic package limit",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -58,7 +58,7 @@
         "app/Patch/TimePlan.php": "f44e32da8b5ab931ebb6cc2af7bd5282cfad2c86004afc3aebd905e051aa8149",
         "app/Patch/TorExit.php": "481a5d2547e0fe07e5f9c3bdb25be7be281be82a76e9068aac53a91d2a2c0afd",
         "app/Patch/Vpn.php": "93976de2b267b931ae9fbbc8d56a212c21069a78c5605a03143bd096b0e9a50b",
-        "app/Patch/Wg.php": "cdd8cd8bc63301b5fa53a963ffe4da67b1a654b0d2c39c2c574b564781caa5d1",
+        "app/Patch/Wg.php": "a2de585e341af0f31f8610d9f569b66aa5a9da7b695dc2e5c33a323121a2a930",
         "app/Patch/data/iran-ipv4.txt": "e0d4b3a0f8602decf6ba8748235dc346f6fb2eab787e8d36b944dc869d63eae1",
         "app/Provider/SmartyProvider.php": "7c5119f9ff8f399841618851e3a9dc15feb9c5074afd0e8c9eb8f17befdf585e",
         "bin/commissions.php": "bcbd35c28bb31a89ac6ea36fab2a18fa5e23c75f135b584305ada1f3d780c1a9",
