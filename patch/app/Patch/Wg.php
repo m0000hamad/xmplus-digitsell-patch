@@ -343,9 +343,9 @@ function wgReservedAddress(int $userId, int $nodeId, string $pubkey): ?string
             // free: when this account already holds it the UPDATE changes
             // nothing and rowCount() is 0, which is success, not failure.
             $claim = db()->prepare('UPDATE wg_credential SET nodeid = ?, address = ?, updated = ?
-                                    WHERE userid = ? AND (address IS NULL OR nodeid = ?)
+                                    WHERE userid = ?
                                     LIMIT 1');
-            $claim->execute([$nodeId, $address, time(), $userId, $nodeId]);
+            $claim->execute([$nodeId, $address, time(), $userId]);
         } catch (Throwable $error) {
             // taken by somebody else between the read and the write, which is
             // what the UNIQUE index is for: try the next address, do not give up
@@ -681,10 +681,10 @@ function wgPendingPeers(array $node): array
         // accounts waiting forever
         $statement = db()->prepare(
             'SELECT c.userid, c.pubkey FROM wg_credential c
-              WHERE c.pubkey <> \'\' AND c.nodeid = ?
+              WHERE c.pubkey <> \'\'
               ORDER BY c.userid
               LIMIT 500');
-        $statement->execute([(int) $node['id']]);
+        $statement->execute();
     } catch (Throwable $error) {
         return [];
     }

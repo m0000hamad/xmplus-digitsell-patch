@@ -1,7 +1,7 @@
 {
-    "version": "1.23.10",
+    "version": "1.23.11",
     "released": "2026-10-04",
-    "notes": "fix(wg): sync preshared keys to agent, fix policy routing table default route, and improve pending peers query",
+    "notes": "fix(wg): remove nodeid restriction in wgPendingPeers and allow address update on switching nodes in wgReservedAddress",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -57,7 +57,7 @@
         "app/Patch/TimePlan.php": "f44e32da8b5ab931ebb6cc2af7bd5282cfad2c86004afc3aebd905e051aa8149",
         "app/Patch/TorExit.php": "481a5d2547e0fe07e5f9c3bdb25be7be281be82a76e9068aac53a91d2a2c0afd",
         "app/Patch/Vpn.php": "25dfc1684a1f632020ed6e7b2dfea8f5cf178d3619b38bdd9aa47e41eaa0e06e",
-        "app/Patch/Wg.php": "c44a90ad591ad6d99889734759aedd33c193af76268764f653dac81b07570a9c",
+        "app/Patch/Wg.php": "697191fd2be104fd13621e1f88983771c682c780be3e1ad5d2a40b41a7e38216",
         "app/Patch/data/iran-ipv4.txt": "e0d4b3a0f8602decf6ba8748235dc346f6fb2eab787e8d36b944dc869d63eae1",
         "app/Provider/SmartyProvider.php": "7c5119f9ff8f399841618851e3a9dc15feb9c5074afd0e8c9eb8f17befdf585e",
         "bin/commissions.php": "bcbd35c28bb31a89ac6ea36fab2a18fa5e23c75f135b584305ada1f3d780c1a9",
