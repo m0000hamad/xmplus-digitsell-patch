@@ -866,14 +866,12 @@ final class User extends Model
 			return '';
 		}
 
+		$known = '';
 		try {
-			$known = DB::connection('default')->table('wg_credential')
+			$found = DB::connection('default')->table('wg_credential')
 				->where('userid', (int) $this->id)
 				->value('pubkey');
-
-			if (!empty($known)) {
-				return (string) $known;
-			}
+			$known = !empty($found) ? (string) $found : '';
 		} catch (\Throwable $e) {
 			// no table yet: carry on and derive it
 		}
@@ -888,11 +886,31 @@ final class User extends Model
 			SODIUM_BASE64_VARIANT_ORIGINAL);
 
 		try {
-			DB::connection('default')->table('wg_credential')->insert([
-				'userid'   => (int) $this->id,
-				'pubkey'   => $key,
-				'updated'  => time(),
-			]);
+			// a stored key can be stale: resetting the subscription link
+			// changes the uuid and the key that is derived from it. This card
+			// must show the fresh key the next file will carry, so replace the
+			// old one and drop the dead key's sessions - the same repair
+			// wgPublicKey() in app/Patch/Wg.php does on the file path.
+			if (!empty($known) && $known !== $key) {
+				DB::connection('default')->table('wg_credential')
+					->where('userid', (int) $this->id)
+					->where('pubkey', $known)
+					->update([
+						'pubkey'   => $key,
+						'nodeid'   => null,
+						'address'  => null,
+						'updated'  => time(),
+					]);
+				DB::connection('default')->table('wg_session')
+					->where('pubkey', $known)
+					->delete();
+			} else {
+				DB::connection('default')->table('wg_credential')->insert([
+					'userid'   => (int) $this->id,
+					'pubkey'   => $key,
+					'updated'  => time(),
+				]);
+			}
 		} catch (\Throwable $e) {
 			// the key is still good for this page; it is written next time
 		}

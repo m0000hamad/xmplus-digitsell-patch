@@ -23,6 +23,8 @@
 			<div class="d-flex flex-column gap-2">
 				<label class="wv-check"><input type="checkbox" id="wvEnabled"> {$translate->get('WgAdmEnabled')}</label>
 				<label class="wv-check"><input type="checkbox" id="wvNotify"> {$translate->get('WgAdmNotify')}</label>
+				<label class="wv-check"><input type="checkbox" id="wvChains"> {$translate->get('WgAdmChains')}</label>
+				<small class="text-muted">{$translate->get('WgAdmChainsHint')}</small>
 			</div>
 			<div class="d-flex flex-wrap gap-2">
 				<button type="button" class="btn btn-outline-secondary btn-sm" id="wvNotifyTest">✉️ {$translate->get('WgAdmNotifyTest')}</button>
@@ -447,6 +449,7 @@
 			state.branch = data.branch || 'main';
 			$('wvEnabled').checked = !!data.enabled;
 			$('wvNotify').checked = data.notify !== false;
+			$('wvChains').checked = data.chains !== false;
 			// without sodium the panel cannot derive a customer's key, so no file
 			// can be built at all - say so here instead of failing on download
 			$('wvSodium').textContent = data.sodium ? '' : '🚨 ' + words.noSodium;
@@ -497,7 +500,9 @@
 	});
 
 	$('wvSaveEnabled').addEventListener('click', function () {
-		post('wg.save', { enabled: $('wvEnabled').checked ? '1' : '0', notify: $('wvNotify').checked ? '1' : '0' }).then(function (data) {
+		post('wg.save', { enabled: $('wvEnabled').checked ? '1' : '0',
+			notify: $('wvNotify').checked ? '1' : '0',
+			chains: $('wvChains').checked ? '1' : '0' }).then(function (data) {
 			say(data.ok ? words.saved : words.failed + ': ' + data.error);
 		});
 	});

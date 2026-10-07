@@ -186,16 +186,92 @@ function wgPublicKey(int $userId, string $uuid, int $deviceId = 1): string
     $key = sodium_bin2base64(
         sodium_crypto_box_publickey_from_secretkey(sodium_base642bin($private, SODIUM_BASE64_VARIANT_ORIGINAL)), SODIUM_BASE64_VARIANT_ORIGINAL);
 
+    // the stored key can go stale: resetting the subscription link changes the
+    // uuid, and the derived key with it. Hand the customer the fresh key and
+    // clean out everything that belongs to the dead one, so the reset takes
+    // on WireGuard exactly as it does on Xray / OpenVPN.
+    wgCredentialSync($userId, $deviceId, $key, $known !== false ? (string) $known['pubkey'] : '');
+
+    return $cache[$cacheKey] = $key;
+}
+
+/**
+ * Write the current key for a device, and when it replaced an older one, cut
+ * the old key's sessions and free its address reservation. Errors are left
+ * alone: the panel answers with the fresh key either way.
+ */
+function wgCredentialSync(int $userId, int $deviceId, string $key, string $previous): void
+{
+    $now = time();
+
     try {
         $devName = $deviceId === 1 ? 'دستگاه اصلی' : ('دستگاه ' . $deviceId);
         db()->prepare('INSERT INTO wg_credential (userid, device_id, name, pubkey, updated) VALUES (?, ?, ?, ?, ?)
                        ON DUPLICATE KEY UPDATE pubkey = VALUES(pubkey), updated = VALUES(updated)')
-            ->execute([$userId, $deviceId, $devName, $key, time()]);
+            ->execute([$userId, $deviceId, $devName, $key, $now]);
     } catch (Throwable $error) {
-        // the key is still good for this request; it is written next time
+        return; // the key is still good for this request; it is written next time
     }
 
-    return $cache[$cacheKey] = $key;
+    if ($previous !== '' && $previous !== $key && preg_match('~^[A-Za-z0-9+/]{43}=$~', $previous)) {
+        try {
+            // the file that carried the old key will not connect any more, so
+            // its sessions and its reserved address are dead weight: the new
+            // key re-reserves an address on the customer's next file
+            db()->prepare('DELETE FROM wg_session WHERE pubkey = ?')->execute([$previous]);
+            db()->prepare('UPDATE wg_credential SET nodeid = NULL, address = NULL
+                            WHERE userid = ? AND device_id = ?')
+                ->execute([$userId, $deviceId]);
+        } catch (Throwable $error) {
+            // the old peer is dropped by the agent on its next push either way
+        }
+    }
+}
+
+/**
+ * The obfuscation numbers a customer's file carries. Jc/Jmin/Jmax and the I
+ * chains are client-side only - the node never parses them - so they may and
+ * should differ from file to file: a fixed train across a whole fleet is a
+ * signature a DPI can learn. S1..S4 and H1..H4 must match the server, and the
+ * nodes run vanilla WireGuard today, whose headers are fixed at 1/2/3/4: the
+ * padding stays off (0) and the headers stay on the WireGuard values, which
+ * is also how an AmneziaWG client is told plain WireGuard.
+ */
+function wgJunkParams(): array
+{
+	$jmin = random_int(24, 64);
+
+	return [
+		'Jc'   => random_int(3, 7),
+		'Jmin' => $jmin,
+		'Jmax' => $jmin + random_int(30, 80),
+		'S1'   => 0,
+		'S2'   => 0,
+		'H1'   => 1,
+		'H2'   => 2,
+		'H3'   => 3,
+		'H4'   => 4,
+	];
+}
+
+/**
+ * One to three chains of look-alike packets (I1..I3, AmneziaWG apps 1.5+)
+ * sent right before each handshake, burying it among junk the censor cannot
+ * separate from the real initiation. `wg_awg_chains` switches them off for a
+ * customer base stuck on an older app.
+ */
+function wgJunkChains(): array
+{
+	if (wgSetting('wg_awg_chains', '1') !== '1') {
+		return [];
+	}
+
+	$chains = [];
+	foreach (range(1, random_int(1, 3)) as $n) {
+		$chains['I' . $n] = base64_encode(random_bytes(random_int(24, 64)));
+	}
+
+	return $chains;
 }
 
 /** The account behind a peer's public key, or 0. */
@@ -545,7 +621,7 @@ function wgPush(): void
         $update = $pdo->prepare('UPDATE wg_session SET rx = ?, tx = ?, ip = ?, endpoint = ?, seen = ?, closed = ?
                                  WHERE id = ?');
 
-        foreach ($reports as $report) {
+        foreach ($reports as $index => $report) {
             if ($report['userid'] <= 0) {
                 if (!$report['closed']) {
                     $remove[] = ['pubkey' => $report['pubkey'], 'reason' => 'device deleted or not registered'];
@@ -555,7 +631,30 @@ function wgPush(): void
 
             $find->execute([$nodeId, $report['pubkey']]);
             $row = $find->fetch();
+
+            // the agent reports every peer it still holds, connecting or not -
+            // an app that was closed keeps counters frozen forever. An app that
+            // is alive sends its keepalive every 25s, so its counters grow in
+            // every push. Two push intervals with no growth at all means the
+            // customer is gone, whatever the agent still thinks: the session is
+            // closed here, and the dashboard stops showing them connected.
+            if ($row !== false && (int) $row['closed'] === 0
+                && (int) $row['seen'] <= $now - 2 * WG_PUSH_INTERVAL) {
+                $growth = max(0, $report['rx'] - (int) $row['rx']) + max(0, $report['tx'] - (int) $row['tx']);
+                if ($growth === 0) {
+                    $report['closed'] = true;
+                    $reports[$index] = $report;
+                }
+            }
+
             $closedAt = $report['closed'] ? $now : 0;
+            if ($row !== false && (int) $row['closed'] > 0 && $closedAt === 0) {
+                // a closed session only opens again when its counters grew -
+                // a customer who came back. The agent keeps saying a dropped
+                // app is still held, and that must not revive it.
+                $closedAt = $report['rx'] <= (int) $row['rx'] && $report['tx'] <= (int) $row['tx']
+                    ? (int) $row['closed'] : 0;
+            }
             // a peer belongs to the account it was made for
             $owner = $row === false ? $report['userid'] : (int) $row['userid'];
 
@@ -757,16 +856,11 @@ function wgProfileText(array $node, array $user, int $deviceId = 1): string
         '[Interface]',
         'PrivateKey = ' . wgPrivateKey((int) $user['id'], (string) ($user['uuid'] ?? ''), $deviceId),
         'Address = ' . wgPeerAddress($node, $pubkey, (int) $user['id']) . '/32',
-        'Jc = 4',
-        'Jmin = 40',
-        'Jmax = 70',
-        'S1 = 0',
-        'S2 = 0',
-        'H1 = 1',
-        'H2 = 2',
-        'H3 = 3',
-        'H4 = 4',
     ];
+
+    foreach (array_merge(wgJunkParams(), wgJunkChains()) as $name => $value) {
+        $lines[] = $name . ' = ' . $value;
+    }
 
     $dns = wgDnsList($node['dns'] ?? '');
     if ($dns !== []) {
@@ -934,6 +1028,7 @@ function wgAdminBootstrap(): void
         'token'   => wgAdminToken(),
         'enabled' => wgEnabled(),
         'notify'  => wgSetting('wg_notify', '1') === '1',
+        'chains'  => wgSetting('wg_awg_chains', '1') === '1',
         // without this the panel cannot derive a customer's public key, and no
         // .conf file can be built at all
         'sodium'  => wgSodiumOk(),
@@ -960,7 +1055,16 @@ function wgAdminSave(): void
         putSetting('wg_notify', $_POST['notify'] !== '0' ? '1' : '0');
     }
 
-    done(['enabled' => wgEnabled(), 'notify' => wgSetting('wg_notify', '1') === '1']);
+    // the I-chain junk packets in the customer's file (wgJunkChains())
+    if (isset($_POST['chains'])) {
+        putSetting('wg_awg_chains', $_POST['chains'] !== '0' ? '1' : '0');
+    }
+
+    done([
+        'enabled' => wgEnabled(),
+        'notify'  => wgSetting('wg_notify', '1') === '1',
+        'chains'  => wgSetting('wg_awg_chains', '1') === '1',
+    ]);
 }
 
 function wgAdminNodeSave(): void

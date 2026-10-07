@@ -43,7 +43,7 @@ import time
 import urllib.error
 import urllib.request
 
-VERSION = "1.0.2"
+VERSION = "1.0.3"
 WG_BIN = "awg" if shutil.which("awg") else "wg"
 
 DEFAULT_CONFIG = "/etc/digitsell-wg/agent.json"
@@ -457,6 +457,10 @@ class Agent:
                 "pubkey": pubkey,
                 "ip": address,
                 "endpoint": item["endpoint"],
+                # seconds since the last handshake, 0 when there has never
+                # been one: the panel tells a live customer from an app that
+                # was closed without dropping the peer
+                "handshake_ago": max(0, int(time.time()) - item["handshake"]) if item["handshake"] > 0 else 0,
                 "rx": item["rx"],
                 "tx": item["tx"],
             }

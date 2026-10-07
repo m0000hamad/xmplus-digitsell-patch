@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-03 · installed version **1.9.2** · latest release **1.22.4** · repo
+Last updated: 2026-10-08 · installed version **1.9.2** · latest release **1.23.17** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -348,3 +348,20 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.22.2 | Payg banner now shows balance mode immediately when wallet balance > 0 (instead of waiting for cron job to switch mode from plan to balance) |
 | 1.22.3 | Header countdown shows payg balance instead of Expired text when wallet balance > 0 |
 | 1.22.4 | Header countdown shows nicer payg balance format (💰 balance · 📶 GB) when wallet balance > 0 |
+| 1.23.1 | Wg.php PHP 7.4 compatibility |
+| 1.23.2 | WireGuard node installer fixed: wg0.conf generated, ip_forward, bypass-start argument order, NAT + forwarding rules, TCPMSS clamping, rp_filter=2 (agent 1.0.2) |
+| 1.23.3 | WireGuard icon (xmplus-wireguard) for the client apps list |
+| 1.23.4 | Auto-fallback to SERVER_IP when a node has no host; app-download button in the WireGuard tab |
+| 1.23.5 | WireGuard UI text and instruction list on the customer card |
+| 1.23.6 | Public keys preserved byte-exact (strtolower had corrupted base64 PublicKey values) |
+| 1.23.7 | Live DNS check for a WireGuard node's domain in the admin panel |
+| 1.23.8 | Single-slash panel URL auto-fix (protocol error) |
+| 1.23.9 | MTU per WireGuard server in the admin panel |
+| 1.23.10 | Preshared keys synced to the agent; policy-routing default route fixed; pending-peers query improved |
+| 1.23.11 | Pending peers no longer restricted to one node; address reserved again when switching nodes |
+| 1.23.12 | Multi-device support: several keys / addresses per account with a shared quota, device manager card, awg auto-detect (migration 020) |
+| 1.23.13 | Customer session authentication fixed inside the WireGuard device manager |
+| 1.23.14 | High-contrast dark mode for the device manager |
+| 1.23.15 | Server-group access strictly enforced: nodes without groups serve nobody, accounts limited to their group's servers |
+| 1.23.16 | Site URL resolved from General Settings for promo links and broadcasts |
+| 1.23.17 | AmneziaWG: disconnected customers no longer shown online (a peer whose counters do not grow across two pushes is closed); resetting the subscription link now rotates the WireGuard key (stale wg_credential rows repaired, old sessions dropped); obfuscation randomized per file - junk train Jc/Jmin/Jmax varies and optional I1-I3 chains added, on/off by the admin switch wg_awg_chains (default on); agent 1.0.3 reports handshake age (nodes pick it up on their next install run) |
