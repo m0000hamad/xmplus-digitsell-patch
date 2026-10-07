@@ -165,16 +165,15 @@ function wgPublicKey(int $userId, string $uuid, int $deviceId = 1): string
 
     $cache[$cacheKey] = '';
 
+    $known = '';
+
     try {
         $statement = db()->prepare('SELECT pubkey FROM wg_credential WHERE userid = ? AND device_id = ? LIMIT 1');
         $statement->execute([$userId, $deviceId]);
-        $known = $statement->fetch();
+        $row = $statement->fetch();
+        $known = $row === false ? '' : trim((string) $row['pubkey']);
     } catch (Throwable $error) {
         return '';
-    }
-
-    if ($known !== false && trim((string) $known['pubkey']) !== '') {
-        return $cache[$cacheKey] = trim((string) $known['pubkey']);
     }
 
     $private = wgPrivateKey($userId, $uuid, $deviceId);
@@ -187,10 +186,13 @@ function wgPublicKey(int $userId, string $uuid, int $deviceId = 1): string
         sodium_crypto_box_publickey_from_secretkey(sodium_base642bin($private, SODIUM_BASE64_VARIANT_ORIGINAL)), SODIUM_BASE64_VARIANT_ORIGINAL);
 
     // the stored key can go stale: resetting the subscription link changes the
-    // uuid, and the derived key with it. Hand the customer the fresh key and
-    // clean out everything that belongs to the dead one, so the reset takes
-    // on WireGuard exactly as it does on Xray / OpenVPN.
-    wgCredentialSync($userId, $deviceId, $key, $known !== false ? (string) $known['pubkey'] : '');
+    // uuid, and the derived key with it. The stored key always answered the
+    // call before, which meant a reset never took. Trust the derivation over
+    // the row: hand the customer the fresh key and let the sync clean out the
+    // old one, so the reset works exactly as it does on Xray / OpenVPN.
+    if ($known !== $key) {
+        wgCredentialSync($userId, $deviceId, $key, $known);
+    }
 
     return $cache[$cacheKey] = $key;
 }

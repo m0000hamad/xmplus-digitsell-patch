@@ -58,7 +58,7 @@
         "app/Patch/TimePlan.php": "f44e32da8b5ab931ebb6cc2af7bd5282cfad2c86004afc3aebd905e051aa8149",
         "app/Patch/TorExit.php": "481a5d2547e0fe07e5f9c3bdb25be7be281be82a76e9068aac53a91d2a2c0afd",
         "app/Patch/Vpn.php": "9bf38bc49fd337295c785b2f6ee8577c8ab07add4c25983fdb3cf5ef79193ba1",
-        "app/Patch/Wg.php": "ba02d929d3432ea42703600718fb0e84460f0518e962e3fa93a74d8272edb21b",
+        "app/Patch/Wg.php": "2153f1a09155e7d8e98834ff62a64ae3586aaecb75dae7273b7169796e6fd132",
         "app/Patch/data/iran-ipv4.txt": "e0d4b3a0f8602decf6ba8748235dc346f6fb2eab787e8d36b944dc869d63eae1",
         "app/Provider/SmartyProvider.php": "7c5119f9ff8f399841618851e3a9dc15feb9c5074afd0e8c9eb8f17befdf585e",
         "bin/commissions.php": "bcbd35c28bb31a89ac6ea36fab2a18fa5e23c75f135b584305ada1f3d780c1a9",
