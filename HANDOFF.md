@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-08 · installed version **1.9.2** · latest release **1.23.17** · repo
+Last updated: 2026-10-08 · installed version **1.9.2** · latest release **1.23.18** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -365,3 +365,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.23.15 | Server-group access strictly enforced: nodes without groups serve nobody, accounts limited to their group's servers |
 | 1.23.16 | Site URL resolved from General Settings for promo links and broadcasts |
 | 1.23.17 | AmneziaWG: disconnected customers no longer shown online (a peer whose counters do not grow across two pushes is closed); resetting the subscription link now rotates the WireGuard key (stale wg_credential rows repaired, old sessions dropped); obfuscation randomized per file - junk train Jc/Jmin/Jmax varies and optional I1-I3 chains added, on/off by the admin switch wg_awg_chains (default on); agent 1.0.3 reports handshake age (nodes pick it up on their next install run) |
+| 1.23.18 | WireGuard liveness switched to **inbound rx growth only**: a peer is live iff its rx counter grew since the previous push, so a closed app whose tx keeps advancing no longer keeps the session online. Online freshness windows (dashboard, per-server, IpCount()) cut from 600/300 s to 120 s. Closed-session rows now preserve their original closed timestamp instead of being refreshed on every push, so they are cleaned up after 24 h. |

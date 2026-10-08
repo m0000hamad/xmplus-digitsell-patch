@@ -457,15 +457,10 @@ class Agent:
                 "pubkey": pubkey,
                 "ip": address,
                 "endpoint": item["endpoint"],
-                # seconds since the last handshake, 0 when there has never
-                # been one: the panel tells a live customer from an app that
-                # was closed without dropping the peer
                 "handshake_ago": max(0, int(time.time()) - item["handshake"]) if item["handshake"] > 0 else 0,
                 "rx": item["rx"],
                 "tx": item["tx"],
             }
-            # a peer that has never said anything and was just added by us is
-            # not a connection; the panel should not be told about it yet
             if item["handshake"] > 0 or item["rx"] > 0 or item["tx"] > 0:
                 peers.append(row)
             else:
