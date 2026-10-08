@@ -23,6 +23,7 @@ const DASHBOARD_GB = 1073741824;
 /** Seconds of silence after which a node, or the cron runner, counts as down. */
 const DASHBOARD_NODE_STALE = 300;
 const DASHBOARD_CRON_STALE = 300;
+const DASHBOARD_ONLINE_STALE = 120;
 
 function dashboardTimezone(): void
 {
@@ -350,7 +351,7 @@ function dashboardUsers(): array
     $lapsed = db()->prepare('SELECT COUNT(*) FROM user WHERE role = 0 AND status = 1 AND expire_in <= ? AND expire_in > ?');
     $lapsed->execute([$now, date('Y-m-d H:i:s', strtotime('-7 days'))]);
 
-    $online = (int) db()->query('SELECT COUNT(DISTINCT userid) FROM online_ip WHERE datetime > UNIX_TIMESTAMP() - 600')->fetchColumn();
+    $online = (int) db()->query('SELECT COUNT(DISTINCT userid) FROM online_ip WHERE datetime > UNIX_TIMESTAMP() - ' . DASHBOARD_ONLINE_STALE)->fetchColumn();
 
     $series = [];
     foreach ($registered as $day => $n) {
@@ -416,7 +417,7 @@ function dashboardTraffic(): array
 function dashboardNodes(): array
 {
     $online = [];
-    $statement = db()->query('SELECT serverid, COUNT(DISTINCT userid) AS n FROM online_ip WHERE datetime > UNIX_TIMESTAMP() - 600 GROUP BY serverid');
+    $statement = db()->query('SELECT serverid, COUNT(DISTINCT userid) AS n FROM online_ip WHERE datetime > UNIX_TIMESTAMP() - ' . DASHBOARD_ONLINE_STALE . ' GROUP BY serverid');
     foreach ($statement as $r) {
         $online[(int) $r['serverid']] = (int) $r['n'];
     }

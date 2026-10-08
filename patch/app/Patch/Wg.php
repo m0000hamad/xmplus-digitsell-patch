@@ -90,6 +90,7 @@ const WG_SERVER_BASE = 950000;
 /* a peer not pushed for this long has gone; a node silent this long is down */
 const WG_STALE = 180;
 const WG_PUSH_INTERVAL = 60;
+const WG_PEER_STALE = 120;
 
 /* the ports a server may listen on, in the order an admin should try them */
 const WG_PREFERRED_PORTS = [443, 51820, 2053, 2083, 8443, 1194, 4500];
@@ -634,28 +635,21 @@ function wgPush(): void
             $find->execute([$nodeId, $report['pubkey']]);
             $row = $find->fetch();
 
-            // the agent reports every peer it still holds, connecting or not -
-            // an app that was closed keeps counters frozen forever. An app that
-            // is alive sends its keepalive every 25s, so its counters grow in
-            // every push. Two push intervals with no growth at all means the
-            // customer is gone, whatever the agent still thinks: the session is
-            // closed here, and the dashboard stops showing them connected.
-            if ($row !== false && (int) $row['closed'] === 0
-                && (int) $row['seen'] <= $now - 2 * WG_PUSH_INTERVAL) {
-                $growth = max(0, $report['rx'] - (int) $row['rx']) + max(0, $report['tx'] - (int) $row['tx']);
-                if ($growth === 0) {
-                    $report['closed'] = true;
-                    $reports[$index] = $report;
-                }
+            $previousRx = $row === false ? 0 : (int) $row['rx'];
+            $peerActive = $report['rx'] > $previousRx;
+            if (!$peerActive) {
+                $report['closed'] = true;
+            }
+            if ($report['closed']) {
+                $reports[$index]['closed'] = true;
             }
 
             $closedAt = $report['closed'] ? $now : 0;
-            if ($row !== false && (int) $row['closed'] > 0 && $closedAt === 0) {
-                // a closed session only opens again when its counters grew -
-                // a customer who came back. The agent keeps saying a dropped
-                // app is still held, and that must not revive it.
-                $closedAt = $report['rx'] <= (int) $row['rx'] && $report['tx'] <= (int) $row['tx']
-                    ? (int) $row['closed'] : 0;
+            if ($row !== false && (int) $row['closed'] > 0 && $closedAt > 0) {
+                // already silent and still silent: keep the first silence time so
+                // the row is cleaned up after a day instead of being refreshed
+                // on every push by an app that is closed but still held
+                $closedAt = (int) $row['closed'];
             }
             // a peer belongs to the account it was made for
             $owner = $row === false ? $report['userid'] : (int) $row['userid'];
@@ -730,10 +724,14 @@ function wgPush(): void
         fail('push not stored: ' . substr($error->getMessage(), 0, 300));
     }
 
-    // who is online, for the device limit and the dashboard's "connected" mark
+    // Online indicators for this WireGuard node are a snapshot of the latest
+    // push, not historical events. OpenVPN/Xray markers for other server ids
+    // remain untouched.
+    $pdo->prepare('DELETE FROM online_ip WHERE serverid = ?')->execute([$serverId]);
     $seenIp = [];
     foreach ($reports as $report) {
         if (!$report['closed'] && $report['userid'] > 0 && $report['ip'] !== ''
+            && !in_array($report['ip'], ['0.0.0.0', '::'], true)
             && !isset($seenIp[$report['userid'] . '|' . $report['ip']])) {
             $seenIp[$report['userid'] . '|' . $report['ip']] = true;
             try {

@@ -105,7 +105,7 @@ final class User extends Model
     {
 		$db = DB::getPdo();
         $res = [];
-		foreach ($db->query("SELECT `userid`, COUNT(DISTINCT `ip`) AS `count` FROM `online_ip` WHERE `datetime` >= UNIX_TIMESTAMP(NOW()) - 60 GROUP BY `userid`") as $line) {
+		foreach ($db->query("SELECT `userid`, COUNT(DISTINCT `ip`) AS `count` FROM `online_ip` WHERE `datetime` >= UNIX_TIMESTAMP(NOW()) - 120 GROUP BY `userid`") as $line) {
             $res[strval($line->userid)] = $line->count;
         }
         return $res;
@@ -417,7 +417,7 @@ final class User extends Model
 			// silence means the connection is gone
 			$stats['live'] = DB::table('online_ip')
 				->where('userid', $this->id)
-				->where('datetime', '>=', time() - 300)
+				->where('datetime', '>=', time() - 120)
 				->distinct()
 				->pluck('serverid')
 				->map(function ($id) { return (int) $id; })
