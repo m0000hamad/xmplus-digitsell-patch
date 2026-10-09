@@ -1,7 +1,7 @@
 {
-    "version": "1.23.18",
-    "released": "2026-10-08",
-    "notes": "WireGuard / AmneziaWG: the dashboard no longer shows disconnected customers as online. A peer is live only when its inbound rx counter grows since the previous push, so a closed app whose tx keeps advancing (retries, keepalives) no longer keeps the session open; a report with no rx growth is marked closed and the dashboard's online markers drop it. Counter resets are handled as a delta, not a max clamp. The online window across the dashboard, per-server counts and IpCount() dropped from 600/300 s to 120 s to match the new signal, and wgAdminSessions filters on it. A session that is already closed and reported closed again keeps its original closed time, so it is cleaned up after a day instead of being refreshed on every push. Agent 1.0.3 unchanged in behaviour. Manifest and VERSION to 1.23.18.",
+    "version": "1.23.19",
+    "released": "2026-10-09",
+    "notes": "Tor Exit admin page now lists OpenVPN and WireGuard servers (marked as not supported — Tor exit only works on Xray servers). Added composer.json for CI. Manifest and VERSION to 1.23.19.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
