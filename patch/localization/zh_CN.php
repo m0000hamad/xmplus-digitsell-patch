@@ -2009,7 +2009,6 @@ $i18n['zh_CN'] = array(
 	'TorExitRotTimeout'         => "The node agent did not answer within 7 minutes, or Tor did not come back",
 	'TorExitRotOldAgent'        => "The node agent is too old; run digitsell-xray update on the server (needs 1.3.0 or newer)",
 	'TorExitRotAsked'           => "A new IP was asked for. The server carries it out within a minute.",
-	'TorExitNotSupported'       => "此服务器类型不支持 Tor 出口位置（仅支持 Xray 服务器）",
 	'PaygBannerPlanTitle'       => "When your plan ends, your connection is not cut.",
 	'PaygBannerPlanText'        => "Top up your account with any amount and keep using it without buying a plan - usage is taken from the balance, like a SIM card.",
 	'PaygBannerBalanceTitle'    => "Your usage is being taken from the charge balance.",
