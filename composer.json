@@ -1,0 +1,13 @@
+{
+  "name": "digitsell/xmplus-patch",
+  "type": "project",
+  "description": "Digitsell XMPlus Panel Patch",
+  "require": {
+    "php": ">=8.0"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  }
+}
