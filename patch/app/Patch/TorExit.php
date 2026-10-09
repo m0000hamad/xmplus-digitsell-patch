@@ -42,11 +42,26 @@ function torexitToken(): string
 
 require_once __DIR__ . '/NodeKey.php';
 
+const TOREXIT_OVPN_BASE = 900000;
+const TOREXIT_WG_BASE = 950000;
+
 function torexitServerIds(): array
 {
     $ids = [];
     foreach (db()->query('SELECT id FROM servers') as $row) {
         $ids[(int) $row['id']] = true;
+    }
+    try {
+        foreach (db()->query('SELECT id FROM ovpn_node') as $row) {
+            $ids[TOREXIT_OVPN_BASE + (int) $row['id']] = true;
+        }
+    } catch (Throwable $e) {
+    }
+    try {
+        foreach (db()->query('SELECT id FROM wg_node') as $row) {
+            $ids[TOREXIT_WG_BASE + (int) $row['id']] = true;
+        }
+    } catch (Throwable $e) {
     }
 
     return $ids;
@@ -121,6 +136,8 @@ function torexitAdmin(): void
 
     $now = time();
     $servers = [];
+
+    // Xray servers (support Tor exit)
     foreach (db()->query('SELECT * FROM servers ORDER BY id ASC') as $server) {
         $id = (int) $server['id'];
         $row = $rows[$id] ?? null;
@@ -132,17 +149,60 @@ function torexitAdmin(): void
         $seen = $row === null ? 0 : (int) $row['seen_at'];
 
         $servers[] = [
-            'id'       => $id,
-            'name'     => (string) ($server['name'] ?? ('#' . $id)),
-            'type'     => strtolower((string) ($server['type'] ?? '')),
-            'managed'  => $row !== null && (int) $row['managed'] === 1,
-            'want'     => $row === null ? '' : torexitCountry($row['want']),
-            'want_at'  => $row === null ? 0 : (int) $row['want_at'],
-            'rotate_at' => $row === null ? 0 : (int) $row['rotate_at'],
-            'seen_at'  => $seen,
-            'live'     => $seen > 0 && $now - $seen <= TOREXIT_STALE,
-            'report'   => $report,
+            'id'           => $id,
+            'name'         => (string) ($server['name'] ?? ('#' . $id)),
+            'type'         => strtolower((string) ($server['type'] ?? '')),
+            'tor_supported' => true,
+            'managed'      => $row !== null && (int) $row['managed'] === 1,
+            'want'         => $row === null ? '' : torexitCountry($row['want']),
+            'want_at'      => $row === null ? 0 : (int) $row['want_at'],
+            'rotate_at'    => $row === null ? 0 : (int) $row['rotate_at'],
+            'seen_at'      => $seen,
+            'live'         => $seen > 0 && $now - $seen <= TOREXIT_STALE,
+            'report'       => $report,
         ];
+    }
+
+    // OpenVPN servers (no Tor exit support)
+    try {
+        foreach (db()->query('SELECT id, name, enabled, sort FROM ovpn_node ORDER BY sort, id') as $server) {
+            $id = TOREXIT_OVPN_BASE + (int) $server['id'];
+            $servers[] = [
+                'id'            => $id,
+                'name'          => 'OpenVPN · ' . (string) $server['name'],
+                'type'          => 'openvpn',
+                'tor_supported' => false,
+                'managed'       => false,
+                'want'          => '',
+                'want_at'       => 0,
+                'rotate_at'     => 0,
+                'seen_at'       => 0,
+                'live'          => (int) $server['enabled'] === 1,
+                'report'        => null,
+            ];
+        }
+    } catch (Throwable $e) {
+    }
+
+    // WireGuard servers (no Tor exit support)
+    try {
+        foreach (db()->query('SELECT id, name, enabled, sort FROM wg_node ORDER BY sort, id') as $server) {
+            $id = TOREXIT_WG_BASE + (int) $server['id'];
+            $servers[] = [
+                'id'            => $id,
+                'name'          => 'WireGuard · ' . (string) $server['name'],
+                'type'          => 'wireguard',
+                'tor_supported' => false,
+                'managed'       => false,
+                'want'          => '',
+                'want_at'       => 0,
+                'rotate_at'     => 0,
+                'seen_at'       => 0,
+                'live'          => (int) $server['enabled'] === 1,
+                'report'        => null,
+            ];
+        }
+    } catch (Throwable $e) {
     }
 
     done(['token' => torexitToken(), 'servers' => $servers, 'now' => $now]);
@@ -156,6 +216,11 @@ function torexitSave(): void
     $id = (int) ($_POST['id'] ?? 0);
     if ($id <= 0 || !isset(torexitServerIds()[$id])) {
         fail('unknown server');
+    }
+
+    // OpenVPN and WireGuard servers don't support Tor exit
+    if ($id >= TOREXIT_OVPN_BASE) {
+        fail('Tor exit is not supported for this server type');
     }
 
     // 'agent' = hand the choice back to agent.json, 'direct' = no exit proxy
@@ -190,6 +255,11 @@ function torexitRotate(): void
     $id = (int) ($_POST['id'] ?? 0);
     if ($id <= 0 || !isset(torexitServerIds()[$id])) {
         fail('unknown server');
+    }
+
+    // OpenVPN and WireGuard servers don't support Tor exit
+    if ($id >= TOREXIT_OVPN_BASE) {
+        fail('Tor exit is not supported for this server type');
     }
 
     $row = db()->prepare('SELECT managed, want, rotate_at FROM torexit_node WHERE server_id = ?');

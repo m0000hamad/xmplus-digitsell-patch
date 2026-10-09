@@ -80,6 +80,7 @@
 	window.TorExitWords.rotTimeout    = "{$translate->get('TorExitRotTimeout')|escape:'javascript'}";
 	window.TorExitWords.rotOldAgent   = "{$translate->get('TorExitRotOldAgent')|escape:'javascript'}";
 	window.TorExitWords.rotAsked      = "{$translate->get('TorExitRotAsked')|escape:'javascript'}";
+	window.TorExitWords.notSupported  = "{$translate->get('TorExitNotSupported')|escape:'javascript'}";
 </script>
 {literal}
 <style>
@@ -180,6 +181,9 @@
 	}
 
 	function agentCell(server, now) {
+		if (!server.tor_supported) {
+			return '<span class="text-muted">' + esc(words.notSupported) + '</span>';
+		}
 		var report = server.report;
 		if (!report || !server.seen_at) {
 			return '<span class="te-dot"></span>' + esc(words.never);
@@ -202,6 +206,9 @@
 	}
 
 	function exitCell(server) {
+		if (!server.tor_supported) {
+			return '<span class="text-muted">' + esc(words.notSupported) + '</span>';
+		}
 		var report = server.report;
 		if (!report || !report.exit) { return '—'; }
 		var exit = report.exit;
@@ -244,6 +251,9 @@
 	}
 
 	function selectCell(server) {
+		if (!server.tor_supported) {
+			return '<span class="text-muted">' + esc(words.notSupported) + '</span>';
+		}
 		var report = server.report || {};
 		var list = Array.isArray(report.countries) && report.countries.length ? report.countries : null;
 		var current = !server.managed ? 'agent' : (server.want || 'direct');
@@ -478,6 +488,7 @@
 
 	// only where the server leaves through a Tor exit chosen in the panel
 	function rotateButton(server) {
+		if (!server.tor_supported) { return ''; }
 		var report = server.report || {};
 		var exit = report.exit || {};
 		if (!server.managed || !server.want || exit.mode !== 'tor') { return ''; }
@@ -506,7 +517,7 @@
 				+ '<td>' + exitCell(server) + '</td>'
 				+ '<td>' + selectCell(server) + '</td>'
 				+ '<td><button type="button" class="btn btn-primary btn-sm" data-te-save="' + server.id + '"'
-				+ (server.report ? '' : ' disabled') + '>💾 ' + esc(words.save) + '</button>' + rotateButton(server) + '</td>'
+				+ (server.tor_supported && server.report ? '' : ' disabled') + '>💾 ' + esc(words.save) + '</button>' + rotateButton(server) + '</td>'
 				+ '</tr>';
 		}).join('');
 		tick();
