@@ -214,7 +214,7 @@
 	var endpoint = '/xmplus-patch.php';
 	var words = window.WgWords || {};
 	var token = '';
-	var state = { nodes: [], groups: [], repo: '', branch: 'main' };
+	var state = { nodes: [], groups: [], repo: '', branch: 'main', sessions: [] };
 	var lastKey = null; // { id, key } right after a server was added or re-keyed
 
 	function $(id) { return document.getElementById(id); }
@@ -447,6 +447,8 @@
 			state.groups = data.groups || [];
 			state.repo = data.repo || '';
 			state.branch = data.branch || 'main';
+			// the same snapshot the card's online count came from
+			state.sessions = data.sessions || [];
 			$('wvEnabled').checked = !!data.enabled;
 			$('wvNotify').checked = data.notify !== false;
 			$('wvChains').checked = data.chains !== false;
@@ -456,6 +458,7 @@
 			$('wvSodium').classList.toggle('d-none', !!data.sodium);
 			renderJob(data.job_last, data.now);
 			renderNodes();
+			renderSessions(state.sessions);
 			renderUninstall();
 			renderBypass(data.bypass);
 			if ($('wvId').value === '0') { renderGroups([]); }
@@ -558,10 +561,9 @@
 
 	$('wvSessionsBox').addEventListener('toggle', function () {
 		if (!this.open) { return; }
-		get('wg.sessions').then(function (data) {
-			if (!data.ok) { say(words.failed + ': ' + data.error); return; }
-			renderSessions(data.sessions || []);
-		});
+		// refresh the nodes and the list together, so the card's count and the
+		// rows below it are always the same snapshot
+		load();
 	});
 
 	load();
