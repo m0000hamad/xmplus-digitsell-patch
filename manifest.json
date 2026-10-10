@@ -1,7 +1,7 @@
 {
-    "version": "1.23.19",
-    "released": "2026-10-09",
-    "notes": "Tor Exit admin page now lists OpenVPN and WireGuard servers (marked as not supported — Tor exit only works on Xray servers). Added composer.json for CI. Manifest and VERSION to 1.23.19.",
+    "version": "1.23.20",
+    "released": "2026-10-10",
+    "notes": "Fix missing TorExitNotSupported translation key in main localization files. Tor Exit admin page shows OpenVPN/WireGuard servers as not supported.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
