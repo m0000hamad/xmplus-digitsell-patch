@@ -476,6 +476,12 @@ if (strpos($action, 'promo.') === 0) {
     fail('unknown promotion action');
 }
 
+// The two announcement campaigns, controlled from the admin notices page.
+if (strpos($action, 'announce.') === 0) {
+    require ROOT . '/app/Patch/Announce.php';
+    fail('unknown announcement action');
+}
+
 if ($action === 'status') {
     $commit = headCommit();
     $manifest = remoteManifest($commit);

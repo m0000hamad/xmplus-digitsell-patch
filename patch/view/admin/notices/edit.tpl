@@ -5,7 +5,8 @@
 <style>
 /* Edit a notice — same shell as add.tpl: RTL Persian editor, ready-made
  * snippets and a live preview of the user's popup. Save contract kept:
- * #title #status #sendmail #content + the record id. */
+ * #title #status #content + the record id (the send field is now the three
+ * channel switches, posted to xmplus-patch.php?do=announce.notice). */
 .nadm-grid { display: grid; grid-template-columns: 1fr; gap: 18px; }
 @media (min-width: 1200px) { .nadm-grid { grid-template-columns: 1.55fr 1fr; align-items: start; } }
 
@@ -137,15 +138,25 @@ html[data-hs-theme="dark"] .nadm-label { color: #b9c2d4; }
 							</select>
 						</div>
 					</div>
-					<div>
-						<label class="nadm-label" for="sendmail">{$translate->get('SendNotice')}</label>
-						<div class="tom-select-custom">
-							<select class="js-select form-select shadow-lg" id="sendmail" name="sendmail" data-hs-tom-select-options='{literal}{"hideSearch": true}{/literal}'>
-								<option value="0">{$translate->get('Disable')}</option>
-								<option value="1">{$translate->get('Enable')}</option>
-							</select>
+				</div>
+
+				<div class="nadm-field">
+					<label class="nadm-label">{$translate->get('SendNotice')}</label>
+					<div class="d-flex flex-wrap gap-3">
+						<div class="form-check form-check-secondary form-switch">
+							<input class="form-check-input" type="checkbox" id="anTg" value="1">
+							<label class="form-check-label" for="anTg">{$translate->get('PromoAnnounceTelegram')}</label>
+						</div>
+						<div class="form-check form-check-secondary form-switch">
+							<input class="form-check-input" type="checkbox" id="anMail" value="1">
+							<label class="form-check-label" for="anMail">{$translate->get('PromoAnnounceEmail')}</label>
+						</div>
+						<div class="form-check form-check-secondary form-switch">
+							<input class="form-check-input" type="checkbox" id="anGrp" value="1">
+							<label class="form-check-label" for="anGrp">{$translate->get('AnnounceGroup')}</label>
 						</div>
 					</div>
+					<small class="text-muted">{$translate->get('AnnounceChannelsHint')}</small>
 				</div>
 
 				<div class="nadm-field">
@@ -344,6 +355,21 @@ html[data-hs-theme="dark"] .nadm-label { color: #b9c2d4; }
 		});
 	}
 
+	function announceQueueNotice(title, body) {
+		fetch('/xmplus-patch.php?do=announce.state', { credentials: 'same-origin' })
+			.then(function (r) { return r.json(); })
+			.then(function (data) {
+				var form = new FormData();
+				form.append('token', (data && data.token) || '');
+				form.append('title', title || '');
+				form.append('body', body || '');
+				form.append('tg', $('#anTg').is(':checked') ? '1' : '0');
+				form.append('mail', $('#anMail').is(':checked') ? '1' : '0');
+				form.append('grp', $('#anGrp').is(':checked') ? '1' : '0');
+				fetch('/xmplus-patch.php?do=announce.notice', { method: 'POST', credentials: 'same-origin', body: form });
+			});
+	}
+
 	function saveNotice() {
 		layer.load(2);
 		var content = tinymce.get('content').getContent();
@@ -357,10 +383,11 @@ html[data-hs-theme="dark"] .nadm-label { color: #b9c2d4; }
 				content: content,
 				markdown: markdown,
 				status: $('#status').val(),
-				sendmail: $('#sendmail').val(),
+				sendmail: 0,
 				title: $('#title').val()
 			},
 			success: function (data) {
+				if (data.ret == 1) { announceQueueNotice($('#title').val(), markdown); }
 				layer.closeAll('loading');
 				layer.msg(data.msg, { time: 5000, offset: '100px' });
 				if (data.ret == 1) { window.setTimeout("location.href='/admin/notices'", 1500); }

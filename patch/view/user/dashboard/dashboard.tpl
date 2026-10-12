@@ -1318,5 +1318,7 @@ var renderUsageCharts = (function () {
 {include file='user/dashboard/tgpoll.tpl'}
 
 {if $Config['rebate'] != 0}
-	{include file='user/affiliate/invitepopup.tpl'}
+	{if !isset($Config['invite_popup']) || $Config['invite_popup'] != 0}
+		{include file='user/affiliate/invitepopup.tpl'}
+	{/if}
 {/if}

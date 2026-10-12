@@ -164,12 +164,45 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Invoice | A real document with seller, buyer, line item and totals; prints on one sheet; readable on a phone |
 | Settings (user) | Gradient hero, glass section rail with a colour per section and the current one lit, cards carrying that accent; notification rows became switches; 2FA dialog restyled; every input id, button class and section anchor kept so the encoded controller and page JS are untouched |
 | Notices | User timeline shows the title and reads as coloured cards; latest-notice popup restyled with a labelled dismiss switch; admin add/edit got RTL Persian TinyMCE, one-click snippets and a live user-popup preview |
+| Announcements | Card on the admin notices list page (`view/admin/layout/footer.tpl`, mounted only there) with two independent broadcast campaigns — the notice (c1) and the dashboard invite nudge (c2) — each with separate Telegram / E-mail / Group switches, a queue-and-send driven by `bin/announce.php`; the notice form's single "Send Notice" select became the same three switches. Released in 1.23.23 — see below |
 | Time plans | A third plan type selling days only — see the section below |
 | Menu | Labelled glass toggle, per-item colours, current page marked, works on phones |
 | Themes | Dark mode fixed panel-wide (see above) |
 | Gift cards | Redeem dialog redesigned, Telegram notice on redemption (1.8.9) - see below |
 | Sign-in page | `view/auth/login.tpl` redesigned (1.8.6) — see below |
 | Sign-up page | `view/auth/register.tpl` in the sign-in page's design (1.9.1) — see below |
+
+### Announcements — two campaigns from the notices page
+
+The admin notices page (`/admin/notices`) carries a two-campaign card, injected
+by `view/admin/layout/footer.tpl` and mounted only when the path is exactly
+`/admin/notices` (the notices list template itself is not ours to edit).
+
+* **c1 — the notice.** The add/edit form's single "Send Notice" select became
+  three switches (Telegram / e-mail / group). `saveNotice()` no longer posts
+  `sendmail=1`: it posts `sendmail=0` to the encoded controller so the panel's
+  built-in all-in-one send stays quiet, then hands the title, the plain-text
+  body and the three switches to `xmplus-patch.php?do=announce.notice`, which
+  keeps them as campaign 1 and stamps it once when a channel is on.
+* **c2 — the invite nudge.** A switch that turns the dashboard invite popup on
+  and off (`invite_popup`, migration 021; `dashboard.tpl` includes
+  `invitepopup.tpl` only while the setting is unset or non-zero), an editable
+  invite message, and the same three switches.
+
+Both campaigns share one shape in the `announce_campaigns` setting
+(`on, tg, mail, grp, stamp, sent_stamp, grp_stamp, sent_at, sent_users, ...`).
+Pressing **send** increments `stamp`; `bin/announce.php`
+(`App\Jobs\AnnounceJob`, every minute from `TaskCommand`) sends while
+`stamp > sent_stamp`. Telegram and e-mail go to every customer (`role = 0`) in
+batches of 150, each one claimed first in `announce_broadcast`
+(UNIQUE `campaign, userid`) so an interrupted run never repeats, and a customer
+whose `notification.sendnotices` is 0 is skipped. "Group" is a single post in
+the chat set as `announce_group_id`, once per stamp. A stamp is marked done only
+once a run finds no unclaimed customer left.
+
+`app/Patch/Announce.php` is the endpoint (`announce.state / save / send /
+notice`); the card re-reads state after every action. Verified: php -l clean on
+the new files, and the templates compile against the panel's Smarty.
 
 ### Time plans — how days are sold without touching the order pipeline
 
@@ -367,3 +400,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.23.17 | AmneziaWG: disconnected customers no longer shown online (a peer whose counters do not grow across two pushes is closed); resetting the subscription link now rotates the WireGuard key (stale wg_credential rows repaired, old sessions dropped); obfuscation randomized per file - junk train Jc/Jmin/Jmax varies and optional I1-I3 chains added, on/off by the admin switch wg_awg_chains (default on); agent 1.0.3 reports handshake age (nodes pick it up on their next install run) |
 | 1.23.18 | WireGuard liveness switched to **inbound rx growth only**: a peer is live iff its rx counter grew since the previous push, so a closed app whose tx keeps advancing no longer keeps the session online. Online freshness windows (dashboard, per-server, IpCount()) cut from 600/300 s to 120 s. Closed-session rows now preserve their original closed timestamp instead of being refreshed on every push, so they are cleaned up after 24 h. |
 | 1.23.22 | Promotions: the single "اعلام به همه‌ی کاربران" switch split into separate **Telegram** and **ایمیل** switches, so a promotion can be announced on either channel on its own (both on by default). Saving writes `announce_telegram` / `announce_email` next to the old `announce`, which stays the master flag the cron checks (`announce` = either channel on); `PromoJob::broadcast()` sends each channel only when its switch is on, and entries saved before the split (no per-channel keys) still announce on both. UI in `view/admin/plans/promoform.tpl` + `promojs.tpl`, keys added to `localization/{fa_IR,en_US,zh_CN}.php`. |
+| 1.23.23 | Announcements: two independent broadcast campaigns on the admin notices page, each with separate **Telegram / E-mail / Group(bot)** switches. Campaign 1 is the notice (the form's single "Send Notice" select became the three switches; the notice is saved with `sendmail=0` and queued through us instead of the panel's all-in-one send). Campaign 2 is the dashboard invite nudge (popup on/off via `invite_popup`, an editable invite message, the same three channels). Sends run from `bin/announce.php` (`App\Jobs\AnnounceJob`, every minute), batched and claimed in `announce_broadcast`. Card injected by `view/admin/layout/footer.tpl` only on `/admin/notices`; endpoint `app/Patch/Announce.php`; migration 021. |
