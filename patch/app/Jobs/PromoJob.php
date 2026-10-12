@@ -29,7 +29,10 @@ use Illuminate\Database\Capsule\Manager as DB;
  *     ended when it closes.
  *  4. A promotion saved with "announce" is sent to every customer, BROADCAST
  *     per run, each one claimed in `promo_broadcast` first so nobody gets it
- *     twice. Customers who switched notices off in their settings are skipped.
+ *     twice. Telegram and e-mail are separate switches ("announce_telegram",
+ *     "announce_email"), so either can be sent on its own; "announce" is the
+ *     master flag that opens the broadcast. Customers who switched notices off
+ *     in their settings are skipped.
  *
  * Times are compared in PHP: MySQL's NOW() runs on UTC on this server while
  * expire_in is stored in local time (+03:30), and pay_date is an epoch.
@@ -662,6 +665,14 @@ class PromoJob
 		}
 
 		$text = $this->announcement($packageId, $entry);
+
+		// entries saved before the channels were split have no per-channel keys:
+		// fall back to the old master switch, which meant both channels
+		$telegram = array_key_exists('announce_telegram', $entry)
+			? !empty($entry['announce_telegram']) : !empty($entry['announce']);
+		$email = array_key_exists('announce_email', $entry)
+			? !empty($entry['announce_email']) : !empty($entry['announce']);
+
 		$sent = 0;
 
 		foreach ($users as $user) {
@@ -677,12 +688,15 @@ class PromoJob
 				continue;
 			}
 
-			if ($this->token !== '' && !empty($user->telegram_id)) {
+			if ($telegram && $this->token !== '' && !empty($user->telegram_id)) {
 				$this->api('sendMessage', ['chat_id' => $user->telegram_id, 'text' => $text]);
 				usleep(40000);
 			}
 
-			$this->mail($user, '🔥 پروموشن جدید', $text);
+			if ($email) {
+				$this->mail($user, '🔥 پروموشن جدید', $text);
+			}
+
 			$sent++;
 		}
 

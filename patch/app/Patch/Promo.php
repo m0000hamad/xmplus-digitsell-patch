@@ -289,6 +289,9 @@ function promoSave(): void
         fail('this plan has no price to discount');
     }
 
+    $announceTg = !empty($_POST['announce_telegram']) && $_POST['announce_telegram'] !== '0';
+    $announceMail = !empty($_POST['announce_email']) && $_POST['announce_email'] !== '0';
+
     $entry = [
         'kind'       => $kind,
         'percent'    => $kind === 'discount' ? $percent : 0,
@@ -300,8 +303,12 @@ function promoSave(): void
         'show_left'  => !empty($_POST['show_left']) && $_POST['show_left'] !== '0' ? 1 : 0,
         // sticker theme (Package::PROMO_THEMES); "auto" follows the season
         'theme'      => in_array((string) ($_POST['theme'] ?? 'auto'), PROMO_THEMES, true) ? (string) $_POST['theme'] : 'auto',
-        // tell every customer once (PromoJob, promo_broadcast); an edit does not repeat it
-        'announce'   => !empty($_POST['announce']) && $_POST['announce'] !== '0' ? 1 : 0,
+        // tell every customer once (PromoJob, promo_broadcast); an edit does not repeat it.
+        // Telegram and e-mail are separate switches so one channel can be sent on its own;
+        // `announce` stays the master flag the cron checks.
+        'announce'          => $announceTg || $announceMail ? 1 : 0,
+        'announce_telegram' => $announceTg ? 1 : 0,
+        'announce_email'    => $announceMail ? 1 : 0,
         'broadcast_done' => $wasOpen ? (int) ($previous['broadcast_done'] ?? 0) : 0,
         // post it in the promotion channel (promo_channel_id); PromoJob keeps the post up to date
         'channel'    => !empty($_POST['channel']) && $_POST['channel'] !== '0' ? 1 : 0,
