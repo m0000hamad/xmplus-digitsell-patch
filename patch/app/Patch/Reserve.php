@@ -456,12 +456,16 @@ function reserveCancel(): void
     }
 
     // the money went back to the buyer's credit: tell them, the
-    // same way the other reservation events are told
-    if ($refunded > 0) {
-        try {
+    // same way the other reservation events are told; when there
+    // is nothing to refund (unpaid intent, zero amount) still send
+    // a cancel message so the action is never silent
+    try {
+        if ($refunded > 0) {
             (new \App\Jobs\ReserveJob)->announceRefund((int) $user['id'], $refunded);
-        } catch (Throwable $error) {
+        } else {
+            (new \App\Jobs\ReserveJob)->announceCancelled((int) $user['id'], (string) ($row['name'] ?? ''));
         }
+    } catch (Throwable $error) {
     }
 
     done(['refunded' => $refunded]);

@@ -290,13 +290,11 @@ class ReserveJob
 
 			$amount = (float) $row->amount;
 
-			if ($amount <= 0) {
-				continue;
+			if ($amount > 0) {
+				DB::update(
+					'UPDATE user SET money = money + ? WHERE id = ?',
+					[$amount, (int) $row->userid]);
 			}
-
-			DB::update(
-				'UPDATE user SET money = money + ? WHERE id = ?',
-				[$amount, (int) $row->userid]);
 
 			try {
 				DB::table('reserve_notice')
@@ -307,7 +305,11 @@ class ReserveJob
 			} catch (\Throwable $error) {
 			}
 
-			$this->announceRefund((int) $row->userid, $amount);
+			if ($amount > 0) {
+				$this->announceRefund((int) $row->userid, $amount);
+			} else {
+				$this->announceCancelled((int) $row->userid, (string) ($row->name ?? ''));
+			}
 		}
 	}
 
@@ -522,6 +524,20 @@ class ReserveJob
 			. "این مبلغ در خریدهای بعدی به صورت خودکار اعمال می‌شود.",
 			number_format(round($amount))
 		));
+	}
+
+	/*
+	 * A reservation was cancelled with nothing to refund (it was
+	 * never paid, or its amount was zero). The buyer still gets
+	 * a message so the cancel is never silent.
+	 */
+	public function announceCancelled(int $userId, string $planName = '')
+	{
+		$text = $planName !== ''
+			? sprintf("رزرو پلن «%s» لغو شد.", $planName)
+			: 'رزرو پلن شما لغو شد.';
+
+		$this->notify($userId, 'رزرو لغو شد', $text);
 	}
 
 	private function mail($user, string $subject, string $text)
