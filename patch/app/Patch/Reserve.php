@@ -445,6 +445,15 @@ function reserveCancel(): void
     } catch (Throwable $error) {
     }
 
+    // the money went back to the buyer's credit: tell them, the
+    // same way the other reservation events are told
+    if ($refunded > 0) {
+        try {
+            (new \App\Jobs\ReserveJob)->announceRefund((int) $user['id'], $refunded);
+        } catch (Throwable $error) {
+        }
+    }
+
     done(['refunded' => $refunded]);
 }
 

@@ -239,7 +239,7 @@ function paygPriceOption(string $price): string
 
 function paygToman(): bool
 {
-    return paygSetting('payg_show_toman', '1') === '1';
+    return paygSetting('payg_show_toman', '0') === '1';
 }
 
 /** "200,000 تومان" - the package name customers see on invoices. */
@@ -650,7 +650,7 @@ function paygAdminSettings(): array
     $settings = [];
     foreach (['payg_enabled' => '0', 'payg_min_charge' => '2000000', 'payg_charge_step' => '100000',
               'payg_default_price' => '0', 'payg_low_balance' => '500000', 'payg_outage_free' => '1',
-              'payg_warn_percent' => '80,95', 'payg_warn_days' => '3,1', 'payg_show_toman' => '1',
+              'payg_warn_percent' => '80,95', 'payg_warn_days' => '3,1', 'payg_show_toman' => '0',
               'payg_group' => '0', 'payg_iplimit' => '0', 'payg_banner' => '1', 'commission_wallet_enabled' => '0', 'sub_info_enabled' => '0',
               'sub_origin' => ''] as $name => $fallback) {
         $settings[$name] = paygSetting($name, $fallback);

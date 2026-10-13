@@ -1099,7 +1099,7 @@ final class User extends Model
 	/* the balance in the unit customers see - toman unless the admin chose rial */
 	public function paygToman()
 	{
-		return self::paygSetting('payg_show_toman', '1') === '1';
+		return self::paygSetting('payg_show_toman', '0') === '1';
 	}
 
 	public function paygBalanceShown()

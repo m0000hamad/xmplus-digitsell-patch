@@ -1005,7 +1005,7 @@ class PaygJob
 	/* amounts are stored in rial; customers think in toman */
 	private function money($rial)
 	{
-		if ($this->setting('payg_show_toman', '1') == 1) {
+		if ($this->setting('payg_show_toman', '0') == 1) {
 			return $this->fa(number_format(round((float) $rial / 10))) . ' تومان';
 		}
 

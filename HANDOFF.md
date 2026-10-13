@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-13 Â· installed version **1.9.2** Â· latest release **1.25.5** Â· repo
+Last updated: 2026-10-13 Â· installed version **1.9.2** Â· latest release **1.26.0** Â· repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -476,3 +476,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.25.3 | Fix: the ghost reservation banner. Its close button used jQuery where usermenu.tpl renders, before the footer loads that library, so the x never worked - it is vanilla JS now (fetch + FormData). A booked notice also shows only while its reservation still waits: User::planReserveNotices joins plan_reserve and hides the notice once the reservation is cancelled, started or deleted; cancelling marks the notice seen, and migration 023 marks such stale notices seen |
 | 1.25.4 | Fix: checkout popped up "Trying to get property 'fee_percent' of non-object" whenever the account balance was pre-selected - which happens when the balance covers the total, typically a small order (e.g. one paid with a reservation refund credit). The wallet is not a gateway and the encoded `gateway_fee` endpoint has no row for method -1, so `Gatewayfee()` now fills the fee (0) and the total in locally for it |
 | 1.25.5 | The panel wallet (`user.money`) now shows its real unit, rial - the checkout balance radio, the dashboard money tile and the payg panel-money line label the amount `PaygRial` instead of the panel currency symbol, so the balance is never read as toman next to the payg wallet (which divides by ten). The raw number is kept, like the order totals next to it, so the checkout balance-covers-total check and its display agree |
+| 1.26.0 | (1) Cancelling a reservation now tells the buyer on Telegram (and e-mail) that the amount went back to their account credit and is applied automatically in future purchases - `ReserveJob::announceRefund`, fired by `reserve.cancel` right after the refund. (2) The pay-as-you-go wallet shows rial like everything else: `payg_show_toman` now defaults to 0 and migration 024 flips the stored setting, so the balance, the charge presets, the minimum charge, every price and every message are written in rial; the admin can re-enable the toman display in Settings |

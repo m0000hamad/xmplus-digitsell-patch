@@ -155,7 +155,7 @@ function subinfoGb(float $bytes): string
 
 function subinfoMoney(float $rial): string
 {
-    return setting('payg_show_toman', '1') === '0'
+    return setting('payg_show_toman', '0') === '0'
         ? subinfoFa(number_format(round($rial))) . ' ریال'
         : subinfoFa(number_format(round($rial / 10))) . ' تومان';
 }

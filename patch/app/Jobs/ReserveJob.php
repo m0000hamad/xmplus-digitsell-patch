@@ -425,6 +425,15 @@ class ReserveJob
 			return;
 		}
 
+		$this->notify($userId, $title, $text);
+	}
+
+	/*
+	 * The message itself - Telegram and e-mail - shared by every
+	 * reservation event, with or without a dashboard notice.
+	 */
+	private function notify(int $userId, string $title, string $text)
+	{
 		$user = DB::table('user')->where('id', $userId)->first(['id', 'username', 'email', 'telegram_id']);
 
 		if (!$user) {
@@ -438,6 +447,20 @@ class ReserveJob
 		}
 
 		$this->mail($user, $title, $text);
+	}
+
+	/*
+	 * A reservation was cancelled and its price went back into the
+	 * buyer's account credit. The checkout spends that credit
+	 * first, so the money is already at work on the next purchase.
+	 */
+	public function announceRefund(int $userId, float $amount)
+	{
+		$this->notify($userId, 'برگشت به موجودی', sprintf(
+			"مبلغ %s ریال به موجودی اعتبار شما برگشت خورد.\n"
+			. "این مبلغ در خریدهای بعدی به صورت خودکار اعمال می‌شود.",
+			number_format(round($amount))
+		));
 	}
 
 	private function mail($user, string $subject, string $text)
