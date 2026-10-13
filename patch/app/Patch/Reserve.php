@@ -437,6 +437,14 @@ function reserveCancel(): void
         }
     }
 
+    // the banner had shown "your reserved plan is booked" for it; that notice
+    // must not come back now that it was cancelled
+    try {
+        db()->prepare('UPDATE reserve_notice SET seen = 1 WHERE userid = ? AND seen = 0 AND `ref` = ?')
+            ->execute([(int) $user['id'], 'r:' . (int) $row['id']]);
+    } catch (Throwable $error) {
+    }
+
     done(['refunded' => $refunded]);
 }
 

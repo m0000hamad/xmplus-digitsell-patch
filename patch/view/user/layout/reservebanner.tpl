@@ -87,35 +87,52 @@ html[data-hs-theme="dark"] .rsv-started { background: linear-gradient(100deg, rg
 }
 </style>
 <script>
+/* vanilla on purpose: this banner renders where usermenu.tpl opens the page,
+   before the footer has loaded jQuery, so $ does not exist here yet */
 (function () {
 	var wrap = document.getElementById('rsvBanner');
 	if (!wrap) { return; }
 
 	function ack() {
-		$.ajax({
-			type: 'GET',
-			url: '/xmplus-patch.php?do=reserve.mine',
-			dataType: 'json',
-			success: function (mine) {
-				if (!mine.ok || !mine.token) { return; }
-				$.ajax({
-					type: 'POST',
-					url: '/xmplus-patch.php?do=reserve.ack',
-					dataType: 'json',
-					data: { token: mine.token }
+		fetch('/xmplus-patch.php?do=reserve.mine', { credentials: 'same-origin' })
+			.then(function (r) { return r.json(); })
+			.then(function (mine) {
+				if (!mine || !mine.ok || !mine.token) { return; }
+
+				var body = new FormData();
+				body.append('token', mine.token);
+
+				return fetch('/xmplus-patch.php?do=reserve.ack', {
+					method: 'POST',
+					credentials: 'same-origin',
+					body: body
 				});
-			}
-		});
+			})
+			.catch(function () {});
 	}
 
-	$.each(wrap.querySelectorAll('[data-reserve-ack]'), function (i, button) {
-		button.addEventListener('click', function () {
-			$(button).closest('.rsv').fadeOut(200, function () {
-				$(this).remove();
-				if (!wrap.querySelector('.rsv')) { wrap.remove(); }
-			});
-			ack();
-		});
+	wrap.addEventListener('click', function (event) {
+		var node = event.target;
+		while (node && node !== wrap && !(node.getAttribute && node.getAttribute('data-reserve-ack') !== null)) {
+			node = node.parentNode;
+		}
+
+		if (!node || node === wrap) { return; }
+
+		var card = node;
+		while (card && card !== wrap && (' ' + card.className + ' ').indexOf(' rsv ') === -1) {
+			card = card.parentNode;
+		}
+
+		if (card && card !== wrap && card.parentNode) {
+			card.parentNode.removeChild(card);
+		}
+
+		if (!wrap.querySelector('.rsv')) {
+			if (wrap.parentNode) { wrap.parentNode.removeChild(wrap); }
+		}
+
+		ack();
 	});
 })();
 </script>

@@ -1,4 +1,4 @@
-﻿# Handoff â€” Digitsell XMPlus panel patch
+# Handoff â€” Digitsell XMPlus panel patch
 
 Living document. **Update it after every change**, alongside the release it
 describes.
@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-13 Â· installed version **1.9.2** Â· latest release **1.25.2** Â· repo
+Last updated: 2026-10-13 Â· installed version **1.9.2** Â· latest release **1.25.3** Â· repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -473,3 +473,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.25.0 | Reserved plans are announced everywhere: a notice banner on every customer page when a reservation is taken and when it starts (dismissible, `reserve.ack`, new table `reserve_notice`, migration 022), a fuller dashboard card, and Telegram + e-mail at both moments exactly once each. A just-paid reservation is linked on the first page load (`ReserveJob::linkForUser`) instead of waiting for the cron |
 | 1.25.1 | Fix: the reservation banner crashed every customer page with "Cannot use object of type stdClass as array" - the notice rows are now plain arrays (User::planReserveNotices) |
 | 1.25.2 | At checkout the payment page now surfaces the wallet balance (`AccBalance`, value -1) above the gateways whenever `user.money > 0` - pre-selected when it covers the total - so a reservation refund credit is spent automatically |
+| 1.25.3 | Fix: the ghost reservation banner. Its close button used jQuery where usermenu.tpl renders, before the footer loads that library, so the x never worked - it is vanilla JS now (fetch + FormData). A booked notice also shows only while its reservation still waits: User::planReserveNotices joins plan_reserve and hides the notice once the reservation is cancelled, started or deleted; cancelling marks the notice seen, and migration 023 marks such stale notices seen |

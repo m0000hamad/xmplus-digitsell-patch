@@ -628,11 +628,26 @@ final class User extends Model
 	public function planReserveNotices()
 	{
 		try {
+			// notice ref is "r:<plan_reserve id>" for "booked" (and "s:..."
+			// for "started"); a "booked" notice makes sense only while its
+			// reservation still exists and is still waiting (status 1) -
+			// cancelled, started or deleted means the row is gone or
+			// settled, and a stale "you have a reserved plan" must not
+			// come back. One SQL, no extra SELECT per notice. A "started"
+			// notice has no such life cycle and always shows.
 			$rows = DB::table('reserve_notice')
-				->where('userid', $this->id)
-				->where('seen', 0)
-				->orderBy('id', 'desc')
+				->leftJoin('plan_reserve', function ($join): void {
+					$join->on(DB::raw("SUBSTRING(reserve_notice.ref, 3)"), '=', 'plan_reserve.id');
+				})
+				->where('reserve_notice.userid', $this->id)
+				->where('reserve_notice.seen', 0)
+				->where(function ($query): void {
+					$query->where('reserve_notice.kind', '!=', 'reserved')
+						->orWhere('plan_reserve.status', 1);
+				})
+				->orderBy('reserve_notice.id', 'desc')
 				->limit(5)
+				->select('reserve_notice.*')
 				->get()
 				->all();
 		} catch (\Throwable $error) {
