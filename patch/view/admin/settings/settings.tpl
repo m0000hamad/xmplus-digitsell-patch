@@ -119,6 +119,11 @@
                      <i class="fa-solid fa-wallet nav-icon"></i> {$translate->get('PaygAdmTitle')}
                   </a>
                 </li>
+				<li class="nav-item">
+                  <a class="nav-link" href="#ReserveSettings"  data-scroll="ReserveSettings">
+                     <i class="fa-solid fa-calendar-check nav-icon"></i> {$translate->get('ReserveAdmTitle')}
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
@@ -141,6 +146,7 @@
 			{include file='admin/settings/patchsettings.tpl'}
 			{include file='admin/settings/promochannel.tpl'}
 			{include file='admin/settings/paygsettings.tpl'}
+			{include file='admin/settings/reservesettings.tpl'}
           </div>
           <div id="stickyBlockEndPoint"></div>
         </div>

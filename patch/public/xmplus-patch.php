@@ -457,6 +457,13 @@ if (strpos($action, 'node.') === 0) {
     fail('unknown node action');
 }
 
+// Reserved plans: the buying half answers ordinary users, the admin half checks
+// for itself (app/Patch/Reserve.php).
+if (strpos($action, 'reserve.') === 0) {
+    require ROOT . '/app/Patch/Reserve.php';
+    fail('unknown reservation action');
+}
+
 requireAdmin();
 
 // Read-only reports for admin pages; each file ends in done() or fail().

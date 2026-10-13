@@ -556,6 +556,53 @@ final class User extends Model
 	}
 
 	/* ------------------------------------------------------------------
+	 * A reserved plan waiting to start (app/Patch/Reserve.php).
+	 * ------------------------------------------------------------------ */
+
+	/*
+	 * Whether the plan pages offer a reservation at all. Read from the setting
+	 * the admin card writes; missing means on, which is how it ships.
+	 */
+	public function reserveFeatureOn()
+	{
+		$value = Settings::where('name', 'reserve_enabled')->value('value');
+
+		return $value === null || $value === '' || (int) $value === 1;
+	}
+
+	/*
+	 * The paid reservation this account is sitting on, or null. The table is
+	 * created by the migration and, as a fallback, by ReserveJob, so a missing
+	 * one must never take the dashboard down.
+	 */
+	public function planReserveWaiting()
+	{
+		try {
+			$row = DB::table('plan_reserve')
+				->where('userid', $this->id)
+				->where('status', 1)
+				->orderBy('id', 'desc')
+				->first();
+		} catch (\Throwable $error) {
+			return null;
+		}
+
+		if (!$row) {
+			return null;
+		}
+
+		return [
+			'id'          => (int) $row->id,
+			'name'        => (string) $row->name,
+			'cycle'       => (string) $row->cycle,
+			'days'        => (int) $row->days,
+			'mode'        => (string) $row->mode,
+			'activate_at' => (int) $row->activate_at,
+			'amount'      => (float) $row->amount,
+		];
+	}
+
+	/* ------------------------------------------------------------------
 	 * Buying extra days ("time plans").
 	 * ------------------------------------------------------------------ */
 

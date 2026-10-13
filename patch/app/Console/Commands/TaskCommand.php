@@ -99,6 +99,16 @@ final class TaskCommand extends Command
 			'enabled' => true,
 		));
 
+		// reserved plans: a paid reserve order is linked to its reservation and
+		// the subscription is started once the current plan ends / the date comes
+		$scheduler->add('ReserveJob', array(
+			'command' => 'php '.BASE_PATH.'/bin/reserve.php',
+			'schedule' => "* * * * *",
+			'output' => BASE_PATH.'/storage/logs/reserve.log',
+			'lock_dir' => BASE_PATH.'/storage/cron/',
+			'enabled' => true,
+		));
+
 		// one-time gift for joining the Telegram channel; asks the Bot API who is a member
 		$scheduler->add('TgJoinJob', array(
 			'command' => 'php '.BASE_PATH.'/bin/tgjoin.php',

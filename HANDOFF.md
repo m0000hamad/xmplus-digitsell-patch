@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-12 · installed version **1.9.2** · latest release **1.23.22** · repo
+Last updated: 2026-10-13 · installed version **1.9.2** · latest release **1.24.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -165,6 +165,7 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Settings (user) | Gradient hero, glass section rail with a colour per section and the current one lit, cards carrying that accent; notification rows became switches; 2FA dialog restyled; every input id, button class and section anchor kept so the encoded controller and page JS are untouched |
 | Notices | User timeline shows the title and reads as coloured cards; latest-notice popup restyled with a labelled dismiss switch; admin add/edit got RTL Persian TinyMCE, one-click snippets and a live user-popup preview |
 | Time plans | A third plan type selling days only — see the section below |
+| Reserved plans | Buy a subscription now, have it start later (after the current plan ends, or on a chosen date) — see the section below |
 | Menu | Labelled glass toggle, per-item colours, current page marked, works on phones |
 | Themes | Dark mode fixed panel-wide (see above) |
 | Gift cards | Redeem dialog redesigned, Telegram notice on redemption (1.8.9) - see below |
@@ -268,6 +269,59 @@ for the reason above, so it gets a second settings row alongside the first:
 
 Both rows are written by the same `timeplan.topupscope` call.
 
+### Reserved plans — buy now, start later
+
+A customer can reserve a subscription plan at checkout: the money is paid
+today and the plan starts later, either **after the current plan ends** or on a
+**chosen date**. Same trick as the time plans: the panel's checkout and the code
+that applies a subscription are encoded, so a reserved plan is sold as an
+ordinary traffic top-up (`type = 1`, `bandwidth = 0`) whose `order_note` carries
+a marker, and the subscription is started afterwards by `bin/reserve.php`.
+
+```json
+{"planreserve":{"v":1,"plan":41,"cycle":"month","days":30}}
+```
+
+- One package row per `(plan, cycle)`, named `رزرو <plan> - <cycle>`, priced at
+  the plan's price for that cycle as it stands at mint time (a running
+  promotion's discounted price included). It is hidden from the customer's
+  "add data" list (`Package::topupList()` drops `RESERVE_MARKER`) and from the
+  admin plan list (added to `generated` in `TimePlan.php`).
+- `plan_reserve` (migration 021) holds the reservation: the buyer, the plan and
+  cycle, the plan's numbers (so it survives the plan being edited or switched
+  off), the mode and date, and the state — `0` prepared/unpaid, `1` paid and
+  waiting, `2` started, `3` cancelled.
+- `app/Jobs/ReserveJob.php` (`bin/reserve.php`, scheduled every minute from
+  `TaskCommand`) links each paid reserve order to its reservation (rebuilding it
+  from the marker if the intent is gone), then starts the subscription once the
+  current plan has ended **and** the chosen date has come — the "replace when
+  the current plan ends" rule the owner chose. Starting is the same fresh-plan
+  write `TgJoinJob` uses (`packageid`, `plan`, `server_group`, `iplimit`,
+  `speedlimit`, `transfer_enable = bandwidth * GiB`, `u = d = used = 0`,
+  `expire_in = now + days`), and the reserve order is turned into the
+  subscription order it really was (`packagetype = 2`, `plan`, `plan_expire`,
+  `expire`), leaving `pay_date` where the money changed hands.
+- A conditional `UPDATE ... WHERE status = 1` claims each activation, so two
+  overlapping runs can never start the same plan twice.
+- **Only one reservation per customer.** Cancel (before it starts) refunds the
+  full amount into `user.money` — the payment is not reversed, it becomes store
+  credit, which is what the owner asked for. The reservation row is claimed
+  first, so a second request can never refund twice. An unpaid check-out older
+  than an hour is dropped, and an unpaid intent never blocks a fresh one.
+- The user half answers ordinary users and therefore rides the `reserve.*`
+  dispatch in `public/xmplus-patch.php` **before** the blanket `requireAdmin()`;
+  it has its own CSRF token, `$_SESSION['reserve_csrf']`, handed out by
+  `reserve.mine`. `reserve.prepare` re-checks everything server-side.
+- Visibility and the date horizon are two settings, `reserve_enabled` (1) and
+  `reserve_max_days` (365), edited in Settings → Plan reservations and read by
+  `User::reserveFeatureOn()`. `User::planReserveWaiting()` draws the dashboard
+  card (`view/user/dashboard/reservecard.tpl`, included from `subsciption.tpl`).
+- The plan page (`view/user/plan/plan-details.tpl`) gained a "رزرو پلن" card;
+  when it is on, Checkout calls `reserve.prepare` and then posts the minted row
+  to `/portal/order/create` with `plan: "topup"`, exactly as the "add data"
+  flow does. "Disable active plan" is forced off while reserving, because a
+  reservation must never cancel the plan the customer is on.
+
 ### Commission — money rules already decided. Do not redo without asking.
 
 - Only **new** commission is credited automatically.
@@ -367,3 +421,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.23.17 | AmneziaWG: disconnected customers no longer shown online (a peer whose counters do not grow across two pushes is closed); resetting the subscription link now rotates the WireGuard key (stale wg_credential rows repaired, old sessions dropped); obfuscation randomized per file - junk train Jc/Jmin/Jmax varies and optional I1-I3 chains added, on/off by the admin switch wg_awg_chains (default on); agent 1.0.3 reports handshake age (nodes pick it up on their next install run) |
 | 1.23.18 | WireGuard liveness switched to **inbound rx growth only**: a peer is live iff its rx counter grew since the previous push, so a closed app whose tx keeps advancing no longer keeps the session online. Online freshness windows (dashboard, per-server, IpCount()) cut from 600/300 s to 120 s. Closed-session rows now preserve their original closed timestamp instead of being refreshed on every push, so they are cleaned up after 24 h. |
 | 1.23.22 | Promotions: the single "اعلام به همه‌ی کاربران" switch split into separate **Telegram** and **ایمیل** switches, so a promotion can be announced on either channel on its own (both on by default). Saving writes `announce_telegram` / `announce_email` next to the old `announce`, which stays the master flag the cron checks (`announce` = either channel on); `PromoJob::broadcast()` sends each channel only when its switch is on, and entries saved before the split (no per-channel keys) still announce on both. UI in `view/admin/plans/promoform.tpl` + `promojs.tpl`, keys added to `localization/{fa_IR,en_US,zh_CN}.php`. |
+| 1.24.0 | Plan reservation: reserve a subscription at checkout — pay now, start later, either after the current plan ends or on a chosen date. Sold as a marked traffic top-up and started by `bin/reserve.php` (`app/Jobs/ReserveJob.php`); one active reservation per customer, cancellable before it starts with a full refund into account credit. New table `plan_reserve` (migration 021), admin card in Settings, reservation card on the dashboard, new keys in all three locales |

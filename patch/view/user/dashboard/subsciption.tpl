@@ -629,6 +629,8 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 
 			{include file='user/dashboard/tgjoin.tpl'}
 
+			{include file='user/dashboard/reservecard.tpl'}
+
 		</div>
 	</div>
 

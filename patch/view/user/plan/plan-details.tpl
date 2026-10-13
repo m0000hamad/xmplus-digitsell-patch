@@ -472,6 +472,60 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 		<div class="col-xl-4 col-lg-4 col-md-12 col-sm-12">
 			<div class="pd-sum">
 
+				{* ---- reserve this plan to start later ---- *}
+				{if $package->type == 2 && $user && $user->reserveFeatureOn()}
+					{assign var=reserveRow value=$user->planReserveWaiting()}
+					{if $reserveRow}
+						<div class="pd-card">
+							<div class="pd-card-head">
+								<span class="pd-card-emoji">🗓️</span>
+								<h3 class="pd-card-title">{$translate->get('ReserveTitle')}</h3>
+							</div>
+							<div class="pd-card-body">
+								<div class="pd-note" style="margin-top:0">
+									{$translate->get('ReserveAlreadyHave')} <b>{$reserveRow.name}</b>
+									<br><a href="/portal/dashboard">{$translate->get('ReserveSeeDashboard')}</a>
+								</div>
+							</div>
+						</div>
+					{else}
+						<div class="pd-card" id="reserveCard">
+							<div class="pd-card-head">
+								<span class="pd-card-emoji">🗓️</span>
+								<h3 class="pd-card-title">{$translate->get('ReserveTitle')}</h3>
+							</div>
+							<div class="pd-card-body">
+								<label class="pd-switch">
+									<span class="pd-switch-wrap">
+										<input type="checkbox" id="reserveOn" onClick="ReserveToggle()">
+										<span class="pd-knob"></span>
+									</span>
+									<span class="pd-switch-text">
+										{$translate->get('ReserveSwitch')}
+										<span class="pd-switch-state" id="reserveState">{$translate->get('SwitchOff')}</span>
+									</span>
+								</label>
+
+								<div id="reserveBox" style="display:none;margin-top:13px">
+									<label class="pd-cycle" style="margin-bottom:9px">
+										<input type="radio" name="reserve_mode" id="reserve_after" value="after" checked onClick="ReserveMode()">
+										<span class="pd-cycle-box" style="padding:11px 12px">{$translate->get('ReserveModeAfter')}</span>
+									</label>
+									<label class="pd-cycle" style="margin-bottom:9px">
+										<input type="radio" name="reserve_mode" id="reserve_date" value="date" onClick="ReserveMode()">
+										<span class="pd-cycle-box" style="padding:11px 12px">{$translate->get('ReserveModeDate')}</span>
+									</label>
+									<div id="reserveDateWrap" style="display:none">
+										<label class="pd-spec-label" for="reserveDate">{$translate->get('ReserveDateLabel')}</label>
+										<input type="date" id="reserveDate" class="pd-coupon" style="width:100%;display:block" dir="ltr">
+									</div>
+									<div class="pd-note" style="margin-top:11px">{$translate->get('ReserveNote')}</div>
+								</div>
+							</div>
+						</div>
+					{/if}
+				{/if}
+
 				{if $Config['allow_coupon_use'] == 1}
 					<div class="pd-card">
 						<div class="pd-card-head">
@@ -488,7 +542,7 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 					</div>
 				{/if}
 
-				<div class="pd-card">
+				<div class="pd-card" id="disableactiveCard">
 					<div class="pd-card-body">
 						<label class="pd-switch">
 							<span class="pd-switch-wrap">
@@ -537,6 +591,7 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 {include file='common/orderresult.tpl'}
 <script>
 	checkBill();
+	reserveBoot();
 	
 	{if $Config['allow_coupon_use'] == 1}
 		var coupon = localStorage.getItem('coupon');
@@ -661,31 +716,132 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 	});
 	{/if}
 	
-	function Checkout(){
-		var plan =  $("input[name='plan']:checked").val();
-		// commission pays for plans: move it into the wallet first, then check out
-		if (window.CommissionUse && !window.CommissionUse.passed) {
-			window.CommissionUse.before({$package->id}, plan, Checkout);
+	/* ---- reserve this plan to start later (app/Patch/Reserve.php) ---- */
+	var reserveToken = "";
+	var reserveMaxDays = 365;
+
+	function reserveBoot(){
+		if(!document.getElementById('reserveCard')){
 			return;
 		}
-		var coupon = localStorage.getItem('coupon');
-		if(coupon != null){
-			var code = coupon;
-		}else{
-			var code = "";
+
+		$.ajax({
+			type: "GET",
+			url: "/xmplus-patch.php?do=reserve.mine",
+			dataType: "json",
+			success: (data) => {
+				if(!data.ok){
+					return;
+				}
+
+				reserveToken = data.token || "";
+				reserveMaxDays = parseInt(data.max_days, 10) || 365;
+
+				// the admin can switch reservations off without a release
+				if(data.enabled != 1){
+					document.getElementById('reserveCard').style.display = 'none';
+					return;
+				}
+
+				var input = document.getElementById('reserveDate');
+				if(input){
+					input.min = new Date().toISOString().slice(0, 10);
+					input.max = new Date(Date.now() + reserveMaxDays * 86400000).toISOString().slice(0, 10);
+				}
+			}
+		});
+	}
+
+	function ReserveToggle(){
+		var on = document.getElementById('reserveOn').checked;
+		document.getElementById('reserveBox').style.display = on ? 'block' : 'none';
+		document.getElementById('reserveState').textContent = on ? "{$translate->get('SwitchOn')}" : "{$translate->get('SwitchOff')}";
+
+		// reserving keeps the current plan, so "cancel my plan" is meaningless here
+		var card = document.getElementById('disableactiveCard');
+		if(card){
+			card.style.display = on ? 'none' : '';
 		}
-		if (document.getElementById('disableactive').checked) {
-			var disableactive = 1;
-		} else {
-			var disableactive = 0;
+		if(on && document.getElementById('disableactive')){
+			document.getElementById('disableactive').checked = false;
+			document.getElementById('disableactiveState').textContent = "{$translate->get('SwitchOff')}";
 		}
+		if(on){
+			ReserveMode();
+		}
+	}
+
+	function ReserveMode(){
+		var chosen = document.getElementById('reserve_date');
+		document.getElementById('reserveDateWrap').style.display = (chosen && chosen.checked) ? 'block' : 'none';
+	}
+
+	function ReserveReady(){
+		var box = document.getElementById('reserveOn');
+		return box && box.checked;
+	}
+
+	function reservePrepare(cycle, code){
+		var useDate = document.getElementById('reserve_date') && document.getElementById('reserve_date').checked;
+		var mode = useDate ? 'date' : 'after';
+		var when = useDate ? ($('#reserveDate').val() || '') : '';
+
+		if(mode == 'date' && when == ''){
+			layer.msg("{$translate->get('ReservePickDate')}", {
+				time: 3000,
+				offset:  '100px'
+			});
+			return;
+		}
+
+		if(!reserveToken){
+			layer.msg("{$translate->get('ReserveError')}", {
+				time: 3000,
+				offset:  '100px'
+			});
+			return;
+		}
+
+		$.ajax({
+			type: "POST",
+			url: "/xmplus-patch.php?do=reserve.prepare",
+			dataType: "json",
+			data: {
+				token: reserveToken,
+				plan: {$package->id},
+				cycle: cycle,
+				mode: mode,
+				activate_at: when
+			},
+			success: (data) => {
+				if(data.ok && data.packageid){
+					// the reservation is now a normal top-up row; the panel's
+					// own checkout takes it from here
+					SubmitOrder(data.packageid, 'topup', code, 0);
+				}else{
+					layer.msg(data.error || "{$translate->get('ReserveError')}", {
+						time: 4000,
+						offset:  '100px'
+					});
+				}
+			},
+			error: (jqXHR) => {
+				layer.msg(jqXHR.responseText, {
+					time: 8000,
+					offset:  '100px'
+				});
+			}
+		});
+	}
+
+	function SubmitOrder(packageid, panelPlan, code, disableactive){
 		$.ajax({
 			type: "POST",
 			url: "/portal/order/create",
 			dataType: "json",
 			data: {
-				packageid : {$package->id},
-				plan: plan,
+				packageid : packageid,
+				plan: panelPlan,
 				code: code,
 				renew: 0,
 				upgrade: 0,
@@ -749,6 +905,33 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 				});
 			}
 		});
+	}
+
+	function Checkout(){
+		var plan =  $("input[name='plan']:checked").val();
+		// commission pays for plans: move it into the wallet first, then check out
+		if (window.CommissionUse && !window.CommissionUse.passed) {
+			window.CommissionUse.before({$package->id}, plan, Checkout);
+			return;
+		}
+		var coupon = localStorage.getItem('coupon');
+		if(coupon != null){
+			var code = coupon;
+		}else{
+			var code = "";
+		}
+
+		if (ReserveReady()) {
+			reservePrepare(plan, code);
+			return;
+		}
+
+		if (document.getElementById('disableactive').checked) {
+			var disableactive = 1;
+		} else {
+			var disableactive = 0;
+		}
+		SubmitOrder({$package->id}, plan, code, disableactive);
 	}	
 </script>
 	
