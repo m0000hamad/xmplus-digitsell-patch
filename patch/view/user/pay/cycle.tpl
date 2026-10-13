@@ -219,7 +219,7 @@ html[data-hs-theme="dark"] .py-order-id { color: #c7d2fe; background: rgba(99, 1
 						<input type="radio" name="payments" id="wallet-balance" value="-1" {if $walletAuto}checked{/if} onClick="Gatewayfee()">
 						<span class="py-way-box">
 							<span class="py-way-icon">💰</span>
-							{$translate->get('AccBalance')} ({$currency->symbol_left} {number_format((float)$user->money, (int){$currency->decimals})} {$currency->symbol_right})
+							{$translate->get('AccBalance')} ({number_format((float)$user->money, (int){$currency->decimals})} {$translate->get('PaygRial')})
 						</span>
 					</label>
 				{/if}
