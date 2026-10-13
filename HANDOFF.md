@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-13 · installed version **1.9.2** · latest release **1.24.1** · repo
+Last updated: 2026-10-13 · installed version **1.9.2** · latest release **1.25.0** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -331,7 +331,20 @@ a marker, and the subscription is started afterwards by `bin/reserve.php`.
 - Visibility and the date horizon are two settings, `reserve_enabled` (1) and
   `reserve_max_days` (365), edited in Settings → Plan reservations and read by
   `User::reserveFeatureOn()`. `User::planReserveWaiting()` draws the dashboard
-  card (`view/user/dashboard/reservecard.tpl`, included from `subsciption.tpl`).
+  card (`view/user/dashboard/reservecard.tpl`, included from `subsciption.tpl`):
+  plan, cycle, days, quota, when it starts, amount paid, cancel.
+- **A reservation announces itself in three places, at both moments** — when it
+  is taken and when it starts. The dashboard half is the `reserve_notice` table
+  (migration 022): `view/user/layout/reservebanner.tpl`, included from
+  `usermenu.tpl` right after the wallet banner, draws the unseen rows on every
+  customer page and its close button posts `reserve.ack`. The other two are
+  Telegram and e-mail, sent by `ReserveJob` through the panel's own bot and
+  `Queue`. The unique key on `reserve_notice.ref` is the guard for all three, so
+  nothing is sent twice.
+- `User::planReserveWaiting()` first calls `ReserveJob::linkForUser()` (once per
+  account per request), so a just-paid reservation is linked on the first page
+  load after the gateway rather than waiting for the cron — the card and the
+  banner are there the moment the customer is back.
 - The plan page (`view/user/plan/plan-details.tpl`) gained a "رزرو پلن" card;
   when it is on, Checkout calls `reserve.prepare` and then posts the minted row
   to `/portal/order/create` with `plan: "topup"`, exactly as the "add data"
@@ -448,3 +461,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.23.22 | Promotions: the single "اعلام به همه‌ی کاربران" switch split into separate **Telegram** and **ایمیل** switches, so a promotion can be announced on either channel on its own (both on by default). Saving writes `announce_telegram` / `announce_email` next to the old `announce`, which stays the master flag the cron checks (`announce` = either channel on); `PromoJob::broadcast()` sends each channel only when its switch is on, and entries saved before the split (no per-channel keys) still announce on both. UI in `view/admin/plans/promoform.tpl` + `promojs.tpl`, keys added to `localization/{fa_IR,en_US,zh_CN}.php`. |
 | 1.24.0 | Plan reservation: reserve a subscription at checkout — pay now, start later, either after the current plan ends or on a chosen date. Sold as a marked traffic top-up and started by `bin/reserve.php` (`app/Jobs/ReserveJob.php`); one active reservation per customer, cancellable before it starts with a full refund into account credit. New table `plan_reserve` (migration 021), admin card in Settings, reservation card on the dashboard, new keys in all three locales |
 | 1.24.1 | Fix: reserving while the account still had a running plan was refused by the checkout ("اشتراک فعال دارید"). The reserve order now sends `disableactive: 1` like every other customer top-up (ignored for a type-1 top-up, so the current plan is untouched); the "cancel my plan" switch is only hidden in reserve mode |
+| 1.25.0 | Reserved plans are announced everywhere: a notice banner on every customer page when a reservation is taken and when it starts (dismissible, `reserve.ack`, new table `reserve_notice`, migration 022), a fuller dashboard card, and Telegram + e-mail at both moments exactly once each. A just-paid reservation is linked on the first page load (`ReserveJob::linkForUser`) instead of waiting for the cron |

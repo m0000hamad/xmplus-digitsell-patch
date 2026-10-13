@@ -439,6 +439,26 @@ function reserveCancel(): void
     done(['refunded' => $refunded]);
 }
 
+/**
+ * The banner's close button: mark the account's reservation notices as seen,
+ * so they do not come back on the next page.
+ */
+function reserveAck(): void
+{
+    $user = reserveRequireUser();
+    reserveRequireUserToken();
+
+    try {
+        db()->prepare('UPDATE reserve_notice SET seen = 1 WHERE userid = ? AND seen = 0')
+            ->execute([(int) $user['id']]);
+    } catch (Throwable $error) {
+        // the table is created by the migration or by ReserveJob; a missing one
+        // simply means there is nothing to acknowledge
+    }
+
+    done(['ok' => 1]);
+}
+
 // ------------------------------------------------------------------- admin
 
 function reserveAdminBootstrap(): void
@@ -520,7 +540,7 @@ function reserveAdminSettings(): void
 
 $reserveAction = substr((string) ($_GET['do'] ?? ''), strlen('reserve.'));
 
-$reserveNeedsPost = ['prepare', 'cancel', 'settings'];
+$reserveNeedsPost = ['prepare', 'cancel', 'ack', 'settings'];
 
 if (in_array($reserveAction, $reserveNeedsPost, true) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     fail('this action needs POST', 405);
@@ -533,6 +553,8 @@ switch ($reserveAction) {
         reservePrepare();
     case 'cancel':
         reserveCancel();
+    case 'ack':
+        reserveAck();
     case 'admin':
         reserveAdminBootstrap();
     case 'settings':

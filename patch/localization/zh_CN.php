@@ -2064,4 +2064,11 @@ $i18n['zh_CN'] = array(
 	'ReserveStatusWaiting'      => "Awaiting start",
 	'ReserveStatusActivated'    => "Started",
 	'ReserveStatusCancelled'    => "Cancelled",
+	'ReserveWaitingBadge'       => "Waiting to start",
+	'ReserveNotifyHint'         => "You will be told here, on Telegram and by e-mail the moment it starts.",
+	'ReserveNoticeReservedTitle' => "Your reserved plan is booked",
+	'ReserveNoticeReservedText' => "The plan \"%plan%\" is reserved for you; %when%.",
+	'ReserveNoticeStartedTitle' => "Your reserved plan has started",
+	'ReserveNoticeStartedText'  => "The plan \"%plan%\" has started; %days% days of service from today.",
+	'ReserveNoticeGo'           => "Open dashboard",
 );

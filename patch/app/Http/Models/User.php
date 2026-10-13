@@ -19,6 +19,9 @@ final class User extends Model
 		'ref_by'          => 'int'
     ];
 
+    /* the account whose sold-but-unlinked reservations were pulled in already */
+    private static $reserveLinkedFor = 0;
+
     public function image()
     {
         $hash = md5(strtolower(trim($this->email)));
@@ -574,9 +577,23 @@ final class User extends Model
 	 * The paid reservation this account is sitting on, or null. The table is
 	 * created by the migration and, as a fallback, by ReserveJob, so a missing
 	 * one must never take the dashboard down.
+	 *
+	 * A just-paid reserve order is pulled in here, on the first page load,
+	 * rather than waiting for the cron - so the card is there the moment the
+	 * customer is back from the gateway.
 	 */
 	public function planReserveWaiting()
 	{
+		if (self::$reserveLinkedFor !== (int) $this->id) {
+			self::$reserveLinkedFor = (int) $this->id;
+
+			try {
+				(new \App\Jobs\ReserveJob)->linkForUser((int) $this->id);
+			} catch (\Throwable $error) {
+				// the cron will catch up; a failure here must not break the page
+			}
+		}
+
 		try {
 			$row = DB::table('plan_reserve')
 				->where('userid', $this->id)
@@ -599,7 +616,30 @@ final class User extends Model
 			'mode'        => (string) $row->mode,
 			'activate_at' => (int) $row->activate_at,
 			'amount'      => (float) $row->amount,
+			'bandwidth'   => (int) $row->bandwidth,
 		];
+	}
+
+	/*
+	 * The reservation notices this account has not seen yet, newest first - or
+	 * null when there are none. Read by user/layout/reservebanner.tpl on every
+	 * page (a plain array, so the template can simply test it for truth).
+	 */
+	public function planReserveNotices()
+	{
+		try {
+			$rows = DB::table('reserve_notice')
+				->where('userid', $this->id)
+				->where('seen', 0)
+				->orderBy('id', 'desc')
+				->limit(5)
+				->get()
+				->all();
+		} catch (\Throwable $error) {
+			return null;
+		}
+
+		return $rows ? $rows : null;
 	}
 
 	/* ------------------------------------------------------------------

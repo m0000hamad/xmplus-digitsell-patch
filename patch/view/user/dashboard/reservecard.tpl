@@ -9,38 +9,64 @@
 {literal}
 <style>
 .sub-reserve {
+	margin-top: 14px;
+	border-radius: 16px;
+	border: 1.5px solid rgba(99, 102, 241, .3);
+	overflow: hidden;
+	background: linear-gradient(135deg, rgba(99, 102, 241, .1), rgba(6, 182, 212, .1));
+}
+.sub-reserve-head {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	flex-wrap: wrap;
-	gap: 11px;
-	margin-top: 14px;
+	gap: 10px;
 	padding: 12px 14px;
-	border-radius: 15px;
-	border: 1.5px solid rgba(99, 102, 241, .3);
-	background: linear-gradient(135deg, rgba(99, 102, 241, .1), rgba(14, 165, 233, .1));
+	border-bottom: 1px dashed rgba(99, 102, 241, .3);
 }
-.sub-reserve-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .sub-reserve-emoji {
 	flex: 0 0 auto;
-	width: 36px;
-	height: 36px;
-	border-radius: 12px;
-	background: rgba(99, 102, 241, .16);
+	width: 34px;
+	height: 34px;
+	border-radius: 11px;
+	background: rgba(99, 102, 241, .18);
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	font-size: 18px;
+	font-size: 17px;
 }
-.sub-reserve-title { font-size: 13px; font-weight: 800; color: #16203d; line-height: 1.6; }
-.sub-reserve-state { display: flex; flex-wrap: wrap; gap: 6px; font-size: 11.5px; font-weight: 700; color: #4338ca; }
-.sub-reserve-state b { direction: ltr; unicode-bidi: isolate; }
-.sub-reserve-cancel {
+.sub-reserve-title { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 800; color: #16203d; line-height: 1.6; }
+.sub-reserve-badge {
 	flex: 0 0 auto;
+	font-size: 10px;
+	font-weight: 800;
+	padding: 4px 9px;
+	border-radius: 999px;
+	color: #4338ca;
+	background: rgba(99, 102, 241, .16);
+	white-space: nowrap;
+}
+.sub-reserve-body { padding: 12px 14px; }
+.sub-reserve-plan { font-size: 13px; font-weight: 800; color: #16203d; margin-bottom: 9px; line-height: 1.7; }
+.sub-reserve-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.sub-reserve-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 11.5px;
+	font-weight: 600;
+	color: #3b4a6b;
+	background: rgba(255, 255, 255, .6);
+	border-radius: 9px;
+	padding: 4px 9px;
+}
+.sub-reserve-chip b { direction: ltr; unicode-bidi: isolate; color: #16203d; font-weight: 700; }
+.sub-reserve-note { margin-top: 10px; font-size: 11px; line-height: 1.9; color: #5c6b8a; }
+.sub-reserve-foot { padding: 0 14px 13px; }
+.sub-reserve-cancel {
+	width: 100%;
 	border: 0;
 	cursor: pointer;
-	border-radius: 12px;
-	padding: 9px 15px;
+	border-radius: 11px;
+	padding: 9px 14px;
 	font-size: 12.5px;
 	font-weight: 800;
 	color: #be123c;
@@ -48,43 +74,60 @@
 	transition: background .15s ease;
 }
 .sub-reserve-cancel:hover { background: rgba(244, 63, 94, .22); }
-html[data-hs-theme="dark"] .sub-reserve-title { color: #e7eaf3; }
-html[data-hs-theme="dark"] .sub-reserve-state { color: #c7d2fe; }
-html[data-hs-theme="dark"] .sub-reserve-cancel { color: #fda4af; background: rgba(244, 63, 94, .2); }
-@media (max-width: 420px) {
-	.sub-reserve { padding: 11px 12px; }
-	.sub-reserve-cancel { width: 100%; }
+html[data-hs-theme="dark"] .sub-reserve {
+	background: linear-gradient(135deg, rgba(99, 102, 241, .2), rgba(6, 182, 212, .12));
 }
+html[data-hs-theme="dark"] .sub-reserve-title,
+html[data-hs-theme="dark"] .sub-reserve-plan,
+html[data-hs-theme="dark"] .sub-reserve-chip b { color: #e7eaf3; }
+html[data-hs-theme="dark"] .sub-reserve-chip { background: rgba(255, 255, 255, .07); color: #cbd5e1; }
+html[data-hs-theme="dark"] .sub-reserve-note { color: #9fb0cc; }
+html[data-hs-theme="dark"] .sub-reserve-cancel { color: #fda4af; background: rgba(244, 63, 94, .2); }
 </style>
 {/literal}
 
 <div class="sub-reserve">
-	<div class="sub-reserve-left">
+	<div class="sub-reserve-head">
 		<span class="sub-reserve-emoji">🗓️</span>
-		<div>
-			<div class="sub-reserve-title">{$translate->get('ReserveHaveTitle')} · {$reserveRow.name}</div>
-			<div class="sub-reserve-state">
-				<span>
-					{if $reserveRow.mode == 'date'}
-						{$translate->get('ReserveStartsOnDate')} <b>{date("Y-m-d",$reserveRow.activate_at)}</b>
-					{else}
-						{$translate->get('ReserveStartsAfter')}
-					{/if}
-				</span>
-				<span>·</span>
-				<span>{$translate->get('ReserveAmount')}: <b>{$currency->symbol_left} {number_format((float)$reserveRow.amount,(int){$currency->decimals})} {$currency->symbol_right}</b></span>
-			</div>
+		<span class="sub-reserve-title">{$translate->get('ReserveHaveTitle')}</span>
+		<span class="sub-reserve-badge">{$translate->get('ReserveWaitingBadge')}</span>
+	</div>
+
+	<div class="sub-reserve-body">
+		<div class="sub-reserve-plan">{$reserveRow.name}</div>
+		<div class="sub-reserve-chips">
+			<span class="sub-reserve-chip">⏱ <b>
+				{if $reserveRow.cycle == 'month'}{$translate->get('Monthly')}
+				{elseif $reserveRow.cycle == 'quater'}{$translate->get('Quaterly')}
+				{elseif $reserveRow.cycle == 'semiannual'}{$translate->get('SemiAnnually')}
+				{elseif $reserveRow.cycle == 'annual'}{$translate->get('Annually')}
+				{else}{$translate->get('Custom')}{/if}
+			</b></span>
+			<span class="sub-reserve-chip">📅 <b>{$reserveRow.days}</b> {$translate->get('Days')}</span>
+			<span class="sub-reserve-chip">📶 <b>{if $reserveRow.bandwidth >= 10000}{$translate->get('Unlimited')}{else}{$reserveRow.bandwidth} GB{/if}</b></span>
+			<span class="sub-reserve-chip">💳 <b>{$currency->symbol_left} {number_format((float)$reserveRow.amount,(int){$currency->decimals})} {$currency->symbol_right}</b></span>
+		</div>
+
+		<div class="sub-reserve-note">
+			{if $reserveRow.mode == 'date'}
+				🚀 {$translate->get('ReserveStartsOnDate')} <b>{date("Y-m-d",$reserveRow.activate_at)}</b>
+			{else}
+				🚀 {$translate->get('ReserveStartsAfter')}{if $user->planIsActive() && !$user->planNeverExpires()} ({$translate->get('Until')} {date("Y-m-d",strtotime($user->expire_in))}){/if}
+			{/if}
+			<br>{$translate->get('ReserveNotifyHint')}
 		</div>
 	</div>
 
-	<button type="button" class="sub-reserve-cancel"
-		data-reserve-cancel
-		data-title="{$translate->get('ReserveCancel')|escape:'html'}"
-		data-confirm="{$translate->get('ReserveCancelConfirm')|escape:'html'}"
-		data-no="{$translate->get('Close')|escape:'html'}"
-		data-yes="{$translate->get('ReserveCancelYes')|escape:'html'}"
-		data-done="{$translate->get('ReserveCancelDone')|escape:'html'}"
-		data-error="{$translate->get('ReserveCancelError')|escape:'html'}">{$translate->get('ReserveCancel')}</button>
+	<div class="sub-reserve-foot">
+		<button type="button" class="sub-reserve-cancel"
+			data-reserve-cancel
+			data-title="{$translate->get('ReserveCancel')|escape:'html'}"
+			data-confirm="{$translate->get('ReserveCancelConfirm')|escape:'html'}"
+			data-no="{$translate->get('Close')|escape:'html'}"
+			data-yes="{$translate->get('ReserveCancelYes')|escape:'html'}"
+			data-done="{$translate->get('ReserveCancelDone')|escape:'html'}"
+			data-error="{$translate->get('ReserveCancelError')|escape:'html'}">{$translate->get('ReserveCancel')}</button>
+	</div>
 </div>
 
 {literal}

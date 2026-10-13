@@ -2065,4 +2065,11 @@ $i18n['fa_IR'] = array(
 	'ReserveStatusWaiting'      => "در انتظار فعال‌سازی",
 	'ReserveStatusActivated'    => "فعال‌شده",
 	'ReserveStatusCancelled'    => "لغو‌شده",
+	'ReserveWaitingBadge'       => "در انتظار فعال‌سازی",
+	'ReserveNotifyHint'         => "به‌محض فعال شدن، همین‌جا و از طریق تلگرام و ایمیل به شما اطلاع داده می‌شود.",
+	'ReserveNoticeReservedTitle' => "پلن رزرو شما ثبت شد",
+	'ReserveNoticeReservedText' => "پلن «%plan%» برای شما رزرو شد؛ %when%.",
+	'ReserveNoticeStartedTitle' => "پلن رزرو شما فعال شد",
+	'ReserveNoticeStartedText'  => "پلن «%plan%» فعال شد؛ %days% روز اعتبار از امروز برای شما شروع شد.",
+	'ReserveNoticeGo'           => "مشاهده در داشبورد",
 );
