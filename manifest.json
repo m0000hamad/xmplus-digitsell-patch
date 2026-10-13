@@ -1,7 +1,7 @@
 {
-    "version": "1.26.0",
+    "version": "1.26.1",
     "released": "2026-10-13",
-    "notes": "﻿Cancelling a reservation now tells the buyer - on Telegram and by e-mail - that the amount was returned to their account credit and is applied automatically in future purchases (ReserveJob::announceRefund, fired by reserve.cancel right after the refund). The pay-as-you-go wallet also shows its amounts in rial from now on, like the panel wallet (user.money) and the order totals: payg_show_toman defaults to 0 and migration 024 flips the stored setting, so the wallet balance, the charge presets, the minimum charge, every pay-as-you-go price and every message are written in rial, with no /10 toman conversion anywhere. The admin can switch the toman display back on in Settings. Manifest and VERSION to 1.26.0.",
+    "notes": "﻿Fix: cancelling a paid reservation sometimes did not refund and sent no Telegram notice. The refund checked `orders.status === 1`, but the panel's own order list can move a paid order out of that status (or delete the row) between payment and cancel, while `pay_date` is the durable paid proof everyone else uses and `plan_reserve.amount` remembers what was paid. `reserve.cancel` now refunds on `pay_date` (falling back to `plan_reserve.amount` when the order row is gone), and `ReserveJob::reconcile()` (every minute) cancels, refunds and notifies any waiting reservation whose order is missing or dead (`-2/-1/0`). Manifest and VERSION to 1.26.1.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -44,7 +44,7 @@
         "app/Jobs/OvpnJob.php": "b63cfe015b93aa008595b2599833fff17d4b335ffcb3c5c899663b10e3941caa",
         "app/Jobs/PaygJob.php": "79588211ebc15219e6455be5046f30ae1c2c7d6daab2c3dc4d0cb96cd2f3fc9e",
         "app/Jobs/PromoJob.php": "70d3a556b1bc546e07fd7bc2765ba754c955e637dd2a57370254ff60ac6feeea",
-        "app/Jobs/ReserveJob.php": "6632331c26a491cb034f2e5c09ead5c20c7b157be4e700df99c99bca7a03e630",
+        "app/Jobs/ReserveJob.php": "3f359a3623e9f970c0eb807ae7841990195f0f9c51cbd36f2fb6b3e6b28c6d00",
         "app/Jobs/TgJoinJob.php": "74233f6e34c62a6b286ad4322f0f01a78c6579b0a29fc6ecb91aa230bf681aa0",
         "app/Jobs/TimePlanJob.php": "808e2a531426df8543a310a9d67a24f1de9700ff82c296ae1b5dce3cf8a88bda",
         "app/Jobs/TrafficStatsJob.php": "8cde9d7167ed068664d9f31ce4e25ac43e7884be866d3689d6507c12d34d247e",
@@ -56,7 +56,7 @@
         "app/Patch/Ovpn.php": "4d2ff76ec8db15ca6485713762112af7933e06023d089ef883ccc7a2d3005c90",
         "app/Patch/Payg.php": "056309f4c3d878b8b1a3a94c5bc8a77f64a985c3ae25e051424d021661fe133e",
         "app/Patch/Promo.php": "e18c9634fc17eb13b173c20c7d8deec5db7dba3c8825e48c2c38c82192d30dc7",
-        "app/Patch/Reserve.php": "688a4a3826b9db77e58584cef1fe04171d73157586585300e0f5a74675f7c192",
+        "app/Patch/Reserve.php": "668de9efff12cfb02d2cee8b71a26b99e89d4d33c53b93cce2647ec2c15d5011",
         "app/Patch/SchemaFix.php": "b4e1e18902398c92864f6c218beb823231c4977d9dbc8c0a83bdbc3bc5eeee3c",
         "app/Patch/ServerUsage.php": "87fe8c3c831db97f148c0d8b85f653694771133e126af75a3e988d91552b8a6e",
         "app/Patch/SubInfo.php": "393bc65f012d60a4882dc1a408b999c92c1ed2483a0e79168bfadeecf9b1847a",

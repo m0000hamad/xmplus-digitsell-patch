@@ -14,7 +14,8 @@ use Illuminate\Database\Capsule\Manager as DB;
  * nothing in that encoded pipeline knows about a later start, so this job:
  *
  *   1. links each paid reserve order to the reservation that prepared it,
- *   2. once the current plan has ended (and the chosen date has come), starts
+ *   2. drops reservations whose order is no longer paid, refunding them,
+ *   3. once the current plan has ended (and the chosen date has come), starts
  *      the subscription itself - the same fields the panel resets when a plan
  *      begins,
  *   3. tells the customer, in three places at once: a notice on the dashboard
@@ -44,6 +45,7 @@ class ReserveJob
 
 		$this->voidStale();
 		$linked = $this->linkPaid();
+		$this->reconcile();
 		$started = $this->activateDue();
 
 		return ['linked' => $linked, 'started' => $started];
@@ -248,6 +250,65 @@ class ReserveJob
 		]);
 
 		return true;
+	}
+
+	/*
+	 * Reservations whose order is no longer paid. The panel's
+	 * own order list can cancel or drop a paid order, which
+	 * leaves the reservation waiting for a plan that will
+	 * never be paid for. Cancel those, refund what was paid
+	 * into the buyer's account credit and tell them - the
+	 * same way every other reservation event is told.
+	 */
+	private function reconcile()
+	{
+		$dead = DB::table('plan_reserve')
+			->leftJoin('orders', 'orders.id', '=', 'plan_reserve.orderid')
+			->where('plan_reserve.status', 1)
+			->whereNotNull('plan_reserve.orderid')
+			->where(function ($query): void {
+				$query->whereNull('orders.id')
+					->orWhereIn('orders.status', [-2, -1, 0]);
+			})
+			->select('plan_reserve.*')
+			->limit(200)
+			->get();
+
+		foreach ($dead as $row) {
+			$claim = DB::table('plan_reserve')
+				->where('id', $row->id)
+				->where('status', 1)
+				->update(['status' => 3, 'cancelled_at' => time()]);
+
+			if ($claim < 1) {
+				continue;
+			}
+
+			echo date('Y-m-d H:i:s') . sprintf(
+				' reservation %d: order %d is no longer paid, cancelled (user %d)',
+				(int) $row->id, (int) $row->orderid, (int) $row->userid) . PHP_EOL;
+
+			$amount = (float) $row->amount;
+
+			if ($amount <= 0) {
+				continue;
+			}
+
+			DB::update(
+				'UPDATE user SET money = money + ? WHERE id = ?',
+				[$amount, (int) $row->userid]);
+
+			try {
+				DB::table('reserve_notice')
+					->where('userid', $row->userid)
+					->where('seen', 0)
+					->where('ref', 'r:' . $row->id)
+					->update(['seen' => 1]);
+			} catch (\Throwable $error) {
+			}
+
+			$this->announceRefund((int) $row->userid, $amount);
+		}
 	}
 
 	/*

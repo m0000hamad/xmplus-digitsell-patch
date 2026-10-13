@@ -424,14 +424,24 @@ function reserveCancel(): void
     $refunded = 0.0;
 
     if ((int) $row['status'] === 1 && !empty($row['orderid'])) {
-        $order = db()->prepare('SELECT id, total_amount, status FROM orders WHERE id = ? LIMIT 1');
+        $order = db()->prepare('SELECT id, total_amount, pay_date FROM orders WHERE id = ? LIMIT 1');
         $order->execute([(int) $row['orderid']]);
         $paid = $order->fetch();
 
-        if ($paid !== false && (int) $paid['status'] === 1) {
+        // pay_date is the durable proof the money moved: the
+        // panel may have moved the order's status since payment
+        // (its own order list can cancel a paid order), and the
+        // reservation row remembers the amount even when the
+        // order row itself is gone
+        if ($paid !== false && !empty($paid['pay_date'])) {
             $refunded = (float) $paid['total_amount'];
 
             // total_amount is in rial, so the credit must be ریال too
+            db()->prepare('UPDATE user SET money = money + ? WHERE id = ?')
+                ->execute([$refunded, (int) $user['id']]);
+        } elseif ($paid === false && (float) $row['amount'] > 0) {
+            $refunded = (float) $row['amount'];
+
             db()->prepare('UPDATE user SET money = money + ? WHERE id = ?')
                 ->execute([$refunded, (int) $user['id']]);
         }
