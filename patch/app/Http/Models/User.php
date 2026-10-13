@@ -639,6 +639,12 @@ final class User extends Model
 			return null;
 		}
 
+		// the template reads them with {$row.field}, which Smarty resolves as an
+		// array index - a stdClass row would throw "Cannot use object as array"
+		$rows = array_map(function ($row) {
+			return (array) $row;
+		}, $rows);
+
 		return $rows ? $rows : null;
 	}
 

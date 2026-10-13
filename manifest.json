@@ -1,7 +1,7 @@
 {
-    "version": "1.25.0",
+    "version": "1.25.1",
     "released": "2026-10-13",
-    "notes": "Plan reservations are now announced everywhere and are impossible to miss. A notice banner sits at the top of every customer page when a reservation is taken and again when it starts (dismissible; reserve.ack marks it seen, table reserve_notice, migration 022); the dashboard carries a fuller reserved-plan card (plan, cycle, days, quota, when it starts, amount paid, cancel); and Telegram plus e-mail go out at both moments, exactly once each (the unique ref on reserve_notice is the guard). A just-paid reservation is also pulled in on the first page load after the gateway (User::planReserveWaiting -> ReserveJob::linkForUser) instead of waiting for the cron, so the card and banner are there the moment the customer returns. Manifest and VERSION to 1.25.0.",
+    "notes": "﻿Fix: the customer dashboard (and every customer page) crashed with 'Cannot use object of type stdClass as array' - the reservation banner read its notice rows with {$row.field}, which Smarty resolves as an array index, but User::planReserveNotices() returned stdClass rows. The rows are now plain arrays. Manifest and VERSION to 1.25.1.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -35,7 +35,7 @@
         "app/Http/Models/Package.php": "6339ce53b6cb39ece385751c0d47bc41d0be5c0f901175981306b789b2d2c70c",
         "app/Http/Models/Ticket.php": "2725842f26f84d4f01be5d30001468591221cd7d95571ddbc47304840ee5c2a0",
         "app/Http/Models/TrafficDaily.php": "f67b2efe0fb0a261f17ef7aae4aebe133db2e9b5608288112890d8a28bf75906",
-        "app/Http/Models/User.php": "bdf3b36b8d0016867f44fa42a636fa9ef049405f18c45522ff5cb11e69fe2306",
+        "app/Http/Models/User.php": "53b37880209066bb8c3eb3f9944fdf609230ede4597e2eca788b925a4fa8d601",
         "app/Jobs/CommissionJob.php": "a43661cc8bfb851e5a96a637401c96863cc4d52b45bd2de63eea0b7c2935fda2",
         "app/Jobs/GiftCardNotifyJob.php": "8b9d1d517e33c2e5ac515649fc26b1910879c69f5eb202f454f71296a0ea45b0",
         "app/Jobs/LogsJob.php": "1226dc5987cd1b81692b3a86347f7fd6ae32ddc84c4f4a2f1f2546d71c340139",
