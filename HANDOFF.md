@@ -79,6 +79,13 @@ Settings → Patch updates saw nothing to update. Fixed by fast-forwarding
 are the same tree. If a release seems to have "not arrived" in the panel, check
 this first: `git log --oneline origin/main..HEAD`.
 
+**Pick one path, not both.** Either push the release straight to `main`, or
+open a PR from the branch and merge it into `main` — do not do both. Once `main`
+already holds every commit of the branch (`git log --oneline origin/main..HEAD`
+is empty), GitHub refuses the PR with *"No commits between main and …"*: there
+is nothing left to merge. An empty PR like that is not an error to fix; the
+release is simply already on `main`.
+
 The manifest **must** be rebuilt after any change under `patch/`, or the
 updater refuses the release. That is the safe failure, but still a failure.
 
