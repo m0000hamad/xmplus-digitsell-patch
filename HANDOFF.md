@@ -63,6 +63,22 @@ git commit -am "release 1.4.3 — ..."
 git push
 ```
 
+> **A release must land on `main`.** The updater reads the commit `main` points
+> at, and only that (see §4). Work committed to a side branch — a worktree
+> branch like `kilo/...`, a `claude/...` branch, any PR branch — is **invisible
+> to the panel** until it is merged into `main` and `main` is pushed. Push the
+> release to `main` (or merge the branch into `main` with a fast-forward and
+> push), and confirm `git branch -r --contains <commit>` lists `origin/main`.
+> The updater's `DEFAULT_BRANCH` is `main` (`patch/public/xmplus-patch.php`);
+> only a `patch_branch` setting on the server could point it elsewhere.
+
+**1.24.0 got this wrong once.** The plan-reservation release was committed and
+pushed to the worktree branch `kilo/add-plan-reservation-capability`, so
+Settings → Patch updates saw nothing to update. Fixed by fast-forwarding
+`main` to that commit and pushing `main`; `origin/main` and the release commit
+are the same tree. If a release seems to have "not arrived" in the panel, check
+this first: `git log --oneline origin/main..HEAD`.
+
 The manifest **must** be rebuilt after any change under `patch/`, or the
 updater refuses the release. That is the safe failure, but still a failure.
 
