@@ -431,6 +431,7 @@ function reserveCancel(): void
         if ($paid !== false && (int) $paid['status'] === 1) {
             $refunded = (float) $paid['total_amount'];
 
+            // total_amount is in rial, so the credit must be ریال too
             db()->prepare('UPDATE user SET money = money + ? WHERE id = ?')
                 ->execute([$refunded, (int) $user['id']]);
         }

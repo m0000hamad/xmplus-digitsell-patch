@@ -1,5 +1,5 @@
 {
-    "version": "1.25.1",
+    "version": "1.25.2",
     "released": "2026-10-13",
     "notes": "﻿Fix: the customer dashboard (and every customer page) crashed with 'Cannot use object of type stdClass as array' - the reservation banner read its notice rows with {$row.field}, which Smarty resolves as an array index, but User::planReserveNotices() returned stdClass rows. The rows are now plain arrays. Manifest and VERSION to 1.25.1.",
     "migrations": [
@@ -54,7 +54,7 @@
         "app/Patch/Ovpn.php": "4d2ff76ec8db15ca6485713762112af7933e06023d089ef883ccc7a2d3005c90",
         "app/Patch/Payg.php": "d18279f339f25b7f6327b30114d375e8434702c7682ca90a41ad0547f1adb149",
         "app/Patch/Promo.php": "e18c9634fc17eb13b173c20c7d8deec5db7dba3c8825e48c2c38c82192d30dc7",
-        "app/Patch/Reserve.php": "2e4572f187142579d477f29f4df189cf6fb57852a16fd1d8922dd24389855f7b",
+        "app/Patch/Reserve.php": "309d7dad763dde248b743dfd356d7244a3ea9ab0faa3742938181f5621b4ddb4",
         "app/Patch/SchemaFix.php": "b4e1e18902398c92864f6c218beb823231c4977d9dbc8c0a83bdbc3bc5eeee3c",
         "app/Patch/ServerUsage.php": "87fe8c3c831db97f148c0d8b85f653694771133e126af75a3e988d91552b8a6e",
         "app/Patch/SubInfo.php": "6260dcd439e4c612c351f02865f1f4cf71de6b0149185566e3373a6461b8f12b",
@@ -160,7 +160,7 @@
         "view/user/notice/notice.tpl": "f6409604fc8916676346395d67b23092bdd6136541db415a81438bf03d936da2",
         "view/user/order/invoice.tpl": "6d5d1020127cc41af0fa284ce5507bd11106d00facd164e99809696fbfa8822d",
         "view/user/order/orders.tpl": "5cfdb5dd108071a01beba8025c711974e799275693aefce2b5d0c2b2380781d2",
-        "view/user/pay/cycle.tpl": "dd0fa408f7142db588f59f474915f53b9138890f96237deb1af1e894590c8075",
+        "view/user/pay/cycle.tpl": "ebbfdd6cfb105cc5de84be513ee8678b35f09d88c941fb0cc3dc037da34a2c2e",
         "view/user/pay/pay.tpl": "6a186caf8fc891aa92be85db26e9fc3110ca033288d95a5434129d2ed3ea36c1",
         "view/user/pay/summary.tpl": "162cb18218a2cfbcb8eb5b218c63ba57c727bb2bfda35755bdcbb2330017def7",
         "view/user/plan/commissionuse.tpl": "c4626dba919717e83b38883617399839cfbae68c791d97daab67a3fc50bc4610",

@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-13 Â· installed version **1.9.2** Â· latest release **1.25.1** Â· repo
+Last updated: 2026-10-13 Â· installed version **1.9.2** Â· latest release **1.25.2** Â· repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -367,6 +367,8 @@ a marker, and the subscription is started afterwards by `bin/reserve.php`.
   customer's own "cancel my plan" switch is only *hidden* in reserve mode; its
   state is left untouched and the reserve order never acts on it.
 
+- At checkout (iew/user/pay/cycle.tpl, included from pay/pay.tpl) the balance (AccBalance, alue=-1) is shown above the gateways whenever user.money > 0, pre-selected when it covers the order's 	otal_amount. The buy button then posts method=-1 to /portal/order/pay, the same wallet-balance path the panel already uses (Order::gateway(-1)), so a refunded reservation credit is consumed automatically and the user is not sent to a gateway when the balance is enough.
+
 ### Commission â€” money rules already decided. Do not redo without asking.
 
 - Only **new** commission is credited automatically.
@@ -469,3 +471,5 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.24.0 | Plan reservation: reserve a subscription at checkout â€” pay now, start later, either after the current plan ends or on a chosen date. Sold as a marked traffic top-up and started by `bin/reserve.php` (`app/Jobs/ReserveJob.php`); one active reservation per customer, cancellable before it starts with a full refund into account credit. New table `plan_reserve` (migration 021), admin card in Settings, reservation card on the dashboard, new keys in all three locales |
 | 1.24.1 | Fix: reserving while the account still had a running plan was refused by the checkout ("Ø§Ø´ØªØ±Ø§Ú© ÙØ¹Ø§Ù„ Ø¯Ø§Ø±ÛŒØ¯"). The reserve order now sends `disableactive: 1` like every other customer top-up (ignored for a type-1 top-up, so the current plan is untouched); the "cancel my plan" switch is only hidden in reserve mode |
 | 1.25.0 | Reserved plans are announced everywhere: a notice banner on every customer page when a reservation is taken and when it starts (dismissible, `reserve.ack`, new table `reserve_notice`, migration 022), a fuller dashboard card, and Telegram + e-mail at both moments exactly once each. A just-paid reservation is linked on the first page load (`ReserveJob::linkForUser`) instead of waiting for the cron |
+| 1.25.1 | Fix: the reservation banner crashed every customer page with "Cannot use object of type stdClass as array" - the notice rows are now plain arrays (User::planReserveNotices) |
+| 1.25.2 | At checkout the payment page now surfaces the wallet balance (`AccBalance`, value -1) above the gateways whenever `user.money > 0` - pre-selected when it covers the total - so a reservation refund credit is spent automatically |

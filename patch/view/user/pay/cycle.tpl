@@ -212,12 +212,23 @@ html[data-hs-theme="dark"] .py-order-id { color: #c7d2fe; background: rgba(99, 1
 		</div>
 		<div class="py-card-body">
 			<div class="py-ways">
+				{$walletAuto = false}
+				{if (float)$user->money > 0}
+					{$walletAuto = (float)$user->money >= (float)$order->total_amount}
+					<label class="py-way">
+						<input type="radio" name="payments" id="wallet-balance" value="-1" {if $walletAuto}checked{/if} onClick="Gatewayfee()">
+						<span class="py-way-box">
+							<span class="py-way-icon">💰</span>
+							{$translate->get('AccBalance')} ({$currency->symbol_left} {number_format((float)$user->money, (int){$currency->decimals})} {$currency->symbol_right})
+						</span>
+					</label>
+				{/if}
 				{$g = 0}
 				{foreach $payments as $payment}
 					{$g = $g + 1}
 					{$config = json_decode($payment->config,true)}
 					<label class="py-way">
-						<input type="radio" name="payments" id="{$payment->id}" {if $g == 1}checked{/if} value="{$payment->id}" onClick="Gatewayfee()">
+						<input type="radio" name="payments" id="{$payment->id}" {if $g == 1 && !$walletAuto}checked{/if} value="{$payment->id}" onClick="Gatewayfee()">
 						<span class="py-way-box">
 							<span class="py-way-icon">{if isset($config['icon']) && $config['icon'] != ""}{$config['icon']}{else}💳{/if}</span>
 							{$payment->name}
