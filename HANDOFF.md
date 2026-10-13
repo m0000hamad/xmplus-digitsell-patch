@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-13 · installed version **1.9.2** · latest release **1.24.0** · repo
+Last updated: 2026-10-13 · installed version **1.9.2** · latest release **1.24.1** · repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -335,8 +335,17 @@ a marker, and the subscription is started afterwards by `bin/reserve.php`.
 - The plan page (`view/user/plan/plan-details.tpl`) gained a "رزرو پلن" card;
   when it is on, Checkout calls `reserve.prepare` and then posts the minted row
   to `/portal/order/create` with `plan: "topup"`, exactly as the "add data"
-  flow does. "Disable active plan" is forced off while reserving, because a
-  reservation must never cancel the plan the customer is on.
+  flow does.
+- The reserve order sends **`disableactive: 1`**, and that is deliberate. The
+  encoded checkout refuses *any* order while the account has a running plan
+  unless this flag is set — that is the "اشتراک فعال دارید" (you have an active
+  subscription) it answers with otherwise. For a `type 1` top-up the flag is
+  ignored, so nothing is cancelled; every customer top-up flow on the panel
+  sends it too ("add data" `dashboard.tpl:751`, "add time" `dashboard.tpl:971`,
+  wallet charge `wallet.tpl:794`). Sending `0` here is the bug the 1.24.1 fix
+  undid: reserving was impossible while a subscription was running. The
+  customer's own "cancel my plan" switch is only *hidden* in reserve mode; its
+  state is left untouched and the reserve order never acts on it.
 
 ### Commission — money rules already decided. Do not redo without asking.
 
@@ -438,3 +447,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.23.18 | WireGuard liveness switched to **inbound rx growth only**: a peer is live iff its rx counter grew since the previous push, so a closed app whose tx keeps advancing no longer keeps the session online. Online freshness windows (dashboard, per-server, IpCount()) cut from 600/300 s to 120 s. Closed-session rows now preserve their original closed timestamp instead of being refreshed on every push, so they are cleaned up after 24 h. |
 | 1.23.22 | Promotions: the single "اعلام به همه‌ی کاربران" switch split into separate **Telegram** and **ایمیل** switches, so a promotion can be announced on either channel on its own (both on by default). Saving writes `announce_telegram` / `announce_email` next to the old `announce`, which stays the master flag the cron checks (`announce` = either channel on); `PromoJob::broadcast()` sends each channel only when its switch is on, and entries saved before the split (no per-channel keys) still announce on both. UI in `view/admin/plans/promoform.tpl` + `promojs.tpl`, keys added to `localization/{fa_IR,en_US,zh_CN}.php`. |
 | 1.24.0 | Plan reservation: reserve a subscription at checkout — pay now, start later, either after the current plan ends or on a chosen date. Sold as a marked traffic top-up and started by `bin/reserve.php` (`app/Jobs/ReserveJob.php`); one active reservation per customer, cancellable before it starts with a full refund into account credit. New table `plan_reserve` (migration 021), admin card in Settings, reservation card on the dashboard, new keys in all three locales |
+| 1.24.1 | Fix: reserving while the account still had a running plan was refused by the checkout ("اشتراک فعال دارید"). The reserve order now sends `disableactive: 1` like every other customer top-up (ignored for a type-1 top-up, so the current plan is untouched); the "cancel my plan" switch is only hidden in reserve mode |

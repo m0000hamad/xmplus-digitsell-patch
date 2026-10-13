@@ -1,7 +1,7 @@
 {
-    "version": "1.24.0",
-    "released": "2026-10-12",
-    "notes": "Plan reservation: a customer can now reserve a subscription plan at checkout - pay now, and the plan starts later, either after the current one ends or on a chosen date. A reserved plan is sold as an ordinary traffic top-up (type 1, bandwidth 0) carrying a `planreserve` marker in order_note, so coupon, gateway, invoice and order history stay the panel's own encoded checkout; app/Jobs/ReserveJob.php (bin/reserve.php, every minute) links the paid order to its reservation and, once the current plan has ended (and the chosen date has come), starts the subscription itself, marking the order as the subscription purchase it really was. One active reservation per customer, cancellable before it starts with a full refund into account credit (the payment becomes store credit). Admin switch and maximum lead time in Settings -> Plan reservations (reserve_enabled / reserve_max_days). New table plan_reserve (migration 021). Manifest and VERSION to 1.24.0.",
+    "version": "1.24.1",
+    "released": "2026-10-13",
+    "notes": "Fix: reserving a plan while the account still had a running subscription was refused by the encoded checkout with the \"active subscription\" message, because the reserve order carried disableactive=0. The reserve order now sends disableactive=1 - the same flag every customer top-up flow on this panel sends (\"add data\" dashboard.tpl:751, \"add time\" dashboard.tpl:971, wallet charge wallet.tpl:794). The checkout requires it whenever the account has an active plan, and it is ignored for a type-1 top-up, so the plan the customer is on is not cancelled. The \"cancel my plan\" switch is only hidden in reserve mode now, its state left untouched. Manifest and VERSION to 1.24.1.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -162,7 +162,7 @@
         "view/user/pay/pay.tpl": "6a186caf8fc891aa92be85db26e9fc3110ca033288d95a5434129d2ed3ea36c1",
         "view/user/pay/summary.tpl": "162cb18218a2cfbcb8eb5b218c63ba57c727bb2bfda35755bdcbb2330017def7",
         "view/user/plan/commissionuse.tpl": "c4626dba919717e83b38883617399839cfbae68c791d97daab67a3fc50bc4610",
-        "view/user/plan/plan-details.tpl": "d46eb88f50f1134ce365aa2f5bdebc1795f11c93986e19469db33682effc7945",
+        "view/user/plan/plan-details.tpl": "a2ced18f8aa9de32d382fc90183b370e2a8a8d74411e9b863f574f3c8cd0a6a2",
         "view/user/plan/plan.tpl": "e2be12c0540ffbdc60dbc300787716932ff53f0cf472384ed5be39024289c542",
         "view/user/plan/promobadges.tpl": "f1a472948a720e316fbfad0c27f22de9dd45de5065ea7be6b422f351594e23a8",
         "view/user/plan/promosticker.tpl": "d4d72a058aafea883fc1e16e101a7427e5b23ffdf554477eac413399de306f30",

@@ -757,14 +757,12 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 		document.getElementById('reserveBox').style.display = on ? 'block' : 'none';
 		document.getElementById('reserveState').textContent = on ? "{$translate->get('SwitchOn')}" : "{$translate->get('SwitchOff')}";
 
-		// reserving keeps the current plan, so "cancel my plan" is meaningless here
+		// reserving keeps the current plan, so there is nothing for the
+		// "cancel my plan" switch to do here (and the reserve order never sends
+		// it as cancel). Hide it; leave the customer's own choice untouched.
 		var card = document.getElementById('disableactiveCard');
 		if(card){
 			card.style.display = on ? 'none' : '';
-		}
-		if(on && document.getElementById('disableactive')){
-			document.getElementById('disableactive').checked = false;
-			document.getElementById('disableactiveState').textContent = "{$translate->get('SwitchOff')}";
 		}
 		if(on){
 			ReserveMode();
@@ -816,8 +814,15 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 			success: (data) => {
 				if(data.ok && data.packageid){
 					// the reservation is now a normal top-up row; the panel's
-					// own checkout takes it from here
-					SubmitOrder(data.packageid, 'topup', code, 0);
+					// own checkout takes it from here.
+					//
+					// disableactive is sent as 1 because the encoded checkout
+					// refuses any order while the account has a running plan
+					// unless it is set - that is what "اشتراک فعال دارید"
+					// means. It is ignored for a type-1 top-up, so the plan the
+					// customer is on is NOT cancelled - exactly what "add data"
+					// and "add time" send (dashboard.tpl:751/971).
+					SubmitOrder(data.packageid, 'topup', code, 1);
 				}else{
 					layer.msg(data.error || "{$translate->get('ReserveError')}", {
 						time: 4000,
