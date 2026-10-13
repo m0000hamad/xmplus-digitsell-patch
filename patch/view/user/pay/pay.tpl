@@ -204,6 +204,17 @@
 	
 	function Gatewayfee(){
 		var paymentid =  $("input[name='payments']:checked").val();
+
+		// the account balance is not a gateway: the fee endpoint
+		// has no row for method -1 and throws reading fee_percent
+		// off it, while a balance payment carries no fee at all -
+		// so the summary is filled in here instead
+		if (paymentid == -1) {
+			$("#gateway_fee").html('{number_format(0, (int){$currency->decimals})}');
+			$("#total").html('{number_format((float)$order->total_amount, (int){$currency->decimals})}');
+			return;
+		}
+
 		$.ajax({
 			type: "POST",
 			url: "/portal/order/gateway_fee",
