@@ -532,7 +532,7 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 
 		<div class="card-body">
 
-			{if $user->paygEnabled() && ($user->paygOnBalance() || $user->paygBalance() > 0)}
+			{if $user->paygEnabled() && $user->paygOnBalance()}
 				{include file='user/dashboard/walletstate.tpl'}
 			{else}
 			<span class="sub-status">
