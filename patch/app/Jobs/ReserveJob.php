@@ -326,7 +326,8 @@ class ReserveJob
 		$due = DB::table('plan_reserve')
 			->where('plan_reserve.status', 1)
 			->join('user', 'user.id', '=', 'plan_reserve.userid')
-			->select('plan_reserve.*', 'user.expire_in as user_expire', 'user.packageid as user_packageid')
+			->select('plan_reserve.*', 'user.expire_in as user_expire', 'user.transfer_enable as user_transfer',
+				'user.u as user_u', 'user.d as user_d', 'user.packageid as user_packageid')
 			->orderBy('plan_reserve.id', 'asc')
 			->limit(200)
 			->get();
@@ -336,12 +337,19 @@ class ReserveJob
 		foreach ($due as $row) {
 			$now = time();
 			$current = $row->user_expire ? (int) strtotime((string) $row->user_expire) : 0;
+			$quota = (float) $row->user_transfer;
+			$used = (float) $row->user_u + (float) $row->user_d;
 
-			// the plan the customer is on has not ended yet, so an "after it
-			// ends" reservation waits. A dated one waits too - except against a
-			// plan that never expires, where the date is the only thing that can
-			// ever decide.
-			if ($current > $now && !($row->mode === 'date' && $current > $now + 315360000)) {
+			// The plan the customer is on has ended once its time is up or its
+			// traffic is used up - a plan with days left but no data is over for
+			// them, so the reservation starts. A dated one waits too, except
+			// against a plan that never expires, where the date is the only thing
+			// that can ever decide.
+			$timeLeft = $current > $now;
+			$dataLeft = $quota > $used;
+			$neverExpires = $current > $now + 315360000;
+
+			if ($timeLeft && $dataLeft && !($row->mode === 'date' && $neverExpires)) {
 				continue;
 			}
 

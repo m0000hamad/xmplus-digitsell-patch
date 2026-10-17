@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-13 Â· installed version **1.9.2** Â· latest release **1.26.3** Â· repo
+Last updated: 2026-10-17 Â· installed version **1.9.2** Â· latest release **1.26.4** Â· repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -480,3 +480,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.26.1 | Fix: cancelling a paid reservation sometimes did not refund and sent no Telegram notice. The check read `orders.status === 1`, but the panel's own order list can move a paid order out of that status (or delete the row) between payment and cancel, while `pay_date` is the durable paid proof and `plan_reserve.amount` remembers the price. `reserve.cancel` now refunds on `pay_date` (falling back to `plan_reserve.amount` when the order row is gone), and `ReserveJob::reconcile()` (every minute, between `linkPaid` and `activateDue`) cancels, refunds and notifies any waiting reservation whose order is missing or dead (`-2/-1/0`) |
 | 1.26.2 | Fix: every cancel now sends a notice - `announceRefund` when there is a refund, `announceCancelled` when there is none (unpaid, zero-amount, or already reconciled). `reconcile()` no longer skips zero-amount rows, and `reserve.cancel` notifies in both branches so the action is never silent on Telegram/e-mail |
 | 1.26.3 | Fix: an account on its plan with a charged wallet showed "paying from credit". The subscription card and wallet banner follow the real wallet mode; `PaygJob` no longer switches to balance mode for a plan paid in the last 10 minutes and `newSubscription()` allows a 10 minute grace |
+| 1.26.4 | Fix: a reserved plan only started once the current plan's time had expired, so a customer whose traffic ran out while days remained never got their reservation. `ReserveJob::activateDue()` now treats a used-up quota the same as an expired plan - the reservation starts when the current plan's time is up or its traffic is used up; a dated reservation still waits for its date |

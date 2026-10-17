@@ -1,7 +1,7 @@
 {
-    "version": "1.26.3",
-    "released": "2026-10-14",
-    "notes": "Fix: an account on its plan with a charged wallet was shown as paying from credit. The subscription card and the wallet banner now follow the real wallet mode, and PaygJob no longer switches to balance mode for a plan paid in the last 10 minutes (a plan bought together with a top-up used to leave the account stuck in balance mode). Manifest and VERSION to 1.26.3.",
+    "version": "1.26.4",
+    "released": "2026-10-17",
+    "notes": "Fix: a reserved plan only started once the current plan's time had expired, so a customer whose traffic ran out while days remained (no data but time left) never got their reservation. `ReserveJob::activateDue()` now treats a used-up quota the same as an expired plan - the reservation starts when the current plan's time is up or its traffic is used up. A dated reservation still waits for its date. Manifest and VERSION to 1.26.4.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -44,7 +44,7 @@
         "app/Jobs/OvpnJob.php": "b63cfe015b93aa008595b2599833fff17d4b335ffcb3c5c899663b10e3941caa",
         "app/Jobs/PaygJob.php": "96119c9cd90dd715b2272ab65ac88776418581ec69f4b7fc29a880cde592ea29",
         "app/Jobs/PromoJob.php": "70d3a556b1bc546e07fd7bc2765ba754c955e637dd2a57370254ff60ac6feeea",
-        "app/Jobs/ReserveJob.php": "fd48748aae54510d4f6fca1c6ccfbcba79eaeca8c42e19e519c91cc61ee8b3cf",
+        "app/Jobs/ReserveJob.php": "74956cac985e6de7c2c9db70277ea4a4f538c2e41734c85f15eca93e262f9260",
         "app/Jobs/TgJoinJob.php": "74233f6e34c62a6b286ad4322f0f01a78c6579b0a29fc6ecb91aa230bf681aa0",
         "app/Jobs/TimePlanJob.php": "808e2a531426df8543a310a9d67a24f1de9700ff82c296ae1b5dce3cf8a88bda",
         "app/Jobs/TrafficStatsJob.php": "8cde9d7167ed068664d9f31ce4e25ac43e7884be866d3689d6507c12d34d247e",
