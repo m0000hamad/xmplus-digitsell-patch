@@ -1,1 +1,1 @@
-Fix: a customer's saved commission destination no longer points at the commission wallet while that feature is off. It falls back to account credit and the invite page shows that, matching where the job actually pays.
+Commission choices: the admin now ticks which of the three destinations a customer may pick. The invite page only offers those, and the default destination must be one of them; the server refuses a save that breaks either rule. Empty options still mean all three.

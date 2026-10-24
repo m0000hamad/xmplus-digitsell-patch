@@ -77,7 +77,7 @@
 					</div>
 				</div>
 
-				<div class="card card-shadow shadow-lg rounded mt-3" id="dsCommissionRoute" data-saved="{$translate->get('CommissionRoutingSaved')|escape:'html'}">
+				<div class="card card-shadow shadow-lg rounded mt-3" id="dsCommissionRoute" data-saved="{$translate->get('CommissionRoutingSaved')|escape:'html'}" data-options-error="{$translate->get('CommissionUserOptionsError')|escape:'html'}" data-default-error="{$translate->get('CommissionDefaultNotInOptions')|escape:'html'}">
 					<div class="card-body">
 						<h4 class="card-header-title mb-1">🤝 {$translate->get('CommissionRouting')}</h4>
 						<p class="text-muted small">{$translate->get('CommissionRoutingIntro')}</p>
@@ -100,6 +100,27 @@
 							<div class="text-muted small">{$translate->get('CommissionUserChoiceHint')}</div>
 						</div>
 
+						<div class="row mb-3">
+							<label class="col-sm-3 col-form-label form-label">{$translate->get('CommissionUserOptions')}</label>
+							<div class="col-sm-9">
+								<div class="d-flex flex-wrap gap-3">
+									<label class="form-check mb-0">
+										<input class="form-check-input" type="checkbox" id="dsOptPayout" value="payout">
+										<span class="form-check-label">{$translate->get('CommissionDestPayout')}</span>
+									</label>
+									<label class="form-check mb-0">
+										<input class="form-check-input" type="checkbox" id="dsOptMoney" value="money">
+										<span class="form-check-label">{$translate->get('CommissionDestMoney')}</span>
+									</label>
+									<label class="form-check mb-0">
+										<input class="form-check-input" type="checkbox" id="dsOptWallet" value="wallet">
+										<span class="form-check-label">{$translate->get('CommissionDestWallet')}</span>
+									</label>
+								</div>
+								<div class="text-muted small mt-1">{$translate->get('CommissionUserOptionsHint')}</div>
+							</div>
+						</div>
+
 						<div class="d-flex align-items-center gap-2">
 							<button type="button" class="btn btn-dark" id="dsCommissionSave">{$translate->get('Submit')}</button>
 							<span class="small" id="dsCommissionMsg"></span>
@@ -117,6 +138,11 @@
 					var save = document.getElementById('dsCommissionSave');
 					var msg = document.getElementById('dsCommissionMsg');
 					var note = document.getElementById('dsCommissionWalletNote');
+					var opts = {
+						payout: document.getElementById('dsOptPayout'),
+						money: document.getElementById('dsOptMoney'),
+						wallet: document.getElementById('dsOptWallet')
+					};
 					if (!card || !select || !choice || !save) { return; }
 
 					var token = '';
@@ -131,6 +157,18 @@
 						if (note) { note.hidden = !(select.value === 'wallet' && !walletReady); }
 					}
 
+					function setOptions(list) {
+						Object.keys(opts).forEach(function (key) {
+							if (opts[key]) { opts[key].checked = list.indexOf(key) !== -1; }
+						});
+					}
+
+					function pickedOptions() {
+						return Object.keys(opts).filter(function (key) {
+							return opts[key] && opts[key].checked;
+						});
+					}
+
 					fetch(url, { credentials: 'same-origin' })
 						.then(function (r) { return r.json(); })
 						.then(function (data) {
@@ -139,6 +177,7 @@
 							walletReady = !!data.wallet_ready;
 							select.value = data.destination || 'payout';
 							choice.checked = !!data.user_choice;
+							setOptions(data.user_options || []);
 							walletNote();
 						})
 						.catch(function () { say('network error', true); });
@@ -146,11 +185,24 @@
 					select.addEventListener('change', walletNote);
 
 					save.addEventListener('click', function () {
+						var picked = pickedOptions();
+
+						if (picked.length === 0) {
+							say(card.getAttribute('data-options-error'), true);
+							return;
+						}
+
+						if (choice.checked && picked.indexOf(select.value) === -1) {
+							say(card.getAttribute('data-default-error'), true);
+							return;
+						}
+
 						save.disabled = true;
 						var body = new FormData();
 						body.append('token', token);
 						body.append('destination', select.value);
 						body.append('user_choice', choice.checked ? '1' : '0');
+						picked.forEach(function (value) { body.append('options[]', value); });
 
 						fetch(url, { method: 'POST', body: body, credentials: 'same-origin' })
 							.then(function (r) { return r.json(); })
@@ -159,6 +211,7 @@
 								if (!data.ok) { say(data.error || 'error', true); return; }
 								token = data.token || token;
 								walletReady = !!data.wallet_ready;
+								setOptions(data.user_options || []);
 								walletNote();
 								say(card.getAttribute('data-saved'), false);
 							})

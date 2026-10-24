@@ -489,6 +489,10 @@ Watch out for these:
   `commission_wallet_enabled` on. With no setting saved, the legacy routing
   above applies. A customer's saved wallet pick falls back to account credit
   while that feature is off. The card-to-card gap remains.
+- 1.34.0: the admin also ticks which of the three the customer may pick
+  (`commission_user_options`). The invite-page selector only offers those, and
+  the default destination must be one of them; the server refuses a save
+  otherwise. Empty/missing options mean all three, as before.
 - Known gap: a card-to-card approval grants the plan directly
   (`Card2Card::c2cApplyOrder`) and never writes an `affiliate` row, so a
   purchase paid by card-to-card earns **no** referral commission yet.

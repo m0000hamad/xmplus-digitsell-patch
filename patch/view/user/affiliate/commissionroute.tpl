@@ -41,9 +41,13 @@
 		.then(function (data) {
 			if (!data.ok || !data.enabled) { card.hidden = true; return; }
 			token = data.token || '';
-			select.value = data.effective || 'money';
-			var wallet = select.querySelector('option[value="wallet"]');
-			if (wallet) { wallet.disabled = !data.wallet; }
+			var allowed = data.options || [];
+			Array.prototype.forEach.call(select.options, function (opt) {
+				var shown = allowed.indexOf(opt.value) !== -1;
+				opt.disabled = !shown;
+				opt.hidden = !shown;
+			});
+			select.value = data.effective || (allowed[0] || 'money');
 		})
 		.catch(function () { card.hidden = true; });
 

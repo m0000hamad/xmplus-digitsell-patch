@@ -1072,7 +1072,8 @@ final class User extends Model
 			try {
 				self::$paygSettings = DB::connection('default')->table('settings')
 					->whereIn('name', ['payg_enabled', 'payg_show_toman', 'payg_default_price',
-						'commission_wallet_enabled', 'commission_destination', 'commission_user_choice'])
+						'commission_wallet_enabled', 'commission_destination', 'commission_user_choice',
+						'commission_user_options'])
 					->pluck('value', 'name')->all();
 			} catch (\Throwable $e) {
 				self::$paygSettings = [];
@@ -1245,7 +1246,39 @@ final class User extends Model
 
 	public function commissionChoiceEnabled()
 	{
-		return self::paygSetting('commission_user_choice', '0') === '1';
+		return self::paygSetting('commission_user_choice', '0') === '1'
+			&& count($this->commissionAvailableOptions()) > 0;
+	}
+
+	/* the destinations the admin lets the customer pick from */
+	public function commissionUserOptions()
+	{
+		$raw = (string) self::paygSetting('commission_user_options', '');
+		$options = [];
+
+		foreach (explode(',', $raw) as $value) {
+			$value = trim($value);
+			if (in_array($value, ['payout', 'money', 'wallet'], true) && !in_array($value, $options, true)) {
+				$options[] = $value;
+			}
+		}
+
+		// nothing stored yet: the three choices, as before
+		return count($options) > 0 ? $options : ['payout', 'money', 'wallet'];
+	}
+
+	/* the same list with options that are unusable right now removed */
+	public function commissionAvailableOptions()
+	{
+		$options = $this->commissionUserOptions();
+
+		if (!$this->commissionWalletEnabled()) {
+			$options = array_values(array_filter($options, function ($value) {
+				return $value !== 'wallet';
+			}));
+		}
+
+		return $options;
 	}
 
 	/* the customer's own pick, empty when they have not chosen */
@@ -1268,7 +1301,7 @@ final class User extends Model
 
 		if ($this->commissionChoiceEnabled()) {
 			$choice = $this->commissionDestinationChoice();
-			if ($choice !== '') {
+			if ($choice !== '' && in_array($choice, $this->commissionAvailableOptions(), true)) {
 				$destination = $choice;
 			}
 		}

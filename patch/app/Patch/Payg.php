@@ -1141,6 +1141,36 @@ function paygCommissionDestination(): string
     return (string) setting('payouts', '1') === '1' ? 'payout' : 'money';
 }
 
+/* the destinations the admin lets the customer pick from */
+function paygCommissionUserOptions(): array
+{
+    $raw = (string) setting('commission_user_options', '');
+    $options = [];
+
+    foreach (explode(',', $raw) as $value) {
+        $value = trim($value);
+        if (in_array($value, ['payout', 'money', 'wallet'], true) && !in_array($value, $options, true)) {
+            $options[] = $value;
+        }
+    }
+
+    return count($options) > 0 ? $options : ['payout', 'money', 'wallet'];
+}
+
+/* the same list without options that cannot be used right now */
+function paygCommissionAvailableOptions(): array
+{
+    $options = paygCommissionUserOptions();
+
+    if (!(paygCommissionEnabled() && paygCommissionWalletReady())) {
+        $options = array_values(array_filter($options, function ($value) {
+            return $value !== 'wallet';
+        }));
+    }
+
+    return $options;
+}
+
 /**
  * Admin: where new commission goes, and whether the customer may pick.
  * GET returns the current values and a write token; POST saves.
@@ -1159,15 +1189,38 @@ function paygCommissionRouting(): void
             fail('choose where the commission goes');
         }
 
-        if ($destination === 'wallet' && !paygCommissionWalletReady()) {
+        $rawOptions = $_POST['options'] ?? [];
+        if (!is_array($rawOptions)) {
+            $rawOptions = [$rawOptions];
+        }
+
+        $options = [];
+        foreach ($rawOptions as $value) {
+            $value = (string) $value;
+            if (in_array($value, ['payout', 'money', 'wallet'], true) && !in_array($value, $options, true)) {
+                $options[] = $value;
+            }
+        }
+
+        if (count($options) === 0) {
+            fail('choose at least one destination for the customer');
+        }
+
+        if ($choice === '1' && !in_array($destination, $options, true)) {
+            fail('the default destination must be one of the destinations the customer can pick');
+        }
+
+        $needsWallet = $destination === 'wallet' || in_array('wallet', $options, true);
+        if ($needsWallet && !paygCommissionWalletReady()) {
             fail('the commission wallet table is missing; run the patch update first');
         }
 
         putSetting('commission_destination', $destination);
         putSetting('commission_user_choice', $choice);
+        putSetting('commission_user_options', implode(',', $options));
 
-        // choosing the wallet means the feature has to be usable
-        if ($destination === 'wallet') {
+        // the wallet is only usable when the feature is on
+        if ($needsWallet) {
             putSetting('commission_wallet_enabled', '1');
         }
 
@@ -1175,6 +1228,7 @@ function paygCommissionRouting(): void
             'token'        => paygAdminToken(),
             'destination'  => $destination,
             'user_choice'  => $choice === '1',
+            'user_options' => $options,
             'wallet_ready' => paygCommissionWalletReady(),
         ]);
     }
@@ -1183,6 +1237,7 @@ function paygCommissionRouting(): void
         'token'          => paygAdminToken(),
         'destination'    => paygCommissionDestination(),
         'user_choice'    => (string) setting('commission_user_choice', '0') === '1',
+        'user_options'   => paygCommissionUserOptions(),
         'wallet_ready'   => paygCommissionWalletReady(),
         'wallet_enabled' => paygCommissionEnabled(),
     ]);
@@ -1196,8 +1251,10 @@ function paygCommissionPref(): void
 {
     $user = paygRequireUser();
     $id = (int) $user['id'];
-    $enabled = (string) paygSetting('commission_user_choice', '0') === '1';
-    $wallet = paygCommissionEnabled() && paygCommissionWalletReady();
+    $walletFeature = paygCommissionEnabled() && paygCommissionWalletReady();
+    $available = paygCommissionAvailableOptions();
+    $enabled = (string) paygSetting('commission_user_choice', '0') === '1' && count($available) > 0;
+    $wallet = in_array('wallet', $available, true);
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         paygRequireUserToken();
@@ -1208,12 +1265,8 @@ function paygCommissionPref(): void
 
         $destination = (string) ($_POST['destination'] ?? '');
 
-        if (!in_array($destination, ['payout', 'money', 'wallet'], true)) {
-            fail('choose where the commission goes');
-        }
-
-        if ($destination === 'wallet' && !$wallet) {
-            fail('the commission wallet is switched off');
+        if (!in_array($destination, $available, true)) {
+            fail('that destination is not available');
         }
 
         try {
@@ -1236,21 +1289,20 @@ function paygCommissionPref(): void
     } catch (Throwable $error) {
     }
 
-    if (!in_array($choice, ['payout', 'money', 'wallet'], true)) {
+    if (!in_array($choice, $available, true)) {
         $choice = '';
     }
 
     $default = paygCommissionDestination();
     if ((string) paygSetting('commission_destination', '') === '') {
         // legacy: the panel used to look at the account before the setting existed
-        $default = $wallet ? 'wallet' : ((string) $user['expire_in'] > date('Y-m-d H:i:s') ? 'payout' : 'money');
+        $default = $walletFeature ? 'wallet' : ((string) $user['expire_in'] > date('Y-m-d H:i:s') ? 'payout' : 'money');
     }
 
     $effective = $choice !== '' ? $choice : $default;
-    if ($effective === 'wallet' && !$wallet) {
-        // the customer's old pick no longer applies
-        $effective = 'money';
-        $choice = '';
+    if (count($available) > 0 && !in_array($effective, $available, true)) {
+        // the admin's default is outside the customer's choices; show a valid one
+        $effective = $available[0];
     }
 
     done([
@@ -1259,6 +1311,7 @@ function paygCommissionPref(): void
         'choice'    => $choice,
         'default'   => $default,
         'effective' => $effective,
+        'options'   => $available,
         'wallet'    => $wallet,
     ]);
 }
