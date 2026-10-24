@@ -215,6 +215,14 @@
 			return;
 		}
 
+		// card to card is not a gateway either: no fee, and the full order
+		// amount is what the customer has to transfer
+		if (paymentid == 'c2c') {
+			$("#gateway_fee").html('{number_format(0, (int){$currency->decimals})}');
+			$("#total").html('{number_format((float)$order->total_amount, (int){$currency->decimals})}');
+			return;
+		}
+
 		$.ajax({
 			type: "POST",
 			url: "/portal/order/gateway_fee",
@@ -245,6 +253,17 @@
 		layer.load(2);
 		document.getElementById("checkout").disabled = true;
 		var paymentid =  $("input[name='payments']:checked").val();
+
+		// card to card never goes through /portal/order/pay - the order stays
+		// unpaid until an administrator confirms the transfer, so open the
+		// transfer dialog instead (user/pay/card2card.tpl)
+		if (paymentid == 'c2c') {
+			layer.closeAll('loading');
+			document.getElementById("checkout").disabled = false;
+			if (window.C2C) { window.C2C.open(); }
+			return;
+		}
+
 		$.ajax({
 			type: "POST",
 			url: "/portal/order/pay",
@@ -546,3 +565,5 @@
 	  }, 10000);
 	}	
 </script>
+
+{include file='user/pay/card2card.tpl'}

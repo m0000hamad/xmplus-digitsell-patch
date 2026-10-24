@@ -663,6 +663,34 @@ final class User extends Model
 		return $rows ? $rows : null;
 	}
 
+	/*
+	 * The card-to-card confirmations this account has not seen yet, newest
+	 * first - or null when there are none. Read by user/layout/c2cbanner.tpl on
+	 * every page; a plain array so the template can test it for truth and use
+	 * {$row.field}.
+	 */
+	public function cardToCardNotices()
+	{
+		try {
+			$rows = DB::table('c2c_notice')
+				->where('userid', $this->id)
+				->where('seen', 0)
+				->orderBy('id', 'desc')
+				->limit(5)
+				->get()
+				->all();
+		} catch (\Throwable $error) {
+			// the table is created by the migration or by Card2CardJob
+			return null;
+		}
+
+		$rows = array_map(function ($row) {
+			return (array) $row;
+		}, $rows);
+
+		return $rows ? $rows : null;
+	}
+
 	/* ------------------------------------------------------------------
 	 * Buying extra days ("time plans").
 	 * ------------------------------------------------------------------ */

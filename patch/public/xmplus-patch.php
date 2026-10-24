@@ -464,6 +464,14 @@ if (strpos($action, 'reserve.') === 0) {
     fail('unknown reservation action');
 }
 
+// Card-to-card payments: the checkout half answers ordinary users, the admin
+// half checks for itself, and the Telegram approve/reject links carry their own
+// one-time token (app/Patch/Card2Card.php).
+if (strpos($action, 'c2c.') === 0) {
+    require ROOT . '/app/Patch/Card2Card.php';
+    fail('unknown card-to-card action');
+}
+
 requireAdmin();
 
 // Read-only reports for admin pages; each file ends in done() or fail().
