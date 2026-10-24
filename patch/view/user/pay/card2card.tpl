@@ -85,7 +85,24 @@ window.C2CWords = {
 	line-height: 1;
 	cursor: pointer;
 }
-.c2c-body { padding: 18px 20px 20px; }
+.c2c-body {
+	padding: 18px 20px 20px;
+	max-height: calc(100vh - 240px);
+	overflow-y: auto;
+}
+.c2c-foot { padding: 0 20px 18px; }
+.c2c-cancel {
+	width: 100%;
+	border: 0;
+	border-radius: 14px;
+	padding: 12px;
+	font-size: 13px;
+	font-weight: 800;
+	color: #475569;
+	background: rgba(15, 23, 42, .06);
+	cursor: pointer;
+}
+.c2c-cancel:hover { background: rgba(15, 23, 42, .1); }
 .c2c-card {
 	border-radius: 16px;
 	padding: 15px;
@@ -260,6 +277,7 @@ html[data-hs-theme="dark"] .c2c-note { background: rgba(99, 102, 241, .14); colo
 html[data-hs-theme="dark"] .c2c-more { background: rgba(255, 255, 255, .05); }
 html[data-hs-theme="dark"] .c2c-more summary { color: #b9c2d4; }
 html[data-hs-theme="dark"] .c2c-btn-ghost { background: rgba(255, 255, 255, .08); color: #cbd5e1; }
+html[data-hs-theme="dark"] .c2c-cancel { background: rgba(255, 255, 255, .08); color: #cbd5e1; }
 html[data-hs-theme="dark"] .c2c-label { color: #b9c2d4; }
 @media (max-width: 420px) {
 	.c2c-grid { grid-template-columns: 1fr; }
@@ -269,7 +287,7 @@ html[data-hs-theme="dark"] .c2c-label { color: #b9c2d4; }
 {/literal}
 
 <div class="modal fade c2c-modal" id="c2cModal" tabindex="-1" aria-hidden="true">
-	<div class="modal-dialog modal-dialog-centered">
+	<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
 		<div class="modal-content">
 			<div class="c2c-top">
 				<h5>💳 <span id="c2cTopTitle"></span></h5>
@@ -277,6 +295,9 @@ html[data-hs-theme="dark"] .c2c-label { color: #b9c2d4; }
 				<button type="button" class="c2c-x" data-bs-dismiss="modal" aria-label="close">×</button>
 			</div>
 			<div class="c2c-body" id="c2cBody"></div>
+			<div class="c2c-foot">
+				<button type="button" class="c2c-cancel" data-bs-dismiss="modal">{$translate->get('C2cCancel')}</button>
+			</div>
 		</div>
 	</div>
 </div>

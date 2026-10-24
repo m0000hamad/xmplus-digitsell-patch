@@ -2099,6 +2099,7 @@ $i18n['zh_CN'] = array(
 	'C2cNoCard'                 => "当前没有可用的转账银行卡。",
 	'C2cNoteTitle'              => "说明",
 	'C2cClose'                  => "关闭",
+	'C2cCancel'                 => "取消",
 	'C2cWait'                   => "请稍候…",
 	'C2cError'                  => "提交失败，请重试。",
 	'C2cExactAmount'            => "请转入准确金额；多付或少付都会延迟审核。",
