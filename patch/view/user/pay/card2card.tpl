@@ -302,6 +302,7 @@ html[data-hs-theme="dark"] .c2c-label { color: #b9c2d4; }
 	var lastPayer = '';
 	var noteText = '';
 	var supportText = '';
+	var titleText = words.title || '';
 
 	function money(value) {
 		return Number(value || 0).toLocaleString('en-US');
@@ -600,7 +601,7 @@ html[data-hs-theme="dark"] .c2c-label { color: #b9c2d4; }
 		var modal = document.getElementById('c2cModal');
 		if (modal && modal.classList.contains('show')) { return; }
 
-		document.getElementById('c2cTopTitle').textContent = words.title || '';
+		document.getElementById('c2cTopTitle').textContent = titleText;
 		document.getElementById('c2cTopSub').textContent = words.sub || '';
 
 		if (request && Number(request.status) === 1) {
@@ -637,7 +638,7 @@ html[data-hs-theme="dark"] .c2c-label { color: #b9c2d4; }
 		var label = document.createElement('label');
 		label.className = 'py-way';
 		label.innerHTML = '<input type="radio" name="payments" id="pay-c2c" value="c2c" onClick="Gatewayfee()">'
-			+ '<span class="py-way-box"><span class="py-way-icon">🏦</span>' + esc(words.title) + '</span>';
+			+ '<span class="py-way-box"><span class="py-way-icon">🏦</span>' + esc(titleText) + '</span>';
 		grid.appendChild(label);
 
 		// the pay button only gets the panel's own handler when a gateway was
@@ -685,6 +686,7 @@ html[data-hs-theme="dark"] .c2c-label { color: #b9c2d4; }
 				lastPayer = data.last_payer || '';
 				noteText = data.note || '';
 				supportText = data.support || '';
+				titleText = data.title || words.title || '';
 				ready = true;
 
 				if (enabled && (available || request)) {

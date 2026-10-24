@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-24 Â· installed version **1.9.2** Â· latest release **1.31.0** Â· repo
+Last updated: 2026-10-24 Â· installed version **1.9.2** Â· latest release **1.32.0** Â· repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -576,3 +576,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.29.0 | Fix: dedicated-bot callbacks spun forever because Telegram could not reach the panel's webhook through the CDN, so answerCallbackQuery never ran. The bot now polls `getUpdates` from `bin/c2c.php` (mode `poll`, the default) and applies a tap through the same `c2c.decide` endpoint the URL buttons use, then answers the callback and edits the message with the outcome. Only outbound Telegram access is needed. `webhook` mode remains a setting for hosts Telegram can reach. |
 | 1.30.0 | Rejection reasons from Telegram: tapping "❌ رد" asks the bot for the reason (text reply; `/skip` = no reason, `/cancel` = keep it pending), then rejects with that reason and edits the original message. The reason is stored in `c2c_request.note`, so the panel banner, the Telegram/e-mail notice and the support line all carry it. The site's note field already did this. Polling picks the reply up within a minute. |
 | 1.31.0 | Reset and test mode. Settings -> Card to card gets a "reset all card-to-card transactions" button (deletes `c2c_request` and `c2c_notice`; cards, settings and orders stay). `c2c_test_user` marks one account as a test account: its requests are applied but excluded from card caps and from the admin history (they still show while pending with a "تست" badge) and produce no customer notice; the Telegram admin message says "🧪 تست". 0 turns it off. |
+| 1.32.0 | The display title is editable (`c2c_title`, default "کارت به کارت", up to 60 characters) in Settings -> Card to card -> "Display title". It is used at checkout, in the dialog header, in the admin request message, in the buyer's approval/rejection message, in the bot's /start text, and as the order's payment-method label (shortened for the column). |

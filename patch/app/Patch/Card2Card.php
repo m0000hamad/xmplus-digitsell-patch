@@ -83,6 +83,17 @@ function c2cIsTestRequest(array $request): bool
     return $test > 0 && (int) ($request['userid'] ?? 0) === $test;
 }
 
+/**
+ * The name the buyer sees (checkout option, dialog, messages). Editable in the
+ * settings; "کارت به کارت" when nothing was chosen.
+ */
+function c2cTitle(): string
+{
+    $value = trim(c2cSetting('c2c_title', 'کارت به کارت'));
+
+    return $value !== '' ? $value : 'کارت به کارت';
+}
+
 function c2cInt($value, int $fallback = 0): int
 {
     return is_numeric($value) ? (int) $value : $fallback;
@@ -650,7 +661,7 @@ function c2cMoney(float $amount): string
 function c2cAdminText(array $row, array $order, ?array $card): string
 {
     $lines = [
-        '💳 درخواست تایید کارت به کارت',
+        '💳 درخواست تایید ' . c2cTitle(),
         '🧾 سفارش: ' . (string) ($order['order_id'] ?? ('#' . (int) $row['orderid'])),
         '👤 کاربر: ' . (string) ($order['username'] ?? ('#' . (int) $row['userid']))
             . ' (#' . (int) $row['userid'] . ')',
@@ -1015,11 +1026,17 @@ function c2cApplyOrder(array $order): array
  */
 function c2cGrantOrder(array $order): array
 {
+    // the order list column is narrow: a short label is enough there
+    $gatewayName = c2cTitle();
+    if (function_exists('mb_substr')) {
+        $gatewayName = mb_substr($gatewayName, 0, 14, 'UTF-8');
+    }
+
     $statement = db()->prepare(
-        "UPDATE orders
-            SET status = 1, pay_date = ?, gateway_name = 'کارت به کارت', gateway_expire = 0
-          WHERE id = ? AND (status <> 1 OR pay_date IS NULL)");
-    $statement->execute([time(), (int) $order['id']]);
+        'UPDATE orders
+            SET status = 1, pay_date = ?, gateway_name = ?, gateway_expire = 0
+          WHERE id = ? AND (status <> 1 OR pay_date IS NULL)');
+    $statement->execute([time(), $gatewayName, (int) $order['id']]);
 
     if ($statement->rowCount() < 1) {
         throw new RuntimeException('this order is already marked paid');
@@ -1131,6 +1148,7 @@ function c2cUserInfo(): void
         'request'   => c2cPresent($request),
         'last_payer' => $lastPayer,
         'support'   => c2cSupport(),
+        'title'     => c2cTitle(),
     ]);
 }
 
@@ -1339,6 +1357,7 @@ function c2cAdminData(): array
         'support'      => c2cSupport(),
         'mode'         => c2cBotMode(),
         'test_user'    => c2cTestUser(),
+        'title'        => c2cTitle(),
     ];
 
     $cards = [];
@@ -1461,6 +1480,15 @@ function c2cAdminSettings(): void
     $bot = trim((string) ($_POST['bot_token'] ?? ''));
     $support = trim((string) ($_POST['support'] ?? ''));
     $testUser = max(0, c2cInt($_POST['test_user'] ?? 0, 0));
+    $title = trim((string) ($_POST['title'] ?? ''));
+    if ($title === '') {
+        $title = 'کارت به کارت';
+    }
+    if (strlen($title) > 60) {
+        $title = function_exists('mb_substr')
+            ? mb_substr($title, 0, 60, 'UTF-8')
+            : substr($title, 0, 60);
+    }
     $botMode = (string) ($_POST['bot_mode'] ?? 'poll');
     if ($botMode !== 'webhook') {
         $botMode = 'poll';
@@ -1501,6 +1529,7 @@ function c2cAdminSettings(): void
     putSetting('c2c_support', $support !== '' ? $support : '@digitsellshop');
     putSetting('c2c_bot_mode', $botMode);
     putSetting('c2c_test_user', (string) $testUser);
+    putSetting('c2c_title', $title);
 
     // a dedicated bot needs a secret: it is both the webhook header and the
     // key that signs the callback buttons
@@ -2157,7 +2186,7 @@ function c2cTelegramWebhook(): void
         if ($text === '/start' || $text === '') {
             c2cApiWith($token, 'sendMessage', [
                 'chat_id' => $chatId,
-                'text'    => 'این ربات برای تایید/رد کارت به کارت است. پیام هر درخواست همین‌جا می‌آید و با دکمه‌های همان پیام تایید یا رد می‌شود.',
+                'text'    => 'این ربات برای تایید/رد ' . c2cTitle() . ' است. پیام هر درخواست همین‌جا می‌آید و با دکمه‌های همان پیام تایید یا رد می‌شود.',
             ]);
         }
 

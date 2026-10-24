@@ -78,6 +78,11 @@
 				<input type="number" class="form-control" id="cc_test_user" min="0" dir="ltr" placeholder="0">
 				<small class="text-muted">{$translate->get('C2cAdmTestHint')}</small>
 			</div>
+			<div class="col-md-6">
+				<label class="form-label" for="cc_title">{$translate->get('C2cAdmName')}</label>
+				<input type="text" class="form-control" id="cc_title" maxlength="60" placeholder="کارت به کارت">
+				<small class="text-muted">{$translate->get('C2cAdmNameHint')}</small>
+			</div>
 			<div class="col-12">
 				<label class="form-label" for="cc_note">{$translate->get('C2cAdmNote')}</label>
 				<textarea class="form-control" id="cc_note" rows="3"></textarea>
@@ -354,6 +359,7 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 		set('cc_bot_token', s.bot_token || '');
 		set('cc_support', s.support || '');
 		set('cc_test_user', s.test_user || 0);
+		set('cc_title', s.title || '');
 
 		var mode = document.getElementById('cc_grant_mode');
 		if (mode) { mode.value = s.grant_mode === 'fresh' ? 'fresh' : 'auto'; }
@@ -621,6 +627,7 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 				bot_token: document.getElementById('cc_bot_token').value.trim(),
 				support: document.getElementById('cc_support').value.trim(),
 				test_user: document.getElementById('cc_test_user').value || 0,
+				title: document.getElementById('cc_title').value.trim(),
 				bot_mode: document.getElementById('cc_bot_mode').value
 			}).then(function (next) {
 				if (!next || !next.ok) {

@@ -235,6 +235,13 @@ class Card2CardJob
 		return $value;
 	}
 
+	private function title()
+	{
+		$value = trim((string) $this->setting('c2c_title'));
+
+		return $value !== '' ? $value : 'کارت به کارت';
+	}
+
 	private function siteUrl()
 	{
 		$site = trim((string) $this->setting('c2c_site_url'));
@@ -281,7 +288,7 @@ class Card2CardJob
 	private function adminText($row, $order, $card)
 	{
 		$lines = [
-			'💳 درخواست تایید کارت به کارت',
+			'💳 درخواست تایید ' . $this->title(),
 			'🧾 سفارش: ' . (string) ($order ? $order->order_id : ('#' . (int) $row->orderid)),
 			'👤 کاربر: ' . (string) ($order ? $order->username : '') . ' (#' . (int) $row->userid . ')',
 			'📦 بسته: ' . (string) $row->plan_name
@@ -450,17 +457,18 @@ class Card2CardJob
 			$approved = (int) $row->status === 1;
 
 			$support = $this->support();
+			$label = $this->title();
 
 			if ($approved) {
-				$title = '✅ پرداخت کارت به کارت تایید شد';
-				$text = "پرداخت کارت به کارت شما برای سفارش {$orderNo} تایید شد.\n"
+				$title = '✅ پرداخت ' . $label . ' تایید شد';
+				$text = "پرداخت {$label} شما برای سفارش {$orderNo} تایید شد.\n"
 					. 'مبلغ: ' . number_format(round((float) $row->amount)) . " ریال\n"
 					. ((string) $row->plan_name !== '' ? 'بسته: ' . (string) $row->plan_name . "\n" : '')
 					. 'بسته به‌صورت خودکار روی حساب شما اعمال شد.'
 					. ($support !== '' ? "\n\nپشتیبانی: " . $support : '');
 			} else {
-				$title = '❌ پرداخت کارت به کارت تایید نشد';
-				$text = "پرداخت کارت به کارت شما برای سفارش {$orderNo} تایید نشد.\n"
+				$title = '❌ پرداخت ' . $label . ' تایید نشد';
+				$text = "پرداخت {$label} شما برای سفارش {$orderNo} تایید نشد.\n"
 					. 'مبلغ: ' . number_format(round((float) $row->amount)) . " ریال\n"
 					. ((string) $row->note !== '' ? 'دلیل: ' . (string) $row->note . "\n" : '')
 					. 'اگر مبلغ را واریز کرده‌اید، با پشتیبانی تماس بگیرید.'
@@ -860,7 +868,7 @@ class Card2CardJob
 		if ($text === '/start' || $text === '') {
 			$this->api($token, 'sendMessage', [
 				'chat_id' => $chatId,
-				'text'    => 'این ربات برای تایید/رد کارت به کارت است. پیام هر درخواست همین‌جا می‌آید و با دکمه‌های همان پیام تایید یا رد می‌شود.',
+				'text'    => 'این ربات برای تایید/رد ' . $this->title() . ' است. پیام هر درخواست همین‌جا می‌آید و با دکمه‌های همان پیام تایید یا رد می‌شود.',
 			]);
 		}
 	}
