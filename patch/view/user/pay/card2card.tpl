@@ -48,6 +48,7 @@ window.C2CWords = {
 	goOrders:   "{$translate->get('C2cNoticeGo')|escape:'javascript'}",
 	again:      "{$translate->get('C2cTryAgain')|escape:'javascript'}",
 	pendingPill:"{$translate->get('C2cPendingPill')|escape:'javascript'}",
+	support:    "{$translate->get('C2cSupport')|escape:'javascript'}",
 	curLeft:    "{$currency->symbol_left|escape:'javascript'}",
 	curRight:   "{$currency->symbol_right|escape:'javascript'}"
 };
@@ -300,6 +301,7 @@ html[data-hs-theme="dark"] .c2c-label { color: #b9c2d4; }
 	var mounted = false;
 	var lastPayer = '';
 	var noteText = '';
+	var supportText = '';
 
 	function money(value) {
 		return Number(value || 0).toLocaleString('en-US');
@@ -517,6 +519,7 @@ html[data-hs-theme="dark"] .c2c-label { color: #b9c2d4; }
 			+ '<span class="c2c-pill">💰 ' + withUnit(request && request.amount ? request.amount : amount) + '</span>'
 			+ '</div>'
 			+ (card ? '<div class="c2c-note">🏦 ' + esc(card.bank) + ' · ' + esc(card.formatted) + '</div>' : '')
+			+ (supportText ? '<div class="c2c-note">' + esc(words.support) + ': ' + esc(supportText) + '</div>' : '')
 			+ '<div class="c2c-btn-line">'
 			+ '<button type="button" class="c2c-btn-ghost" id="c2cRefresh">' + esc(words.checkNow) + '</button>'
 			+ '<button type="button" class="c2c-btn-ghost" data-bs-dismiss="modal">' + esc(words.close) + '</button>'
@@ -538,6 +541,7 @@ html[data-hs-theme="dark"] .c2c-label { color: #b9c2d4; }
 			+ '<h6>' + esc(words.rejected) + '</h6>'
 			+ '<p>' + esc(reason || '') + '</p>'
 			+ '</div>'
+			+ (supportText ? '<div class="c2c-note">' + esc(words.support) + ': ' + esc(supportText) + '</div>' : '')
 			+ '<div class="c2c-btn-line">'
 			+ '<button type="button" class="c2c-btn-ghost" id="c2cAgain">' + esc(words.again) + '</button>'
 			+ '<button type="button" class="c2c-btn-ghost" data-bs-dismiss="modal">' + esc(words.close) + '</button>'
@@ -680,6 +684,7 @@ html[data-hs-theme="dark"] .c2c-label { color: #b9c2d4; }
 				request = data.request || null;
 				lastPayer = data.last_payer || '';
 				noteText = data.note || '';
+				supportText = data.support || '';
 				ready = true;
 
 				if (enabled && (available || request)) {
