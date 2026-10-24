@@ -56,7 +56,16 @@ window.C2CWords = {
 
 {literal}
 <style>
+.c2c-modal { z-index: 20000 !important; }
+.c2c-modal .modal-dialog {
+	margin: 72px auto 18px;
+	max-width: 460px;
+	max-height: calc(100vh - 90px);
+}
 .c2c-modal .modal-content {
+	display: flex;
+	flex-direction: column;
+	max-height: calc(100vh - 90px);
 	border: 0;
 	border-radius: 20px;
 	overflow: hidden;
@@ -86,10 +95,13 @@ window.C2CWords = {
 	cursor: pointer;
 }
 .c2c-body {
+	flex: 1 1 auto;
+	min-height: 0;
 	padding: 18px 20px 20px;
-	max-height: calc(100vh - 240px);
 	overflow-y: auto;
 }
+.c2c-top,
+.c2c-foot { flex: 0 0 auto; }
 .c2c-foot { padding: 0 20px 18px; }
 .c2c-cancel {
 	width: 100%;
@@ -307,6 +319,13 @@ html[data-hs-theme="dark"] .c2c-label { color: #b9c2d4; }
 (function () {
 	var root = document.getElementById('c2cRoot');
 	if (!root) { return; }
+
+	// the page has fixed/transformed containers, and a dialog left inside one
+	// is drawn under the panel header on phones; move it to <body>
+	var modalHost = document.getElementById('c2cModal');
+	if (modalHost && modalHost.parentNode !== document.body) {
+		document.body.appendChild(modalHost);
+	}
 
 	var words = window.C2CWords || {};
 	var orderId = root.getAttribute('data-order');
