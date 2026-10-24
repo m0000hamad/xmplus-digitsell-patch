@@ -66,6 +66,23 @@ function c2cSupport(): string
     return $value;
 }
 
+/**
+ * An account whose card-to-card requests are tests: they never count towards a
+ * card's cap and never appear in the admin history, so trying the flow does not
+ * poison the real numbers. 0 turns the test account off.
+ */
+function c2cTestUser(): int
+{
+    return max(0, c2cInt(c2cSetting('c2c_test_user', '0'), 0));
+}
+
+function c2cIsTestRequest(array $request): bool
+{
+    $test = c2cTestUser();
+
+    return $test > 0 && (int) ($request['userid'] ?? 0) === $test;
+}
+
 function c2cInt($value, int $fallback = 0): int
 {
     return is_numeric($value) ? (int) $value : $fallback;
@@ -130,6 +147,13 @@ function c2cCardUsage(int $cardId, string $period): array
               FROM c2c_request
              WHERE cardid = ? AND status = 1';
     $args = [$cardId];
+
+    // the test account's requests are not money received
+    $testUser = c2cTestUser();
+    if ($testUser > 0) {
+        $sql .= ' AND userid <> ?';
+        $args[] = $testUser;
+    }
 
     $from = c2cPeriodStart($period);
     if ($from > 0) {
@@ -634,6 +658,10 @@ function c2cAdminText(array $row, array $order, ?array $card): string
             . ((int) $row['plan_days'] > 0 ? ' · ' . (int) $row['plan_days'] . ' روز' : ''),
         '💰 مبلغ: ' . c2cMoney((float) $row['amount']) . ' ریال',
     ];
+
+    if (c2cIsTestRequest($row)) {
+        $lines[] = '🧪 تست (در سوابق و سقف حساب نمی‌شود)';
+    }
 
     if ($card !== null) {
         $lines[] = '🏦 کارت: ' . trim((string) $card['bank'] . ' · ' . (string) $card['holder'])
@@ -1310,6 +1338,7 @@ function c2cAdminData(): array
         'callbacks'    => c2cUsesCallbacks() ? 1 : 0,
         'support'      => c2cSupport(),
         'mode'         => c2cBotMode(),
+        'test_user'    => c2cTestUser(),
     ];
 
     $cards = [];
@@ -1351,7 +1380,9 @@ function c2cAdminData(): array
                  LEFT JOIN orders o ON o.id = r.orderid
                  LEFT JOIN c2c_card c ON c.id = r.cardid ';
 
-    $collect = static function (array $rows): array {
+    $testUser = c2cTestUser();
+
+    $collect = static function (array $rows) use ($testUser): array {
         $out = [];
 
         foreach ($rows as $row) {
@@ -1363,6 +1394,7 @@ function c2cAdminData(): array
             $present['card_bank'] = (string) ($row['card_bank'] ?? '');
             $present['card_holder'] = (string) ($row['card_holder'] ?? '');
             $present['tg_sent'] = (int) $row['tg_sent'];
+            $present['test'] = $testUser > 0 && (int) $row['userid'] === $testUser ? 1 : 0;
             $out[] = $present;
         }
 
@@ -1377,8 +1409,15 @@ function c2cAdminData(): array
     }
 
     try {
+        $historySql = $select . 'WHERE r.status <> 0';
+
+        // the test account never shows up in the history
+        if ($testUser > 0) {
+            $historySql .= ' AND r.userid <> ' . (int) $testUser;
+        }
+
         $history = $collect(db()->query(
-            $select . 'WHERE r.status <> 0 ORDER BY r.id DESC LIMIT 40')->fetchAll());
+            $historySql . ' ORDER BY r.id DESC LIMIT 40')->fetchAll());
     } catch (Throwable $error) {
         $history = [];
     }
@@ -1421,6 +1460,7 @@ function c2cAdminSettings(): void
     $site = trim((string) ($_POST['site_url'] ?? ''));
     $bot = trim((string) ($_POST['bot_token'] ?? ''));
     $support = trim((string) ($_POST['support'] ?? ''));
+    $testUser = max(0, c2cInt($_POST['test_user'] ?? 0, 0));
     $botMode = (string) ($_POST['bot_mode'] ?? 'poll');
     if ($botMode !== 'webhook') {
         $botMode = 'poll';
@@ -1460,6 +1500,7 @@ function c2cAdminSettings(): void
     putSetting('c2c_bot_token', $bot);
     putSetting('c2c_support', $support !== '' ? $support : '@digitsellshop');
     putSetting('c2c_bot_mode', $botMode);
+    putSetting('c2c_test_user', (string) $testUser);
 
     // a dedicated bot needs a secret: it is both the webhook header and the
     // key that signs the callback buttons
@@ -1527,6 +1568,26 @@ function c2cAdminWebhook(): void
     }
 
     done(['saved' => 1] + c2cAdminData());
+}
+
+/**
+ * Wipes every card-to-card request and confirmation. Cards, settings and the
+ * orders themselves are untouched.
+ */
+function c2cAdminReset(): void
+{
+    requireAdmin();
+    requireToken();
+
+    try {
+        db()->exec('DELETE FROM c2c_request');
+        db()->exec('DELETE FROM c2c_notice');
+        putSetting('c2c_bot_pending', '');
+    } catch (Throwable $error) {
+        fail('reset failed: ' . $error->getMessage());
+    }
+
+    done(['saved' => 1, 'reset' => 1] + c2cAdminData());
 }
 
 function c2cAdminCards(): void
@@ -1678,6 +1739,9 @@ function c2cApprove(int $id, string $by, string $note = ''): array
             : substr($note, 0, 255);
     }
 
+    // a request from the test account is applied but never recorded or notified
+    $isTest = c2cIsTestRequest($request);
+
     db()->beginTransaction();
 
     try {
@@ -1691,17 +1755,24 @@ function c2cApprove(int $id, string $by, string $note = ''): array
             throw new RuntimeException('this request was already decided');
         }
 
+        if ($isTest) {
+            db()->prepare('UPDATE c2c_request SET user_sent = 1 WHERE id = ?')->execute([$id]);
+        }
+
         $grant = c2cGrantOrder($order);
 
         // the package was gone and the grant used the order's own snapshot:
         // leave a trace on the request for the admin
-        if (!empty($grant['snapshot'])) {
+        if (!empty($grant['snapshot']) && !$isTest) {
             db()->prepare('UPDATE c2c_request SET note = ? WHERE id = ?')
                 ->execute(['بسته حذف شده بود؛ از اطلاعات سفارش اعمال شد', $id]);
         }
 
         $request = c2cRequestById($id) ?? $request;
-        c2cNotice($request, $order, 'approved');
+
+        if (!$isTest) {
+            c2cNotice($request, $order, 'approved');
+        }
 
         db()->commit();
     } catch (Throwable $error) {
@@ -1736,7 +1807,11 @@ function c2cCloseAsPaid(int $id, string $by, array $order): ?array
 
         $request = c2cRequestById($id);
         if ($request !== null) {
-            c2cNotice($request, $order, 'approved');
+            if (c2cIsTestRequest($request)) {
+                db()->prepare('UPDATE c2c_request SET user_sent = 1 WHERE id = ?')->execute([$id]);
+            } else {
+                c2cNotice($request, $order, 'approved');
+            }
         }
 
         db()->commit();
@@ -1767,6 +1842,8 @@ function c2cReject(int $id, string $by, string $reason): void
             : substr($reason, 0, 255);
     }
 
+    $isTest = c2cIsTestRequest($request);
+
     db()->beginTransaction();
 
     try {
@@ -1780,6 +1857,10 @@ function c2cReject(int $id, string $by, string $reason): void
             throw new RuntimeException('this request was already decided');
         }
 
+        if ($isTest) {
+            db()->prepare('UPDATE c2c_request SET user_sent = 1 WHERE id = ?')->execute([$id]);
+        }
+
         $order = null;
         try {
             $statement = db()->prepare('SELECT * FROM orders WHERE id = ? LIMIT 1');
@@ -1789,7 +1870,10 @@ function c2cReject(int $id, string $by, string $reason): void
         }
 
         $request = c2cRequestById($id) ?? $request;
-        c2cNotice($request, $order, 'rejected', $reason);
+
+        if (!$isTest) {
+            c2cNotice($request, $order, 'rejected', $reason);
+        }
 
         if ($order !== null && (int) $order['status'] === 0) {
             db()->prepare('UPDATE orders SET gateway_expire = ? WHERE id = ?')
@@ -2155,7 +2239,7 @@ function c2cTelegramWebhook(): void
 
 $c2cAction = substr((string) ($_GET['do'] ?? ''), strlen('c2c.'));
 
-$c2cNeedsPost = ['submit', 'ack', 'settings', 'cards', 'approve', 'reject'];
+$c2cNeedsPost = ['submit', 'ack', 'settings', 'webhook', 'reset', 'cards', 'approve', 'reject'];
 
 if (in_array($c2cAction, $c2cNeedsPost, true) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     fail('this action needs POST', 405);
@@ -2176,6 +2260,8 @@ switch ($c2cAction) {
         c2cAdminSettings();
     case 'webhook':
         c2cAdminWebhook();
+    case 'reset':
+        c2cAdminReset();
     case 'cards':
         c2cAdminCards();
     case 'approve':
