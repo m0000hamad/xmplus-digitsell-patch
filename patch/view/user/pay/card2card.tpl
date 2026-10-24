@@ -614,7 +614,14 @@ html[data-hs-theme="dark"] .c2c-label { color: #b9c2d4; }
 			}
 		}
 
-		$('#c2cModal').modal('show');
+		var modalEl = document.getElementById('c2cModal');
+		if (modalEl) {
+			if (window.bootstrap && window.bootstrap.Modal) {
+				window.bootstrap.Modal.getOrCreateInstance(modalEl, {}).show();
+			} else if (window.jQuery) {
+				window.jQuery(modalEl).modal('show');
+			}
+		}
 	}
 
 	function mount() {
