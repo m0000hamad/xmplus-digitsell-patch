@@ -1,7 +1,7 @@
 {
-    "version": "1.33.0",
+    "version": "1.33.1",
     "released": "2026-10-24",
-    "notes": "Commission destination is now the admin's choice - payout balance, panel credit, or the commission wallet - set in the affiliate page. A switch also lets each customer pick their own destination on the invite page; the pick is stored per customer. Only new commission is routed; existing balances stay where they are. Choosing the commission wallet turns that feature on.",
+    "notes": "Fix: a customer's saved commission destination no longer points at the commission wallet while that feature is off. It falls back to account credit and the invite page shows that, matching where the job actually pays.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -58,7 +58,7 @@
         "app/Patch/NodeApi.php": "b6bc5fd0f9ada2371fe00af41c9a286f8a24ca52c4934e010420e9c4fd1d2ea0",
         "app/Patch/NodeKey.php": "ab67bacaa6f708d2d29ffef76f1c1c06b5fbd02668a36cf422ce95f983bf281f",
         "app/Patch/Ovpn.php": "4d2ff76ec8db15ca6485713762112af7933e06023d089ef883ccc7a2d3005c90",
-        "app/Patch/Payg.php": "77ea1eac88f433e6d1c490740964e15828cf68833436aa9bf94bedd4eed56894",
+        "app/Patch/Payg.php": "3eeda693e2bc2c0ccb0a4ddb953357fe02b124217c117f71f081b6c335dbdcbe",
         "app/Patch/Promo.php": "e18c9634fc17eb13b173c20c7d8deec5db7dba3c8825e48c2c38c82192d30dc7",
         "app/Patch/Reserve.php": "68186ac058e2256b4c3bb83110edd5cd16768f11c810eac3df05843eba2f94ae",
         "app/Patch/SchemaFix.php": "b4e1e18902398c92864f6c218beb823231c4977d9dbc8c0a83bdbc3bc5eeee3c",

@@ -487,7 +487,8 @@ Watch out for these:
   pick lives in `commission_pref` (migration 026). Only new commission is
   routed; existing balances stay where they are. Choosing `wallet` turns
   `commission_wallet_enabled` on. With no setting saved, the legacy routing
-  above applies. The card-to-card gap remains.
+  above applies. A customer's saved wallet pick falls back to account credit
+  while that feature is off. The card-to-card gap remains.
 - Known gap: a card-to-card approval grants the plan directly
   (`Card2Card::c2cApplyOrder`) and never writes an `affiliate` row, so a
   purchase paid by card-to-card earns **no** referral commission yet.

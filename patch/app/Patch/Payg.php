@@ -1246,12 +1246,19 @@ function paygCommissionPref(): void
         $default = $wallet ? 'wallet' : ((string) $user['expire_in'] > date('Y-m-d H:i:s') ? 'payout' : 'money');
     }
 
+    $effective = $choice !== '' ? $choice : $default;
+    if ($effective === 'wallet' && !$wallet) {
+        // the customer's old pick no longer applies
+        $effective = 'money';
+        $choice = '';
+    }
+
     done([
         'token'     => paygUserToken(),
         'enabled'   => $enabled,
         'choice'    => $choice,
         'default'   => $default,
-        'effective' => $choice !== '' ? $choice : $default,
+        'effective' => $effective,
         'wallet'    => $wallet,
     ]);
 }
