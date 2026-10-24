@@ -109,6 +109,16 @@ final class TaskCommand extends Command
 			'enabled' => true,
 		));
 
+		// card-to-card: keeps waiting orders open, sends the admin the approval
+		// message, tells customers the outcome, expires unanswered requests
+		$scheduler->add('Card2CardJob', array(
+			'command' => 'php '.BASE_PATH.'/bin/c2c.php',
+			'schedule' => "* * * * *",
+			'output' => BASE_PATH.'/storage/logs/c2c.log',
+			'lock_dir' => BASE_PATH.'/storage/cron/',
+			'enabled' => true,
+		));
+
 		// one-time gift for joining the Telegram channel; asks the Bot API who is a member
 		$scheduler->add('TgJoinJob', array(
 			'command' => 'php '.BASE_PATH.'/bin/tgjoin.php',

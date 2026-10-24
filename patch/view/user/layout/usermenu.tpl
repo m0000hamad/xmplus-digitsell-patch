@@ -204,3 +204,4 @@
     <div class="content container-fluid">
 {include file='user/layout/paygbanner.tpl'}
 {include file='user/layout/reservebanner.tpl'}
+{include file='user/layout/c2cbanner.tpl'}

@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-17 Â· installed version **1.9.2** Â· latest release **1.26.4** Â· repo
+Last updated: 2026-10-24 Â· installed version **1.9.2** Â· latest release **1.27.1** Â· repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -188,6 +188,7 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Settings (user) | Gradient hero, glass section rail with a colour per section and the current one lit, cards carrying that accent; notification rows became switches; 2FA dialog restyled; every input id, button class and section anchor kept so the encoded controller and page JS are untouched |
 | Notices | User timeline shows the title and reads as coloured cards; latest-notice popup restyled with a labelled dismiss switch; admin add/edit got RTL Persian TinyMCE, one-click snippets and a live user-popup preview |
 | Time plans | A third plan type selling days only â€” see the section below |
+| Card to card | A manual payment method the encoded gateway list cannot hold: several receiving cards, each with its own cap, rotating automatically; a transfer form on the checkout; approval on the site or from the Telegram message; automatic package grant and a confirmation banner. Off until switched on - see the section below |
 | Reserved plans | Buy a subscription now, have it start later (after the current plan ends, or on a chosen date) â€” see the section below |
 | Menu | Labelled glass toggle, per-item colours, current page marked, works on phones |
 | Themes | Dark mode fixed panel-wide (see above) |
@@ -369,6 +370,77 @@ a marker, and the subscription is started afterwards by `bin/reserve.php`.
 
 - At checkout (iew/user/pay/cycle.tpl, included from pay/pay.tpl) the balance (AccBalance, alue=-1) is shown above the gateways whenever user.money > 0, pre-selected when it covers the order's 	otal_amount. The buy button then posts method=-1 to /portal/order/pay, the same wallet-balance path the panel already uses (Order::gateway(-1)), so a refunded reservation credit is consumed automatically and the user is not sent to a gateway when the balance is enough.
 
+### Card to card - a manual gateway the encoded checkout cannot have
+
+Files: `app/Patch/Card2Card.php` (customer + admin + the Telegram decision
+page), `app/Jobs/Card2CardJob.php`, `bin/c2c.php`,
+`migrations/025_card2card.php`, `view/user/pay/card2card.tpl`,
+`view/user/layout/c2cbanner.tpl`, `view/admin/settings/c2csettings.tpl`,
+`User::cardToCardNotices()`.
+
+The panel's payment drivers are ionCube encoded, so `/portal/order/pay` cannot
+be taught a new one. The checkout page can be patched: `card2card.tpl` adds a
+fourth choice to the gateway grid and takes over the Pay button. The order is
+still the panel's own, created by `/portal/order/create`; it simply stays
+unpaid while the transfer waits.
+
+- The customer transfers the exact `orders.total_amount` to the card shown and
+  records the last four digits of their own card. That is the whole declaration:
+  the bank SMS already carries the name, the time and the reference, so payer
+  name, transfer date/time and reference live in an optional "more details"
+  section (pre-filled, editable) and may stay empty. There is one request per
+  order (`c2c_request.orderid` UNIQUE); a rejected one can be corrected and
+  sent again.
+- Cards rotate (`c2c_card`): each carries an amount cap and/or a count cap,
+  measured per day / per month / in total (0 = no cap). The checkout always
+  shows the first enabled card in `sort` order that still has room, and moves
+  to the next one by itself. Pending requests count towards a cap too, so a
+  burst of transfers cannot overrun a card before anyone is approved.
+- The administrator gets a Telegram message with everything needed to match
+  the transfer, plus two URL buttons. There is no bot webhook: the buttons
+  open `xmplus-patch.php?do=c2c.decide`, which shows a confirmation page and
+  posts back with the request's own 64-hex token (7 days, one decision).
+  Approving from Settings -> Card to card does the same.
+- Approval marks the order paid (`status = 1`, `pay_date`, `gateway_name`) and
+  grants what it bought. Time plans, reserved plans and pay-as-you-go charges
+  are left to their own jobs, which watch for a paid order; a plain top-up
+  adds its gigabytes. A subscription follows the plan's `renew_type` when the
+  order is a renewal (`c2c_grant_mode = fresh` forces a fresh plan). The
+  request row is claimed first, so overlapping approvals can never grant
+  twice.
+- **A transfer takes longer than a gateway redirect.** The panel's `UserJob`
+  cancels an unpaid order once `gateway_expire` passes, so `Card2CardJob`
+  keeps moving that window ahead while a request waits (`c2c_hold_hours`,
+  default 48) and brings a `-1` order back to `0`. `c2c_reject_hours` (72)
+  auto-rejects a request nobody looked at.
+- The outcome reaches the buyer three ways: the pay page polls `c2c.status`,
+  `c2c_notice` drives `c2cbanner.tpl` on every customer page (its close button
+  posts `c2c.ack`), and Telegram/e-mail are sent by the job. The notice `ref`
+  includes the decision time, so a rejected-then-approved request leaves two
+  rows instead of colliding.
+- Paid still means `orders.status = 1`; `orders.state` is not used here (it is
+  0 on almost every row, as noted above).
+
+Settings: `c2c_enabled` (off until switched on), `c2c_telegram_chat`
+(fallback: `telegramchatid`), `c2c_note` (text under the transfer form),
+`c2c_reject_hours`, `c2c_hold_hours`, `c2c_grant_mode` (`auto` / `fresh`),
+`c2c_site_url` (fallback: `appName` / `baseUrl`).
+
+Watch out for these:
+
+- `c2c.info` hands out the full card number only with one of the caller's own
+  orders; without an order it returns no card. The banner's close button calls
+  it only for the CSRF token.
+- The Pay button only carries the panel's `.checkout` class when a gateway
+  exists. `card2card.tpl` binds its own click handler for the gateway-less
+  case, and `Gatewayfee()` answers `c2c` locally (no fee, the full total) -
+  the encoded fee endpoint has no row for it.
+- Do not create a `payment` row for card to card. The encoded gateway list
+  would offer it at checkout and try to load a driver that does not exist.
+- The Telegram approve/reject link is a GET that only renders a confirmation
+  page; the decision is the POST. A link preview can therefore never approve
+  anything.
+
 ### Commission â€” money rules already decided. Do not redo without asking.
 
 - Only **new** commission is credited automatically.
@@ -481,3 +553,5 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.26.2 | Fix: every cancel now sends a notice - `announceRefund` when there is a refund, `announceCancelled` when there is none (unpaid, zero-amount, or already reconciled). `reconcile()` no longer skips zero-amount rows, and `reserve.cancel` notifies in both branches so the action is never silent on Telegram/e-mail |
 | 1.26.3 | Fix: an account on its plan with a charged wallet showed "paying from credit". The subscription card and wallet banner follow the real wallet mode; `PaygJob` no longer switches to balance mode for a plan paid in the last 10 minutes and `newSubscription()` allows a 10 minute grace |
 | 1.26.4 | Fix: a reserved plan only started once the current plan's time had expired, so a customer whose traffic ran out while days remained never got their reservation. `ReserveJob::activateDue()` now treats a used-up quota the same as an expired plan - the reservation starts when the current plan's time is up or its traffic is used up; a dated reservation still waits for its date |
+| 1.27.0 | Card-to-card payments: a manual method on the checkout (the encoded gateway list cannot hold one). Several receiving cards, each with an amount and/or count cap per day / month / in total, rotating automatically when a cap is reached; the customer pays the exact order total and records the last four digits, payer name, date/time and an optional reference. A new request is announced on the admin Telegram chat with approve/reject buttons (signed one-time links, no webhook) and is also approvable in Settings -> Card to card; approval marks the order paid and grants it (time plans, reservations and wallet charges by their own jobs; normal plans and top-ups here, following the plan's renewal type), then tells the buyer in the panel, on Telegram and by e-mail. A job keeps waiting orders open, auto-rejects unanswered requests, and closes the Telegram buttons. New tables `c2c_card`, `c2c_request`, `c2c_notice` (migration 025). Off until switched on |
+| 1.27.1 | Card to card, minimal declaration: the buyer only enters the last four digits of their own card - the bank SMS already has the name, the time and the reference. Payer name, transfer date/time and reference moved into an optional "more details" section (pre-filled and editable); the admin Telegram message shows only the fields that were filled, plus the submission time. A rejection carries the admin's reason to the buyer's Telegram whenever they have started the bot, independently of the panel's Telegram master switch, and to the panel banner. |
