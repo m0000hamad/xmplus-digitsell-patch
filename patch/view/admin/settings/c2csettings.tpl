@@ -508,7 +508,17 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 		});
 	}
 
-	$(function () {
+	function ready(fn) {
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', fn);
+		} else {
+			fn();
+		}
+	}
+
+	// no jQuery here: the admin page loads it in the footer, after this
+	// inline script runs, so "$" does not exist yet at parse time
+	ready(function () {
 		load();
 
 		document.getElementById('cc_enabled').addEventListener('change', function () {

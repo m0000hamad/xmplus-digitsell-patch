@@ -1,7 +1,7 @@
 {
-    "version": "1.27.1",
+    "version": "1.27.2",
     "released": "2026-10-24",
-    "notes": "Card-to-card payments, a manual method the encoded gateway list cannot hold. Settings -> Card to card manages several receiving cards, each with its own cap (maximum amount and/or number of transfers, per day, per month or in total, 0 = no cap); the checkout always shows the first enabled card in sort order that still has room and rotates to the next one automatically. The buyer's declaration is deliberately minimal: only the last four digits of their own card are required, because the bank SMS already carries the name, the time and the reference. Payer name, transfer date/time and reference sit in an optional \"more details\" section, pre-filled and editable; the admin Telegram message shows whatever was filled plus the submission time and everything needed to match the transfer. Two approve/reject buttons ride on that message (signed one-time links opening a confirmation page - no bot webhook is needed), and the same decision can be made in Settings -> Card to card. Approval marks the order paid and grants what it bought: time plans, reserved plans and pay-as-you-go charges are picked up by their own jobs, a normal top-up adds its gigabytes, and a subscription follows the plan's renewal type (or always starts fresh, per the admin setting). The buyer sees the result in the pay dialog immediately and gets a confirmation banner on every customer page; a rejection carries the admin's reason to the buyer's Telegram whenever they have started the bot (independently of the panel's Telegram master switch) and to that banner. A minute job keeps waiting orders from being cancelled by the panel's own timeout, auto-rejects requests nobody looked at, removes the Telegram buttons once a request is decided, and retries any notification that failed. New tables c2c_card, c2c_request and c2c_notice (migration 025), off until switched on. Manifest and VERSION to 1.27.1.",
+    "notes": "Fix: the card-to-card admin section and the checkout dialog no longer rely on jQuery, which this panel loads in the footer after the inline scripts run, so at parse time `$` did not exist. Every button in Settings -> Card to card (Add card, Save, Save cards, approve/reject) was bound inside `$(function(){...})`, which never ran - the section rendered but stayed inert and the card list stayed empty. The admin manager now binds its listeners with a plain DOM-ready guard (no jQuery), and the checkout dialog opens through the Bootstrap Modal API. No other change.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -100,7 +100,7 @@
         "view/admin/plans/topupscopeform.tpl": "78aec7d0a0da0daf8840f03a241a888c55d565b99a85b02967f9a4dbbe8a31ea",
         "view/admin/servers/index.tpl": "5a9b819f8548aaabb103a995f7653b2ab4d694b7473a8defef42730f7bc9d6bc",
         "view/admin/settings/basicsettings.tpl": "1f353147218dbfe19be3c622a488d5e81348c5325101757cdbd9f00df7df89d1",
-        "view/admin/settings/c2csettings.tpl": "64cd425629bb0c21802e0b502e0592b9ab06088f34713ae704f255f96f8f0c66",
+        "view/admin/settings/c2csettings.tpl": "b13b0b21b18f2992d3a96c6ef06e5116575b5c849aa54ad63d84a87d9e9f7b89",
         "view/admin/settings/ovpnsettings.tpl": "172c3ae6e0839f6060c61b7e4245630ce81a8fad291039917daebb17c895f752",
         "view/admin/settings/patchsettings.tpl": "2fce4405190237c55d014fdf62e2cc1ed99b33ecfe8d37c8ac985929676f691d",
         "view/admin/settings/paygsettings.tpl": "10960cb8475026ddbf86d1e76fce67aeff31a9972139de427f96dffaadf9c4cb",
@@ -168,7 +168,7 @@
         "view/user/notice/notice.tpl": "f6409604fc8916676346395d67b23092bdd6136541db415a81438bf03d936da2",
         "view/user/order/invoice.tpl": "6d5d1020127cc41af0fa284ce5507bd11106d00facd164e99809696fbfa8822d",
         "view/user/order/orders.tpl": "5cfdb5dd108071a01beba8025c711974e799275693aefce2b5d0c2b2380781d2",
-        "view/user/pay/card2card.tpl": "72652e3f8e5e8a1b4e99b4c59786b087677f7e7c39656d1300dff045de673104",
+        "view/user/pay/card2card.tpl": "a4b2b8f4cc5bb59f92a3389570604cee5f93e6575e681a7a861a5a5eacef4162",
         "view/user/pay/cycle.tpl": "986851b438f33800689c6bf5b7191dd553aec6e06e8550fbc463f0209e7496c7",
         "view/user/pay/pay.tpl": "a5c2b95253cea220e1cdcb0d234f27ba0345ced82d346678b9a701521d7e19b1",
         "view/user/pay/summary.tpl": "162cb18218a2cfbcb8eb5b218c63ba57c727bb2bfda35755bdcbb2330017def7",
