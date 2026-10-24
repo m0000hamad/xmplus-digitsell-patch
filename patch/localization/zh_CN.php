@@ -2141,6 +2141,8 @@ $i18n['zh_CN'] = array(
 	'C2cAdmReset'               => "重置全部银行卡转账交易",
 	'C2cAdmResetAsk'            => "删除所有转账请求和确认消息？卡片和设置保持不变。",
 	'C2cAdmResetOk'             => "交易已重置。",
+	'C2cAdmName'                => "显示标题",
+	'C2cAdmNameHint'            => "在结账页、转账弹窗和客户消息中显示。留空 = 银行卡转账。",
 	'C2cAdmRejectHours'         => "自动拒绝（小时）",
 	'C2cAdmRejectHint'          => "0 表示从不自动拒绝。",
 	'C2cAdmHoldHours'           => "保持订单有效（小时）",
