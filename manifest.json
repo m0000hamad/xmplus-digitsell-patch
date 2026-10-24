@@ -1,7 +1,7 @@
 {
-    "version": "1.32.1",
+    "version": "1.32.2",
     "released": "2026-10-24",
-    "notes": "Fix on phones: the card-to-card dialog's close button could sit under the panel header, leaving no way to back out. The dialog is now scrollable and keeps its height inside the viewport, and a full-width \"انصراف\" (cancel) button sits at the bottom of the dialog in every state - form, waiting, rejected and approved. It closes the dialog, exactly like the X, and is reachable with a thumb.",
+    "notes": "Fix: the card-to-card dialog's title still sat under the panel's menu bar on phones. The dialog is now moved to <body> at runtime (so no page container's stacking context or transform can trap it), given a high z-index, aligned 72px from the top with a maximum height of the viewport minus that margin, and laid out as a flex column: the title and the cancel footer stay fixed while the body scrolls. The bottom \"انصراف\" button remains in every state.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -168,7 +168,7 @@
         "view/user/notice/notice.tpl": "f6409604fc8916676346395d67b23092bdd6136541db415a81438bf03d936da2",
         "view/user/order/invoice.tpl": "6d5d1020127cc41af0fa284ce5507bd11106d00facd164e99809696fbfa8822d",
         "view/user/order/orders.tpl": "5cfdb5dd108071a01beba8025c711974e799275693aefce2b5d0c2b2380781d2",
-        "view/user/pay/card2card.tpl": "b90261e8336b981c964d39588542ad22312034258dfd71a9b2610a7afb6c92ee",
+        "view/user/pay/card2card.tpl": "af062bff105babea844689999133e10f353aecdba41d182356485991b38cf457",
         "view/user/pay/cycle.tpl": "986851b438f33800689c6bf5b7191dd553aec6e06e8550fbc463f0209e7496c7",
         "view/user/pay/pay.tpl": "a5c2b95253cea220e1cdcb0d234f27ba0345ced82d346678b9a701521d7e19b1",
         "view/user/pay/summary.tpl": "162cb18218a2cfbcb8eb5b218c63ba57c727bb2bfda35755bdcbb2330017def7",

@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-24 Â· installed version **1.9.2** Â· latest release **1.32.1** Â· repo
+Last updated: 2026-10-24 Â· installed version **1.9.2** Â· latest release **1.32.2** Â· repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -578,3 +578,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.31.0 | Reset and test mode. Settings -> Card to card gets a "reset all card-to-card transactions" button (deletes `c2c_request` and `c2c_notice`; cards, settings and orders stay). `c2c_test_user` marks one account as a test account: its requests are applied but excluded from card caps and from the admin history (they still show while pending with a "تست" badge) and produce no customer notice; the Telegram admin message says "🧪 تست". 0 turns it off. |
 | 1.32.0 | The display title is editable (`c2c_title`, default "کارت به کارت", up to 60 characters) in Settings -> Card to card -> "Display title". It is used at checkout, in the dialog header, in the admin request message, in the buyer's approval/rejection message, in the bot's /start text, and as the order's payment-method label (shortened for the column). |
 | 1.32.1 | Mobile fix for the card-to-card dialog: it is scrollable and capped to the viewport, and a full-width "انصراف" button at the bottom closes it in every state (form, waiting, rejected, approved), so the top X is no longer the only way out. |
+| 1.32.2 | The dialog is moved to `<body>` at runtime (escaping the page's stacking context), gets a high z-index, starts 72px below the top and is capped to the viewport as a flex column: the title and the cancel footer stay fixed while the body scrolls. This fixes the title still sitting under the menu bar on phones. |
