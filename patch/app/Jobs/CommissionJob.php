@@ -61,11 +61,12 @@ class CommissionJob
 	 * row cannot or should not be paid (missing user, zero amount, already done).
 	 */
 	/*
-	 * One commission row. Where it lands depends on the settings and referrer:
+	 * One commission row. **Where** it lands is the admin's choice (the
+	 * affiliate page) or the customer's own pick when the admin allows one:
 	 *
-	 *   separate wallet on -> commission_wallet, spendable on plans only
-	 *   eligible for cash  -> left in payout_balance, ready to be withdrawn
-	 *   not eligible       -> moved into money, spendable inside the panel only
+	 *   payout -> left in payout_balance, ready to be withdrawn
+	 *   money  -> moved into user.money, spendable anywhere in the panel
+	 *   wallet -> commission_wallet, spendable on plans only
 	 *
 	 * Every path is written to commission_log so the dashboard can show it.
 	 */
@@ -90,19 +91,19 @@ class CommissionJob
 			return false;
 		}
 
-		$cashEligible = $user->planIsActive() && $user->hasContinuousSubscription();
+		$route = $user->commissionDestination();
 
 		$connection = DB::connection('default');
 		$connection->beginTransaction();
 
 		try {
-			if ($this->separateWallet()) {
+			if ($route === 'payout') {
+				// the checkout already put it in payout_balance, leave it there
+				$destination = 'payout';
+				$balance = (float) $user->payout_balance;
+			} elseif ($route === 'wallet' && $this->separateWallet()) {
 				// kept out of user.money: spendable on subscription plans only,
-				// through app/Patch/Payg.php (commission.apply). This wins over
-				// the cash route: with the separate wallet switched on, every
-				// commission lands here, whether or not the account could cash
-				// out - otherwise an active account's rows stayed in
-				// payout_balance, below the withdrawal minimum and invisible.
+				// through app/Patch/Payg.php (commission.apply)
 				$destination = 'wallet';
 				$pending = (float) $user->payout_balance - $amount;
 
@@ -129,12 +130,8 @@ class CommissionJob
 					'note'          => (string) $row->username,
 					'created'       => time(),
 				]);
-			} elseif ($cashEligible) {
-				// no separate wallet: an account that can cash out keeps the
-				// money in payout_balance, where the checkout already put it
-				$destination = 'payout';
-				$balance = (float) $user->payout_balance;
 			} else {
+				// user.money: spendable anywhere in the panel
 				$destination = 'wallet';
 				$balance = (float) $user->money + $amount;
 				$pending = (float) $user->payout_balance - $amount;

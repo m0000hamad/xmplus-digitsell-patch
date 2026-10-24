@@ -295,6 +295,8 @@ html[data-hs-theme="dark"] .af-btn-cash[disabled] { background: rgba(255, 255, 2
 		{include file='user/affiliate/stats.tpl'}
 	</div>
 
+	{include file='user/affiliate/commissionroute.tpl'}
+
 	<div class="row mb-3">
 		<div class="col-12">
 			{$canWithdraw = $user->canWithdraw()}

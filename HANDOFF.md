@@ -478,6 +478,16 @@ Watch out for these:
   A reported account's whole payout balance was moved into its commission
   wallet by hand; the other 85 payout balances (70 of them active and below the
   minimum) were left for the owner to decide on.
+- 1.33.0: the destination is a setting, not a rule. The admin picks
+  `commission_destination` (payout | money | wallet) in the affiliate page
+  (`view/admin/affiliates/option.tpl`, a new card saved through
+  `xmplus-patch.php?do=commission.routing`), and may switch on
+  `commission_user_choice` so the customer picks on the invite page
+  (`view/user/affiliate/commissionroute.tpl`, `commission.pref`). The customer's
+  pick lives in `commission_pref` (migration 026). Only new commission is
+  routed; existing balances stay where they are. Choosing `wallet` turns
+  `commission_wallet_enabled` on. With no setting saved, the legacy routing
+  above applies. The card-to-card gap remains.
 - Known gap: a card-to-card approval grants the plan directly
   (`Card2Card::c2cApplyOrder`) and never writes an `affiliate` row, so a
   purchase paid by card-to-card earns **no** referral commission yet.

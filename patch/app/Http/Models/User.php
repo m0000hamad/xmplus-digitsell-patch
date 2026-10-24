@@ -1071,7 +1071,8 @@ final class User extends Model
 		if (self::$paygSettings === null) {
 			try {
 				self::$paygSettings = DB::connection('default')->table('settings')
-					->whereIn('name', ['payg_enabled', 'payg_show_toman', 'payg_default_price', 'commission_wallet_enabled'])
+					->whereIn('name', ['payg_enabled', 'payg_show_toman', 'payg_default_price',
+						'commission_wallet_enabled', 'commission_destination', 'commission_user_choice'])
 					->pluck('value', 'name')->all();
 			} catch (\Throwable $e) {
 				self::$paygSettings = [];
@@ -1211,6 +1212,72 @@ final class User extends Model
 		} catch (\Throwable $e) {
 			return 0.0;
 		}
+	}
+
+	/* ------------------------------------------------------------------
+	 * Where a new commission lands: payout | money | wallet.
+	 *
+	 * The admin picks the default in the affiliate page; the customer may
+	 * override it only while the admin's "let them choose" switch is on.
+	 * With no default stored, the routing the panel shipped with applies
+	 * (wallet when that feature is on, otherwise cash for an active account
+	 * and money for everybody else).
+	 * ------------------------------------------------------------------ */
+
+	public function commissionDestinationDefault()
+	{
+		$value = (string) self::paygSetting('commission_destination', '');
+
+		if (in_array($value, ['payout', 'money', 'wallet'], true)) {
+			if ($value === 'wallet' && !$this->commissionWalletEnabled()) {
+				return 'money';
+			}
+
+			return $value;
+		}
+
+		if ($this->commissionWalletEnabled()) {
+			return 'wallet';
+		}
+
+		return $this->planIsActive() && $this->hasContinuousSubscription() ? 'payout' : 'money';
+	}
+
+	public function commissionChoiceEnabled()
+	{
+		return self::paygSetting('commission_user_choice', '0') === '1';
+	}
+
+	/* the customer's own pick, empty when they have not chosen */
+	public function commissionDestinationChoice()
+	{
+		try {
+			$value = (string) DB::connection('default')->table('commission_pref')
+				->where('userid', $this->id)->value('destination');
+		} catch (\Throwable $e) {
+			return '';
+		}
+
+		return in_array($value, ['payout', 'money', 'wallet'], true) ? $value : '';
+	}
+
+	/* where the next commission actually lands */
+	public function commissionDestination()
+	{
+		$destination = $this->commissionDestinationDefault();
+
+		if ($this->commissionChoiceEnabled()) {
+			$choice = $this->commissionDestinationChoice();
+			if ($choice !== '') {
+				$destination = $choice;
+			}
+		}
+
+		if ($destination === 'wallet' && !$this->commissionWalletEnabled()) {
+			return 'money';
+		}
+
+		return $destination;
 	}
 
 	/* ------------------------------------------------------------------
