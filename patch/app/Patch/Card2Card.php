@@ -1362,8 +1362,10 @@ function c2cApprove(int $id, string $by, string $note = ''): array
         throw new RuntimeException('request not found');
     }
 
+    // A duplicate tap (Telegram opens the link, then the admin taps again, or a
+    // message is opened twice) must read as done, not as a failure.
     if ((int) $request['status'] !== 0) {
-        throw new RuntimeException('this request was already decided');
+        return ['request' => $request, 'order' => null, 'grant' => ['mode' => 'already-decided']];
     }
 
     $order = null;
@@ -1378,8 +1380,17 @@ function c2cApprove(int $id, string $by, string $note = ''): array
         throw new RuntimeException('the order behind this request is gone');
     }
 
+    // The order is already paid - through a gateway, the panel itself, or an
+    // earlier tap whose write landed between our reads. Close the request
+    // without granting anything a second time and report it as handled.
     if ((int) $order['status'] === 1) {
-        throw new RuntimeException('this order was already paid another way');
+        $closed = c2cCloseAsPaid($id, $by, $order);
+
+        return [
+            'request' => $closed ?? (c2cRequestById($id) ?? $request),
+            'order'   => $order,
+            'grant'   => ['mode' => $closed !== null ? 'already-paid' : 'already-decided'],
+        ];
     }
 
     $note = trim($note);
@@ -1412,6 +1423,42 @@ function c2cApprove(int $id, string $by, string $note = ''): array
     }
 
     return ['request' => $request, 'order' => $order, 'grant' => $grant];
+}
+
+/**
+ * The order is already paid, so nothing may be granted again. The request is
+ * closed as approved with a note saying why, and the buyer is told that their
+ * card payment was received (the admin confirmed it by tapping approve).
+ */
+function c2cCloseAsPaid(int $id, string $by, array $order): ?array
+{
+    db()->beginTransaction();
+
+    try {
+        $claim = db()->prepare(
+            'UPDATE c2c_request
+                SET status = 1, decided_at = ?, decided_by = ?,
+                    note = ?, user_sent = 0, tg_closed = 0
+              WHERE id = ? AND status = 0');
+        $claim->execute([time(), $by, 'سفارش قبلاً پرداخت شده بود؛ اعمال دوباره انجام نشد', $id]);
+
+        if ($claim->rowCount() < 1) {
+            db()->rollBack();
+            return null;
+        }
+
+        $request = c2cRequestById($id);
+        if ($request !== null) {
+            c2cNotice($request, $order, 'approved');
+        }
+
+        db()->commit();
+
+        return $request;
+    } catch (Throwable $error) {
+        db()->rollBack();
+        throw $error;
+    }
 }
 
 function c2cReject(int $id, string $by, string $reason): void
@@ -1553,13 +1600,26 @@ function c2cDecidePage(): void
     try {
         if ($act === 'approve') {
             $result = c2cApprove($id, 'telegram', 'تایید از تلگرام');
+            $mode = (string) ($result['grant']['mode'] ?? '');
             $expire = isset($result['grant']['expire']) ? (string) $result['grant']['expire'] : '';
+
+            $heading = '✅ پرداخت تایید شد';
+            $note = 'بسته اعمال شد و به مشتری اطلاع داده می‌شود.';
+
+            if ($mode === 'already-paid') {
+                $heading = '✅ درخواست بسته شد';
+                $note = 'این سفارش قبلاً پرداخت شده بود؛ بسته دوباره اعمال نشد و فقط درخواست کارت به کارت بسته شد.';
+            } elseif ($mode === 'already-decided') {
+                $heading = '✅ قبلاً بررسی شده بود';
+                $note = 'این درخواست پیش‌تر بررسی شده است؛ کار دیگری لازم نیست.';
+            }
+
             c2cHtml(
-                '<h1>✅ پرداخت تایید شد</h1>'
+                '<h1>' . $heading . '</h1>'
                 . '<div class="row"><span>درخواست</span><span>#' . $id . '</span></div>'
                 . '<div class="row"><span>مبلغ</span><span>' . $amount . ' ریال</span></div>'
                 . ($expire !== '' ? '<div class="row"><span>اعتبار تا</span><span>' . htmlspecialchars($expire, ENT_QUOTES, 'UTF-8') . '</span></div>' : '')
-                . '<p class="muted">بسته اعمال شد و به مشتری اطلاع داده می‌شود.</p>',
+                . '<p class="muted">' . $note . '</p>',
                 'تایید شد');
         }
 
