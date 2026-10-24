@@ -1673,7 +1673,9 @@ function c2cApprove(int $id, string $by, string $note = ''): array
 
     $note = trim($note);
     if (strlen($note) > 255) {
-        $note = substr($note, 0, 255);
+        $note = function_exists('mb_substr')
+            ? mb_substr($note, 0, 255, 'UTF-8')
+            : substr($note, 0, 255);
     }
 
     db()->beginTransaction();
@@ -1760,7 +1762,9 @@ function c2cReject(int $id, string $by, string $reason): void
 
     $reason = trim($reason);
     if (strlen($reason) > 255) {
-        $reason = substr($reason, 0, 255);
+        $reason = function_exists('mb_substr')
+            ? mb_substr($reason, 0, 255, 'UTF-8')
+            : substr($reason, 0, 255);
     }
 
     db()->beginTransaction();
@@ -1879,12 +1883,20 @@ function c2cDecidePage(): void
 
     // one tap, no form: the button in Telegram performs the decision straight
     // away (the one-time token is the whole credential). The browser opens for
-    // a moment and shows the outcome.
+    // a moment and shows the outcome. An optional reason (POSTed by the bot's
+    // reason prompt) is stored with a rejection.
     $amount = c2cMoney((float) $request['amount']);
+
+    $reason = trim((string) ($_POST['note'] ?? $_GET['note'] ?? ''));
+    if (strlen($reason) > 255) {
+        $reason = function_exists('mb_substr')
+            ? mb_substr($reason, 0, 255, 'UTF-8')
+            : substr($reason, 0, 255);
+    }
 
     try {
         if ($act === 'approve') {
-            $result = c2cApprove($id, 'telegram', 'تایید از تلگرام');
+            $result = c2cApprove($id, 'telegram', $reason !== '' ? $reason : 'تایید از تلگرام');
             $mode = (string) ($result['grant']['mode'] ?? '');
             $expire = isset($result['grant']['expire']) ? (string) $result['grant']['expire'] : '';
 
@@ -1908,11 +1920,12 @@ function c2cDecidePage(): void
                 'تایید شد');
         }
 
-        c2cReject($id, 'telegram', 'رد از تلگرام');
+        c2cReject($id, 'telegram', $reason !== '' ? $reason : 'رد از تلگرام');
         c2cHtml(
             '<h1>❌ درخواست رد شد</h1>'
             . '<div class="row"><span>درخواست</span><span>#' . $id . '</span></div>'
             . '<div class="row"><span>مبلغ</span><span>' . $amount . ' ریال</span></div>'
+            . ($reason !== '' ? '<div class="row"><span>دلیل</span><span>' . htmlspecialchars($reason, ENT_QUOTES, 'UTF-8') . '</span></div>' : '')
             . '<p class="muted">مشتری پیام رد شدن را در پنل می‌بیند.</p>',
             'رد شد');
     } catch (Throwable $error) {
@@ -1923,12 +1936,40 @@ function c2cDecidePage(): void
 
 // -------------------------------------------------------- the bot webhook
 
+/** The rejection waiting for its reason: chat id, request, original message. */
+function c2cPendingRead(): ?array
+{
+    $raw = c2cSetting('c2c_bot_pending', '');
+
+    if ($raw === '') {
+        return null;
+    }
+
+    $data = json_decode($raw, true);
+
+    if (!is_array($data) || (int) ($data['created'] ?? 0) < time() - 1800) {
+        return null;
+    }
+
+    return $data;
+}
+
+function c2cPendingSave(array $data): void
+{
+    putSetting('c2c_bot_pending', (string) json_encode($data));
+}
+
+function c2cPendingClear(): void
+{
+    putSetting('c2c_bot_pending', '');
+}
+
 /**
  * Telegram posts callback queries here (the dedicated bot's webhook). The
- * buttons decide on the spot: approve applies the order, reject closes it with
- * a reason, and the buttons are removed from the message so it cannot be used
- * again. Only the secret header Telegram sends, plus a chat in the admin list,
- * is accepted.
+ * buttons decide on the spot: approve applies the order, reject asks for a
+ * reason first, and the buttons are removed from the message so it cannot be
+ * used again. Only the secret header Telegram sends, plus a chat in the admin
+ * list, is accepted.
  */
 function c2cTelegramWebhook(): void
 {
@@ -1951,11 +1992,85 @@ function c2cTelegramWebhook(): void
 
     $chats = array_map('strval', c2cChats());
 
-    // /start (or any chat message): tell the admin this bot is ready
+    // A text message from the admin: either the reason for a pending rejection
+    // or /start.
     if (isset($update['message'])) {
         $chatId = (string) ($update['message']['chat']['id'] ?? '');
+        $text = trim((string) ($update['message']['text'] ?? ''));
 
-        if (in_array($chatId, $chats, true)) {
+        if (!in_array($chatId, $chats, true)) {
+            done(['ok' => true]);
+        }
+
+        $pending = c2cPendingRead();
+
+        if ($pending !== null && (string) ($pending['chat'] ?? '') === $chatId) {
+            if ($text === '/cancel') {
+                c2cPendingClear();
+                c2cApiWith($token, 'sendMessage', [
+                    'chat_id' => $chatId,
+                    'text'    => 'لغو شد؛ درخواست بدون تغییر باقی ماند.',
+                ]);
+                done(['ok' => true]);
+            }
+
+            if ($text !== '' && $text[0] === '/' && $text !== '/skip') {
+                c2cApiWith($token, 'sendMessage', [
+                    'chat_id' => $chatId,
+                    'text'    => 'دلیل را به‌صورت متن بنویسید، یا /skip برای رد بدون دلیل و /cancel برای انصراف.',
+                ]);
+                done(['ok' => true]);
+            }
+
+            $reason = $text === '/skip' ? '' : $text;
+            if (strlen($reason) > 255) {
+                $reason = function_exists('mb_substr')
+                    ? mb_substr($reason, 0, 255, 'UTF-8')
+                    : substr($reason, 0, 255);
+            }
+
+            $request = c2cRequestById((int) ($pending['id'] ?? 0));
+
+            if ($request === null || (int) $request['status'] !== 0) {
+                c2cPendingClear();
+                c2cApiWith($token, 'sendMessage', [
+                    'chat_id' => $chatId,
+                    'text'    => 'این درخواست دیگر در انتظار نیست.',
+                ]);
+                done(['ok' => true]);
+            }
+
+            try {
+                c2cReject((int) $request['id'], 'telegram', $reason !== '' ? $reason : 'رد از تلگرام');
+
+                $original = (string) ($pending['text'] ?? '');
+                $result = '❌ رد شد' . ($reason !== '' ? "\n📝 دلیل: " . $reason : '');
+
+                if ((int) ($pending['message'] ?? 0) > 0 && $original !== '') {
+                    c2cApiWith($token, 'editMessageText', [
+                        'chat_id'      => $chatId,
+                        'message_id'   => (int) $pending['message'],
+                        'text'         => $original . "\n\n" . $result,
+                        'reply_markup' => json_encode(['inline_keyboard' => []]),
+                    ]);
+                }
+
+                c2cApiWith($token, 'sendMessage', [
+                    'chat_id' => $chatId,
+                    'text'    => 'رد شد و دلیل برای مشتری ارسال می‌شود.',
+                ]);
+            } catch (Throwable $error) {
+                c2cApiWith($token, 'sendMessage', [
+                    'chat_id' => $chatId,
+                    'text'    => 'انجام نشد: ' . $error->getMessage(),
+                ]);
+            }
+
+            c2cPendingClear();
+            done(['ok' => true]);
+        }
+
+        if ($text === '/start' || $text === '') {
             c2cApiWith($token, 'sendMessage', [
                 'chat_id' => $chatId,
                 'text'    => 'این ربات برای تایید/رد کارت به کارت است. پیام هر درخواست همین‌جا می‌آید و با دکمه‌های همان پیام تایید یا رد می‌شود.',
@@ -1996,8 +2111,21 @@ function c2cTelegramWebhook(): void
                 $mode = (string) ($result['grant']['mode'] ?? '');
                 $answer = $mode === 'already-paid' ? 'سفارش قبلاً پرداخت شده بود؛ درخواست بسته شد' : 'تایید شد';
             } else {
-                c2cReject($id, 'telegram', 'رد از تلگرام');
-                $answer = 'رد شد';
+                // ask for the reason; the next text message in this chat completes it
+                c2cPendingSave([
+                    'chat'    => $chatId,
+                    'id'      => $id,
+                    'message' => $messageId,
+                    'text'    => (string) ($callback['message']['text'] ?? ''),
+                    'created' => time(),
+                ]);
+
+                $answer = 'دلیل رد را بنویسید';
+
+                c2cApiWith($token, 'sendMessage', [
+                    'chat_id' => $chatId,
+                    'text'    => "📝 دلیل رد درخواست #{$id} را بنویسید.\n/skip = رد بدون دلیل · /cancel = انصراف",
+                ]);
             }
         } catch (Throwable $error) {
             $answer = 'انجام نشد: ' . $error->getMessage();

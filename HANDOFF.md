@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-24 Â· installed version **1.9.2** Â· latest release **1.29.0** Â· repo
+Last updated: 2026-10-24 Â· installed version **1.9.2** Â· latest release **1.30.0** Â· repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -574,3 +574,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.28.0 | Card to card approvals can happen entirely inside Telegram. A dedicated bot token (Settings -> Card to card) is registered as a webhook on save (`xmplus-patch.php?do=c2c.tgwebhook`, verified by Telegram's secret header); the admin message then carries callback buttons, so approve/reject decides on the spot, shows a toast and removes the buttons - no page opens. The callback payload is `c2c|a|id|hmac`, and only the configured admin chats may decide. Without a dedicated token the one-tap URL buttons remain. Customer notices still use the panel bot. |
 | 1.28.1 | Fix: a card's cap counts only **approved** payments, so abandoned/pending test requests no longer keep a card full and hide card to card at checkout. The amount cap is in rial and the hint now says so. The support handle (`c2c_support`, default `@digitsellshop`) is shown in the buyer's approval/rejection message, in the panel rejection reason, and in the checkout dialog. |
 | 1.29.0 | Fix: dedicated-bot callbacks spun forever because Telegram could not reach the panel's webhook through the CDN, so answerCallbackQuery never ran. The bot now polls `getUpdates` from `bin/c2c.php` (mode `poll`, the default) and applies a tap through the same `c2c.decide` endpoint the URL buttons use, then answers the callback and edits the message with the outcome. Only outbound Telegram access is needed. `webhook` mode remains a setting for hosts Telegram can reach. |
+| 1.30.0 | Rejection reasons from Telegram: tapping "❌ رد" asks the bot for the reason (text reply; `/skip` = no reason, `/cancel` = keep it pending), then rejects with that reason and edits the original message. The reason is stored in `c2c_request.note`, so the panel banner, the Telegram/e-mail notice and the support line all carry it. The site's note field already did this. Polling picks the reply up within a minute. |

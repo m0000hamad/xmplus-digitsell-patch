@@ -1,7 +1,7 @@
 {
-    "version": "1.29.0",
+    "version": "1.30.0",
     "released": "2026-10-24",
-    "notes": "Fix: the dedicated bot's callbacks spun forever because the webhook never reached the panel - Telegram's servers cannot get through the CDN to xmplus-patch.php, so answerCallbackQuery never ran. The dedicated bot now uses polling by default: bin/c2c.php pulls getUpdates each minute (after clearing any webhook once), verifies the signed callback and the admin chat, applies the decision through the same c2c.decide endpoint the URL buttons use (so the grant logic cannot drift), answers the callback, and edits the message with the outcome and no buttons. Only outbound access to Telegram is needed, which the panel already has for sending messages. A tap is applied within a minute; the client spinner may stop before the toast arrives, but the message itself updates to \"تایید شد\" / \"رد شد\". Webhook mode is still available in Settings -> Card to card -> How approvals are received, for a host Telegram can reach.",
+    "notes": "Rejection with a reason. In Telegram, tapping \"❌ رد\" no longer rejects at once: the bot asks for the reason (a text reply; /skip rejects with no reason, /cancel leaves the request pending), then rejects with that reason and edits the original message to show the decision and the reason. The reason reaches the buyer in the panel banner and in the Telegram/e-mail notice exactly as the site's reason does. The site already took a reason from the note field and still does. Polling picks the prompt reply up within a minute. Nothing changes for approvals.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -39,7 +39,7 @@
         "app/Http/Models/Ticket.php": "2725842f26f84d4f01be5d30001468591221cd7d95571ddbc47304840ee5c2a0",
         "app/Http/Models/TrafficDaily.php": "f67b2efe0fb0a261f17ef7aae4aebe133db2e9b5608288112890d8a28bf75906",
         "app/Http/Models/User.php": "606b68ebe5e74ffcacf23a0c9ca5f3e144f246e77ab338a76fedada3b7b022f0",
-        "app/Jobs/Card2CardJob.php": "70576029cedcfc8547d45a231107e95dcaeef1d41c8308fac1d0bc9f5a1514dc",
+        "app/Jobs/Card2CardJob.php": "45d5258e3f7cb5ba73d17e3c4531db277e79dd2ca80e2fd53359d9819b3cc1d4",
         "app/Jobs/CommissionJob.php": "a43661cc8bfb851e5a96a637401c96863cc4d52b45bd2de63eea0b7c2935fda2",
         "app/Jobs/GiftCardNotifyJob.php": "8b9d1d517e33c2e5ac515649fc26b1910879c69f5eb202f454f71296a0ea45b0",
         "app/Jobs/LogsJob.php": "1226dc5987cd1b81692b3a86347f7fd6ae32ddc84c4f4a2f1f2546d71c340139",
@@ -52,7 +52,7 @@
         "app/Jobs/TrafficStatsJob.php": "8cde9d7167ed068664d9f31ce4e25ac43e7884be866d3689d6507c12d34d247e",
         "app/Jobs/UserJob.php": "622ce66f3fe2987ec01917ab3cbc050d9023aa96d440ec9d80a091d5353c4428",
         "app/Jobs/WgJob.php": "18cb2830467f83831ffed92c4d2ac3d87ae481e520a71ca30b569711c1746c40",
-        "app/Patch/Card2Card.php": "b1f37381fc31441cef7869866a3cd43091bbd7d87b1834dd98287d234f080916",
+        "app/Patch/Card2Card.php": "c35f6e37a34e9fc25f52bbc8d433a62d83dd5fbae47fc643ae0c5371166aa57b",
         "app/Patch/Dashboard.php": "f98274de6fb67b1dcc13a876d0d091bba2fc2652f04d460d93d97c79872a9df8",
         "app/Patch/NodeApi.php": "b6bc5fd0f9ada2371fe00af41c9a286f8a24ca52c4934e010420e9c4fd1d2ea0",
         "app/Patch/NodeKey.php": "ab67bacaa6f708d2d29ffef76f1c1c06b5fbd02668a36cf422ce95f983bf281f",
