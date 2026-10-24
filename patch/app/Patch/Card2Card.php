@@ -623,15 +623,16 @@ function c2cApplyOrder(array $order): array
         return ['mode' => 'deferred', 'kind' => 'reserve'];
     }
 
-    if (($order['package_type'] ?? null) === null) {
-        throw new RuntimeException('the package behind this order is gone; restore it and approve again');
-    }
+    $hasPackage = ($order['package_type'] ?? null) !== null;
 
-    $note = (string) ($order['package_note'] ?? '');
+    // A live package carries the marker that says another job owns the grant.
+    if ($hasPackage) {
+        $note = (string) ($order['package_note'] ?? '');
 
-    foreach ([C2C_MARKER_TIME, C2C_MARKER_CHARGE, C2C_MARKER_RESERVE] as $marker) {
-        if (strpos($note, $marker) !== false) {
-            return ['mode' => 'deferred'];
+        foreach ([C2C_MARKER_TIME, C2C_MARKER_CHARGE, C2C_MARKER_RESERVE] as $marker) {
+            if (strpos($note, $marker) !== false) {
+                return ['mode' => 'deferred'];
+            }
         }
     }
 
@@ -647,7 +648,13 @@ function c2cApplyOrder(array $order): array
     }
 
     $type = (int) ($order['packagetype'] ?? 0);
-    $bandwidth = (float) ($order['package_bandwidth'] ?? 0);
+
+    // The order snapshots the bandwidth it was sold with (`orders.bandwidth`),
+    // so a package deleted after the checkout is not fatal.
+    $bandwidth = $hasPackage
+        ? (float) ($order['package_bandwidth'] ?? 0)
+        : (float) ($order['bandwidth'] ?? 0);
+
     $quota = $bandwidth * C2C_GB;
 
     // ---- traffic top-up: add the gigabytes, leave the plan alone ---------
@@ -655,9 +662,13 @@ function c2cApplyOrder(array $order): array
         if ($quota > 0) {
             db()->prepare('UPDATE user SET transfer_enable = transfer_enable + ? WHERE id = ?')
                 ->execute([$quota, $userId]);
+
+            return ['mode' => 'topup', 'gb' => $bandwidth, 'snapshot' => !$hasPackage];
         }
 
-        return ['mode' => 'topup', 'gb' => $bandwidth];
+        // a marked top-up (time plan, wallet charge, reserve) with no package
+        // left to identify it: the order is paid, the owning job takes over
+        return ['mode' => 'deferred', 'kind' => 'topup'];
     }
 
     if ($type !== 2) {
@@ -678,10 +689,16 @@ function c2cApplyOrder(array $order): array
         throw new RuntimeException('the order carries no plan length');
     }
 
+    // no package and no bandwidth in the order snapshot: rebuilding the plan
+    // would wipe whatever traffic the account has, so leave it to the admin
+    if (!$hasPackage && $quota <= 0) {
+        return ['mode' => 'deferred', 'kind' => 'no-bandwidth'];
+    }
+
     $current = strtotime((string) $user['expire_in']) ?: 0;
     $active = $current > $now;
 
-    $renewType = (int) ($order['package_renew'] ?? 0);
+    $renewType = $hasPackage ? (int) ($order['package_renew'] ?? 0) : 0;
     if ($renewType < 1 || $renewType > 6) {
         $renewType = 1;
     }
@@ -697,19 +714,19 @@ function c2cApplyOrder(array $order): array
     $expireAt = $onetime ? $now + 36500 * 86400 : $now + max(1, $days) * 86400;
     $extendAt = $onetime ? $expireAt : max($now, $current) + max(1, $days) * 86400;
 
-    $base = [
-        'packageid'    => (int) $order['packageid'],
-        'plan'         => $cycle,
-        'server_group' => (int) ($order['package_group'] ?? 0),
-        'iplimit'      => (int) ($order['package_iplimit'] ?? 0),
-        'speedlimit'   => (int) ($order['package_speedlimit'] ?? 0),
-    ];
+    $sets = ['packageid = ?', 'plan = ?'];
+    $args = [(int) $order['packageid'], $cycle];
 
-    $sets = ['packageid = ?', 'plan = ?', 'server_group = ?', 'iplimit = ?', 'speedlimit = ?'];
-    $args = [
-        $base['packageid'], $base['plan'], $base['server_group'],
-        $base['iplimit'], $base['speedlimit'],
-    ];
+    // a live package also carries the routing limits; without it keep the
+    // account's current ones instead of zeroing them
+    if ($hasPackage) {
+        $sets[] = 'server_group = ?';
+        $args[] = (int) ($order['package_group'] ?? 0);
+        $sets[] = 'iplimit = ?';
+        $args[] = (int) ($order['package_iplimit'] ?? 0);
+        $sets[] = 'speedlimit = ?';
+        $args[] = (int) ($order['package_speedlimit'] ?? 0);
+    }
 
     $addBytes = static function (float $bytes) use (&$sets, &$args): void {
         $sets[] = 'transfer_enable = transfer_enable + ?';
@@ -1412,6 +1429,13 @@ function c2cApprove(int $id, string $by, string $note = ''): array
         }
 
         $grant = c2cGrantOrder($order);
+
+        // the package was gone and the grant used the order's own snapshot:
+        // leave a trace on the request for the admin
+        if (!empty($grant['snapshot'])) {
+            db()->prepare('UPDATE c2c_request SET note = ? WHERE id = ?')
+                ->execute(['بسته حذف شده بود؛ از اطلاعات سفارش اعمال شد', $id]);
+        }
 
         $request = c2cRequestById($id) ?? $request;
         c2cNotice($request, $order, 'approved');
