@@ -428,7 +428,11 @@ function c2cDecideUrl(array $row, string $act): string
 
 function c2cApi(string $method, array $params): ?array
 {
-    $token = c2cTelegramToken();
+    return c2cApiWith(c2cTelegramToken(), $method, $params);
+}
+
+function c2cApiWith(string $token, string $method, array $params): ?array
+{
     if ($token === '') {
         return null;
     }
@@ -446,6 +450,128 @@ function c2cApi(string $method, array $params): ?array
     curl_close($ch);
 
     return $body === false ? null : json_decode($body, true);
+}
+
+/** The optional bot dedicated to card-to-card approvals. */
+function c2cBotToken(): string
+{
+    return trim(c2cSetting('c2c_bot_token', ''));
+}
+
+function c2cBotSecret(): string
+{
+    return trim(c2cSetting('c2c_bot_secret', ''));
+}
+
+/** The bot that talks to the admin: the dedicated one when configured. */
+function c2cAdminBotToken(): string
+{
+    $bot = c2cBotToken();
+
+    return $bot !== '' ? $bot : c2cTelegramToken();
+}
+
+function c2cNewSecret(): string
+{
+    return bin2hex(random_bytes(16));
+}
+
+function c2cCallbackSig(int $id, string $act): string
+{
+    $secret = c2cBotSecret();
+
+    if ($secret === '') {
+        return '';
+    }
+
+    return substr(hash_hmac('sha256', $act . '|' . $id, $secret), 0, 20);
+}
+
+function c2cCallbackData(int $id, string $act): string
+{
+    return 'c2c|' . ($act === 'approve' ? 'a' : 'r') . '|' . $id . '|' . c2cCallbackSig($id, $act);
+}
+
+/** Splits and verifies a callback_data payload. */
+function c2cCallbackParse(string $data, ?int &$id, ?string &$act): bool
+{
+    $id = 0;
+    $act = '';
+
+    $parts = explode('|', $data);
+    if (count($parts) !== 4 || $parts[0] !== 'c2c') {
+        return false;
+    }
+
+    $act = $parts[1] === 'a' ? 'approve' : ($parts[1] === 'r' ? 'reject' : '');
+    if ($act === '') {
+        return false;
+    }
+
+    $id = (int) $parts[2];
+    $expected = c2cCallbackSig($id, $act);
+
+    return $id > 0 && $expected !== '' && hash_equals($expected, (string) $parts[3]);
+}
+
+function c2cWebhookUrl(): string
+{
+    return c2cSiteUrl() . '/xmplus-patch.php?do=c2c.tgwebhook';
+}
+
+/** Registers the dedicated bot's webhook. Returns [ok, message]. */
+function c2cSetWebhook(string $token, string $secret): array
+{
+    $url = c2cWebhookUrl();
+
+    if (!preg_match('~^https://~i', $url)) {
+        return [false, 'the site URL is not absolute'];
+    }
+
+    $answer = c2cApiWith($token, 'setWebhook', [
+        'url'             => $url,
+        'secret_token'    => $secret,
+        'allowed_updates' => json_encode(['callback_query', 'message']),
+    ]);
+
+    if (!is_array($answer) || empty($answer['ok'])) {
+        return [false, (string) ($answer['description'] ?? 'Telegram did not accept the webhook')];
+    }
+
+    return [true, ''];
+}
+
+function c2cUsesCallbacks(): bool
+{
+    return c2cBotToken() !== '' && c2cBotSecret() !== '';
+}
+
+/**
+ * The inline keyboard for the admin message: callback buttons when a dedicated
+ * bot is configured (the decision happens inside Telegram), URL buttons
+ * otherwise (the decision happens when the page opens).
+ */
+function c2cKeyboard(array $row): ?string
+{
+    if (c2cUsesCallbacks()) {
+        return json_encode([
+            'inline_keyboard' => [[
+                ['text' => '✅ تایید', 'callback_data' => c2cCallbackData((int) $row['id'], 'approve')],
+                ['text' => '❌ رد', 'callback_data' => c2cCallbackData((int) $row['id'], 'reject')],
+            ]],
+        ], JSON_UNESCAPED_UNICODE);
+    }
+
+    if (preg_match('~^https?://~i', c2cSiteUrl())) {
+        return json_encode([
+            'inline_keyboard' => [[
+                ['text' => '✅ تایید', 'url' => c2cDecideUrl($row, 'approve')],
+                ['text' => '❌ رد', 'url' => c2cDecideUrl($row, 'reject')],
+            ]],
+        ], JSON_UNESCAPED_UNICODE);
+    }
+
+    return null;
 }
 
 function c2cMoney(float $amount): string
@@ -499,7 +625,9 @@ function c2cAdminText(array $row, array $order, ?array $card): string
 function c2cSendAdmin(array $row): bool
 {
     $chats = c2cChats();
-    if ($chats === [] || c2cTelegramToken() === '') {
+    $token = c2cAdminBotToken();
+
+    if ($chats === [] || $token === '') {
         return false;
     }
 
@@ -514,18 +642,7 @@ function c2cSendAdmin(array $row): bool
     $card = c2cCardById((int) $row['cardid']);
     $text = c2cAdminText($row, $order === null ? $row : $order, $card);
 
-    $keyboard = null;
-
-    // a Telegram URL button needs an absolute URL; without one the message
-    // still goes out, just without the buttons (approval from the panel works)
-    if (preg_match('~^https?://~i', c2cSiteUrl())) {
-        $keyboard = json_encode([
-            'inline_keyboard' => [[
-                ['text' => '✅ تایید', 'url' => c2cDecideUrl($row, 'approve')],
-                ['text' => '❌ رد', 'url' => c2cDecideUrl($row, 'reject')],
-            ]],
-        ], JSON_UNESCAPED_UNICODE);
-    }
+    $keyboard = c2cKeyboard($row);
 
     $sentTo = [];
     $firstMessage = 0;
@@ -540,7 +657,7 @@ function c2cSendAdmin(array $row): bool
             $params['reply_markup'] = $keyboard;
         }
 
-        $answer = c2cApi('sendMessage', $params);
+        $answer = c2cApiWith($token, 'sendMessage', $params);
 
         if (is_array($answer) && !empty($answer['ok'])) {
             $sentTo[] = $chat;
@@ -1131,6 +1248,12 @@ function c2cAdminData(): array
         'site_url'     => c2cSetting('c2c_site_url', ''),
         'fallback_chat' => c2cSetting('telegramchatid', ''),
         'telegram'     => c2cTelegramToken() !== '',
+        'bot_token'    => c2cBotToken(),
+        'bot_secret'   => c2cBotSecret() !== '' ? 1 : 0,
+        'webhook_url'  => c2cWebhookUrl(),
+        'webhook_ok'   => c2cSetting('c2c_bot_webhook_ok', '0') === '1' ? 1 : 0,
+        'webhook_error' => c2cSetting('c2c_bot_webhook_error', ''),
+        'callbacks'    => c2cUsesCallbacks() ? 1 : 0,
     ];
 
     $cards = [];
@@ -1240,6 +1363,15 @@ function c2cAdminSettings(): void
     $hold = c2cInt($_POST['hold_hours'] ?? 48, 48);
     $mode = (string) ($_POST['grant_mode'] ?? 'auto');
     $site = trim((string) ($_POST['site_url'] ?? ''));
+    $bot = trim((string) ($_POST['bot_token'] ?? ''));
+
+    if ($bot !== '' && !preg_match('~^\d{5,}:[A-Za-z0-9_-]{20,}$~', $bot)) {
+        fail('the bot token does not look like a Telegram bot token');
+    }
+
+    if ($bot !== '' && $bot !== c2cBotToken() && $site === '' && !preg_match('~^https://~i', c2cSiteUrl())) {
+        fail('set the site URL first: the webhook must be an absolute HTTPS address');
+    }
 
     if ($reject < 0 || $reject > 8760) {
         fail('the auto-reject window must be between 0 and 8760 hours');
@@ -1264,6 +1396,52 @@ function c2cAdminSettings(): void
     putSetting('c2c_hold_hours', (string) $hold);
     putSetting('c2c_grant_mode', $mode);
     putSetting('c2c_site_url', rtrim($site, '/'));
+    putSetting('c2c_bot_token', $bot);
+
+    // a dedicated bot needs a secret: it is both the webhook header and the
+    // key that signs the callback buttons
+    $secret = c2cBotSecret();
+    if ($bot !== '' && $secret === '') {
+        $secret = c2cNewSecret();
+        putSetting('c2c_bot_secret', $secret);
+    }
+
+    if ($bot !== '' && $secret !== '') {
+        list($ok, $error) = c2cSetWebhook($bot, $secret);
+        putSetting('c2c_bot_webhook_ok', $ok ? '1' : '0');
+        putSetting('c2c_bot_webhook_error', $error);
+    } else {
+        putSetting('c2c_bot_webhook_ok', '0');
+        putSetting('c2c_bot_webhook_error', '');
+    }
+
+    done(['saved' => 1] + c2cAdminData());
+}
+
+function c2cAdminWebhook(): void
+{
+    requireAdmin();
+    requireToken();
+
+    $token = c2cBotToken();
+    $secret = c2cBotSecret();
+
+    if ($token === '') {
+        fail('set the bot token first');
+    }
+
+    if ($secret === '') {
+        $secret = c2cNewSecret();
+        putSetting('c2c_bot_secret', $secret);
+    }
+
+    list($ok, $error) = c2cSetWebhook($token, $secret);
+    putSetting('c2c_bot_webhook_ok', $ok ? '1' : '0');
+    putSetting('c2c_bot_webhook_error', $error);
+
+    if (!$ok) {
+        fail('setWebhook failed: ' . $error);
+    }
 
     done(['saved' => 1] + c2cAdminData());
 }
@@ -1660,6 +1838,108 @@ function c2cDecidePage(): void
     }
 }
 
+// -------------------------------------------------------- the bot webhook
+
+/**
+ * Telegram posts callback queries here (the dedicated bot's webhook). The
+ * buttons decide on the spot: approve applies the order, reject closes it with
+ * a reason, and the buttons are removed from the message so it cannot be used
+ * again. Only the secret header Telegram sends, plus a chat in the admin list,
+ * is accepted.
+ */
+function c2cTelegramWebhook(): void
+{
+    $secret = c2cBotSecret();
+    $sent = (string) ($_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] ?? '');
+
+    if ($secret === '' || !hash_equals($secret, $sent)) {
+        fail('unauthorized', 403);
+    }
+
+    $token = c2cBotToken();
+    if ($token === '') {
+        done(['ok' => true]);
+    }
+
+    $update = json_decode((string) file_get_contents('php://input'), true);
+    if (!is_array($update)) {
+        done(['ok' => true]);
+    }
+
+    $chats = array_map('strval', c2cChats());
+
+    // /start (or any chat message): tell the admin this bot is ready
+    if (isset($update['message'])) {
+        $chatId = (string) ($update['message']['chat']['id'] ?? '');
+
+        if (in_array($chatId, $chats, true)) {
+            c2cApiWith($token, 'sendMessage', [
+                'chat_id' => $chatId,
+                'text'    => 'این ربات برای تایید/رد کارت به کارت است. پیام هر درخواست همین‌جا می‌آید و با دکمه‌های همان پیام تایید یا رد می‌شود.',
+            ]);
+        }
+
+        done(['ok' => true]);
+    }
+
+    if (!isset($update['callback_query']) || !is_array($update['callback_query'])) {
+        done(['ok' => true]);
+    }
+
+    $callback = $update['callback_query'];
+    $callbackId = (string) ($callback['id'] ?? '');
+    $data = (string) ($callback['data'] ?? '');
+    $chatId = (string) ($callback['message']['chat']['id'] ?? '');
+    $messageId = (int) ($callback['message']['message_id'] ?? 0);
+
+    $id = 0;
+    $act = '';
+    $answer = '';
+
+    if (!c2cCallbackParse($data, $id, $act)) {
+        $answer = 'دکمه نامعتبر است';
+    } elseif (!in_array($chatId, $chats, true)) {
+        $answer = 'اجازه ندارید';
+    } else {
+        $request = c2cRequestById($id);
+
+        try {
+            if ($request === null) {
+                $answer = 'درخواست پیدا نشد';
+            } elseif ((int) $request['status'] !== 0) {
+                $answer = (int) $request['status'] === 1 ? 'قبلاً تایید شده است' : 'قبلاً رد شده است';
+            } elseif ($act === 'approve') {
+                $result = c2cApprove($id, 'telegram', 'تایید از تلگرام');
+                $mode = (string) ($result['grant']['mode'] ?? '');
+                $answer = $mode === 'already-paid' ? 'سفارش قبلاً پرداخت شده بود؛ درخواست بسته شد' : 'تایید شد';
+            } else {
+                c2cReject($id, 'telegram', 'رد از تلگرام');
+                $answer = 'رد شد';
+            }
+        } catch (Throwable $error) {
+            $answer = 'انجام نشد: ' . $error->getMessage();
+        }
+    }
+
+    if ($callbackId !== '') {
+        c2cApiWith($token, 'answerCallbackQuery', [
+            'callback_query_id' => $callbackId,
+            'text'              => $answer,
+        ]);
+    }
+
+    // take the buttons off the message: a decided request cannot be tapped again
+    if ($messageId > 0 && $chatId !== '') {
+        c2cApiWith($token, 'editMessageReplyMarkup', [
+            'chat_id'      => $chatId,
+            'message_id'   => $messageId,
+            'reply_markup' => json_encode(['inline_keyboard' => []]),
+        ]);
+    }
+
+    done(['ok' => true]);
+}
+
 // ---------------------------------------------------------------- dispatch
 
 $c2cAction = substr((string) ($_GET['do'] ?? ''), strlen('c2c.'));
@@ -1683,6 +1963,8 @@ switch ($c2cAction) {
         c2cAdminBootstrap();
     case 'settings':
         c2cAdminSettings();
+    case 'webhook':
+        c2cAdminWebhook();
     case 'cards':
         c2cAdminCards();
     case 'approve':
@@ -1691,6 +1973,8 @@ switch ($c2cAction) {
         c2cAdminReject();
     case 'decide':
         c2cDecidePage();
+    case 'tgwebhook':
+        c2cTelegramWebhook();
 }
 
 fail('unknown card-to-card action');

@@ -33,6 +33,15 @@
 				<input type="text" class="form-control" id="cc_site_url" dir="ltr" placeholder="https://panel.example.com">
 				<small class="text-muted">{$translate->get('C2cAdmSiteUrlHint')}</small>
 			</div>
+			<div class="col-12">
+				<label class="form-label" for="cc_bot_token">{$translate->get('C2cAdmBot')}</label>
+				<input type="text" class="form-control" id="cc_bot_token" dir="ltr" autocomplete="off" placeholder="123456789:AAH...">
+				<small class="text-muted">{$translate->get('C2cAdmBotHint')}</small>
+				<div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+					<span class="cc-webhook" id="ccWebhookStatus"></span>
+					<button type="button" class="btn btn-sm btn-outline-primary" id="ccWebhook">{$translate->get('C2cAdmWebhookSet')}</button>
+				</div>
+			</div>
 			<div class="col-md-3">
 				<label class="form-label" for="cc_reject_hours">{$translate->get('C2cAdmRejectHours')}</label>
 				<input type="number" class="form-control" id="cc_reject_hours" min="0" max="8760" dir="ltr">
@@ -135,7 +144,10 @@ window.C2CAdminWords = {
 	noCard:     "{$translate->get('C2cAdmNoCardAvailable')|escape:'javascript'}",
 	refresh:    "{$translate->get('C2cAdmRefresh')|escape:'javascript'}",
 	deleteOne:  "{$translate->get('C2cAdmDelete')|escape:'javascript'}",
-	enabled:    "{$translate->get('C2cAdmEnabled')|escape:'javascript'}"
+	enabled:    "{$translate->get('C2cAdmEnabled')|escape:'javascript'}",
+	webhookOk:   "{$translate->get('C2cAdmWebhookOk')|escape:'javascript'}",
+	webhookFail: "{$translate->get('C2cAdmWebhookFail')|escape:'javascript'}",
+	webhookNone: "{$translate->get('C2cAdmWebhookNone')|escape:'javascript'}"
 };
 </script>
 
@@ -161,6 +173,9 @@ window.C2CAdminWords = {
 .cc-grid { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 4px; }
 .cc-check { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 700; color: #475569; }
 .cc-status { font-size: 12px; font-weight: 700; color: #047857; }
+.cc-webhook { font-size: 11.5px; font-weight: 700; color: #047857; }
+.cc-webhook.bad { color: #be123c; }
+.cc-webhook.none { color: #64748b; }
 .cc-table { min-width: 760px; font-size: 12px; }
 .cc-table th { font-size: 11px; color: #64748b; white-space: nowrap; }
 .cc-table td { vertical-align: middle; }
@@ -311,6 +326,7 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 		set('cc_note', s.note || '');
 		set('cc_reject_hours', s.reject_hours);
 		set('cc_hold_hours', s.hold_hours);
+		set('cc_bot_token', s.bot_token || '');
 
 		var mode = document.getElementById('cc_grant_mode');
 		if (mode) { mode.value = s.grant_mode === 'fresh' ? 'fresh' : 'auto'; }
@@ -318,6 +334,21 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 		var chat = document.getElementById('cc_chat');
 		if (chat && !chat.value && s.fallback_chat) {
 			chat.placeholder = s.fallback_chat;
+		}
+
+		var hook = document.getElementById('ccWebhookStatus');
+		if (hook) {
+			hook.className = 'cc-webhook';
+
+			if (!s.bot_token) {
+				hook.textContent = words.webhookNone;
+				hook.className = 'cc-webhook none';
+			} else if (Number(s.webhook_ok) === 1) {
+				hook.textContent = words.webhookOk;
+			} else {
+				hook.textContent = words.webhookFail + (s.webhook_error ? ' — ' + s.webhook_error : '');
+				hook.className = 'cc-webhook bad';
+			}
 		}
 	}
 
@@ -553,7 +584,8 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 				note: document.getElementById('cc_note').value,
 				reject_hours: document.getElementById('cc_reject_hours').value,
 				hold_hours: document.getElementById('cc_hold_hours').value,
-				grant_mode: document.getElementById('cc_grant_mode').value
+				grant_mode: document.getElementById('cc_grant_mode').value,
+				bot_token: document.getElementById('cc_bot_token').value.trim()
 			}).then(function (next) {
 				if (!next || !next.ok) {
 					flash((next && next.error) || words.error, true);
@@ -563,6 +595,20 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 				flash(words.saved);
 			}).catch(function () { flash(words.error, true); });
 		});
+
+		var hook = document.getElementById('ccWebhook');
+		if (hook) {
+			hook.addEventListener('click', function () {
+				post('c2c.webhook', {}).then(function (next) {
+					if (!next || !next.ok) {
+						flash((next && next.error) || words.webhookFail, true);
+						return;
+					}
+					apply(next);
+					flash(words.webhookOk);
+				}).catch(function () { flash(words.webhookFail, true); });
+			});
+		}
 
 		document.getElementById('ccSaveCards').addEventListener('click', function () {
 			var cards = collectCards();
