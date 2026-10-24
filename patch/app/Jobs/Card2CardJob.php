@@ -289,6 +289,11 @@ class Card2CardJob
 			'💰 مبلغ: ' . number_format(round((float) $row->amount)) . ' ریال',
 		];
 
+		$test = (int) $this->setting('c2c_test_user');
+		if ($test > 0 && (int) $row->userid === $test) {
+			$lines[] = '🧪 تست (در سوابق و سقف حساب نمی‌شود)';
+		}
+
 		if ($card) {
 			$lines[] = '🏦 کارت: ' . trim((string) $card->bank . ' · ' . (string) $card->holder)
 				. ' · ' . $this->cardNumber($card->number);
@@ -423,10 +428,15 @@ class Card2CardJob
 
 		$rows = DB::table('c2c_request')
 			->whereIn('status', [1, 2])
-			->where('user_sent', 0)
-			->orderBy('id')
-			->limit(self::BATCH)
-			->get();
+			->where('user_sent', 0);
+
+		// the test account is not a customer: nothing is sent for its requests
+		$test = (int) $this->setting('c2c_test_user');
+		if ($test > 0) {
+			$rows->where('userid', '<>', $test);
+		}
+
+		$rows = $rows->orderBy('id')->limit(self::BATCH)->get();
 
 		$sent = 0;
 

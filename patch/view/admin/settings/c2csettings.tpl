@@ -73,6 +73,11 @@
 				<input type="text" class="form-control" id="cc_support" dir="ltr" autocomplete="off" placeholder="@digitsellshop">
 				<small class="text-muted">{$translate->get('C2cAdmSupportHint')}</small>
 			</div>
+			<div class="col-md-6">
+				<label class="form-label" for="cc_test_user">{$translate->get('C2cAdmTestUser')}</label>
+				<input type="number" class="form-control" id="cc_test_user" min="0" dir="ltr" placeholder="0">
+				<small class="text-muted">{$translate->get('C2cAdmTestHint')}</small>
+			</div>
 			<div class="col-12">
 				<label class="form-label" for="cc_note">{$translate->get('C2cAdmNote')}</label>
 				<textarea class="form-control" id="cc_note" rows="3"></textarea>
@@ -130,6 +135,9 @@
 				<tbody id="ccHistory"></tbody>
 			</table>
 		</div>
+		<div class="d-flex justify-content-end mt-2">
+			<button type="button" class="btn btn-outline-danger" id="ccReset">🗑 {$translate->get('C2cAdmReset')}</button>
+		</div>
 	</div>
 </div>
 
@@ -161,7 +169,10 @@ window.C2CAdminWords = {
 	webhookOk:   "{$translate->get('C2cAdmWebhookOk')|escape:'javascript'}",
 	webhookFail: "{$translate->get('C2cAdmWebhookFail')|escape:'javascript'}",
 	webhookNone: "{$translate->get('C2cAdmWebhookNone')|escape:'javascript'}",
-	pollOk:      "{$translate->get('C2cAdmPollOk')|escape:'javascript'}"
+	pollOk:      "{$translate->get('C2cAdmPollOk')|escape:'javascript'}",
+	testBadge:   "{$translate->get('C2cAdmTestBadge')|escape:'javascript'}",
+	resetAsk:    "{$translate->get('C2cAdmResetAsk')|escape:'javascript'}",
+	resetOk:     "{$translate->get('C2cAdmResetOk')|escape:'javascript'}"
 };
 </script>
 
@@ -342,6 +353,7 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 		set('cc_hold_hours', s.hold_hours);
 		set('cc_bot_token', s.bot_token || '');
 		set('cc_support', s.support || '');
+		set('cc_test_user', s.test_user || 0);
 
 		var mode = document.getElementById('cc_grant_mode');
 		if (mode) { mode.value = s.grant_mode === 'fresh' ? 'fresh' : 'auto'; }
@@ -512,6 +524,7 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 				'<div class="cc-pend-head">'
 				+ '<span class="cc-pend-id">#' + row.id + ' · ' + esc(row.order_no || ('#' + row.orderid)) + '</span>'
 				+ (row.tg_sent ? '<span class="cc-badge a">TG</span>' : '<span class="cc-badge p">TG?</span>')
+				+ (Number(row.test) === 1 ? '<span class="cc-badge c">🧪 ' + esc(words.testBadge) + '</span>' : '')
 				+ '<span class="cc-pend-amount">' + money(row.amount) + ' <small>ریال</small></span>'
 				+ '</div>'
 				+ '<div class="cc-pend-lines">'
@@ -607,6 +620,7 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 				grant_mode: document.getElementById('cc_grant_mode').value,
 				bot_token: document.getElementById('cc_bot_token').value.trim(),
 				support: document.getElementById('cc_support').value.trim(),
+				test_user: document.getElementById('cc_test_user').value || 0,
 				bot_mode: document.getElementById('cc_bot_mode').value
 			}).then(function (next) {
 				if (!next || !next.ok) {
@@ -629,6 +643,22 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 					apply(next);
 					flash(words.webhookOk);
 				}).catch(function () { flash(words.webhookFail, true); });
+			});
+		}
+
+		var reset = document.getElementById('ccReset');
+		if (reset) {
+			reset.addEventListener('click', function () {
+				if (!window.confirm(words.resetAsk)) { return; }
+
+				post('c2c.reset', {}).then(function (next) {
+					if (!next || !next.ok) {
+						flash((next && next.error) || words.error, true);
+						return;
+					}
+					apply(next);
+					flash(words.resetOk);
+				}).catch(function () { flash(words.error, true); });
 			});
 		}
 
