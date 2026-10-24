@@ -567,7 +567,7 @@ class Card2CardJob
 		$updates = $this->api($token, 'getUpdates', [
 			'offset'          => $offset,
 			'timeout'         => 0,
-			'allowed_updates' => json_encode(['callback_query']),
+			'allowed_updates' => json_encode(['callback_query', 'message']),
 		]);
 
 		if (!is_array($updates) || empty($updates['ok']) || !is_array($updates['result'] ?? null)) {
@@ -582,6 +582,8 @@ class Card2CardJob
 			if (isset($update['callback_query']) && is_array($update['callback_query'])) {
 				$this->handleCallback($token, $update['callback_query']);
 				$handled++;
+			} elseif (isset($update['message']) && is_array($update['message'])) {
+				$this->handleMessage($token, $update['message']);
 			}
 		}
 
@@ -617,7 +619,7 @@ class Card2CardJob
 	 * (c2c.decide, authorised by the request's own token), so polling and the
 	 * webhook cannot drift apart in how they grant an order.
 	 */
-	private function triggerDecision($request, $act)
+	private function triggerDecision($request, $act, $note = '')
 	{
 		$url = $this->siteUrl() . '/xmplus-patch.php?do=c2c.decide'
 			. '&id=' . (int) $request->id
@@ -626,6 +628,8 @@ class Card2CardJob
 
 		$ch = curl_init($url);
 		curl_setopt_array($ch, [
+			CURLOPT_POST           => true,
+			CURLOPT_POSTFIELDS     => http_build_query(['note' => (string) $note]),
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_CONNECTTIMEOUT => 5,
 			CURLOPT_TIMEOUT        => 20,
@@ -651,6 +655,7 @@ class Card2CardJob
 		$id = 0;
 		$act = '';
 		$answer = '';
+		$prompted = false;
 		$chats = array_map('strval', $this->adminChats());
 
 		if (!$this->parseCallback($data, $id, $act)) {
@@ -665,8 +670,8 @@ class Card2CardJob
 					$answer = 'درخواست پیدا نشد';
 				} elseif ((int) $request->status !== 0) {
 					$answer = (int) $request->status === 1 ? 'قبلاً تایید شده است' : 'قبلاً رد شده است';
-				} else {
-					$this->triggerDecision($request, $act);
+				} elseif ($act === 'approve') {
+					$this->triggerDecision($request, 'approve');
 
 					$fresh = DB::table('c2c_request')->where('id', $id)->first();
 
@@ -674,11 +679,26 @@ class Card2CardJob
 						$answer = 'درخواست پیدا نشد';
 					} elseif ((int) $fresh->status === 1) {
 						$answer = '✅ تایید شد';
-					} elseif ((int) $fresh->status === 2) {
-						$answer = '❌ رد شد';
 					} else {
 						$answer = 'انجام نشد';
 					}
+				} else {
+					// ask for the reason; the next text message completes it
+					$this->savePending([
+						'chat'    => $chatId,
+						'id'      => $id,
+						'message' => $messageId,
+						'text'    => $messageText,
+						'created' => time(),
+					]);
+
+					$answer = 'دلیل رد را بنویسید';
+					$prompted = true;
+
+					$this->api($token, 'sendMessage', [
+						'chat_id' => $chatId,
+						'text'    => "📝 دلیل رد درخواست #{$id} را بنویسید.\n/skip = رد بدون دلیل · /cancel = انصراف",
+					]);
 				}
 			} catch (\Throwable $error) {
 				$answer = 'انجام نشد';
@@ -696,7 +716,7 @@ class Card2CardJob
 		if ($messageId > 0 && $chatId !== '') {
 			$markup = json_encode(['inline_keyboard' => []]);
 
-			if ($messageText !== '') {
+			if (!$prompted && $messageText !== '') {
 				$this->api($token, 'editMessageText', [
 					'chat_id'      => $chatId,
 					'message_id'   => $messageId,
@@ -710,6 +730,128 @@ class Card2CardJob
 					'reply_markup' => $markup,
 				]);
 			}
+		}
+	}
+
+	/** The rejection waiting for its reason. */
+	private function readPending()
+	{
+		$raw = (string) $this->setting('c2c_bot_pending');
+
+		if ($raw === '') {
+			return null;
+		}
+
+		$data = json_decode($raw, true);
+
+		if (!is_array($data) || (int) ($data['created'] ?? 0) < time() - 1800) {
+			return null;
+		}
+
+		return $data;
+	}
+
+	private function savePending(array $data)
+	{
+		$this->putSetting('c2c_bot_pending', (string) json_encode($data));
+	}
+
+	private function clearPending()
+	{
+		$this->putSetting('c2c_bot_pending', '');
+	}
+
+	/**
+	 * A text message from the admin: the reason for a pending rejection, or
+	 * /start.
+	 */
+	private function handleMessage($token, array $message)
+	{
+		$chatId = (string) ($message['chat']['id'] ?? '');
+		$text = trim((string) ($message['text'] ?? ''));
+		$chats = array_map('strval', $this->adminChats());
+
+		if (!in_array($chatId, $chats, true)) {
+			return;
+		}
+
+		$pending = $this->readPending();
+
+		if ($pending !== null && (string) ($pending['chat'] ?? '') === $chatId) {
+			if ($text === '/cancel') {
+				$this->clearPending();
+				$this->api($token, 'sendMessage', [
+					'chat_id' => $chatId,
+					'text'    => 'لغو شد؛ درخواست بدون تغییر باقی ماند.',
+				]);
+				return;
+			}
+
+			if ($text !== '' && $text[0] === '/' && $text !== '/skip') {
+				$this->api($token, 'sendMessage', [
+					'chat_id' => $chatId,
+					'text'    => 'دلیل را به‌صورت متن بنویسید، یا /skip برای رد بدون دلیل و /cancel برای انصراف.',
+				]);
+				return;
+			}
+
+			$reason = $text === '/skip' ? '' : $text;
+			if (strlen($reason) > 255) {
+				$reason = function_exists('mb_substr')
+					? mb_substr($reason, 0, 255, 'UTF-8')
+					: substr($reason, 0, 255);
+			}
+
+			$request = DB::table('c2c_request')->where('id', (int) ($pending['id'] ?? 0))->first();
+
+			if ($request === null || (int) $request->status !== 0) {
+				$this->clearPending();
+				$this->api($token, 'sendMessage', [
+					'chat_id' => $chatId,
+					'text'    => 'این درخواست دیگر در انتظار نیست.',
+				]);
+				return;
+			}
+
+			try {
+				$this->triggerDecision($request, 'reject', $reason);
+				$fresh = DB::table('c2c_request')->where('id', (int) $request->id)->first();
+				$done = $fresh !== null && (int) $fresh->status === 2;
+
+				$original = (string) ($pending['text'] ?? '');
+				$result = $done
+					? ('❌ رد شد' . ($reason !== '' ? "\n📝 دلیل: " . $reason : ''))
+					: '❌ انجام نشد';
+
+				if ((int) ($pending['message'] ?? 0) > 0 && $original !== '') {
+					$this->api($token, 'editMessageText', [
+						'chat_id'      => $chatId,
+						'message_id'   => (int) $pending['message'],
+						'text'         => $original . "\n\n" . $result,
+						'reply_markup' => json_encode(['inline_keyboard' => []]),
+					]);
+				}
+
+				$this->api($token, 'sendMessage', [
+					'chat_id' => $chatId,
+					'text'    => $done ? 'رد شد و دلیل برای مشتری ارسال می‌شود.' : 'انجام نشد.',
+				]);
+			} catch (\Throwable $error) {
+				$this->api($token, 'sendMessage', [
+					'chat_id' => $chatId,
+					'text'    => 'انجام نشد: ' . $error->getMessage(),
+				]);
+			}
+
+			$this->clearPending();
+			return;
+		}
+
+		if ($text === '/start' || $text === '') {
+			$this->api($token, 'sendMessage', [
+				'chat_id' => $chatId,
+				'text'    => 'این ربات برای تایید/رد کارت به کارت است. پیام هر درخواست همین‌جا می‌آید و با دکمه‌های همان پیام تایید یا رد می‌شود.',
+			]);
 		}
 	}
 
