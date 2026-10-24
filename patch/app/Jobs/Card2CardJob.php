@@ -301,10 +301,17 @@ class Card2CardJob
 
 	private function notifyAdmins()
 	{
-		$token = trim((string) $this->setting('telegramtoken'));
+		// the dedicated bot carries the callback buttons; without it the panel
+		// bot sends URL buttons
+		$panelToken = trim((string) $this->setting('telegramtoken'));
+		$botToken = trim((string) $this->setting('c2c_bot_token'));
+		$token = $botToken !== '' ? $botToken : $panelToken;
+
 		if ($token === '') {
 			return 0;
 		}
+
+		$useCallbacks = $botToken !== '' && trim((string) $this->setting('c2c_bot_secret')) !== '';
 
 		$chats = $this->adminChats();
 		if ($chats === []) {
@@ -328,9 +335,16 @@ class Card2CardJob
 			$text = $this->adminText($row, $order, $card);
 			$keyboard = null;
 
-			// URL buttons only work with an absolute address; without one the
-			// message still arrives and the panel can approve it
-			if (preg_match('~^https?://~i', $this->siteUrl())) {
+			if ($useCallbacks) {
+				$keyboard = json_encode([
+					'inline_keyboard' => [[
+						['text' => '✅ تایید', 'callback_data' => $this->callbackData($row->id, 'approve')],
+						['text' => '❌ رد', 'callback_data' => $this->callbackData($row->id, 'reject')],
+					]],
+				], JSON_UNESCAPED_UNICODE);
+			} elseif (preg_match('~^https?://~i', $this->siteUrl())) {
+				// URL buttons only work with an absolute address; without one the
+				// message still arrives and the panel can approve it
 				$keyboard = json_encode([
 					'inline_keyboard' => [[
 						['text' => '✅ تایید', 'url' => $this->decideUrl($row, 'approve')],
@@ -464,7 +478,10 @@ class Card2CardJob
 
 	private function closeButtons()
 	{
-		$token = trim((string) $this->setting('telegramtoken'));
+		// the message may have been sent by the dedicated bot
+		$bot = trim((string) $this->setting('c2c_bot_token'));
+		$token = $bot !== '' ? $bot : trim((string) $this->setting('telegramtoken'));
+
 		if ($token === '') {
 			return 0;
 		}
@@ -560,6 +577,22 @@ class Card2CardJob
 	}
 
 	// ------------------------------------------------------------- messaging
+
+	private function callbackSig($id, $act)
+	{
+		$secret = trim((string) $this->setting('c2c_bot_secret'));
+
+		if ($secret === '') {
+			return '';
+		}
+
+		return substr(hash_hmac('sha256', $act . '|' . (int) $id, $secret), 0, 20);
+	}
+
+	private function callbackData($id, $act)
+	{
+		return 'c2c|' . ($act === 'approve' ? 'a' : 'r') . '|' . (int) $id . '|' . $this->callbackSig($id, $act);
+	}
 
 	private function api($token, $method, array $params)
 	{

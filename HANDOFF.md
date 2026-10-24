@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-24 Â· installed version **1.9.2** Â· latest release **1.27.5** Â· repo
+Last updated: 2026-10-24 Â· installed version **1.9.2** Â· latest release **1.28.0** Â· repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -397,9 +397,14 @@ unpaid while the transfer waits.
   to the next one by itself. Pending requests count towards a cap too, so a
   burst of transfers cannot overrun a card before anyone is approved.
 - The administrator gets a Telegram message with everything needed to match
-  the transfer, plus two URL buttons. There is no bot webhook: the buttons
-  open `xmplus-patch.php?do=c2c.decide`, which shows a confirmation page and
-  posts back with the request's own 64-hex token (7 days, one decision).
+  the transfer. With a **dedicated bot** (`c2c_bot_token`, optional) the two
+  buttons are callbacks: `setWebhook` points that bot at
+  `xmplus-patch.php?do=c2c.tgwebhook`, the update is verified by the secret
+  header Telegram sends, the callback payload is `c2c|a|id|sig` where `sig` is
+  an HMAC with `c2c_bot_secret`, only chats in `c2c_telegram_chat` may decide,
+  and approve/reject happens on the spot, removes the buttons and shows a
+  toast. Without a dedicated bot the buttons are one-tap URL links to
+  `c2c.decide` (the request's own 64-hex token, 7 days, one decision).
   Approving from Settings -> Card to card does the same.
 - Approval marks the order paid (`status = 1`, `pay_date`, `gateway_name`) and
   grants what it bought. Time plans, reserved plans and pay-as-you-go charges
@@ -437,9 +442,16 @@ Watch out for these:
   the encoded fee endpoint has no row for it.
 - Do not create a `payment` row for card to card. The encoded gateway list
   would offer it at checkout and try to load a driver that does not exist.
-- The Telegram approve/reject link is a GET that only renders a confirmation
-  page; the decision is the POST. A link preview can therefore never approve
-  anything.
+- The Telegram approve/reject action runs on the first request: with a dedicated
+  bot it is a callback answered by the webhook; without one it is a one-tap GET
+  to `c2c.decide`, whose 64-hex token is the credential. Do not add a second
+  confirmation step - the owner asked for one tap.
+- The webhook (`c2c.tgwebhook`) is public, so it trusts nothing but the
+  `X-Telegram-Bot-Api-Secret-Token` header, the callback HMAC, and the chat id
+  against `c2c_telegram_chat`. Keep all three checks.
+- The dedicated bot is for admin approvals only. Customer notices still go
+  through the panel's own bot (`telegramtoken`), so turning the panel bot off
+  does not silence the buyer.
 
 ### Commission â€” money rules already decided. Do not redo without asking.
 
@@ -559,3 +571,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.27.3 | Fix: approving a reserved plan could fail with "the package behind this order is gone" - the panel deletes the minted top-up row between checkout and approval, and the grant read the marker off that row. A reserve is now recognised through `plan_reserve` instead, its reservation is linked and marked paid, and the grant is deferred to the reserve job. The Telegram approve/reject buttons are now one-tap: the decision runs straight from the link (the one-time token is the credential) and shows a one-line outcome. |
 | 1.27.4 | Fix: approving a request whose order was already paid (a gateway, the panel, or a duplicate tap racing the first) no longer reports "could not complete / this order was already paid another way". The request is closed as approved with a note, nothing is granted twice, and the Telegram page says the order was already paid. A repeated tap on a decided request reads as already handled. |
 | 1.27.5 | Fix: approving a subscription/top-up whose package row was deleted no longer fails. The order snapshots `bandwidth`, `plan` and `plan_expire`, so the grant is rebuilt from the order when the package is missing; the routing limits are left as they are instead of being zeroed. A top-up with no snapshot bandwidth, and a marked top-up that cannot be identified without its package, are marked paid and left to their job. |
+| 1.28.0 | Card to card approvals can happen entirely inside Telegram. A dedicated bot token (Settings -> Card to card) is registered as a webhook on save (`xmplus-patch.php?do=c2c.tgwebhook`, verified by Telegram's secret header); the admin message then carries callback buttons, so approve/reject decides on the spot, shows a toast and removes the buttons - no page opens. The callback payload is `c2c|a|id|hmac`, and only the configured admin chats may decide. Without a dedicated token the one-tap URL buttons remain. Customer notices still use the panel bot. |
