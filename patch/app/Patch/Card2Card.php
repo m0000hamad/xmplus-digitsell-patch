@@ -571,10 +571,60 @@ function c2cSendAdmin(array $row): bool
  * Time plans, reserved plans and wallet charges are granted by their own jobs
  * once the order says paid; the marker on the package row decides.
  */
+/**
+ * The kind of order whose grant another job owns, decided without the package:
+ * the panel can delete a minted top-up row between the checkout and the
+ * approval, so the marker on the package is not always there to read. A reserve
+ * is recognised by its plan_reserve row (which holds the minted package id).
+ */
+function c2cDeferredKind(array $order): ?string
+{
+    try {
+        $statement = db()->prepare(
+            'SELECT 1 FROM plan_reserve
+              WHERE userid = ? AND (packageid = ? OR orderid = ?)
+              LIMIT 1');
+        $statement->execute([(int) $order['userid'], (int) $order['packageid'], (int) $order['id']]);
+
+        if ($statement->fetch() !== false) {
+            return 'reserve';
+        }
+    } catch (Throwable $error) {
+    }
+
+    return null;
+}
+
+/**
+ * Links the buyer's pending reservation to this paid order and marks it paid,
+ * exactly what ReserveJob::linkOrder does. It is done here (not left to the
+ * cron) because ReserveJob finds the order through the package, which the panel
+ * may already have deleted - the reservation would otherwise be voided after
+ * its pending TTL. The reservation itself starts later through activateDue().
+ */
+function c2cLinkReservation(array $order): void
+{
+    db()->prepare(
+        'UPDATE plan_reserve
+            SET orderid = ?, status = 1, paid_at = ?, amount = ?
+          WHERE userid = ? AND status = 0
+          ORDER BY id DESC LIMIT 1')
+        ->execute([(int) $order['id'], time(), (float) $order['total_amount'], (int) $order['userid']]);
+}
+
 function c2cApplyOrder(array $order): array
 {
+    // A reserve whose minted package is gone still completes: the reservation
+    // rides in plan_reserve and never needed the package after it is linked.
+    $deferred = c2cDeferredKind($order);
+
+    if ($deferred === 'reserve') {
+        c2cLinkReservation($order);
+        return ['mode' => 'deferred', 'kind' => 'reserve'];
+    }
+
     if (($order['package_type'] ?? null) === null) {
-        throw new RuntimeException('the package behind this order is gone');
+        throw new RuntimeException('the package behind this order is gone; restore it and approve again');
     }
 
     $note = (string) ($order['package_note'] ?? '');
@@ -1495,95 +1545,45 @@ function c2cDecidePage(): void
             . '<p class="muted">درخواست #' . (int) $request['id'] . ' پیش‌تر بررسی شده بود.</p>', 'بررسی‌شده');
     }
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $sent = (string) ($_POST['t'] ?? '');
+    // one tap, no form: the button in Telegram performs the decision straight
+    // away (the one-time token is the whole credential). The browser opens for
+    // a moment and shows the outcome.
+    $amount = c2cMoney((float) $request['amount']);
 
-        if (!hash_equals((string) $request['token'], $sent)) {
-            c2cHtml('<h1>لینک نامعتبر است</h1>', 'لینک نامعتبر');
-        }
-
-        $note = trim((string) ($_POST['note'] ?? ''));
-        if (function_exists('mb_substr') && mb_strlen($note, 'UTF-8') > 255) {
-            $note = mb_substr($note, 0, 255, 'UTF-8');
-        } elseif (strlen($note) > 255) {
-            $note = substr($note, 0, 255);
-        }
-
-        try {
-            if ($act === 'approve') {
-                $result = c2cApprove($id, 'telegram', $note !== '' ? $note : 'تایید از تلگرام');
-                $expire = isset($result['grant']['expire']) ? (string) $result['grant']['expire'] : '';
-                c2cHtml(
-                    '<h1>✅ پرداخت تایید شد</h1>'
-                    . '<div class="row"><span>درخواست</span><span>#' . $id . '</span></div>'
-                    . '<div class="row"><span>مبلغ</span><span>' . c2cMoney((float) $request['amount']) . ' ریال</span></div>'
-                    . ($expire !== '' ? '<div class="row"><span>اعتبار تا</span><span>' . htmlspecialchars($expire, ENT_QUOTES, 'UTF-8') . '</span></div>' : '')
-                    . '<p class="muted">بسته اعمال شد و به مشتری اطلاع داده می‌شود.</p>',
-                    'تایید شد');
-            }
-
-            c2cReject($id, 'telegram', $note !== '' ? $note : 'رد از تلگرام');
-            c2cHtml(
-                '<h1>❌ درخواست رد شد</h1>'
-                . '<div class="row"><span>درخواست</span><span>#' . $id . '</span></div>'
-                . '<div class="row"><span>مبلغ</span><span>' . c2cMoney((float) $request['amount']) . ' ریال</span></div>'
-                . ($note !== '' ? '<div class="row"><span>دلیل</span><span>' . htmlspecialchars($note, ENT_QUOTES, 'UTF-8') . '</span></div>' : '')
-                . '<p class="muted">مشتری پیام رد شدن را در پنل می‌بیند.</p>',
-                'رد شد');
-        } catch (Throwable $error) {
-            c2cHtml('<h1>انجام نشد</h1><p class="muted">'
-                . htmlspecialchars($error->getMessage(), ENT_QUOTES, 'UTF-8') . '</p>', 'خطا');
-        }
-    }
-
-    $order = null;
     try {
-        $statement = db()->prepare('SELECT order_id, username FROM orders WHERE id = ? LIMIT 1');
-        $statement->execute([(int) $request['orderid']]);
-        $order = $statement->fetch() ?: null;
+        if ($act === 'approve') {
+            $result = c2cApprove($id, 'telegram', 'تایید از تلگرام');
+            $expire = isset($result['grant']['expire']) ? (string) $result['grant']['expire'] : '';
+            c2cHtml(
+                '<h1>✅ پرداخت تایید شد</h1>'
+                . '<div class="row"><span>درخواست</span><span>#' . $id . '</span></div>'
+                . '<div class="row"><span>مبلغ</span><span>' . $amount . ' ریال</span></div>'
+                . ($expire !== '' ? '<div class="row"><span>اعتبار تا</span><span>' . htmlspecialchars($expire, ENT_QUOTES, 'UTF-8') . '</span></div>' : '')
+                . '<p class="muted">بسته اعمال شد و به مشتری اطلاع داده می‌شود.</p>',
+                'تایید شد');
+        }
+
+        c2cReject($id, 'telegram', 'رد از تلگرام');
+        c2cHtml(
+            '<h1>❌ درخواست رد شد</h1>'
+            . '<div class="row"><span>درخواست</span><span>#' . $id . '</span></div>'
+            . '<div class="row"><span>مبلغ</span><span>' . $amount . ' ریال</span></div>'
+            . '<p class="muted">مشتری پیام رد شدن را در پنل می‌بیند.</p>',
+            'رد شد');
     } catch (Throwable $error) {
+        c2cHtml('<h1>انجام نشد</h1><p class="muted">'
+            . htmlspecialchars($error->getMessage(), ENT_QUOTES, 'UTF-8') . '</p>', 'خطا');
     }
-
-    $action = $act === 'approve' ? 'تایید' : 'رد';
-    $class = $act === 'approve' ? 'ok' : 'no';
-
-    $body = '<h1>' . ($act === 'approve' ? '✅ تایید پرداخت' : '❌ رد پرداخت') . '</h1>'
-        . '<div class="row"><span>درخواست</span><span>#' . $id . '</span></div>'
-        . '<div class="row"><span>سفارش</span><span>' . htmlspecialchars((string) ($order['order_id'] ?? ''), ENT_QUOTES, 'UTF-8') . '</span></div>'
-        . '<div class="row"><span>کاربر</span><span>' . htmlspecialchars((string) ($order['username'] ?? ''), ENT_QUOTES, 'UTF-8') . '</span></div>'
-        . '<div class="row"><span>بسته</span><span>' . htmlspecialchars((string) $request['plan_name'], ENT_QUOTES, 'UTF-8') . '</span></div>'
-        . '<div class="row"><span>مبلغ</span><span>' . c2cMoney((float) $request['amount']) . ' ریال</span></div>'
-        . ((string) $request['payer'] !== ''
-            ? '<div class="row"><span>پرداخت‌کننده</span><span>' . htmlspecialchars((string) $request['payer'], ENT_QUOTES, 'UTF-8') . '</span></div>'
-            : '')
-        . '<div class="row"><span>چهار رقم آخر</span><span>' . htmlspecialchars((string) $request['last4'], ENT_QUOTES, 'UTF-8') . '</span></div>'
-        . ((string) $request['paid_at'] !== ''
-            ? '<div class="row"><span>زمان واریز</span><span>' . htmlspecialchars((string) $request['paid_at'], ENT_QUOTES, 'UTF-8') . '</span></div>'
-            : '')
-        . '<form method="post"><input type="hidden" name="t" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
-        . ($act === 'reject'
-            ? '<label class="lbl" for="c2cNote">دلیل رد (اختیاری، برای مشتری ارسال می‌شود)</label>'
-                . '<input class="inp" id="c2cNote" name="note" maxlength="255" placeholder="مثلاً مبلغ واریز نشده یا چهار رقم آخر مطابقت ندارد">'
-            : '')
-        . '<div class="btns"><button class="btn ' . $class . '" type="submit">' . $action . '</button>'
-        . '<a class="btn" style="background:#334155;text-align:center;line-height:44px" href="' . htmlspecialchars(c2cSiteUrl() . '/admin/settings', ENT_QUOTES, 'UTF-8') . '">پنل مدیریت</a></div></form>'
-        . '<p class="muted">فقط مدیر باید این صفحه را باز کند. با ' . $action . ' کردن، نتیجه روی پیام تلگرام و پنل مشتری هم ثبت می‌شود.</p>';
-
-    c2cHtml($body, $action . ' درخواست کارت به کارت');
 }
 
 // ---------------------------------------------------------------- dispatch
 
 $c2cAction = substr((string) ($_GET['do'] ?? ''), strlen('c2c.'));
 
-$c2cNeedsPost = ['submit', 'ack', 'settings', 'cards', 'approve', 'reject', 'decide'];
+$c2cNeedsPost = ['submit', 'ack', 'settings', 'cards', 'approve', 'reject'];
 
 if (in_array($c2cAction, $c2cNeedsPost, true) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    // the Telegram buttons are GET links that show a confirmation page; their
-    // form posts back to the same URL, so `decide` accepts both
-    if ($c2cAction !== 'decide') {
-        fail('this action needs POST', 405);
-    }
+    fail('this action needs POST', 405);
 }
 
 switch ($c2cAction) {
