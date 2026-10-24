@@ -60,6 +60,11 @@
 				</select>
 				<small class="text-muted">{$translate->get('C2cAdmGrantHint')}</small>
 			</div>
+			<div class="col-md-6">
+				<label class="form-label" for="cc_support">{$translate->get('C2cAdmSupport')}</label>
+				<input type="text" class="form-control" id="cc_support" dir="ltr" autocomplete="off" placeholder="@digitsellshop">
+				<small class="text-muted">{$translate->get('C2cAdmSupportHint')}</small>
+			</div>
 			<div class="col-12">
 				<label class="form-label" for="cc_note">{$translate->get('C2cAdmNote')}</label>
 				<textarea class="form-control" id="cc_note" rows="3"></textarea>
@@ -327,6 +332,7 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 		set('cc_reject_hours', s.reject_hours);
 		set('cc_hold_hours', s.hold_hours);
 		set('cc_bot_token', s.bot_token || '');
+		set('cc_support', s.support || '');
 
 		var mode = document.getElementById('cc_grant_mode');
 		if (mode) { mode.value = s.grant_mode === 'fresh' ? 'fresh' : 'auto'; }
@@ -585,7 +591,8 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 				reject_hours: document.getElementById('cc_reject_hours').value,
 				hold_hours: document.getElementById('cc_hold_hours').value,
 				grant_mode: document.getElementById('cc_grant_mode').value,
-				bot_token: document.getElementById('cc_bot_token').value.trim()
+				bot_token: document.getElementById('cc_bot_token').value.trim(),
+				support: document.getElementById('cc_support').value.trim()
 			}).then(function (next) {
 				if (!next || !next.ok) {
 					flash((next && next.error) || words.error, true);

@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-24 Â· installed version **1.9.2** Â· latest release **1.28.0** Â· repo
+Last updated: 2026-10-24 Â· installed version **1.9.2** Â· latest release **1.28.1** Â· repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -572,3 +572,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.27.4 | Fix: approving a request whose order was already paid (a gateway, the panel, or a duplicate tap racing the first) no longer reports "could not complete / this order was already paid another way". The request is closed as approved with a note, nothing is granted twice, and the Telegram page says the order was already paid. A repeated tap on a decided request reads as already handled. |
 | 1.27.5 | Fix: approving a subscription/top-up whose package row was deleted no longer fails. The order snapshots `bandwidth`, `plan` and `plan_expire`, so the grant is rebuilt from the order when the package is missing; the routing limits are left as they are instead of being zeroed. A top-up with no snapshot bandwidth, and a marked top-up that cannot be identified without its package, are marked paid and left to their job. |
 | 1.28.0 | Card to card approvals can happen entirely inside Telegram. A dedicated bot token (Settings -> Card to card) is registered as a webhook on save (`xmplus-patch.php?do=c2c.tgwebhook`, verified by Telegram's secret header); the admin message then carries callback buttons, so approve/reject decides on the spot, shows a toast and removes the buttons - no page opens. The callback payload is `c2c|a|id|hmac`, and only the configured admin chats may decide. Without a dedicated token the one-tap URL buttons remain. Customer notices still use the panel bot. |
+| 1.28.1 | Fix: a card's cap counts only **approved** payments, so abandoned/pending test requests no longer keep a card full and hide card to card at checkout. The amount cap is in rial and the hint now says so. The support handle (`c2c_support`, default `@digitsellshop`) is shown in the buyer's approval/rejection message, in the panel rejection reason, and in the checkout dialog. |

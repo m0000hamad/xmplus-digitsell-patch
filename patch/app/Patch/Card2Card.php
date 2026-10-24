@@ -50,6 +50,22 @@ function c2cEnabled(): bool
     return c2cSetting('c2c_enabled', '0') === '1';
 }
 
+/** The Telegram support handle shown to buyers (default: the shop's own). */
+function c2cSupport(): string
+{
+    $value = trim(c2cSetting('c2c_support', '@digitsellshop'));
+
+    if ($value === '') {
+        $value = '@digitsellshop';
+    }
+
+    if ($value[0] !== '@' && !preg_match('~^(https?://|t\.me/)~i', $value)) {
+        $value = '@' . ltrim($value, '@');
+    }
+
+    return $value;
+}
+
 function c2cInt($value, int $fallback = 0): int
 {
     return is_numeric($value) ? (int) $value : $fallback;
@@ -101,12 +117,18 @@ function c2cPeriodStart(string $period): int
     return (int) strtotime('today 00:00:00');
 }
 
-/** Amount and count this card has taken in the current window. */
+/**
+ * What this card has actually taken in the current window.
+ *
+ * Only settled (approved) requests count: a pending request is a claim, not
+ * money received, and a pile of abandoned test submissions must not keep a card
+ * "full" forever. The cap is the bank's, and it is about money that arrived.
+ */
 function c2cCardUsage(int $cardId, string $period): array
 {
     $sql = 'SELECT COUNT(*) AS n, COALESCE(SUM(amount), 0) AS s
               FROM c2c_request
-             WHERE cardid = ? AND status IN (0, 1)';
+             WHERE cardid = ? AND status = 1';
     $args = [$cardId];
 
     $from = c2cPeriodStart($period);
@@ -977,6 +999,15 @@ function c2cNotice(array $request, ?array $order, string $kind, string $reason =
     $orderNo = $order === null ? '' : (string) ($order['order_id'] ?? '');
     $name = (string) $request['plan_name'];
 
+    // a rejection always tells the buyer where to follow up
+    if ($kind === 'rejected') {
+        $support = c2cSupport();
+
+        if ($support !== '' && strpos($reason, $support) === false) {
+            $reason = trim($reason . ' · پشتیبانی: ' . $support);
+        }
+    }
+
     try {
         db()->prepare(
             'INSERT IGNORE INTO c2c_notice
@@ -1049,6 +1080,7 @@ function c2cUserInfo(): void
         ],
         'request'   => c2cPresent($request),
         'last_payer' => $lastPayer,
+        'support'   => c2cSupport(),
     ]);
 }
 
@@ -1254,6 +1286,7 @@ function c2cAdminData(): array
         'webhook_ok'   => c2cSetting('c2c_bot_webhook_ok', '0') === '1' ? 1 : 0,
         'webhook_error' => c2cSetting('c2c_bot_webhook_error', ''),
         'callbacks'    => c2cUsesCallbacks() ? 1 : 0,
+        'support'      => c2cSupport(),
     ];
 
     $cards = [];
@@ -1364,6 +1397,7 @@ function c2cAdminSettings(): void
     $mode = (string) ($_POST['grant_mode'] ?? 'auto');
     $site = trim((string) ($_POST['site_url'] ?? ''));
     $bot = trim((string) ($_POST['bot_token'] ?? ''));
+    $support = trim((string) ($_POST['support'] ?? ''));
 
     if ($bot !== '' && !preg_match('~^\d{5,}:[A-Za-z0-9_-]{20,}$~', $bot)) {
         fail('the bot token does not look like a Telegram bot token');
@@ -1397,6 +1431,7 @@ function c2cAdminSettings(): void
     putSetting('c2c_grant_mode', $mode);
     putSetting('c2c_site_url', rtrim($site, '/'));
     putSetting('c2c_bot_token', $bot);
+    putSetting('c2c_support', $support !== '' ? $support : '@digitsellshop');
 
     // a dedicated bot needs a secret: it is both the webhook header and the
     // key that signs the callback buttons

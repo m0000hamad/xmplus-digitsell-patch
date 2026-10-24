@@ -218,6 +218,21 @@ class Card2CardJob
 		return array_values(array_filter(preg_split('~[\s,]+~', $raw, -1, PREG_SPLIT_NO_EMPTY) ?: []));
 	}
 
+	private function support()
+	{
+		$value = trim((string) $this->setting('c2c_support'));
+
+		if ($value === '') {
+			$value = '@digitsellshop';
+		}
+
+		if ($value[0] !== '@' && !preg_match('~^(https?://|t\.me/)~i', $value)) {
+			$value = '@' . ltrim($value, '@');
+		}
+
+		return $value;
+	}
+
 	private function siteUrl()
 	{
 		$site = trim((string) $this->setting('c2c_site_url'));
@@ -422,18 +437,22 @@ class Card2CardJob
 			$orderNo = $order ? (string) $order->order_id : ('#' . (int) $row->orderid);
 			$approved = (int) $row->status === 1;
 
+			$support = $this->support();
+
 			if ($approved) {
 				$title = '✅ پرداخت کارت به کارت تایید شد';
 				$text = "پرداخت کارت به کارت شما برای سفارش {$orderNo} تایید شد.\n"
 					. 'مبلغ: ' . number_format(round((float) $row->amount)) . " ریال\n"
 					. ((string) $row->plan_name !== '' ? 'بسته: ' . (string) $row->plan_name . "\n" : '')
-					. 'بسته به‌صورت خودکار روی حساب شما اعمال شد.';
+					. 'بسته به‌صورت خودکار روی حساب شما اعمال شد.'
+					. ($support !== '' ? "\n\nپشتیبانی: " . $support : '');
 			} else {
 				$title = '❌ پرداخت کارت به کارت تایید نشد';
 				$text = "پرداخت کارت به کارت شما برای سفارش {$orderNo} تایید نشد.\n"
 					. 'مبلغ: ' . number_format(round((float) $row->amount)) . " ریال\n"
 					. ((string) $row->note !== '' ? 'دلیل: ' . (string) $row->note . "\n" : '')
-					. 'اگر مبلغ را واریز کرده‌اید، با پشتیبانی تماس بگیرید.';
+					. 'اگر مبلغ را واریز کرده‌اید، با پشتیبانی تماس بگیرید.'
+					. ($support !== '' ? "\nپشتیبانی: " . $support : '');
 			}
 
 			// the panel notice: the endpoint usually writes it already, this is
