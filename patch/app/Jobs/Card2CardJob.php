@@ -41,6 +41,7 @@ class Card2CardJob
 		$this->ensureTables();
 
 		$held = $this->holdOpen();
+		$callbacks = $this->pollBot();
 		$admins = $this->notifyAdmins();
 		$users = $this->notifyUsers();
 		$closed = $this->closeButtons();
@@ -48,6 +49,7 @@ class Card2CardJob
 
 		return [
 			'held'    => $held,
+			'callbacks' => $callbacks,
 			'admins'  => $admins,
 			'users'   => $users,
 			'closed'  => $closed,
@@ -527,6 +529,188 @@ class Card2CardJob
 		}
 
 		return $closed;
+	}
+
+	// ----------------------------------------------------- the bot's updates
+
+	/**
+	 * Polling is the default way the dedicated bot receives taps. Telegram is
+	 * reachable from here (messages go out), but it cannot reach this host
+	 * through the CDN, so a webhook is optional and off unless asked for.
+	 */
+	private function pollBot()
+	{
+		$token = trim((string) $this->setting('c2c_bot_token'));
+		$secret = trim((string) $this->setting('c2c_bot_secret'));
+
+		if ($token === '' || $secret === '') {
+			return 0;
+		}
+
+		if ((string) $this->setting('c2c_bot_mode') === 'webhook') {
+			return 0;
+		}
+
+		// getUpdates refuses to run while a webhook is set; clear it once
+		if ((string) $this->setting('c2c_bot_webhook_cleared') !== '1') {
+			$deleted = $this->api($token, 'deleteWebhook', []);
+
+			if (is_array($deleted) && !empty($deleted['ok'])) {
+				$this->putSetting('c2c_bot_webhook_cleared', '1');
+			} else {
+				return 0;
+			}
+		}
+
+		$offset = (int) $this->setting('c2c_bot_offset');
+
+		$updates = $this->api($token, 'getUpdates', [
+			'offset'          => $offset,
+			'timeout'         => 0,
+			'allowed_updates' => json_encode(['callback_query']),
+		]);
+
+		if (!is_array($updates) || empty($updates['ok']) || !is_array($updates['result'] ?? null)) {
+			return 0;
+		}
+
+		$handled = 0;
+
+		foreach ($updates['result'] as $update) {
+			$offset = max($offset, (int) ($update['update_id'] ?? 0) + 1);
+
+			if (isset($update['callback_query']) && is_array($update['callback_query'])) {
+				$this->handleCallback($token, $update['callback_query']);
+				$handled++;
+			}
+		}
+
+		$this->putSetting('c2c_bot_offset', (string) $offset);
+
+		return $handled;
+	}
+
+	private function parseCallback($data, &$id, &$act)
+	{
+		$secret = trim((string) $this->setting('c2c_bot_secret'));
+		$id = 0;
+		$act = '';
+
+		$parts = explode('|', (string) $data);
+		if (count($parts) !== 4 || $parts[0] !== 'c2c') {
+			return false;
+		}
+
+		$act = $parts[1] === 'a' ? 'approve' : ($parts[1] === 'r' ? 'reject' : '');
+		if ($act === '' || $secret === '') {
+			return false;
+		}
+
+		$id = (int) $parts[2];
+		$expected = substr(hash_hmac('sha256', $act . '|' . $id, $secret), 0, 20);
+
+		return $id > 0 && hash_equals($expected, (string) $parts[3]);
+	}
+
+	/**
+	 * The decision itself is made by the same endpoint the URL button uses
+	 * (c2c.decide, authorised by the request's own token), so polling and the
+	 * webhook cannot drift apart in how they grant an order.
+	 */
+	private function triggerDecision($request, $act)
+	{
+		$url = $this->siteUrl() . '/xmplus-patch.php?do=c2c.decide'
+			. '&id=' . (int) $request->id
+			. '&act=' . urlencode($act)
+			. '&t=' . urlencode((string) $request->token);
+
+		$ch = curl_init($url);
+		curl_setopt_array($ch, [
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_CONNECTTIMEOUT => 5,
+			CURLOPT_TIMEOUT        => 20,
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_USERAGENT      => 'xmplus-patch-c2c/1.0',
+		]);
+
+		$body = curl_exec($ch);
+		$status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+		curl_close($ch);
+
+		return $status === 200 && is_string($body);
+	}
+
+	private function handleCallback($token, array $callback)
+	{
+		$callbackId = (string) ($callback['id'] ?? '');
+		$data = (string) ($callback['data'] ?? '');
+		$chatId = (string) ($callback['message']['chat']['id'] ?? '');
+		$messageId = (int) ($callback['message']['message_id'] ?? 0);
+		$messageText = (string) ($callback['message']['text'] ?? '');
+
+		$id = 0;
+		$act = '';
+		$answer = '';
+		$chats = array_map('strval', $this->adminChats());
+
+		if (!$this->parseCallback($data, $id, $act)) {
+			$answer = 'دکمه نامعتبر است';
+		} elseif (!in_array($chatId, $chats, true)) {
+			$answer = 'اجازه ندارید';
+		} else {
+			$request = DB::table('c2c_request')->where('id', $id)->first();
+
+			try {
+				if ($request === null) {
+					$answer = 'درخواست پیدا نشد';
+				} elseif ((int) $request->status !== 0) {
+					$answer = (int) $request->status === 1 ? 'قبلاً تایید شده است' : 'قبلاً رد شده است';
+				} else {
+					$this->triggerDecision($request, $act);
+
+					$fresh = DB::table('c2c_request')->where('id', $id)->first();
+
+					if ($fresh === null) {
+						$answer = 'درخواست پیدا نشد';
+					} elseif ((int) $fresh->status === 1) {
+						$answer = '✅ تایید شد';
+					} elseif ((int) $fresh->status === 2) {
+						$answer = '❌ رد شد';
+					} else {
+						$answer = 'انجام نشد';
+					}
+				}
+			} catch (\Throwable $error) {
+				$answer = 'انجام نشد';
+			}
+		}
+
+		if ($callbackId !== '') {
+			$this->api($token, 'answerCallbackQuery', [
+				'callback_query_id' => $callbackId,
+				'text'              => $answer,
+			]);
+		}
+
+		// visible feedback in the chat, and no second tap
+		if ($messageId > 0 && $chatId !== '') {
+			$markup = json_encode(['inline_keyboard' => []]);
+
+			if ($messageText !== '') {
+				$this->api($token, 'editMessageText', [
+					'chat_id'      => $chatId,
+					'message_id'   => $messageId,
+					'text'         => $messageText . "\n\n" . $answer,
+					'reply_markup' => $markup,
+				]);
+			} else {
+				$this->api($token, 'editMessageReplyMarkup', [
+					'chat_id'      => $chatId,
+					'message_id'   => $messageId,
+					'reply_markup' => $markup,
+				]);
+			}
+		}
 	}
 
 	// --------------------------------------------------------- auto-reject

@@ -12,8 +12,8 @@ require __DIR__ . '/console.php';
 
 $report = (new \App\Jobs\Card2CardJob)->dispatch();
 
-if ($report['admins'] > 0 || $report['users'] > 0 || $report['expired'] > 0 || $report['closed'] > 0) {
+if ($report['callbacks'] > 0 || $report['admins'] > 0 || $report['users'] > 0 || $report['expired'] > 0 || $report['closed'] > 0) {
     echo date('Y-m-d H:i:s') . sprintf(
-        ' card-to-card: %d admin message(s), %d customer message(s), %d expired, %d closed, %d waiting',
-        $report['admins'], $report['users'], $report['expired'], $report['closed'], $report['left']) . PHP_EOL;
+        ' card-to-card: %d callback(s), %d admin message(s), %d customer message(s), %d expired, %d closed, %d waiting',
+        $report['callbacks'], $report['admins'], $report['users'], $report['expired'], $report['closed'], $report['left']) . PHP_EOL;
 }

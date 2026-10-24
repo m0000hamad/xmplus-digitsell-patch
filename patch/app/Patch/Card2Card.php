@@ -485,6 +485,17 @@ function c2cBotSecret(): string
     return trim(c2cSetting('c2c_bot_secret', ''));
 }
 
+/**
+ * How the dedicated bot receives taps. `poll` is the default: the panel pulls
+ * updates from Telegram, so no inbound webhook is needed and a CDN that blocks
+ * Telegram's servers cannot break it. `webhook` answers instantly but needs
+ * Telegram to reach this host.
+ */
+function c2cBotMode(): string
+{
+    return c2cSetting('c2c_bot_mode', 'poll') === 'webhook' ? 'webhook' : 'poll';
+}
+
 /** The bot that talks to the admin: the dedicated one when configured. */
 function c2cAdminBotToken(): string
 {
@@ -563,11 +574,22 @@ function c2cSetWebhook(string $token, string $secret): array
     return [true, ''];
 }
 
+/** Polling and a webhook cannot coexist: this clears one before polling. */
+function c2cDeleteWebhook(string $token): array
+{
+    $answer = c2cApiWith($token, 'deleteWebhook', []);
+
+    if (!is_array($answer) || empty($answer['ok'])) {
+        return [false, (string) ($answer['description'] ?? 'Telegram did not accept deleteWebhook')];
+    }
+
+    return [true, ''];
+}
+
 function c2cUsesCallbacks(): bool
 {
     return c2cBotToken() !== '' && c2cBotSecret() !== '';
 }
-
 /**
  * The inline keyboard for the admin message: callback buttons when a dedicated
  * bot is configured (the decision happens inside Telegram), URL buttons
@@ -1287,6 +1309,7 @@ function c2cAdminData(): array
         'webhook_error' => c2cSetting('c2c_bot_webhook_error', ''),
         'callbacks'    => c2cUsesCallbacks() ? 1 : 0,
         'support'      => c2cSupport(),
+        'mode'         => c2cBotMode(),
     ];
 
     $cards = [];
@@ -1398,6 +1421,10 @@ function c2cAdminSettings(): void
     $site = trim((string) ($_POST['site_url'] ?? ''));
     $bot = trim((string) ($_POST['bot_token'] ?? ''));
     $support = trim((string) ($_POST['support'] ?? ''));
+    $botMode = (string) ($_POST['bot_mode'] ?? 'poll');
+    if ($botMode !== 'webhook') {
+        $botMode = 'poll';
+    }
 
     if ($bot !== '' && !preg_match('~^\d{5,}:[A-Za-z0-9_-]{20,}$~', $bot)) {
         fail('the bot token does not look like a Telegram bot token');
@@ -1432,6 +1459,7 @@ function c2cAdminSettings(): void
     putSetting('c2c_site_url', rtrim($site, '/'));
     putSetting('c2c_bot_token', $bot);
     putSetting('c2c_support', $support !== '' ? $support : '@digitsellshop');
+    putSetting('c2c_bot_mode', $botMode);
 
     // a dedicated bot needs a secret: it is both the webhook header and the
     // key that signs the callback buttons
@@ -1442,7 +1470,18 @@ function c2cAdminSettings(): void
     }
 
     if ($bot !== '' && $secret !== '') {
-        list($ok, $error) = c2cSetWebhook($bot, $secret);
+        if ($botMode === 'webhook') {
+            list($ok, $error) = c2cSetWebhook($bot, $secret);
+            putSetting('c2c_bot_webhook_cleared', '0');
+        } else {
+            // polling is the default: Telegram cannot reach this host through
+            // the CDN, but the panel can reach Telegram
+            list($ok, $error) = c2cDeleteWebhook($bot);
+            putSetting('c2c_bot_webhook_cleared', '1');
+            $ok = true;
+            $error = '';
+        }
+
         putSetting('c2c_bot_webhook_ok', $ok ? '1' : '0');
         putSetting('c2c_bot_webhook_error', $error);
     } else {
@@ -1470,12 +1509,21 @@ function c2cAdminWebhook(): void
         putSetting('c2c_bot_secret', $secret);
     }
 
-    list($ok, $error) = c2cSetWebhook($token, $secret);
+    if (c2cBotMode() === 'webhook') {
+        list($ok, $error) = c2cSetWebhook($token, $secret);
+        putSetting('c2c_bot_webhook_cleared', '0');
+    } else {
+        list($ok, $error) = c2cDeleteWebhook($token);
+        putSetting('c2c_bot_webhook_cleared', '1');
+        $ok = true;
+        $error = '';
+    }
+
     putSetting('c2c_bot_webhook_ok', $ok ? '1' : '0');
     putSetting('c2c_bot_webhook_error', $error);
 
     if (!$ok) {
-        fail('setWebhook failed: ' . $error);
+        fail('Telegram refused the setup: ' . $error);
     }
 
     done(['saved' => 1] + c2cAdminData());
