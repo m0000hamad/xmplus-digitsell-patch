@@ -61,12 +61,13 @@ class CommissionJob
 	 * row cannot or should not be paid (missing user, zero amount, already done).
 	 */
 	/*
-	 * One commission row. Where it lands depends on the referrer:
+	 * One commission row. Where it lands depends on the settings and referrer:
 	 *
+	 *   separate wallet on -> commission_wallet, spendable on plans only
 	 *   eligible for cash  -> left in payout_balance, ready to be withdrawn
 	 *   not eligible       -> moved into money, spendable inside the panel only
 	 *
-	 * Either way it is written to commission_log so the dashboard can show it.
+	 * Every path is written to commission_log so the dashboard can show it.
 	 */
 	private function credit($row)
 	{
@@ -95,13 +96,13 @@ class CommissionJob
 		$connection->beginTransaction();
 
 		try {
-			if ($cashEligible) {
-				// the checkout already put it in payout_balance, leave it there
-				$destination = 'payout';
-				$balance = (float) $user->payout_balance;
-			} elseif ($this->separateWallet()) {
+			if ($this->separateWallet()) {
 				// kept out of user.money: spendable on subscription plans only,
-				// through app/Patch/Payg.php (commission.apply)
+				// through app/Patch/Payg.php (commission.apply). This wins over
+				// the cash route: with the separate wallet switched on, every
+				// commission lands here, whether or not the account could cash
+				// out - otherwise an active account's rows stayed in
+				// payout_balance, below the withdrawal minimum and invisible.
 				$destination = 'wallet';
 				$pending = (float) $user->payout_balance - $amount;
 
@@ -128,6 +129,11 @@ class CommissionJob
 					'note'          => (string) $row->username,
 					'created'       => time(),
 				]);
+			} elseif ($cashEligible) {
+				// no separate wallet: an account that can cash out keeps the
+				// money in payout_balance, where the checkout already put it
+				$destination = 'payout';
+				$balance = (float) $user->payout_balance;
 			} else {
 				$destination = 'wallet';
 				$balance = (float) $user->money + $amount;

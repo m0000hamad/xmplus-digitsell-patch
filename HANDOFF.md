@@ -469,6 +469,19 @@ Watch out for these:
   219 expired users (171,144,159 IRR). **Staff keep their commission on
   purpose** â€” confirmed twice.
 
+- Routing fix, installed by hand on the server on 2026-10-24 (a release is
+  still to be cut from this worktree): when `commission_wallet_enabled` is on,
+  **every** commission goes to `commission_wallet`, whether or not the referrer
+  could cash out. The `payout_balance` route only applies while that switch is
+  off. Before this, an active account's rows were left in `payout_balance`,
+  invisible in the dashboard and unusable below the 10M withdrawal minimum.
+  A reported account's whole payout balance was moved into its commission
+  wallet by hand; the other 85 payout balances (70 of them active and below the
+  minimum) were left for the owner to decide on.
+- Known gap: a card-to-card approval grants the plan directly
+  (`Card2Card::c2cApplyOrder`) and never writes an `affiliate` row, so a
+  purchase paid by card-to-card earns **no** referral commission yet.
+
 ### Invites â€” popup, assistant, share bar (1.8.0)
 
 Files: `view/user/affiliate/invitepopup.tpl` (included at the end of
