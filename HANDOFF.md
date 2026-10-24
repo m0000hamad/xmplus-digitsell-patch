@@ -7,7 +7,7 @@ describes.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-24 Â· installed version **1.9.2** Â· latest release **1.27.3** Â· repo
+Last updated: 2026-10-24 Â· installed version **1.9.2** Â· latest release **1.27.4** Â· repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -557,3 +557,4 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.27.1 | Card to card, minimal declaration: the buyer only enters the last four digits of their own card - the bank SMS already has the name, the time and the reference. Payer name, transfer date/time and reference moved into an optional "more details" section (pre-filled and editable); the admin Telegram message shows only the fields that were filled, plus the submission time. A rejection carries the admin's reason to the buyer's Telegram whenever they have started the bot, independently of the panel's Telegram master switch, and to the panel banner. |
 | 1.27.2 | Fix: the card-to-card admin section and the checkout dialog were bound inside `$(function(){...})`, but the panel loads jQuery in the footer, after these inline scripts run, so `$` is undefined at parse time - the section rendered but every button (Add card, Save, approve/reject) did nothing. The admin manager now binds with a plain DOM-ready guard and the checkout dialog opens through the Bootstrap Modal API. |
 | 1.27.3 | Fix: approving a reserved plan could fail with "the package behind this order is gone" - the panel deletes the minted top-up row between checkout and approval, and the grant read the marker off that row. A reserve is now recognised through `plan_reserve` instead, its reservation is linked and marked paid, and the grant is deferred to the reserve job. The Telegram approve/reject buttons are now one-tap: the decision runs straight from the link (the one-time token is the credential) and shows a one-line outcome. |
+| 1.27.4 | Fix: approving a request whose order was already paid (a gateway, the panel, or a duplicate tap racing the first) no longer reports "could not complete / this order was already paid another way". The request is closed as approved with a note, nothing is granted twice, and the Telegram page says the order was already paid. A repeated tap on a decided request reads as already handled. |

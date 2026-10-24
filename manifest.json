@@ -1,7 +1,7 @@
 {
-    "version": "1.27.3",
+    "version": "1.27.4",
     "released": "2026-10-24",
-    "notes": "Fix 1 - reserve orders: the panel can delete a minted top-up package between the checkout and the approval, so approving a reserved plan failed with \"the package behind this order is gone\". A reserve is now recognised through plan_reserve (which holds the minted package id) instead of the package row; the reservation is linked to the order and marked paid, and the grant is deferred to the reserve job, which needs the package no more than the reservation does. A normal top-up or subscription whose package really is gone still fails with a clear message instead of silently granting nothing.\n\nFix 2 - one-tap Telegram decision: the approve/reject buttons in the admin message now perform the action immediately (the one-time token in the link is the whole credential) and show a one-line outcome, instead of opening a confirmation form and waiting for a second tap.",
+    "notes": "Fix: approving a card-to-card request whose order was already paid no longer reports a failure. When the order was paid through a gateway, by the panel, or by a duplicate tap whose write landed between the reads, the request is now closed as approved without granting the package a second time, and the Telegram result page says \"the order was already paid; nothing was applied again\" instead of \"could not complete / this order was already paid another way\". A repeated tap on an already-decided request is answered as already handled. Nothing is ever granted twice: the request claim and the order update stay in one transaction.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -52,7 +52,7 @@
         "app/Jobs/TrafficStatsJob.php": "8cde9d7167ed068664d9f31ce4e25ac43e7884be866d3689d6507c12d34d247e",
         "app/Jobs/UserJob.php": "622ce66f3fe2987ec01917ab3cbc050d9023aa96d440ec9d80a091d5353c4428",
         "app/Jobs/WgJob.php": "18cb2830467f83831ffed92c4d2ac3d87ae481e520a71ca30b569711c1746c40",
-        "app/Patch/Card2Card.php": "3d3f4feaeede75dcdaec509b36790bb400e7b14a16dd910ea18436cbb2bc5891",
+        "app/Patch/Card2Card.php": "15ae872e0f52aec38a177e59638db5b0c569d15824d61fa249489e05b0395f14",
         "app/Patch/Dashboard.php": "f98274de6fb67b1dcc13a876d0d091bba2fc2652f04d460d93d97c79872a9df8",
         "app/Patch/NodeApi.php": "b6bc5fd0f9ada2371fe00af41c9a286f8a24ca52c4934e010420e9c4fd1d2ea0",
         "app/Patch/NodeKey.php": "ab67bacaa6f708d2d29ffef76f1c1c06b5fbd02668a36cf422ce95f983bf281f",
