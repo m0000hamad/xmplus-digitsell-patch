@@ -33,6 +33,14 @@
 				<input type="text" class="form-control" id="cc_site_url" dir="ltr" placeholder="https://panel.example.com">
 				<small class="text-muted">{$translate->get('C2cAdmSiteUrlHint')}</small>
 			</div>
+			<div class="col-md-6">
+				<label class="form-label" for="cc_bot_mode">{$translate->get('C2cAdmMode')}</label>
+				<select class="form-select" id="cc_bot_mode">
+					<option value="poll">{$translate->get('C2cAdmModePoll')}</option>
+					<option value="webhook">{$translate->get('C2cAdmModeHook')}</option>
+				</select>
+				<small class="text-muted">{$translate->get('C2cAdmModeHint')}</small>
+			</div>
 			<div class="col-12">
 				<label class="form-label" for="cc_bot_token">{$translate->get('C2cAdmBot')}</label>
 				<input type="text" class="form-control" id="cc_bot_token" dir="ltr" autocomplete="off" placeholder="123456789:AAH...">
@@ -152,7 +160,8 @@ window.C2CAdminWords = {
 	enabled:    "{$translate->get('C2cAdmEnabled')|escape:'javascript'}",
 	webhookOk:   "{$translate->get('C2cAdmWebhookOk')|escape:'javascript'}",
 	webhookFail: "{$translate->get('C2cAdmWebhookFail')|escape:'javascript'}",
-	webhookNone: "{$translate->get('C2cAdmWebhookNone')|escape:'javascript'}"
+	webhookNone: "{$translate->get('C2cAdmWebhookNone')|escape:'javascript'}",
+	pollOk:      "{$translate->get('C2cAdmPollOk')|escape:'javascript'}"
 };
 </script>
 
@@ -337,6 +346,9 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 		var mode = document.getElementById('cc_grant_mode');
 		if (mode) { mode.value = s.grant_mode === 'fresh' ? 'fresh' : 'auto'; }
 
+		var botMode = document.getElementById('cc_bot_mode');
+		if (botMode) { botMode.value = s.mode === 'webhook' ? 'webhook' : 'poll'; }
+
 		var chat = document.getElementById('cc_chat');
 		if (chat && !chat.value && s.fallback_chat) {
 			chat.placeholder = s.fallback_chat;
@@ -349,6 +361,8 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 			if (!s.bot_token) {
 				hook.textContent = words.webhookNone;
 				hook.className = 'cc-webhook none';
+			} else if (s.mode !== 'webhook') {
+				hook.textContent = words.pollOk;
 			} else if (Number(s.webhook_ok) === 1) {
 				hook.textContent = words.webhookOk;
 			} else {
@@ -592,7 +606,8 @@ html[data-hs-theme="dark"] .cc-pend { background: linear-gradient(135deg, rgba(1
 				hold_hours: document.getElementById('cc_hold_hours').value,
 				grant_mode: document.getElementById('cc_grant_mode').value,
 				bot_token: document.getElementById('cc_bot_token').value.trim(),
-				support: document.getElementById('cc_support').value.trim()
+				support: document.getElementById('cc_support').value.trim(),
+				bot_mode: document.getElementById('cc_bot_mode').value
 			}).then(function (next) {
 				if (!next || !next.ok) {
 					flash((next && next.error) || words.error, true);
