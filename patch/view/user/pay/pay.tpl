@@ -203,7 +203,27 @@
 	{/if}
 	
 	function Gatewayfee(){
+        if (window.CheckoutFunds) { window.CheckoutFunds.quote(); return; }
 		var paymentid =  $("input[name='payments']:checked").val();
+
+		// the account balance is not a gateway: the fee endpoint
+		// has no row for method -1 and throws reading fee_percent
+		// off it, while a balance payment carries no fee at all -
+		// so the summary is filled in here instead
+		if (paymentid == -1) {
+			$("#gateway_fee").html('{number_format(0, (int){$currency->decimals})}');
+			$("#total").html('{number_format((float)$order->total_amount, (int){$currency->decimals})}');
+			return;
+		}
+
+		// card to card is not a gateway either: no fee, and the full order
+		// amount is what the customer has to transfer
+		if (paymentid == 'c2c') {
+			$("#gateway_fee").html('{number_format(0, (int){$currency->decimals})}');
+			$("#total").html('{number_format((float)$order->total_amount, (int){$currency->decimals})}');
+			return;
+		}
+
 		$.ajax({
 			type: "POST",
 			url: "/portal/order/gateway_fee",
@@ -228,20 +248,36 @@
 	
 	$('.checkout').click(function(e) {
 		e.preventDefault();
+		if (window.CheckoutFunds && !window.CheckoutFunds.ready) { return; }
 		clearTimeout(ci);
 		clearTimeout(ti);
 		clearTimeout(qi);
 		layer.load(2);
 		document.getElementById("checkout").disabled = true;
 		var paymentid =  $("input[name='payments']:checked").val();
+		if (window.CheckoutFunds && window.CheckoutFunds.remaining() === 0) { paymentid = -1; }
+
+		// card to card never goes through /portal/order/pay - the order stays
+		// unpaid until an administrator confirms the transfer, so open the
+		// transfer dialog instead (user/pay/card2card.tpl)
+		if (paymentid == 'c2c') {
+			layer.closeAll('loading');
+			document.getElementById("checkout").disabled = false;
+			if (window.C2C) { window.CheckoutFunds.reserve().then(function (funding) { if (window.C2C.setAmount) { window.C2C.setAmount(funding.remaining); } window.C2C.open(); }).catch(function () {}); }
+			return;
+		}
+
 		$.ajax({
 			type: "POST",
-			url: "/portal/order/pay",
+			url: "/xmplus-patch.php?do=funds.pay",
 			dataType: "json",
 			data: {
 				order_id : "{$order->order_id}",
 				method: paymentid,
-				token: '',
+				token: window.CheckoutFunds.data().token,
+				use_wallet: window.CheckoutFunds.data().use_wallet,
+				use_commission: window.CheckoutFunds.data().use_commission,
+				expected_total: window.CheckoutFunds.data().expected_total,
 			},
 			success: (data) => {
 				layer.closeAll('loading');
@@ -320,6 +356,7 @@
 						offset:  '100px'
 					});
 					document.getElementById("checkout").disabled = false;
+					if (window.CheckoutFunds) { window.CheckoutFunds.quote(); }
 				}
 			},
 			error: (jqXHR) => {
@@ -535,3 +572,5 @@
 	  }, 10000);
 	}	
 </script>
+
+{include file='user/pay/card2card.tpl'}

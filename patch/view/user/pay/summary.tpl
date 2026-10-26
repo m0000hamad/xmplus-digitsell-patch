@@ -85,7 +85,7 @@ html[data-hs-theme="dark"] .py-btn-cancel { color: #fda4af; background: rgba(244
 					<span>{$translate->get('Discount')}</span>
 					<span>- {$currency->symbol_left} {number_format((float)$order->discount, (int){$currency->decimals})} {$currency->symbol_right}</span>
 				</div>
-				<div class="py-line py-line-credit">
+				<div class="py-line py-line-credit" id="funds-legacy-credit">
 					<span>💳 {$translate->get('AvailAmnt')}</span>
 					<span>- {$currency->symbol_left} {number_format((float)$order->user_balance, (int){$currency->decimals})} {$currency->symbol_right}</span>
 				</div>
@@ -99,8 +99,9 @@ html[data-hs-theme="dark"] .py-btn-cancel { color: #fda4af; background: rgba(244
 					<span class="py-total-value">{$currency->symbol_left} <span id="total">{number_format((float)$order->total_amount, (int){$currency->decimals})}</span> {$currency->symbol_right}</span>
 				</div>
 
+				{include file='user/pay/funds.tpl'}
 				<div class="py-buttons">
-					<button type="button" class="py-btn py-btn-pay {if $payments->count() > 0}checkout{/if}" id="checkout">💳 {$translate->get('Pay')}</button>
+					<button type="button" class="py-btn py-btn-pay checkout" id="checkout">💳 {$translate->get('Pay')}</button>
 					<button type="button" class="py-btn py-btn-cancel cancel">{$translate->get('CancelOrder')}</button>
 				</div>
 

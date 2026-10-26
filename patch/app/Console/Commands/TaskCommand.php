@@ -99,6 +99,26 @@ final class TaskCommand extends Command
 			'enabled' => true,
 		));
 
+		// reserved plans: a paid reserve order is linked to its reservation and
+		// the subscription is started once the current plan ends / the date comes
+		$scheduler->add('ReserveJob', array(
+			'command' => 'php '.BASE_PATH.'/bin/reserve.php',
+			'schedule' => "* * * * *",
+			'output' => BASE_PATH.'/storage/logs/reserve.log',
+			'lock_dir' => BASE_PATH.'/storage/cron/',
+			'enabled' => true,
+		));
+
+		// card-to-card: keeps waiting orders open, sends the admin the approval
+		// message, tells customers the outcome, expires unanswered requests
+		$scheduler->add('Card2CardJob', array(
+			'command' => 'php '.BASE_PATH.'/bin/c2c.php',
+			'schedule' => "* * * * *",
+			'output' => BASE_PATH.'/storage/logs/c2c.log',
+			'lock_dir' => BASE_PATH.'/storage/cron/',
+			'enabled' => true,
+		));
+
 		// one-time gift for joining the Telegram channel; asks the Bot API who is a member
 		$scheduler->add('TgJoinJob', array(
 			'command' => 'php '.BASE_PATH.'/bin/tgjoin.php',
@@ -164,6 +184,14 @@ final class TaskCommand extends Command
 			'lock_dir' => BASE_PATH.'/storage/cron/',
 			'enabled' => true,
 		));
+
+        $scheduler->add('CheckoutFundsJob', array(
+            'command' => 'php '.BASE_PATH.'/bin/checkout-funds.php',
+            'schedule' => '* * * * *',
+            'output' => BASE_PATH.'/storage/logs/checkout-funds.log',
+            'lock_dir' => BASE_PATH.'/storage/cron/',
+            'enabled' => true,
+        ));
 
 		$scheduler->run();
 		return 0;

@@ -26,7 +26,7 @@ const DEFAULT_REPO = 'm0000hamad/xmplus-digitsell-patch';
 const DEFAULT_BRANCH = 'main';
 
 /** Only these prefixes may be written. Anything else in a manifest is refused. */
-const ALLOWED_PREFIXES = ['app/', 'bin/', 'localization/', 'view/', 'public/xmplus-patch.php'];
+const ALLOWED_PREFIXES = ['app/', 'bin/', 'localization/', 'view/', 'public/xmplus-patch.php', 'public/assets/'];
 
 const ROOT = __DIR__ . '/..';
 
@@ -251,7 +251,7 @@ function fetch(string $url, ?string $saveTo = null)
  *
  * Branch-named URLs are served from caches that move at different speeds:
  * raw.githubusercontent handed back an old manifest while codeload already
- * served the new archive, and the version guard — correctly — refused the pair.
+ * served the new archive, and the version guard â€” correctly â€” refused the pair.
  * A commit SHA is immutable, so the manifest and the archive read at one SHA
  * always belong together.
  */
@@ -404,6 +404,21 @@ function clearCompiledTemplates(): void
 
 $action = $_GET['do'] ?? 'status';
 
+if (strpos($action, 'userbalances.') === 0) {
+    require ROOT . '/app/Patch/AdminUserBalancesEndpoint.php';
+    exit;
+}
+
+if (strpos($action, 'funds.') === 0) {
+    require ROOT . '/app/Patch/CheckoutFundsEndpoint.php';
+    exit;
+}
+
+if (strpos($action, 'invoice.') === 0) {
+    require ROOT . '/app/Patch/Invoice.php';
+    fail('unknown invoice action');
+}
+
 // Subscription link with the plan and wallet status on top, for the client
 // apps. No session: the token in the link is the credential, as on /link/.
 if ($action === 'sub') {
@@ -455,6 +470,21 @@ if (strpos($action, 'torexit.') === 0) {
 if (strpos($action, 'node.') === 0) {
     require ROOT . '/app/Patch/NodeApi.php';
     fail('unknown node action');
+}
+
+// Reserved plans: the buying half answers ordinary users, the admin half checks
+// for itself (app/Patch/Reserve.php).
+if (strpos($action, 'reserve.') === 0) {
+    require ROOT . '/app/Patch/Reserve.php';
+    fail('unknown reservation action');
+}
+
+// Card-to-card payments: the checkout half answers ordinary users, the admin
+// half checks for itself, and the Telegram approve/reject links carry their own
+// one-time token (app/Patch/Card2Card.php).
+if (strpos($action, 'c2c.') === 0) {
+    require ROOT . '/app/Patch/Card2Card.php';
+    fail('unknown card-to-card action');
 }
 
 requireAdmin();
@@ -521,7 +551,7 @@ if ($action === 'apply') {
     ownLikeTheApp($work, 0755);
 
     if (!is_writable($work)) {
-        fail('storage/patch is not writable by the web user — run: '
+        fail('storage/patch is not writable by the web user â€” run: '
             . 'chown -R <web user> ' . $work);
     }
 
@@ -550,7 +580,7 @@ if ($action === 'apply') {
         $found = is_array($shipped) ? (string) ($shipped['version'] ?? '?') : 'unreadable';
         removeTree($unpacked);
         fail(sprintf(
-            'the archive holds version %s but the manifest advertised %s — '
+            'the archive holds version %s but the manifest advertised %s â€” '
             . 'if you have just pushed, wait a minute for GitHub to catch up',
             $found, (string) $manifest['version']));
     }
@@ -572,6 +602,45 @@ if ($action === 'apply') {
         }
 
         $planned[$relative] = ['from' => $from, 'to' => safeDestination($relative)];
+    }
+
+    // An upstream archive must preserve installed invoice support. Refuse it
+    // before replacing any file, otherwise its visible form loses its API.
+    if (is_file(ROOT . '/app/Patch/Invoice.php')) {
+        $invoiceDispatcher = (string) @file_get_contents($source . '/patch/public/xmplus-patch.php');
+        $invoiceMenu = (string) @file_get_contents($source . '/patch/view/user/layout/usermenu.tpl');
+        if (strpos($invoiceDispatcher, '/app/Patch/Invoice.php') === false
+            || !is_file($source . '/patch/view/common/invoices.tpl')
+            || strpos($invoiceMenu, 'invoicenotice.tpl') === false) {
+            removeTree($unpacked);
+            fail('این بسته به‌روزرسانی پشتیبانی فاکتور را ندارد؛ برای جلوگیری از حذف قابلیت، نصب متوقف شد.');
+        }
+    }
+
+    // Preserve installed checkout funding before file replacement.
+    if (is_file(ROOT . '/app/Patch/CheckoutFunds.php')) {
+        $fundsDispatcher = (string) @file_get_contents($source . '/patch/public/xmplus-patch.php');
+        $fundsScheduler = (string) @file_get_contents($source . '/patch/app/Console/Commands/TaskCommand.php');
+        if (strpos($fundsDispatcher, '/app/Patch/CheckoutFundsEndpoint.php') === false
+            || strpos($fundsScheduler, 'CheckoutFundsJob') === false
+            || !is_file($source . '/patch/view/user/pay/funds.tpl')
+            || !is_file($source . '/patch/bin/checkout-funds.php')) {
+            removeTree($unpacked);
+            fail('این بسته پشتیبانی پرداخت از کیف پول و برگشت اعتبار را ندارد؛ نصب متوقف شد.');
+        }
+    }
+
+    // Preserve independent administrative balance edits.
+    if (is_file(ROOT . '/app/Patch/AdminUserBalances.php')) {
+        $balanceDispatcher = (string) @file_get_contents($source . '/patch/public/xmplus-patch.php');
+        $balanceEditor = (string) @file_get_contents($source . '/patch/view/admin/users/edit.tpl');
+        if (strpos($balanceDispatcher, '/app/Patch/AdminUserBalancesEndpoint.php') === false
+            || strpos($balanceEditor, 'userbalances.save') === false
+            || !is_file($source . '/patch/app/Patch/AdminUserBalances.php')
+            || !is_file($source . '/patch/view/admin/users/balances.tpl')) {
+            removeTree($unpacked);
+            fail('این بسته فرم مستقل کیف پول و پورسانت را ندارد؛ نصب متوقف شد.');
+        }
     }
 
     // ---- keep what is there now ----------------------------------------
@@ -598,7 +667,7 @@ if ($action === 'apply') {
         }
 
         if (!copy($move['from'], $move['to'])) {
-            fail('could not write ' . $relative . ' — check ownership');
+            fail('could not write ' . $relative . ' â€” check ownership');
         }
 
         ownLikeTheApp($move['to']);

@@ -1,1 +1,1 @@
-WireGuard nodes: fix node installer and agent (generate wg0.conf, enable ip_forward, fix bypass-start argument order and gateway method, add subnet NAT/forwarding rules).
+Fix admin user balance save: explicitly allowlist native profile fields so request keys, wallet metadata and CSRF tokens cannot become user columns. Preserve the account token, keep profile and balance writes atomic, and test the complete browser form payload.

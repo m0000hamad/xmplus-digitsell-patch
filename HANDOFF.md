@@ -3,6 +3,57 @@
 Living document. **Update it after every change**, alongside the release it
 describes.
 
+Installed 2026-10-26: **1.37.1**, filter all balance-edit/CSRF metadata out of the
+native user-save body. Full browser payload regression now verifies successful
+saving and unchanged user token. The reported failed wallet edit was rolled
+back; no actual balance was modified by the agent. See
+[ADMIN_USER_BALANCES.md](ADMIN_USER_BALANCES.md).
+
+Installed 2026-10-26: **1.37.0**, separate editable usage-wallet and total
+commission fields on Admin → Users → Edit. Native profile saving and balance
+adjustments are atomic, source-isolated, primary-admin-only for money, audited
+and guarded against stale snapshots/retries. Migration 029, native integration
+tests and live read-only health passed. No real balance changed. Details:
+[ADMIN_USER_BALANCES.md](ADMIN_USER_BALANCES.md).
+
+Installed 2026-10-26: **1.36.3** separates legacy `user.money` commission from
+the usage wallet in both payment-source quotes and reservations. Both source
+checkboxes remain visible; zero balances are disabled (1.36.2). Source isolation
+and exact-source refunds tested, including read-only checks on the named test
+account. No balance migration. See [CHECKOUT_FUNDS.md](CHECKOUT_FUNDS.md).
+
+Installed 2026-10-26: **1.36.1**, explicit optional wallet/commission funding on
+the payment page, transactional reservations, native gateway remainder and
+exact-source cancellation refunds. Includes the immediate Smarty literal fix
+for the commission shim; package page verified in browser. Architecture, backup,
+validation and operational limits: [CHECKOUT_FUNDS.md](CHECKOUT_FUNDS.md).
+
+2026-10-26 operational reconciliation: with explicit owner approval, the
+principal of one paid service invoice was credited to its owner's usage wallet.
+The invoice/order/payment records were retained. Wallet balance and charged
+total changed atomically with a `charge` ledger entry using the native `order:`
+reference to prevent duplicate credit; gateway fees and bonuses were excluded.
+The private before-state backup is under `/root/digitsell-invoice-credit-*`.
+This was a one-time correction; future service invoices still collect fees for
+services and do not automatically charge wallets.
+
+Installed checkout repair 2026-10-26: **1.35.2** fixes cold-request database and
+translation initialization and keeps checkout JSON clean. Regression starts
+without a preloaded console; native gateway page verified for the affected
+invoice. See [INVOICES.md](INVOICES.md).
+
+Installed repair 2026-10-26: **1.35.1** restores invoice dispatch removed by an
+upstream update and guards against incompatible archives. Customer/plan/period
+dropdowns verified in the user's browser; see [INVOICES.md](INVOICES.md).
+
+Installed 2026-10-26: **1.35.0**, admin-issued service/subscription/renewal invoices,
+customer alerts, existing email/Telegram channels and native gateway checkout.
+Scoped installation over live 1.34.0, preserving reservations/card-to-card;
+migration 027 and full database/file backup. Live invoice API health passed.
+Usage, architecture, validation, backup and installation: [INVOICES.md](INVOICES.md).
+Invoice installation ownership repaired the same day: eight affected files now
+www:www/0644; updater write access verified as the PHP-FPM worker.
+
 > This repository is **public**. No password, token, connection string or
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.

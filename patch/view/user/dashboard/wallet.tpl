@@ -591,7 +591,7 @@ html[data-hs-theme="dark"] .wd-amount.is-minus { color: #fb7185; }
 		$id('wdCharged').textContent = money(w.charged);
 
 		var icons = { charge: '💳', bonus: '🎁', usage: '📶', adjust: '✍️' };
-		var kinds = { charge: W.kindCharge, bonus: W.kindBonus, usage: W.kindUsage, adjust: W.kindAdjust };
+		var kinds = { charge: W.kindCharge, bonus: W.kindBonus, usage: W.kindUsage, adjust: W.kindAdjust, purchase: 'خرید با کیف پول', refund: 'برگشت پرداخت' };
 		var html = '';
 		var lastDay = '';
 

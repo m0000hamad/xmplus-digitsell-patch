@@ -25,11 +25,12 @@
 			<p class="od-head-sub">{$translate->get('OrdersSubtitle')}</p>
 		</div>
 	</div>
-	  
+
 	<div class="row match-height">
 		{include file='user/order/datatables.tpl'}
 	</div>
 	{include file='user/order/invoice.tpl'}
+{include file='common/invoices.tpl'}
 {include file='user/layout/footer.tpl'}
 {include file='common/orderresult.tpl'}
 <script>
@@ -80,7 +81,7 @@
             }
         });
     }
-	
+
 	function InvoiceModal(id) {
         $.ajax({
             type: "POST",
@@ -109,5 +110,5 @@
 				layer.msg(jqXHR.responseText);
             }
         });
-    }	
-</script>	
+    }
+</script>
