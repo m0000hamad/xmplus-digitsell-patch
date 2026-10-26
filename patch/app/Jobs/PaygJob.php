@@ -56,6 +56,9 @@ class PaygJob
 	/* a plan closer than this to its expiry counts as ended */
 	const PLAN_MARGIN = 180;
 
+	/* seconds a freshly paid plan is given to reach the user's quota */
+	const PLAN_GRACE = 600;
+
 	/* charge packages nobody bought are deleted after this long */
 	const MINTED_TTL = 86400;
 
@@ -608,6 +611,11 @@ class PaygJob
 				return;
 			}
 
+			// a plan paid a moment ago may not have reached the user's quota yet
+			if ($this->recentPlanOrder($userId)) {
+				return;
+			}
+
 			if (!$this->prepareGroup($row)) {
 				$this->cut($userId);
 				return;
@@ -766,13 +774,28 @@ class PaygJob
 		DB::statement('UPDATE user SET transfer_enable = u + d WHERE id = ? AND transfer_enable > u + d', [$userId]);
 	}
 
+	private function recentPlanOrder($userId)
+	{
+		return DB::table('orders')
+			->where('userid', $userId)
+			->where('status', 1)
+			->where('packagetype', 2)
+			->where('pay_date', '>', time() - self::PLAN_GRACE)
+			->exists();
+	}
+
+	/*
+	 * The grace window covers a plan paid together with a top-up: the order can
+	 * be stamped slightly before the switch to balance mode, and a strict
+	 * "after since" test would then never hand the account back.
+	 */
 	private function newSubscription($userId, $since)
 	{
 		return DB::table('orders')
 			->where('userid', $userId)
 			->where('status', 1)
 			->where('packagetype', 2)
-			->where('pay_date', '>', $since)
+			->where('pay_date', '>', max(0, $since - self::PLAN_GRACE))
 			->exists();
 	}
 
@@ -1005,7 +1028,7 @@ class PaygJob
 	/* amounts are stored in rial; customers think in toman */
 	private function money($rial)
 	{
-		if ($this->setting('payg_show_toman', '1') == 1) {
+		if ($this->setting('payg_show_toman', '0') == 1) {
 			return $this->fa(number_format(round((float) $rial / 10))) . ' تومان';
 		}
 

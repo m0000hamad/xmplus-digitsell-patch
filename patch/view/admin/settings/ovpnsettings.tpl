@@ -231,7 +231,7 @@
 	var endpoint = '/xmplus-patch.php';
 	var words = window.OvpnWords || {};
 	var token = '';
-	var state = { nodes: [], groups: [], repo: '', branch: 'main' };
+	var state = { nodes: [], groups: [], repo: '', branch: 'main', sessions: [] };
 	var lastKey = null; // { id, key } right after a server was added or re-keyed
 
 	function $(id) { return document.getElementById(id); }
@@ -455,6 +455,8 @@
 			state.groups = data.groups || [];
 			state.repo = data.repo || '';
 			state.branch = data.branch || 'main';
+			// the same snapshot the card's online count came from
+			state.sessions = data.sessions || [];
 			if (data.test && data.test.pass) {
 				$('ovTestLogin').textContent = data.test.login;
 				$('ovTestPass').textContent = data.test.pass;
@@ -465,6 +467,7 @@
 			renderJob(data.job_last, data.now);
 			renderBypass(data.bypass);
 			renderNodes();
+			renderSessions(state.sessions);
 			renderUninstall();
 			if ($('ovId').value === '0') { renderGroups([]); }
 		}).catch(function (error) {
@@ -599,9 +602,9 @@
 
 	$('ovSessionsBox').addEventListener('toggle', function () {
 		if (!this.open) { return; }
-		get('ovpn.sessions').then(function (data) {
-			renderSessions(data.ok ? data.sessions || [] : []);
-		});
+		// refresh the nodes and the list together, so the card's count and the
+		// rows below it are always the same snapshot
+		load();
 	});
 
 	load();

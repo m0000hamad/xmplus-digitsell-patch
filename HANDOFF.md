@@ -1,7 +1,15 @@
-# Handoff — Digitsell XMPlus panel patch
+# Handoff â€” Digitsell XMPlus panel patch
 
 Living document. **Update it after every change**, alongside the release it
 describes.
+
+> This repository is **public**. No password, token, connection string or
+> customer data belongs in any file here. Server and database credentials are
+> held by the owner and passed in the working session only.
+
+2026-10-26: owner confirmed the 1.37.1 save fix works. Repository synchronized
+with upstream 1.34.0 before publication, preserving its existing features.
+Deployment scratch files are excluded from Git.
 
 Installed 2026-10-26: **1.37.1**, filter all balance-edit/CSRF metadata out of the
 native user-save body. Full browser payload regression now verifies successful
@@ -58,7 +66,7 @@ www:www/0644; updater write access verified as the PHP-FPM worker.
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.
 
-Last updated: 2026-10-03 · installed version **1.9.2** · latest release **1.22.4** · repo
+Last updated: 2026-10-24 Â· installed version **1.9.2** Â· latest release **1.32.2** Â· repo
 <https://github.com/m0000hamad/xmplus-digitsell-patch>
 
 ---
@@ -90,14 +98,14 @@ These are plain source and are what the patch edits:
   passes any `.php` under `public/` straight to php-fpm, so a standalone file
   works as an endpoint.
 - Whatever an encoded controller passes to a template is all a template gets.
-  Several requests have had to be scoped down for this reason — see §7.
+  Several requests have had to be scoped down for this reason â€” see Â§7.
 
 ## 3. Repository shape
 
 ```
 patch/          mirrors the panel's own directory layout; copied in verbatim
 migrations/     idempotent PDO migrations, run once each, in filename order
-tools/          build_manifest.php — regenerates manifest.json
+tools/          build_manifest.php â€” regenerates manifest.json
 install.php     first-time install, run once from the server shell
 manifest.json   version, per-file SHA-256, migration list
 VERSION         the version manifest.json was last built with
@@ -110,9 +118,32 @@ HANDOFF.md      this file
 ```bash
 # edit files under patch/
 php tools/build_manifest.php 1.4.3 --notes="what changed"
-git commit -am "release 1.4.3 — ..."
+git commit -am "release 1.4.3 â€” ..."
 git push
 ```
+
+> **A release must land on `main`.** The updater reads the commit `main` points
+> at, and only that (see Â§4). Work committed to a side branch â€” a worktree
+> branch like `kilo/...`, a `claude/...` branch, any PR branch â€” is **invisible
+> to the panel** until it is merged into `main` and `main` is pushed. Push the
+> release to `main` (or merge the branch into `main` with a fast-forward and
+> push), and confirm `git branch -r --contains <commit>` lists `origin/main`.
+> The updater's `DEFAULT_BRANCH` is `main` (`patch/public/xmplus-patch.php`);
+> only a `patch_branch` setting on the server could point it elsewhere.
+
+**1.24.0 got this wrong once.** The plan-reservation release was committed and
+pushed to the worktree branch `kilo/add-plan-reservation-capability`, so
+Settings â†’ Patch updates saw nothing to update. Fixed by fast-forwarding
+`main` to that commit and pushing `main`; `origin/main` and the release commit
+are the same tree. If a release seems to have "not arrived" in the panel, check
+this first: `git log --oneline origin/main..HEAD`.
+
+**Pick one path, not both.** Either push the release straight to `main`, or
+open a PR from the branch and merge it into `main` â€” do not do both. Once `main`
+already holds every commit of the branch (`git log --oneline origin/main..HEAD`
+is empty), GitHub refuses the PR with *"No commits between main and â€¦"*: there
+is nothing left to merge. An empty PR like that is not an error to fix; the
+release is simply already on `main`.
 
 The manifest **must** be rebuilt after any change under `patch/`, or the
 updater refuses the release. That is the safe failure, but still a failure.
@@ -124,18 +155,18 @@ line-ending rewrite makes a correct release fail its own checksum.
 ## 4. The in-panel updater
 
 `patch/public/xmplus-patch.php`, reached at `/xmplus-patch.php`. Admin UI is
-**Settings → به‌روزرسانی پچ** (`patch/view/admin/settings/patchsettings.tpl`).
+**Settings â†’ Ø¨Ù‡â€ŒØ±ÙˆØ²Ø±Ø³Ø§Ù†ÛŒ Ù¾Ú†** (`patch/view/admin/settings/patchsettings.tpl`).
 
-Flow: ask the GitHub API which commit `main` points at → read `manifest.json`
-**at that SHA** → download the archive **at that SHA** → verify every file's
-SHA-256 → back up what it replaces into `storage/patch/backup-<stamp>/` → copy →
-run new migrations → clear `storage/smarty/compile` → record the version.
+Flow: ask the GitHub API which commit `main` points at â†’ read `manifest.json`
+**at that SHA** â†’ download the archive **at that SHA** â†’ verify every file's
+SHA-256 â†’ back up what it replaces into `storage/patch/backup-<stamp>/` â†’ copy â†’
+run new migrations â†’ clear `storage/smarty/compile` â†’ record the version.
 
 Refuses: a request without an admin session; without the CSRF token that
 `?do=status` issues; a manifest naming a path outside `app/ bin/ localization/
 view/ public/xmplus-patch.php`; any path containing `..`; any checksum mismatch.
 
-Auth is checked twice — the session must claim `is_admin`, **and** the account's
+Auth is checked twice â€” the session must claim `is_admin`, **and** the account's
 `role` is re-read from the database. A session with a forged `is_admin` is
 refused.
 
@@ -154,12 +185,12 @@ applied through the panel. Live, repo and manifest are in sync at 1.4.4.
 |---|---|
 | Panel root | `/www/wwwroot/p.digitsell-shop.ir` |
 | Web user | `www` |
-| PHP | 7.4 · MySQL 5.7 · nginx via aaPanel |
+| PHP | 7.4 Â· MySQL 5.7 Â· nginx via aaPanel |
 | Session cookie | **`xmplus`**, not `PHPSESSID` |
 | Session store | files in `/tmp/sess_*`, owner `www` |
 | DB config | `config/config.php`, `$DB` array |
-| Public hostname | `p.digitsell-shop.ir` — **behind an Iranian CDN** |
-| Direct hostname | `my.digitsell-shop.ir` — resolves straight to the origin |
+| Public hostname | `p.digitsell-shop.ir` â€” **behind an Iranian CDN** |
+| Direct hostname | `my.digitsell-shop.ir` â€” resolves straight to the origin |
 | Backups | hourly encrypted zips in `storage/backup/`, password in the `backuppass` setting |
 
 ### Traps that have each cost an outage
@@ -189,14 +220,14 @@ applied through the panel. Live, repo and manifest are in sync at 1.4.4.
   a `{literal}` region cannot straddle `</script>`; escaping is **off**, so
   anything user-authored must be escaped in PHP.
 
-### Dark mode — the single most load-bearing detail
+### Dark mode â€” the single most load-bearing detail
 
 `hs.theme-appearance.js` swaps stylesheet `<link>` elements and **never marks
 the document**, so `html[data-hs-appearance="dark"]` matches nothing. A mirror
 script in `patch/view/user/layout/header.tpl` stamps the resolved theme on
 `<html data-hs-theme>`, and **every dark rule in this patch keys off that**.
 
-Do not reuse the name `data-hs-appearance` on `<html>` — the theme script
+Do not reuse the name `data-hs-appearance` on `<html>` â€” the theme script
 queries that attribute to find its stylesheet nodes, and theme switching breaks.
 
 ## 6. What the patch changes, by area
@@ -208,21 +239,23 @@ queries that attribute to find its stylesheet nodes, and theme switching breaks.
 | Tickets | Paragraphs survive, links clickable, Telegram-style sides, stickers, staff signature; **stored XSS closed** |
 | Affiliate | Invite tab and commission tab; per-referral earnings; withdrawal form with card and IBAN; written cash-out rules |
 | Commission | Automatic payout, popup, ledger, cash/credit routing |
-| Invites | Dashboard invite popup in three stages with an "assistant" quoting the visitor's own numbers; ready-to-send invite message with share buttons on the affiliate page; friends-only note. Released in 1.8.0 — see below |
-| Telegram channel gift | One-time weighted gift for new channel members (GB on a running plan, a free plan otherwise), `TgJoinJob`. Released in 1.8.0 — see below |
+| Invites | Dashboard invite popup in three stages with an "assistant" quoting the visitor's own numbers; ready-to-send invite message with share buttons on the affiliate page; friends-only note. Released in 1.8.0 â€” see below |
+| Telegram channel gift | One-time weighted gift for new channel members (GB on a running plan, a free plan otherwise), `TgJoinJob`. Released in 1.8.0 â€” see below |
 | Purchase flow | Plans, plan detail, checkout and orders redesigned; a verdict popup states the result and survives the redirect |
 | Admin dashboard | Rebuilt on ApexCharts from one read-only call, `xmplus-patch.php?do=dashboard.overview` (`app/Patch/Dashboard.php`): KPI cards with sparklines and deltas, daily revenue by kind, 12-month trend (Solar Hijri months for fa_IR), sales mix and gateways, top plans, weekday x hour heatmap, user status, 14-day expiry pipeline, sign-ups, traffic by day and server, node table, latest paid orders, and a system health card (DB, nodes, cron locks, trafficlog freshness, 24h paid rate, disk, load, cache dir, unapplied time orders, patch version). Released in 1.7.0 |
 | Invoice | A real document with seller, buyer, line item and totals; prints on one sheet; readable on a phone |
 | Settings (user) | Gradient hero, glass section rail with a colour per section and the current one lit, cards carrying that accent; notification rows became switches; 2FA dialog restyled; every input id, button class and section anchor kept so the encoded controller and page JS are untouched |
 | Notices | User timeline shows the title and reads as coloured cards; latest-notice popup restyled with a labelled dismiss switch; admin add/edit got RTL Persian TinyMCE, one-click snippets and a live user-popup preview |
-| Time plans | A third plan type selling days only — see the section below |
+| Time plans | A third plan type selling days only â€” see the section below |
+| Card to card | A manual payment method the encoded gateway list cannot hold: several receiving cards, each with its own cap, rotating automatically; a transfer form on the checkout; approval on the site or from the Telegram message; automatic package grant and a confirmation banner. Off until switched on - see the section below |
+| Reserved plans | Buy a subscription now, have it start later (after the current plan ends, or on a chosen date) â€” see the section below |
 | Menu | Labelled glass toggle, per-item colours, current page marked, works on phones |
 | Themes | Dark mode fixed panel-wide (see above) |
 | Gift cards | Redeem dialog redesigned, Telegram notice on redemption (1.8.9) - see below |
-| Sign-in page | `view/auth/login.tpl` redesigned (1.8.6) — see below |
-| Sign-up page | `view/auth/register.tpl` in the sign-in page's design (1.9.1) — see below |
+| Sign-in page | `view/auth/login.tpl` redesigned (1.8.6) â€” see below |
+| Sign-up page | `view/auth/register.tpl` in the sign-in page's design (1.9.1) â€” see below |
 
-### Time plans — how days are sold without touching the order pipeline
+### Time plans â€” how days are sold without touching the order pipeline
 
 A time plan is **not** a new package type. It is an ordinary topup package
 (`package.type = 1`, `bandwidth = 0`) whose `order_note` carries a marker, a
@@ -234,12 +267,12 @@ field nothing renders for type 1:
 {"timeplan":{"v":1,"mode":"minted","days":12,"parent":41,"created":1789537529,"applies_to":[]}}
 ```
 
-That keeps checkout — coupon, gateway, invoice, order history — inside the
+That keeps checkout â€” coupon, gateway, invoice, order history â€” inside the
 panel's own encoded code: the browser posts `plan: "topup"` with the package id
 to `/portal/order/create`, exactly as "add data" does. `applies_to` empty means
 every plan. A `perday` row is a parent and is never bought directly; picking N
 days calls `timeplan.mint`, which finds or creates a `minted` row priced at
-N × the daily rate, so the row count is bounded by `max_days`. Unsold minted
+N Ã— the daily rate, so the row count is bounded by `max_days`. Unsold minted
 rows are switched off after a day and switched back on if the same N comes up.
 
 Nothing in the paid path knows about days, so `bin/timeplans.php`
@@ -268,7 +301,7 @@ Watch out for these:
 - **`UserJob` zeroes `transfer_enable` the moment a plan expires.** Buying days
   in the grace window afterwards would otherwise return a working account with
   no data. `UserJob` now writes the remaining traffic to `timeplan_snapshot`
-  before wiping, and the grant restores it — only when the snapshot's
+  before wiping, and the grant restores it â€” only when the snapshot's
   `expire_in` still equals the user's, so old traffic can never come back.
 - **A paid order is `orders.status = 1`.** `orders.state` is 0 on essentially
   every row; `Package::period_sales()`, which filters `state = 1`, counts
@@ -285,7 +318,7 @@ Watch out for these:
 - If `/portal/order/create` ever refuses a zero-gigabyte package, set the
   `timeplan_bandwidth` setting to `0.01`; the endpoint reads it when writing the
   package row.
-- Smarty's `{$x = ...}` assignment rejects ternaries — `edit.tpl` uses `{if}`
+- Smarty's `{$x = ...}` assignment rejects ternaries â€” `edit.tpl` uses `{if}`
   blocks to unpack the marker.
 
 ### Limiting a traffic top-up to certain plans
@@ -296,20 +329,20 @@ trick would be wiped. The scope lives in one settings row instead:
 
     timeplan_topup_scope = {"7":[18,19],"8":[]}
 
-package id → the subscription packages it is offered on; missing or empty means
+package id â†’ the subscription packages it is offered on; missing or empty means
 everyone, which is what every pre-existing top-up is. The page writes it with
 `timeplan.topupscope` right after the encoded save returns, identifying a brand
 new package by name because that save does not report the id.
 
 `Package::topupList()` and `topupAllowed()` do the filtering, and
-`Package::scopeViewer()` deliberately returns null for staff — the admin pages
+`Package::scopeViewer()` deliberately returns null for staff â€” the admin pages
 list top-ups too and must keep seeing all of them.
 
 ### Two scoping dimensions, not one
 
 Both a time plan and a top-up can be limited by **subscription plan** and by
 **server group**, independently. Each list is open when empty, and both have to
-pass. The group is matched against `user.server_group` — not `user.user_group`,
+pass. The group is matched against `user.server_group` â€” not `user.user_group`,
 which is the staff permission role and has nothing to do with this.
 
 A time plan keeps `groups` in its marker next to `applies_to`. A top-up cannot,
@@ -319,23 +352,211 @@ for the reason above, so it gets a second settings row alongside the first:
 
 Both rows are written by the same `timeplan.topupscope` call.
 
-### Commission — money rules already decided. Do not redo without asking.
+### Reserved plans â€” buy now, start later
+
+A customer can reserve a subscription plan at checkout: the money is paid
+today and the plan starts later, either **after the current plan ends** or on a
+**chosen date**. Same trick as the time plans: the panel's checkout and the code
+that applies a subscription are encoded, so a reserved plan is sold as an
+ordinary traffic top-up (`type = 1`, `bandwidth = 0`) whose `order_note` carries
+a marker, and the subscription is started afterwards by `bin/reserve.php`.
+
+```json
+{"planreserve":{"v":1,"plan":41,"cycle":"month","days":30}}
+```
+
+- One package row per `(plan, cycle)`, named `Ø±Ø²Ø±Ùˆ <plan> - <cycle>`, priced at
+  the plan's price for that cycle as it stands at mint time (a running
+  promotion's discounted price included). It is hidden from the customer's
+  "add data" list (`Package::topupList()` drops `RESERVE_MARKER`) and from the
+  admin plan list (added to `generated` in `TimePlan.php`).
+- `plan_reserve` (migration 021) holds the reservation: the buyer, the plan and
+  cycle, the plan's numbers (so it survives the plan being edited or switched
+  off), the mode and date, and the state â€” `0` prepared/unpaid, `1` paid and
+  waiting, `2` started, `3` cancelled.
+- `app/Jobs/ReserveJob.php` (`bin/reserve.php`, scheduled every minute from
+  `TaskCommand`) links each paid reserve order to its reservation (rebuilding it
+  from the marker if the intent is gone), then starts the subscription once the
+  current plan has ended **and** the chosen date has come â€” the "replace when
+  the current plan ends" rule the owner chose. Starting is the same fresh-plan
+  write `TgJoinJob` uses (`packageid`, `plan`, `server_group`, `iplimit`,
+  `speedlimit`, `transfer_enable = bandwidth * GiB`, `u = d = used = 0`,
+  `expire_in = now + days`), and the reserve order is turned into the
+  subscription order it really was (`packagetype = 2`, `plan`, `plan_expire`,
+  `expire`), leaving `pay_date` where the money changed hands.
+- A conditional `UPDATE ... WHERE status = 1` claims each activation, so two
+  overlapping runs can never start the same plan twice.
+- **Only one reservation per customer.** Cancel (before it starts) refunds the
+  full amount into `user.money` â€” the payment is not reversed, it becomes store
+  credit, which is what the owner asked for. The reservation row is claimed
+  first, so a second request can never refund twice. An unpaid check-out older
+  than an hour is dropped, and an unpaid intent never blocks a fresh one.
+- The user half answers ordinary users and therefore rides the `reserve.*`
+  dispatch in `public/xmplus-patch.php` **before** the blanket `requireAdmin()`;
+  it has its own CSRF token, `$_SESSION['reserve_csrf']`, handed out by
+  `reserve.mine`. `reserve.prepare` re-checks everything server-side.
+- Visibility and the date horizon are two settings, `reserve_enabled` (1) and
+  `reserve_max_days` (365), edited in Settings â†’ Plan reservations and read by
+  `User::reserveFeatureOn()`. `User::planReserveWaiting()` draws the dashboard
+  card (`view/user/dashboard/reservecard.tpl`, included from `subsciption.tpl`):
+  plan, cycle, days, quota, when it starts, amount paid, cancel.
+- **A reservation announces itself in three places, at both moments** â€” when it
+  is taken and when it starts. The dashboard half is the `reserve_notice` table
+  (migration 022): `view/user/layout/reservebanner.tpl`, included from
+  `usermenu.tpl` right after the wallet banner, draws the unseen rows on every
+  customer page and its close button posts `reserve.ack`. The other two are
+  Telegram and e-mail, sent by `ReserveJob` through the panel's own bot and
+  `Queue`. The unique key on `reserve_notice.ref` is the guard for all three, so
+  nothing is sent twice.
+- `User::planReserveWaiting()` first calls `ReserveJob::linkForUser()` (once per
+  account per request), so a just-paid reservation is linked on the first page
+  load after the gateway rather than waiting for the cron â€” the card and the
+  banner are there the moment the customer is back.
+- The plan page (`view/user/plan/plan-details.tpl`) gained a "Ø±Ø²Ø±Ùˆ Ù¾Ù„Ù†" card;
+  when it is on, Checkout calls `reserve.prepare` and then posts the minted row
+  to `/portal/order/create` with `plan: "topup"`, exactly as the "add data"
+  flow does.
+- The reserve order sends **`disableactive: 1`**, and that is deliberate. The
+  encoded checkout refuses *any* order while the account has a running plan
+  unless this flag is set â€” that is the "Ø§Ø´ØªØ±Ø§Ú© ÙØ¹Ø§Ù„ Ø¯Ø§Ø±ÛŒØ¯" (you have an active
+  subscription) it answers with otherwise. For a `type 1` top-up the flag is
+  ignored, so nothing is cancelled; every customer top-up flow on the panel
+  sends it too ("add data" `dashboard.tpl:751`, "add time" `dashboard.tpl:971`,
+  wallet charge `wallet.tpl:794`). Sending `0` here is the bug the 1.24.1 fix
+  undid: reserving was impossible while a subscription was running. The
+  customer's own "cancel my plan" switch is only *hidden* in reserve mode; its
+  state is left untouched and the reserve order never acts on it.
+
+- At checkout (iew/user/pay/cycle.tpl, included from pay/pay.tpl) the balance (AccBalance, alue=-1) is shown above the gateways whenever user.money > 0, pre-selected when it covers the order's 	otal_amount. The buy button then posts method=-1 to /portal/order/pay, the same wallet-balance path the panel already uses (Order::gateway(-1)), so a refunded reservation credit is consumed automatically and the user is not sent to a gateway when the balance is enough.
+
+### Card to card - a manual gateway the encoded checkout cannot have
+
+Files: `app/Patch/Card2Card.php` (customer + admin + the Telegram decision
+page), `app/Jobs/Card2CardJob.php`, `bin/c2c.php`,
+`migrations/025_card2card.php`, `view/user/pay/card2card.tpl`,
+`view/user/layout/c2cbanner.tpl`, `view/admin/settings/c2csettings.tpl`,
+`User::cardToCardNotices()`.
+
+The panel's payment drivers are ionCube encoded, so `/portal/order/pay` cannot
+be taught a new one. The checkout page can be patched: `card2card.tpl` adds a
+fourth choice to the gateway grid and takes over the Pay button. The order is
+still the panel's own, created by `/portal/order/create`; it simply stays
+unpaid while the transfer waits.
+
+- The customer transfers the exact `orders.total_amount` to the card shown and
+  records the last four digits of their own card. That is the whole declaration:
+  the bank SMS already carries the name, the time and the reference, so payer
+  name, transfer date/time and reference live in an optional "more details"
+  section (pre-filled, editable) and may stay empty. There is one request per
+  order (`c2c_request.orderid` UNIQUE); a rejected one can be corrected and
+  sent again.
+- Cards rotate (`c2c_card`): each carries an amount cap and/or a count cap,
+  measured per day / per month / in total (0 = no cap). The checkout always
+  shows the first enabled card in `sort` order that still has room, and moves
+  to the next one by itself. Pending requests count towards a cap too, so a
+  burst of transfers cannot overrun a card before anyone is approved.
+- The administrator gets a Telegram message with everything needed to match
+  the transfer. With a **dedicated bot** (`c2c_bot_token`, optional) the two
+  buttons are callbacks: `setWebhook` points that bot at
+  `xmplus-patch.php?do=c2c.tgwebhook`, the update is verified by the secret
+  header Telegram sends, the callback payload is `c2c|a|id|sig` where `sig` is
+  an HMAC with `c2c_bot_secret`, only chats in `c2c_telegram_chat` may decide,
+  and approve/reject happens on the spot, removes the buttons and shows a
+  toast. Without a dedicated bot the buttons are one-tap URL links to
+  `c2c.decide` (the request's own 64-hex token, 7 days, one decision).
+  Approving from Settings -> Card to card does the same.
+- Approval marks the order paid (`status = 1`, `pay_date`, `gateway_name`) and
+  grants what it bought. Time plans, reserved plans and pay-as-you-go charges
+  are left to their own jobs, which watch for a paid order; a plain top-up
+  adds its gigabytes. A subscription follows the plan's `renew_type` when the
+  order is a renewal (`c2c_grant_mode = fresh` forces a fresh plan). The
+  request row is claimed first, so overlapping approvals can never grant
+  twice.
+- **A transfer takes longer than a gateway redirect.** The panel's `UserJob`
+  cancels an unpaid order once `gateway_expire` passes, so `Card2CardJob`
+  keeps moving that window ahead while a request waits (`c2c_hold_hours`,
+  default 48) and brings a `-1` order back to `0`. `c2c_reject_hours` (72)
+  auto-rejects a request nobody looked at.
+- The outcome reaches the buyer three ways: the pay page polls `c2c.status`,
+  `c2c_notice` drives `c2cbanner.tpl` on every customer page (its close button
+  posts `c2c.ack`), and Telegram/e-mail are sent by the job. The notice `ref`
+  includes the decision time, so a rejected-then-approved request leaves two
+  rows instead of colliding.
+- Paid still means `orders.status = 1`; `orders.state` is not used here (it is
+  0 on almost every row, as noted above).
+
+Settings: `c2c_enabled` (off until switched on), `c2c_telegram_chat`
+(fallback: `telegramchatid`), `c2c_note` (text under the transfer form),
+`c2c_reject_hours`, `c2c_hold_hours`, `c2c_grant_mode` (`auto` / `fresh`),
+`c2c_site_url` (fallback: `appName` / `baseUrl`).
+
+Watch out for these:
+
+- `c2c.info` hands out the full card number only with one of the caller's own
+  orders; without an order it returns no card. The banner's close button calls
+  it only for the CSRF token.
+- The Pay button only carries the panel's `.checkout` class when a gateway
+  exists. `card2card.tpl` binds its own click handler for the gateway-less
+  case, and `Gatewayfee()` answers `c2c` locally (no fee, the full total) -
+  the encoded fee endpoint has no row for it.
+- Do not create a `payment` row for card to card. The encoded gateway list
+  would offer it at checkout and try to load a driver that does not exist.
+- The Telegram approve/reject action runs on the first request: with a dedicated
+  bot it is a callback answered by the webhook; without one it is a one-tap GET
+  to `c2c.decide`, whose 64-hex token is the credential. Do not add a second
+  confirmation step - the owner asked for one tap.
+- The webhook (`c2c.tgwebhook`) is public, so it trusts nothing but the
+  `X-Telegram-Bot-Api-Secret-Token` header, the callback HMAC, and the chat id
+  against `c2c_telegram_chat`. Keep all three checks.
+- The dedicated bot is for admin approvals only. Customer notices still go
+  through the panel's own bot (`telegramtoken`), so turning the panel bot off
+  does not silence the buyer.
+
+### Commission â€” money rules already decided. Do not redo without asking.
 
 - Only **new** commission is credited automatically.
 - The watermark setting `commission_last_affiliate_id` marks the last paid row.
-  **Never lower it** — everything below would pay a second time.
+  **Never lower it** â€” everything below would pay a second time.
   `commission_log.affiliate_id` is UNIQUE as a second guard.
 - Routing (the owner chose this): the referrer keeps it in `payout_balance` and
   can cash out **only** if their subscription is active **and** the gap since
   their previous one is at most `withdraw_max_gap_days` (90). Otherwise it is
-  **moved** into `user.money` as spendable credit — moved, not added.
+  **moved** into `user.money` as spendable credit â€” moved, not added.
 - Minimum cash withdrawal: `min_withdrawal` = 10,000,000 IRR. The server's own
   limit is the `payoutlimit` setting, measured at the same value.
 - Two one-off migrations already ran: 143 active users (113,219,705 IRR) and
   219 expired users (171,144,159 IRR). **Staff keep their commission on
-  purpose** — confirmed twice.
+  purpose** â€” confirmed twice.
 
-### Invites — popup, assistant, share bar (1.8.0)
+- Routing fix, installed by hand on the server on 2026-10-24 (a release is
+  still to be cut from this worktree): when `commission_wallet_enabled` is on,
+  **every** commission goes to `commission_wallet`, whether or not the referrer
+  could cash out. The `payout_balance` route only applies while that switch is
+  off. Before this, an active account's rows were left in `payout_balance`,
+  invisible in the dashboard and unusable below the 10M withdrawal minimum.
+  A reported account's whole payout balance was moved into its commission
+  wallet by hand; the other 85 payout balances (70 of them active and below the
+  minimum) were left for the owner to decide on.
+- 1.33.0: the destination is a setting, not a rule. The admin picks
+  `commission_destination` (payout | money | wallet) in the affiliate page
+  (`view/admin/affiliates/option.tpl`, a new card saved through
+  `xmplus-patch.php?do=commission.routing`), and may switch on
+  `commission_user_choice` so the customer picks on the invite page
+  (`view/user/affiliate/commissionroute.tpl`, `commission.pref`). The customer's
+  pick lives in `commission_pref` (migration 026). Only new commission is
+  routed; existing balances stay where they are. Choosing `wallet` turns
+  `commission_wallet_enabled` on. With no setting saved, the legacy routing
+  above applies. A customer's saved wallet pick falls back to account credit
+  while that feature is off. The card-to-card gap remains.
+- 1.34.0: the admin also ticks which of the three the customer may pick
+  (`commission_user_options`). The invite-page selector only offers those, and
+  the default destination must be one of them; the server refuses a save
+  otherwise. Empty/missing options mean all three, as before.
+- Known gap: a card-to-card approval grants the plan directly
+  (`Card2Card::c2cApplyOrder`) and never writes an `affiliate` row, so a
+  purchase paid by card-to-card earns **no** referral commission yet.
+
+### Invites â€” popup, assistant, share bar (1.8.0)
 
 Files: `view/user/affiliate/invitepopup.tpl` (included at the end of
 `dashboard.tpl` when `rebate` is on), `inviteinsight.tpl` (the assistant
@@ -343,9 +564,9 @@ bubbles), `sharebar.tpl` (message + buttons; `shareEditable=1` on the affiliate
 page, `shareCompact=1` in the popup), `User::referralCount()`,
 `User::inviteInsight()`.
 
-- Stages: 0 offer → dismissed → 12 h → 1 "what is lost" → 2 days → 2
-  "discount on your next plan" → 7 days → back to 1. Any share button = done,
-  quiet for 30 days. State is `localStorage['dsInvitePop:<uid>']` — there is no
+- Stages: 0 offer â†’ dismissed â†’ 12 h â†’ 1 "what is lost" â†’ 2 days â†’ 2
+  "discount on your next plan" â†’ 7 days â†’ back to 1. Any share button = done,
+  quiet for 30 days. State is `localStorage['dsInvitePop:<uid>']` â€” there is no
   endpoint for it, and losing it only shows the offer once more.
 - It never stacks: it waits until no `.modal.show`, `.swal2-container` or layer
   dialog is open, then 2 s of quiet.
@@ -357,33 +578,33 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | Version | Changes |
 |---|---|
 | 1.0.0 | Initial patch release: dashboard rebuild, tickets redesign, affiliate tab, commission payout |
-| 1.1.0 | Time plans — a third plan type selling days only, fixed or per-day price |
-| 1.2.0 | Plan scoping — limit time plans and top-ups to chosen subscription plans and server groups |
-| 1.3.0 | Commission payout redesign — automatic, with popup and ledger |
+| 1.1.0 | Time plans â€” a third plan type selling days only, fixed or per-day price |
+| 1.2.0 | Plan scoping â€” limit time plans and top-ups to chosen subscription plans and server groups |
+| 1.3.0 | Commission payout redesign â€” automatic, with popup and ledger |
 | 1.4.0 | Invoice redesign, printable, readable on phone |
 | 1.5.0 | Time plan per-day mode with minted rows |
 | 1.6.0 | Limit traffic top-up to chosen subscription plans |
 | 1.7.0 | Admin dashboard rebuild with ApexCharts |
 | 1.8.0 | Invite popup, assistant, share bar; Telegram channel gift |
 | 1.9.0 | Sign-in page redesign |
-| 1.10.0 | Purchase flow redesign — plans, payment pages, verdict popup |
-| 1.11.0 | Charge wallet (pay-as-you-go): top up any amount from 200k toman with tiered bonus, plan runs out → usage billed from the balance at each server's price per GB (free while a server is down), plan-ending / low / empty / resumed notices on the dashboard, Telegram and e-mail; admin report of charged / spent / unspent, per-user ledger, manual adjustment; separate commission wallet usable for subscription plans only; status rows in Happ / V2Box / v2rayNG / Shadowrocket (Solar Hijri end date, data left, wallet balance, "update for the live balance"). Off until switched on |
+| 1.10.0 | Purchase flow redesign â€” plans, payment pages, verdict popup |
+| 1.11.0 | Charge wallet (pay-as-you-go): top up any amount from 200k toman with tiered bonus, plan runs out â†’ usage billed from the balance at each server's price per GB (free while a server is down), plan-ending / low / empty / resumed notices on the dashboard, Telegram and e-mail; admin report of charged / spent / unspent, per-user ledger, manual adjustment; separate commission wallet usable for subscription plans only; status rows in Happ / V2Box / v2rayNG / Shadowrocket (Solar Hijri end date, data left, wallet balance, "update for the live balance"). Off until switched on |
 | 1.11.1 | Wallet in the operator-app layout: wallet tile in the subscription card, wallet state at the top of the card while on balance, side panel / bottom sheet with add funds, transactions, prices and settings, toast for billing messages, menu item; admin amounts in toman, minimum any value including 0, save answered with the stored values, GETs bypass the CDN cache, token retry; status rows in the client apps (from the 1.11.0 branch) |
 | 1.11.2 | Client apps: the `?do=sub` link no longer sends `subscription-userinfo` when it adds the status rows, so the app's own total / Gregorian expiry bar is gone; Clash / sing-box keep it |
 | 1.11.3 | Client apps: the status link sends `subscription-userinfo` with all zeros instead of leaving it out, because the apps kept the old total / Gregorian expiry from their previous update |
-| 1.11.4 | Client apps: the status link drops the panel's own "Total:… Used:…" / "Expire:…" info entries from the list, which still showed the Gregorian expiry under the Persian rows |
+| 1.11.4 | Client apps: the status link drops the panel's own "Total:â€¦ Used:â€¦" / "Expire:â€¦" info entries from the list, which still showed the Gregorian expiry under the Persian rows |
 | 1.11.5 | Client apps: shorter status rows (about 25 characters) so they are not cut off on a phone; end date / days left and updated time / "update to refresh" split into two rows each |
 | 1.12.0 | OpenVPN servers on the same subscription: node agent + installer (`node/openvpn/`), login and usage through `xmplus-patch.php?do=ovpn.*`, traffic counted against the plan and billed by the charge wallet, cut-off when the plan or data ends, admin server list with install command, dashboard card with profile download and credentials. Off until switched on |
 | 1.12.1 | OpenVPN: `node/openvpn/uninstall.sh` removes a node from its server (agent, OpenVPN config, NAT rules, services; `--keep-ca`, `--purge`); the admin page shows the command |
-| 1.13.0 | OpenVPN: the node redirects every port of its protocol to OpenVPN (except ports in use, SSH and `--exclude`), and the ports customers use are chosen in the panel, several allowed with fallback; admin 📥 profile download per server and a test login, working before OpenVPN is switched on. Existing nodes: run the install command again |
+| 1.13.0 | OpenVPN: the node redirects every port of its protocol to OpenVPN (except ports in use, SSH and `--exclude`), and the ports customers use are chosen in the panel, several allowed with fallback; admin ðŸ“¥ profile download per server and a test login, working before OpenVPN is switched on. Existing nodes: run the install command again |
 | 1.13.1 | OpenVPN: shown inside the apps card for any panel app named OpenVPN (download link / icon / guide edited in the panel's apps list), with server files and login instead of the subscription link; profile says `setenv CLIENT_CERT 0` so OpenVPN Connect no longer asks for a certificate; push errors carry the database message to the agent log |
 | 1.13.2 | OpenVPN: `xmplus-openvpn` icon class in the panel's own icon style (`<span class='xmplus xmplus-openvpn fs-15'></span>`) for the OpenVPN app in the client apps list |
 | 1.13.3 | OpenVPN: the app picker draws the OpenVPN icon as inline SVG for any app named OpenVPN, since the `xmplus-openvpn` class did not show on the live panel |
 | 1.14.0 | OpenVPN: UDP and TCP side by side (`install.sh --proto both`, default), per-server choice in the panel (automatic / both / UDP / TCP) with separate UDP and TCP ports; with both, customers get a combined file (UDP first, TCP fallback) and a UDP-only and TCP-only file. Existing nodes: run the install command again |
 | 1.14.1 | OpenVPN: online / offline messages for OpenVPN servers to the admin Telegram chat (`OvpnJob`, every minute), with a switch on the OpenVPN settings card |
-| 1.15.0 | OpenVPN: card moved to the Servers page; per-instance status (🟠 part down) so stopping UDP or TCP alone is reported, scheduler last-run line and Telegram test button; bypass (Iranian IPs, custom domains / IPs / networks) as `net_gateway` routes; automatic free install port and customer ports that avoid ports other programs use; automatic certificate for the server's domain with `verify-x509-name` in new files. Nodes: run the install command again (agent 1.4.0) |
+| 1.15.0 | OpenVPN: card moved to the Servers page; per-instance status (ðŸŸ  part down) so stopping UDP or TCP alone is reported, scheduler last-run line and Telegram test button; bypass (Iranian IPs, custom domains / IPs / networks) as `net_gateway` routes; automatic free install port and customer ports that avoid ports other programs use; automatic certificate for the server's domain with `verify-x509-name` in new files. Nodes: run the install command again (agent 1.4.0) |
 | 1.15.1 | OpenVPN: bypass files stay under OpenVPN Connect's profile size limit ("profile is too large"): at most 1200 routes, custom entries first, then the largest Iran ranges (~98.5% of Iran's addresses) |
-| 1.16.0 | Affiliate page: 📱 QR code button on the invite link card opens a dialog with the link as a QR code (drawn in the browser, no library), save as PNG, send the image (phones), copy the link |
+| 1.16.0 | Affiliate page: ðŸ“± QR code button on the invite link card opens a dialog with the link as a QR code (drawn in the browser, no library), save as PNG, send the image (phones), copy the link |
 | 1.16.1 | Copy buttons work on iPhone / iPad after downloading the OpenVPN profile (synchronous copy inside the tap first). OpenVPN nodes on servers that already run Xray or a firewall: live socket skip, atomic redirect, openings kept first and mirrored into iptables-legacy / nftables, `digitsell-ovpn-nat doctor` (run the install command again) |
 | 1.17.0 | Direct routes for Xray customers: "Xray customers too (Happ)" switch on the OpenVPN direct-routes card sends the Iran / custom list to Happ with the subscription (`routing` header). `node/xray/`: our own Xray node with the official Xray-core in place of the XMPlus node binary (node files, not copied into the panel) |
 | 1.17.1 | The panel's own link builders (`app/Http/Schema`) are fixed automatically so an xhttp node cannot take the subscription link and the Servers page down: once at install (migration 014) and every hour (`bin/schemafix.php`), since a panel update puts the originals back |
@@ -398,4 +619,50 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.22.1 | Show wallet state in subscription card immediately after charge (payg balance > 0) instead of waiting for the minute-cron job to switch the mode from plan to balance |
 | 1.22.2 | Payg banner now shows balance mode immediately when wallet balance > 0 (instead of waiting for cron job to switch mode from plan to balance) |
 | 1.22.3 | Header countdown shows payg balance instead of Expired text when wallet balance > 0 |
-| 1.22.4 | Header countdown shows nicer payg balance format (💰 balance · 📶 GB) when wallet balance > 0 |
+| 1.22.4 | Header countdown shows nicer payg balance format (ðŸ’° balance Â· ðŸ“¶ GB) when wallet balance > 0 |
+| 1.23.1 | Wg.php PHP 7.4 compatibility |
+| 1.23.2 | WireGuard node installer fixed: wg0.conf generated, ip_forward, bypass-start argument order, NAT + forwarding rules, TCPMSS clamping, rp_filter=2 (agent 1.0.2) |
+| 1.23.3 | WireGuard icon (xmplus-wireguard) for the client apps list |
+| 1.23.4 | Auto-fallback to SERVER_IP when a node has no host; app-download button in the WireGuard tab |
+| 1.23.5 | WireGuard UI text and instruction list on the customer card |
+| 1.23.6 | Public keys preserved byte-exact (strtolower had corrupted base64 PublicKey values) |
+| 1.23.7 | Live DNS check for a WireGuard node's domain in the admin panel |
+| 1.23.8 | Single-slash panel URL auto-fix (protocol error) |
+| 1.23.9 | MTU per WireGuard server in the admin panel |
+| 1.23.10 | Preshared keys synced to the agent; policy-routing default route fixed; pending-peers query improved |
+| 1.23.11 | Pending peers no longer restricted to one node; address reserved again when switching nodes |
+| 1.23.12 | Multi-device support: several keys / addresses per account with a shared quota, device manager card, awg auto-detect (migration 020) |
+| 1.23.13 | Customer session authentication fixed inside the WireGuard device manager |
+| 1.23.14 | High-contrast dark mode for the device manager |
+| 1.23.15 | Server-group access strictly enforced: nodes without groups serve nobody, accounts limited to their group's servers |
+| 1.23.16 | Site URL resolved from General Settings for promo links and broadcasts |
+| 1.23.17 | AmneziaWG: disconnected customers no longer shown online (a peer whose counters do not grow across two pushes is closed); resetting the subscription link now rotates the WireGuard key (stale wg_credential rows repaired, old sessions dropped); obfuscation randomized per file - junk train Jc/Jmin/Jmax varies and optional I1-I3 chains added, on/off by the admin switch wg_awg_chains (default on); agent 1.0.3 reports handshake age (nodes pick it up on their next install run) |
+| 1.23.18 | WireGuard liveness switched to **inbound rx growth only**: a peer is live iff its rx counter grew since the previous push, so a closed app whose tx keeps advancing no longer keeps the session online. Online freshness windows (dashboard, per-server, IpCount()) cut from 600/300 s to 120 s. Closed-session rows now preserve their original closed timestamp instead of being refreshed on every push, so they are cleaned up after 24 h. |
+| 1.23.22 | Promotions: the single "Ø§Ø¹Ù„Ø§Ù… Ø¨Ù‡ Ù‡Ù…Ù‡â€ŒÛŒ Ú©Ø§Ø±Ø¨Ø±Ø§Ù†" switch split into separate **Telegram** and **Ø§ÛŒÙ…ÛŒÙ„** switches, so a promotion can be announced on either channel on its own (both on by default). Saving writes `announce_telegram` / `announce_email` next to the old `announce`, which stays the master flag the cron checks (`announce` = either channel on); `PromoJob::broadcast()` sends each channel only when its switch is on, and entries saved before the split (no per-channel keys) still announce on both. UI in `view/admin/plans/promoform.tpl` + `promojs.tpl`, keys added to `localization/{fa_IR,en_US,zh_CN}.php`. |
+| 1.24.0 | Plan reservation: reserve a subscription at checkout â€” pay now, start later, either after the current plan ends or on a chosen date. Sold as a marked traffic top-up and started by `bin/reserve.php` (`app/Jobs/ReserveJob.php`); one active reservation per customer, cancellable before it starts with a full refund into account credit. New table `plan_reserve` (migration 021), admin card in Settings, reservation card on the dashboard, new keys in all three locales |
+| 1.24.1 | Fix: reserving while the account still had a running plan was refused by the checkout ("Ø§Ø´ØªØ±Ø§Ú© ÙØ¹Ø§Ù„ Ø¯Ø§Ø±ÛŒØ¯"). The reserve order now sends `disableactive: 1` like every other customer top-up (ignored for a type-1 top-up, so the current plan is untouched); the "cancel my plan" switch is only hidden in reserve mode |
+| 1.25.0 | Reserved plans are announced everywhere: a notice banner on every customer page when a reservation is taken and when it starts (dismissible, `reserve.ack`, new table `reserve_notice`, migration 022), a fuller dashboard card, and Telegram + e-mail at both moments exactly once each. A just-paid reservation is linked on the first page load (`ReserveJob::linkForUser`) instead of waiting for the cron |
+| 1.25.1 | Fix: the reservation banner crashed every customer page with "Cannot use object of type stdClass as array" - the notice rows are now plain arrays (User::planReserveNotices) |
+| 1.25.2 | At checkout the payment page now surfaces the wallet balance (`AccBalance`, value -1) above the gateways whenever `user.money > 0` - pre-selected when it covers the total - so a reservation refund credit is spent automatically |
+| 1.25.3 | Fix: the ghost reservation banner. Its close button used jQuery where usermenu.tpl renders, before the footer loads that library, so the x never worked - it is vanilla JS now (fetch + FormData). A booked notice also shows only while its reservation still waits: User::planReserveNotices joins plan_reserve and hides the notice once the reservation is cancelled, started or deleted; cancelling marks the notice seen, and migration 023 marks such stale notices seen |
+| 1.25.4 | Fix: checkout popped up "Trying to get property 'fee_percent' of non-object" whenever the account balance was pre-selected - which happens when the balance covers the total, typically a small order (e.g. one paid with a reservation refund credit). The wallet is not a gateway and the encoded `gateway_fee` endpoint has no row for method -1, so `Gatewayfee()` now fills the fee (0) and the total in locally for it |
+| 1.25.5 | The panel wallet (`user.money`) now shows its real unit, rial - the checkout balance radio, the dashboard money tile and the payg panel-money line label the amount `PaygRial` instead of the panel currency symbol, so the balance is never read as toman next to the payg wallet (which divides by ten). The raw number is kept, like the order totals next to it, so the checkout balance-covers-total check and its display agree |
+| 1.26.0 | (1) Cancelling a reservation now tells the buyer on Telegram (and e-mail) that the amount went back to their account credit and is applied automatically in future purchases - `ReserveJob::announceRefund`, fired by `reserve.cancel` right after the refund. (2) The pay-as-you-go wallet shows rial like everything else: `payg_show_toman` now defaults to 0 and migration 024 flips the stored setting, so the balance, the charge presets, the minimum charge, every price and every message are written in rial; the admin can re-enable the toman display in Settings |
+| 1.26.1 | Fix: cancelling a paid reservation sometimes did not refund and sent no Telegram notice. The check read `orders.status === 1`, but the panel's own order list can move a paid order out of that status (or delete the row) between payment and cancel, while `pay_date` is the durable paid proof and `plan_reserve.amount` remembers the price. `reserve.cancel` now refunds on `pay_date` (falling back to `plan_reserve.amount` when the order row is gone), and `ReserveJob::reconcile()` (every minute, between `linkPaid` and `activateDue`) cancels, refunds and notifies any waiting reservation whose order is missing or dead (`-2/-1/0`) |
+| 1.26.2 | Fix: every cancel now sends a notice - `announceRefund` when there is a refund, `announceCancelled` when there is none (unpaid, zero-amount, or already reconciled). `reconcile()` no longer skips zero-amount rows, and `reserve.cancel` notifies in both branches so the action is never silent on Telegram/e-mail |
+| 1.26.3 | Fix: an account on its plan with a charged wallet showed "paying from credit". The subscription card and wallet banner follow the real wallet mode; `PaygJob` no longer switches to balance mode for a plan paid in the last 10 minutes and `newSubscription()` allows a 10 minute grace |
+| 1.26.4 | Fix: a reserved plan only started once the current plan's time had expired, so a customer whose traffic ran out while days remained never got their reservation. `ReserveJob::activateDue()` now treats a used-up quota the same as an expired plan - the reservation starts when the current plan's time is up or its traffic is used up; a dated reservation still waits for its date |
+| 1.27.0 | Card-to-card payments: a manual method on the checkout (the encoded gateway list cannot hold one). Several receiving cards, each with an amount and/or count cap per day / month / in total, rotating automatically when a cap is reached; the customer pays the exact order total and records the last four digits, payer name, date/time and an optional reference. A new request is announced on the admin Telegram chat with approve/reject buttons (signed one-time links, no webhook) and is also approvable in Settings -> Card to card; approval marks the order paid and grants it (time plans, reservations and wallet charges by their own jobs; normal plans and top-ups here, following the plan's renewal type), then tells the buyer in the panel, on Telegram and by e-mail. A job keeps waiting orders open, auto-rejects unanswered requests, and closes the Telegram buttons. New tables `c2c_card`, `c2c_request`, `c2c_notice` (migration 025). Off until switched on |
+| 1.27.1 | Card to card, minimal declaration: the buyer only enters the last four digits of their own card - the bank SMS already has the name, the time and the reference. Payer name, transfer date/time and reference moved into an optional "more details" section (pre-filled and editable); the admin Telegram message shows only the fields that were filled, plus the submission time. A rejection carries the admin's reason to the buyer's Telegram whenever they have started the bot, independently of the panel's Telegram master switch, and to the panel banner. |
+| 1.27.2 | Fix: the card-to-card admin section and the checkout dialog were bound inside `$(function(){...})`, but the panel loads jQuery in the footer, after these inline scripts run, so `$` is undefined at parse time - the section rendered but every button (Add card, Save, approve/reject) did nothing. The admin manager now binds with a plain DOM-ready guard and the checkout dialog opens through the Bootstrap Modal API. |
+| 1.27.3 | Fix: approving a reserved plan could fail with "the package behind this order is gone" - the panel deletes the minted top-up row between checkout and approval, and the grant read the marker off that row. A reserve is now recognised through `plan_reserve` instead, its reservation is linked and marked paid, and the grant is deferred to the reserve job. The Telegram approve/reject buttons are now one-tap: the decision runs straight from the link (the one-time token is the credential) and shows a one-line outcome. |
+| 1.27.4 | Fix: approving a request whose order was already paid (a gateway, the panel, or a duplicate tap racing the first) no longer reports "could not complete / this order was already paid another way". The request is closed as approved with a note, nothing is granted twice, and the Telegram page says the order was already paid. A repeated tap on a decided request reads as already handled. |
+| 1.27.5 | Fix: approving a subscription/top-up whose package row was deleted no longer fails. The order snapshots `bandwidth`, `plan` and `plan_expire`, so the grant is rebuilt from the order when the package is missing; the routing limits are left as they are instead of being zeroed. A top-up with no snapshot bandwidth, and a marked top-up that cannot be identified without its package, are marked paid and left to their job. |
+| 1.28.0 | Card to card approvals can happen entirely inside Telegram. A dedicated bot token (Settings -> Card to card) is registered as a webhook on save (`xmplus-patch.php?do=c2c.tgwebhook`, verified by Telegram's secret header); the admin message then carries callback buttons, so approve/reject decides on the spot, shows a toast and removes the buttons - no page opens. The callback payload is `c2c|a|id|hmac`, and only the configured admin chats may decide. Without a dedicated token the one-tap URL buttons remain. Customer notices still use the panel bot. |
+| 1.28.1 | Fix: a card's cap counts only **approved** payments, so abandoned/pending test requests no longer keep a card full and hide card to card at checkout. The amount cap is in rial and the hint now says so. The support handle (`c2c_support`, default `@digitsellshop`) is shown in the buyer's approval/rejection message, in the panel rejection reason, and in the checkout dialog. |
+| 1.29.0 | Fix: dedicated-bot callbacks spun forever because Telegram could not reach the panel's webhook through the CDN, so answerCallbackQuery never ran. The bot now polls `getUpdates` from `bin/c2c.php` (mode `poll`, the default) and applies a tap through the same `c2c.decide` endpoint the URL buttons use, then answers the callback and edits the message with the outcome. Only outbound Telegram access is needed. `webhook` mode remains a setting for hosts Telegram can reach. |
+| 1.30.0 | Rejection reasons from Telegram: tapping "❌ رد" asks the bot for the reason (text reply; `/skip` = no reason, `/cancel` = keep it pending), then rejects with that reason and edits the original message. The reason is stored in `c2c_request.note`, so the panel banner, the Telegram/e-mail notice and the support line all carry it. The site's note field already did this. Polling picks the reply up within a minute. |
+| 1.31.0 | Reset and test mode. Settings -> Card to card gets a "reset all card-to-card transactions" button (deletes `c2c_request` and `c2c_notice`; cards, settings and orders stay). `c2c_test_user` marks one account as a test account: its requests are applied but excluded from card caps and from the admin history (they still show while pending with a "تست" badge) and produce no customer notice; the Telegram admin message says "🧪 تست". 0 turns it off. |
+| 1.32.0 | The display title is editable (`c2c_title`, default "کارت به کارت", up to 60 characters) in Settings -> Card to card -> "Display title". It is used at checkout, in the dialog header, in the admin request message, in the buyer's approval/rejection message, in the bot's /start text, and as the order's payment-method label (shortened for the column). |
+| 1.32.1 | Mobile fix for the card-to-card dialog: it is scrollable and capped to the viewport, and a full-width "انصراف" button at the bottom closes it in every state (form, waiting, rejected, approved), so the top X is no longer the only way out. |
+| 1.32.2 | The dialog is moved to `<body>` at runtime (escaping the page's stacking context), gets a high z-index, starts 72px below the top and is capped to the viewport as a flex column: the title and the cancel footer stay fixed while the body scrolls. This fixes the title still sitting under the menu bar on phones. |

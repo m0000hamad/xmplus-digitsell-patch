@@ -22,10 +22,7 @@
 	{if $user->ovpnEnabled() && !$ovpnInApps}
 		{include file='user/dashboard/ovpn.tpl'}
 	{/if}
-	{* the WireGuard card, on the same terms *}
-	{if $user->wgEnabled() && !$wgInApps}
-		{include file='user/dashboard/wg.tpl'}
-	{/if}
+	{* the WireGuard card is disabled as AmneziaWG is in the apps card *}
 	<div class="row match-height">
 		{include file='user/dashboard/statistics.tpl'}	
 		{include file='user/dashboard/chart.tpl'}	

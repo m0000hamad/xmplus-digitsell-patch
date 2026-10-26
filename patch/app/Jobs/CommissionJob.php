@@ -61,12 +61,14 @@ class CommissionJob
 	 * row cannot or should not be paid (missing user, zero amount, already done).
 	 */
 	/*
-	 * One commission row. Where it lands depends on the referrer:
+	 * One commission row. **Where** it lands is the admin's choice (the
+	 * affiliate page) or the customer's own pick when the admin allows one:
 	 *
-	 *   eligible for cash  -> left in payout_balance, ready to be withdrawn
-	 *   not eligible       -> moved into money, spendable inside the panel only
+	 *   payout -> left in payout_balance, ready to be withdrawn
+	 *   money  -> moved into user.money, spendable anywhere in the panel
+	 *   wallet -> commission_wallet, spendable on plans only
 	 *
-	 * Either way it is written to commission_log so the dashboard can show it.
+	 * Every path is written to commission_log so the dashboard can show it.
 	 */
 	private function credit($row)
 	{
@@ -89,17 +91,17 @@ class CommissionJob
 			return false;
 		}
 
-		$cashEligible = $user->planIsActive() && $user->hasContinuousSubscription();
+		$route = $user->commissionDestination();
 
 		$connection = DB::connection('default');
 		$connection->beginTransaction();
 
 		try {
-			if ($cashEligible) {
+			if ($route === 'payout') {
 				// the checkout already put it in payout_balance, leave it there
 				$destination = 'payout';
 				$balance = (float) $user->payout_balance;
-			} elseif ($this->separateWallet()) {
+			} elseif ($route === 'wallet' && $this->separateWallet()) {
 				// kept out of user.money: spendable on subscription plans only,
 				// through app/Patch/Payg.php (commission.apply)
 				$destination = 'wallet';
@@ -129,6 +131,7 @@ class CommissionJob
 					'created'       => time(),
 				]);
 			} else {
+				// user.money: spendable anywhere in the panel
 				$destination = 'wallet';
 				$balance = (float) $user->money + $amount;
 				$pending = (float) $user->payout_balance - $amount;

@@ -29,7 +29,10 @@ use Illuminate\Database\Capsule\Manager as DB;
  *     ended when it closes.
  *  4. A promotion saved with "announce" is sent to every customer, BROADCAST
  *     per run, each one claimed in `promo_broadcast` first so nobody gets it
- *     twice. Customers who switched notices off in their settings are skipped.
+ *     twice. Telegram and e-mail are separate switches ("announce_telegram",
+ *     "announce_email"), so either can be sent on its own; "announce" is the
+ *     master flag that opens the broadcast. Customers who switched notices off
+ *     in their settings are skipped.
  *
  * Times are compared in PHP: MySQL's NOW() runs on UTC on this server while
  * expire_in is stored in local time (+03:30), and pay_date is an epoch.
@@ -97,6 +100,58 @@ class PromoJob
 	private function setting($name)
 	{
 		return DB::table('settings')->where('name', $name)->value('value');
+	}
+
+	/**
+	 * Reads the panel URL from General Settings (appName), falling back to baseUrl,
+	 * telegram_url, or other configured hosts.
+	 */
+	private function siteUrl()
+	{
+		// 1. Explicit override if set in database
+		$site = trim((string) $this->setting('promo_site_url'));
+		if (!empty($site)) {
+			return rtrim($site, '/');
+		}
+
+		// 2. Read appName from General Settings (تنظیمات عمومی -> نام سایت)
+		$appName = trim((string) $this->setting('appName'));
+		if (!empty($appName)) {
+			if (preg_match('~^https?://~i', $appName)) {
+				return rtrim($appName, '/');
+			}
+			if (strpos($appName, '.') !== false && !preg_match('/\s/', $appName)) {
+				return 'https://' . rtrim($appName, '/');
+			}
+		}
+
+		// 3. Fallback: baseUrl from settings
+		$baseUrl = trim((string) $this->setting('baseUrl'));
+		if (!empty($baseUrl)) {
+			if (preg_match('~^https?://~i', $baseUrl)) {
+				return rtrim($baseUrl, '/');
+			}
+			if (strpos($baseUrl, '.') !== false && !preg_match('/\s/', $baseUrl)) {
+				return 'https://' . rtrim($baseUrl, '/');
+			}
+		}
+
+		// 4. Fallback: telegram_url from settings
+		$tgUrl = trim((string) $this->setting('telegram_url'));
+		if (!empty($tgUrl) && preg_match('~^https?://~i', $tgUrl)) {
+			return rtrim($tgUrl, '/');
+		}
+
+		// 5. Fallback: SubUrl from config or HTTP host
+		if (!empty($_ENV['SubUrl']) && preg_match('~^https?://~i', $_ENV['SubUrl'])) {
+			return rtrim($_ENV['SubUrl'], '/');
+		}
+		if (!empty($_SERVER['HTTP_HOST'])) {
+			$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+			return $scheme . '://' . $_SERVER['HTTP_HOST'];
+		}
+
+		return 'https://p.digitsell-shop.ir';
 	}
 
 	/* read fresh every time: the admin may save the plan form while this runs */
@@ -427,13 +482,13 @@ class PromoJob
 		}
 
 		$text = $this->channelText($packageId, $entry);
-		$hash = md5($text);
+		$site = $this->siteUrl();
+		$hash = md5($text . '|' . $site);
 
 		if ($posted > 0 && $hash === (string) ($entry['channel_hash'] ?? '')) {
 			return;
 		}
 
-		$site = rtrim(trim((string) $this->setting('promo_site_url')) ?: 'https://panel.example.com', '/');
 		$params = [
 			'chat_id'      => $chat,
 			'text'         => $text,
@@ -610,6 +665,14 @@ class PromoJob
 		}
 
 		$text = $this->announcement($packageId, $entry);
+
+		// entries saved before the channels were split have no per-channel keys:
+		// fall back to the old master switch, which meant both channels
+		$telegram = array_key_exists('announce_telegram', $entry)
+			? !empty($entry['announce_telegram']) : !empty($entry['announce']);
+		$email = array_key_exists('announce_email', $entry)
+			? !empty($entry['announce_email']) : !empty($entry['announce']);
+
 		$sent = 0;
 
 		foreach ($users as $user) {
@@ -625,12 +688,15 @@ class PromoJob
 				continue;
 			}
 
-			if ($this->token !== '' && !empty($user->telegram_id)) {
+			if ($telegram && $this->token !== '' && !empty($user->telegram_id)) {
 				$this->api('sendMessage', ['chat_id' => $user->telegram_id, 'text' => $text]);
 				usleep(40000);
 			}
 
-			$this->mail($user, '🔥 پروموشن جدید', $text);
+			if ($email) {
+				$this->mail($user, '🔥 پروموشن جدید', $text);
+			}
+
 			$sent++;
 		}
 
@@ -640,7 +706,7 @@ class PromoJob
 	private function announcement($packageId, array $entry)
 	{
 		$name = (string) DB::table('package')->where('id', $packageId)->value('name');
-		$site = rtrim(trim((string) $this->setting('promo_site_url')) ?: 'https://panel.example.com', '/');
+		$site = $this->siteUrl();
 
 		return "🔥 پروموشن جدید: «{$name}»\n"
 			. $this->describe($entry)

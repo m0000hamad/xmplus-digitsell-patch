@@ -6,3 +6,11 @@
 .DS_Store
 tools/login/fa/
 __pycache__/
+login*.html
+server.mjs
+
+# Local deployment snapshots and private operational scratch
+.checkout-work/
+.invoice-deploy/
+.invoice-repair/
+.user-balance-work/

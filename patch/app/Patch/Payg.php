@@ -239,7 +239,7 @@ function paygPriceOption(string $price): string
 
 function paygToman(): bool
 {
-    return paygSetting('payg_show_toman', '1') === '1';
+    return paygSetting('payg_show_toman', '0') === '1';
 }
 
 /** "200,000 تومان" - the package name customers see on invoices. */
@@ -650,7 +650,7 @@ function paygAdminSettings(): array
     $settings = [];
     foreach (['payg_enabled' => '0', 'payg_min_charge' => '2000000', 'payg_charge_step' => '100000',
               'payg_default_price' => '0', 'payg_low_balance' => '500000', 'payg_outage_free' => '1',
-              'payg_warn_percent' => '80,95', 'payg_warn_days' => '3,1', 'payg_show_toman' => '1',
+              'payg_warn_percent' => '80,95', 'payg_warn_days' => '3,1', 'payg_show_toman' => '0',
               'payg_group' => '0', 'payg_iplimit' => '0', 'payg_banner' => '1', 'commission_wallet_enabled' => '0', 'sub_info_enabled' => '0',
               'sub_origin' => ''] as $name => $fallback) {
         $settings[$name] = paygSetting($name, $fallback);
@@ -1113,6 +1113,209 @@ function paygCommissionMigrate(): void
     done(['users' => $moved, 'total' => $total]);
 }
 
+/* the commission wallet table exists (the feature itself has its own switch) */
+function paygCommissionWalletReady(): bool
+{
+    try {
+        return db()->query("SHOW TABLES LIKE 'commission_wallet'")->fetch() !== false;
+    } catch (Throwable $error) {
+        return false;
+    }
+}
+
+/* the admin's default for new commission, with the legacy routing as fallback */
+function paygCommissionDestination(): string
+{
+    $value = (string) paygSetting('commission_destination', '');
+
+    if (in_array($value, ['payout', 'money', 'wallet'], true)) {
+        return $value === 'wallet' && !(paygCommissionEnabled() && paygCommissionWalletReady())
+            ? 'money'
+            : $value;
+    }
+
+    if (paygCommissionEnabled() && paygCommissionWalletReady()) {
+        return 'wallet';
+    }
+
+    return (string) setting('payouts', '1') === '1' ? 'payout' : 'money';
+}
+
+/* the destinations the admin lets the customer pick from */
+function paygCommissionUserOptions(): array
+{
+    $raw = (string) setting('commission_user_options', '');
+    $options = [];
+
+    foreach (explode(',', $raw) as $value) {
+        $value = trim($value);
+        if (in_array($value, ['payout', 'money', 'wallet'], true) && !in_array($value, $options, true)) {
+            $options[] = $value;
+        }
+    }
+
+    return count($options) > 0 ? $options : ['payout', 'money', 'wallet'];
+}
+
+/* the same list without options that cannot be used right now */
+function paygCommissionAvailableOptions(): array
+{
+    $options = paygCommissionUserOptions();
+
+    if (!(paygCommissionEnabled() && paygCommissionWalletReady())) {
+        $options = array_values(array_filter($options, function ($value) {
+            return $value !== 'wallet';
+        }));
+    }
+
+    return $options;
+}
+
+/**
+ * Admin: where new commission goes, and whether the customer may pick.
+ * GET returns the current values and a write token; POST saves.
+ */
+function paygCommissionRouting(): void
+{
+    requireAdmin();
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        requireToken();
+
+        $destination = (string) ($_POST['destination'] ?? '');
+        $choice = (string) ($_POST['user_choice'] ?? '0') === '1' ? '1' : '0';
+
+        if (!in_array($destination, ['payout', 'money', 'wallet'], true)) {
+            fail('choose where the commission goes');
+        }
+
+        $rawOptions = $_POST['options'] ?? [];
+        if (!is_array($rawOptions)) {
+            $rawOptions = [$rawOptions];
+        }
+
+        $options = [];
+        foreach ($rawOptions as $value) {
+            $value = (string) $value;
+            if (in_array($value, ['payout', 'money', 'wallet'], true) && !in_array($value, $options, true)) {
+                $options[] = $value;
+            }
+        }
+
+        if (count($options) === 0) {
+            fail('choose at least one destination for the customer');
+        }
+
+        if ($choice === '1' && !in_array($destination, $options, true)) {
+            fail('the default destination must be one of the destinations the customer can pick');
+        }
+
+        $needsWallet = $destination === 'wallet' || in_array('wallet', $options, true);
+        if ($needsWallet && !paygCommissionWalletReady()) {
+            fail('the commission wallet table is missing; run the patch update first');
+        }
+
+        putSetting('commission_destination', $destination);
+        putSetting('commission_user_choice', $choice);
+        putSetting('commission_user_options', implode(',', $options));
+
+        // the wallet is only usable when the feature is on
+        if ($needsWallet) {
+            putSetting('commission_wallet_enabled', '1');
+        }
+
+        done([
+            'token'        => paygAdminToken(),
+            'destination'  => $destination,
+            'user_choice'  => $choice === '1',
+            'user_options' => $options,
+            'wallet_ready' => paygCommissionWalletReady(),
+        ]);
+    }
+
+    done([
+        'token'          => paygAdminToken(),
+        'destination'    => paygCommissionDestination(),
+        'user_choice'    => (string) setting('commission_user_choice', '0') === '1',
+        'user_options'   => paygCommissionUserOptions(),
+        'wallet_ready'   => paygCommissionWalletReady(),
+        'wallet_enabled' => paygCommissionEnabled(),
+    ]);
+}
+
+/**
+ * Customer: read or change their own destination, only while the admin has
+ * allowed it. Amounts already paid are never moved.
+ */
+function paygCommissionPref(): void
+{
+    $user = paygRequireUser();
+    $id = (int) $user['id'];
+    $walletFeature = paygCommissionEnabled() && paygCommissionWalletReady();
+    $available = paygCommissionAvailableOptions();
+    $enabled = (string) paygSetting('commission_user_choice', '0') === '1' && count($available) > 0;
+    $wallet = in_array('wallet', $available, true);
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        paygRequireUserToken();
+
+        if (!$enabled) {
+            fail('the admin has not given this choice');
+        }
+
+        $destination = (string) ($_POST['destination'] ?? '');
+
+        if (!in_array($destination, $available, true)) {
+            fail('that destination is not available');
+        }
+
+        try {
+            db()->prepare(
+                'INSERT INTO commission_pref (userid, destination, updated) VALUES (?, ?, ?)
+                 ON DUPLICATE KEY UPDATE destination = VALUES(destination), updated = VALUES(updated)'
+            )->execute([$id, $destination, time()]);
+        } catch (Throwable $error) {
+            fail('could not save the choice');
+        }
+
+        done(['token' => paygUserToken(), 'enabled' => true, 'destination' => $destination]);
+    }
+
+    $choice = '';
+    try {
+        $statement = db()->prepare('SELECT destination FROM commission_pref WHERE userid = ? LIMIT 1');
+        $statement->execute([$id]);
+        $choice = (string) ($statement->fetchColumn() ?: '');
+    } catch (Throwable $error) {
+    }
+
+    if (!in_array($choice, $available, true)) {
+        $choice = '';
+    }
+
+    $default = paygCommissionDestination();
+    if ((string) paygSetting('commission_destination', '') === '') {
+        // legacy: the panel used to look at the account before the setting existed
+        $default = $walletFeature ? 'wallet' : ((string) $user['expire_in'] > date('Y-m-d H:i:s') ? 'payout' : 'money');
+    }
+
+    $effective = $choice !== '' ? $choice : $default;
+    if (count($available) > 0 && !in_array($effective, $available, true)) {
+        // the admin's default is outside the customer's choices; show a valid one
+        $effective = $available[0];
+    }
+
+    done([
+        'token'     => paygUserToken(),
+        'enabled'   => $enabled,
+        'choice'    => $choice,
+        'default'   => $default,
+        'effective' => $effective,
+        'options'   => $available,
+        'wallet'    => $wallet,
+    ]);
+}
+
 // ---------------------------------------------------------------- dispatch
 
 $paygAction = (string) ($_GET['do'] ?? '');
@@ -1151,6 +1354,10 @@ switch ($paygAction) {
         paygAdminAdjust();
     case 'commission.migrate':
         paygCommissionMigrate();
+    case 'commission.routing':
+        paygCommissionRouting();
+    case 'commission.pref':
+        paygCommissionPref();
 }
 
 fail('unknown wallet action');

@@ -1,2 +1,9 @@
-# the manifest hashes exact bytes; never let git rewrite line endings
+# manifest hashes exact bytes; never let git rewrite it
+manifest.json -text
+
+# Shell scripts and Python must have LF line endings on all platforms
+*.sh    text eol=lf
+*.py    text eol=lf
+
+# Everything else: no conversion (keeps binary files safe)
 * -text

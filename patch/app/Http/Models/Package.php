@@ -32,6 +32,33 @@ final class Package extends Model
 	/* a wallet charge, minted per amount by app/Patch/Payg.php - see app/Jobs/PaygJob.php */
 	const CHARGE_MARKER = '"paygcharge"';
 
+	/*
+	 * A reserved plan is sold as a top-up row carrying this marker; the plan
+	 * itself is started later by app/Jobs/ReserveJob.php. Written now, read by
+	 * Reserve.php, ReserveJob and the hidden-row list on the admin plan page.
+	 */
+	const RESERVE_MARKER = '"planreserve"';
+
+	public static function decodeReserveMeta($note)
+	{
+		if (!is_string($note) || strpos($note, self::RESERVE_MARKER) === false) {
+			return null;
+		}
+
+		$data = json_decode($note, true);
+
+		if (!is_array($data) || !isset($data['planreserve']) || !is_array($data['planreserve'])) {
+			return null;
+		}
+
+		return $data['planreserve'];
+	}
+
+	public function isReserveRow()
+	{
+		return self::decodeReserveMeta($this->order_note) !== null;
+	}
+
 	public function timeMeta()
 	{
 		return self::decodeTimeMeta($this->order_note);
@@ -528,7 +555,8 @@ final class Package extends Model
 				$query->whereNull('order_note')
 					->orWhere(function ($inner) {
 						$inner->where('order_note', 'not like', '%' . self::TIME_MARKER . '%')
-							->where('order_note', 'not like', '%' . self::CHARGE_MARKER . '%');
+							->where('order_note', 'not like', '%' . self::CHARGE_MARKER . '%')
+							->where('order_note', 'not like', '%' . self::RESERVE_MARKER . '%');
 					});
 			})
 			->orderBy('sort',"asc")->get();

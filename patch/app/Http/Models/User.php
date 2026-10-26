@@ -19,6 +19,9 @@ final class User extends Model
 		'ref_by'          => 'int'
     ];
 
+    /* the account whose sold-but-unlinked reservations were pulled in already */
+    private static $reserveLinkedFor = 0;
+
     public function image()
     {
         $hash = md5(strtolower(trim($this->email)));
@@ -105,7 +108,7 @@ final class User extends Model
     {
 		$db = DB::getPdo();
         $res = [];
-		foreach ($db->query("SELECT `userid`, COUNT(DISTINCT `ip`) AS `count` FROM `online_ip` WHERE `datetime` >= UNIX_TIMESTAMP(NOW()) - 60 GROUP BY `userid`") as $line) {
+		foreach ($db->query("SELECT `userid`, COUNT(DISTINCT `ip`) AS `count` FROM `online_ip` WHERE `datetime` >= UNIX_TIMESTAMP(NOW()) - 120 GROUP BY `userid`") as $line) {
             $res[strval($line->userid)] = $line->count;
         }
         return $res;
@@ -417,7 +420,7 @@ final class User extends Model
 			// silence means the connection is gone
 			$stats['live'] = DB::table('online_ip')
 				->where('userid', $this->id)
-				->where('datetime', '>=', time() - 300)
+				->where('datetime', '>=', time() - 120)
 				->distinct()
 				->pluck('serverid')
 				->map(function ($id) { return (int) $id; })
@@ -556,6 +559,139 @@ final class User extends Model
 	}
 
 	/* ------------------------------------------------------------------
+	 * A reserved plan waiting to start (app/Patch/Reserve.php).
+	 * ------------------------------------------------------------------ */
+
+	/*
+	 * Whether the plan pages offer a reservation at all. Read from the setting
+	 * the admin card writes; missing means on, which is how it ships.
+	 */
+	public function reserveFeatureOn()
+	{
+		$value = Settings::where('name', 'reserve_enabled')->value('value');
+
+		return $value === null || $value === '' || (int) $value === 1;
+	}
+
+	/*
+	 * The paid reservation this account is sitting on, or null. The table is
+	 * created by the migration and, as a fallback, by ReserveJob, so a missing
+	 * one must never take the dashboard down.
+	 *
+	 * A just-paid reserve order is pulled in here, on the first page load,
+	 * rather than waiting for the cron - so the card is there the moment the
+	 * customer is back from the gateway.
+	 */
+	public function planReserveWaiting()
+	{
+		if (self::$reserveLinkedFor !== (int) $this->id) {
+			self::$reserveLinkedFor = (int) $this->id;
+
+			try {
+				(new \App\Jobs\ReserveJob)->linkForUser((int) $this->id);
+			} catch (\Throwable $error) {
+				// the cron will catch up; a failure here must not break the page
+			}
+		}
+
+		try {
+			$row = DB::table('plan_reserve')
+				->where('userid', $this->id)
+				->where('status', 1)
+				->orderBy('id', 'desc')
+				->first();
+		} catch (\Throwable $error) {
+			return null;
+		}
+
+		if (!$row) {
+			return null;
+		}
+
+		return [
+			'id'          => (int) $row->id,
+			'name'        => (string) $row->name,
+			'cycle'       => (string) $row->cycle,
+			'days'        => (int) $row->days,
+			'mode'        => (string) $row->mode,
+			'activate_at' => (int) $row->activate_at,
+			'amount'      => (float) $row->amount,
+			'bandwidth'   => (int) $row->bandwidth,
+		];
+	}
+
+	/*
+	 * The reservation notices this account has not seen yet, newest first - or
+	 * null when there are none. Read by user/layout/reservebanner.tpl on every
+	 * page (a plain array, so the template can simply test it for truth).
+	 */
+	public function planReserveNotices()
+	{
+		try {
+			// notice ref is "r:<plan_reserve id>" for "booked" (and "s:..."
+			// for "started"); a "booked" notice makes sense only while its
+			// reservation still exists and is still waiting (status 1) -
+			// cancelled, started or deleted means the row is gone or
+			// settled, and a stale "you have a reserved plan" must not
+			// come back. One SQL, no extra SELECT per notice. A "started"
+			// notice has no such life cycle and always shows.
+			$rows = DB::table('reserve_notice')
+				->leftJoin('plan_reserve', function ($join): void {
+					$join->on(DB::raw("SUBSTRING(reserve_notice.ref, 3)"), '=', 'plan_reserve.id');
+				})
+				->where('reserve_notice.userid', $this->id)
+				->where('reserve_notice.seen', 0)
+				->where(function ($query): void {
+					$query->where('reserve_notice.kind', '!=', 'reserved')
+						->orWhere('plan_reserve.status', 1);
+				})
+				->orderBy('reserve_notice.id', 'desc')
+				->limit(5)
+				->select('reserve_notice.*')
+				->get()
+				->all();
+		} catch (\Throwable $error) {
+			return null;
+		}
+
+		// the template reads them with {$row.field}, which Smarty resolves as an
+		// array index - a stdClass row would throw "Cannot use object as array"
+		$rows = array_map(function ($row) {
+			return (array) $row;
+		}, $rows);
+
+		return $rows ? $rows : null;
+	}
+
+	/*
+	 * The card-to-card confirmations this account has not seen yet, newest
+	 * first - or null when there are none. Read by user/layout/c2cbanner.tpl on
+	 * every page; a plain array so the template can test it for truth and use
+	 * {$row.field}.
+	 */
+	public function cardToCardNotices()
+	{
+		try {
+			$rows = DB::table('c2c_notice')
+				->where('userid', $this->id)
+				->where('seen', 0)
+				->orderBy('id', 'desc')
+				->limit(5)
+				->get()
+				->all();
+		} catch (\Throwable $error) {
+			// the table is created by the migration or by Card2CardJob
+			return null;
+		}
+
+		$rows = array_map(function ($row) {
+			return (array) $row;
+		}, $rows);
+
+		return $rows ? $rows : null;
+	}
+
+	/* ------------------------------------------------------------------
 	 * Buying extra days ("time plans").
 	 * ------------------------------------------------------------------ */
 
@@ -647,7 +783,17 @@ final class User extends Model
 
 			$groups = array_values(array_filter(array_map('intval', explode(',', (string) $node->allowed_groups))));
 
-			if ($groups !== [] && !in_array($group, $groups, true)) {
+			$userGroups = [$group];
+			if (!empty($this->user_group)) {
+				foreach (explode(',', (string) $this->user_group) as $g) {
+					$gid = (int) trim($g);
+					if ($gid > 0) {
+						$userGroups[] = $gid;
+					}
+				}
+			}
+
+			if ($groups === [] || array_intersect($userGroups, $groups) === []) {
 				continue;
 			}
 
@@ -793,7 +939,17 @@ final class User extends Model
 
 			$groups = array_values(array_filter(array_map('intval', explode(',', (string) $node->allowed_groups))));
 
-			if ($groups !== [] && !in_array($group, $groups, true)) {
+			$userGroups = [$group];
+			if (!empty($this->user_group)) {
+				foreach (explode(',', (string) $this->user_group) as $g) {
+					$gid = (int) trim($g);
+					if ($gid > 0) {
+						$userGroups[] = $gid;
+					}
+				}
+			}
+
+			if ($groups === [] || array_intersect($userGroups, $groups) === []) {
 				continue;
 			}
 
@@ -818,6 +974,18 @@ final class User extends Model
 		return 'u' . (int) $this->id;
 	}
 
+	public function wgDevices()
+	{
+		require_once dirname(__DIR__, 2) . '/Patch/Wg.php';
+		return wgUserDevices((int) $this->id, (string) $this->uuid);
+	}
+
+	public function wgDeviceLimit()
+	{
+		require_once dirname(__DIR__, 2) . '/Patch/Wg.php';
+		return wgUserLimit($this->toArray());
+	}
+
 	/*
 	 * The account's public key, which is what the node's agent reports its peers
 	 * by. '' when the panel is missing the sodium extension, or when wg_secret
@@ -834,14 +1002,12 @@ final class User extends Model
 			return '';
 		}
 
+		$known = '';
 		try {
-			$known = DB::connection('default')->table('wg_credential')
+			$found = DB::connection('default')->table('wg_credential')
 				->where('userid', (int) $this->id)
 				->value('pubkey');
-
-			if (!empty($known)) {
-				return (string) $known;
-			}
+			$known = !empty($found) ? (string) $found : '';
 		} catch (\Throwable $e) {
 			// no table yet: carry on and derive it
 		}
@@ -856,11 +1022,31 @@ final class User extends Model
 			SODIUM_BASE64_VARIANT_ORIGINAL);
 
 		try {
-			DB::connection('default')->table('wg_credential')->insert([
-				'userid'   => (int) $this->id,
-				'pubkey'   => $key,
-				'updated'  => time(),
-			]);
+			// a stored key can be stale: resetting the subscription link
+			// changes the uuid and the key that is derived from it. This card
+			// must show the fresh key the next file will carry, so replace the
+			// old one and drop the dead key's sessions - the same repair
+			// wgPublicKey() in app/Patch/Wg.php does on the file path.
+			if (!empty($known) && $known !== $key) {
+				DB::connection('default')->table('wg_credential')
+					->where('userid', (int) $this->id)
+					->where('pubkey', $known)
+					->update([
+						'pubkey'   => $key,
+						'nodeid'   => null,
+						'address'  => null,
+						'updated'  => time(),
+					]);
+				DB::connection('default')->table('wg_session')
+					->where('pubkey', $known)
+					->delete();
+			} else {
+				DB::connection('default')->table('wg_credential')->insert([
+					'userid'   => (int) $this->id,
+					'pubkey'   => $key,
+					'updated'  => time(),
+				]);
+			}
 		} catch (\Throwable $e) {
 			// the key is still good for this page; it is written next time
 		}
@@ -885,7 +1071,9 @@ final class User extends Model
 		if (self::$paygSettings === null) {
 			try {
 				self::$paygSettings = DB::connection('default')->table('settings')
-					->whereIn('name', ['payg_enabled', 'payg_show_toman', 'payg_default_price', 'commission_wallet_enabled'])
+					->whereIn('name', ['payg_enabled', 'payg_show_toman', 'payg_default_price',
+						'commission_wallet_enabled', 'commission_destination', 'commission_user_choice',
+						'commission_user_options'])
 					->pluck('value', 'name')->all();
 			} catch (\Throwable $e) {
 				self::$paygSettings = [];
@@ -941,7 +1129,7 @@ final class User extends Model
 	/* the balance in the unit customers see - toman unless the admin chose rial */
 	public function paygToman()
 	{
-		return self::paygSetting('payg_show_toman', '1') === '1';
+		return self::paygSetting('payg_show_toman', '0') === '1';
 	}
 
 	public function paygBalanceShown()
@@ -1025,6 +1213,104 @@ final class User extends Model
 		} catch (\Throwable $e) {
 			return 0.0;
 		}
+	}
+
+	/* ------------------------------------------------------------------
+	 * Where a new commission lands: payout | money | wallet.
+	 *
+	 * The admin picks the default in the affiliate page; the customer may
+	 * override it only while the admin's "let them choose" switch is on.
+	 * With no default stored, the routing the panel shipped with applies
+	 * (wallet when that feature is on, otherwise cash for an active account
+	 * and money for everybody else).
+	 * ------------------------------------------------------------------ */
+
+	public function commissionDestinationDefault()
+	{
+		$value = (string) self::paygSetting('commission_destination', '');
+
+		if (in_array($value, ['payout', 'money', 'wallet'], true)) {
+			if ($value === 'wallet' && !$this->commissionWalletEnabled()) {
+				return 'money';
+			}
+
+			return $value;
+		}
+
+		if ($this->commissionWalletEnabled()) {
+			return 'wallet';
+		}
+
+		return $this->planIsActive() && $this->hasContinuousSubscription() ? 'payout' : 'money';
+	}
+
+	public function commissionChoiceEnabled()
+	{
+		return self::paygSetting('commission_user_choice', '0') === '1'
+			&& count($this->commissionAvailableOptions()) > 0;
+	}
+
+	/* the destinations the admin lets the customer pick from */
+	public function commissionUserOptions()
+	{
+		$raw = (string) self::paygSetting('commission_user_options', '');
+		$options = [];
+
+		foreach (explode(',', $raw) as $value) {
+			$value = trim($value);
+			if (in_array($value, ['payout', 'money', 'wallet'], true) && !in_array($value, $options, true)) {
+				$options[] = $value;
+			}
+		}
+
+		// nothing stored yet: the three choices, as before
+		return count($options) > 0 ? $options : ['payout', 'money', 'wallet'];
+	}
+
+	/* the same list with options that are unusable right now removed */
+	public function commissionAvailableOptions()
+	{
+		$options = $this->commissionUserOptions();
+
+		if (!$this->commissionWalletEnabled()) {
+			$options = array_values(array_filter($options, function ($value) {
+				return $value !== 'wallet';
+			}));
+		}
+
+		return $options;
+	}
+
+	/* the customer's own pick, empty when they have not chosen */
+	public function commissionDestinationChoice()
+	{
+		try {
+			$value = (string) DB::connection('default')->table('commission_pref')
+				->where('userid', $this->id)->value('destination');
+		} catch (\Throwable $e) {
+			return '';
+		}
+
+		return in_array($value, ['payout', 'money', 'wallet'], true) ? $value : '';
+	}
+
+	/* where the next commission actually lands */
+	public function commissionDestination()
+	{
+		$destination = $this->commissionDestinationDefault();
+
+		if ($this->commissionChoiceEnabled()) {
+			$choice = $this->commissionDestinationChoice();
+			if ($choice !== '' && in_array($choice, $this->commissionAvailableOptions(), true)) {
+				$destination = $choice;
+			}
+		}
+
+		if ($destination === 'wallet' && !$this->commissionWalletEnabled()) {
+			return 'money';
+		}
+
+		return $destination;
 	}
 
 	/* ------------------------------------------------------------------

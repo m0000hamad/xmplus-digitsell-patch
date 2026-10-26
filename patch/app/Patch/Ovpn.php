@@ -862,8 +862,17 @@ function ovpnAdminBootstrap(): void
     foreach ($usage as $row) {
         $todayBytes[(int) $row['serverid']] = (float) $row['bytes'];
     }
+    // one snapshot drives both the card's "active connections" figure and the
+    // Live connections list, so the two always agree
+    $sessions = ovpnLiveSessions();
+    $onlineCounts = [];
+    foreach ($sessions as $row) {
+        $onlineCounts[$row['node']] = ($onlineCounts[$row['node']] ?? 0) + 1;
+    }
+
     foreach ($nodes as &$node) {
         $node['today_bytes'] = $todayBytes[$node['serverid']] ?? 0.0;
+        $node['online'] = $node['live'] ? ($onlineCounts[$node['id']] ?? 0) : 0;
     }
     unset($node);
 
@@ -874,6 +883,8 @@ function ovpnAdminBootstrap(): void
         'nodes'   => $nodes,
         'groups'  => $groups,
         'test'    => $test,
+        // the same rows the online counts above were taken from
+        'sessions' => $sessions,
         // when OvpnJob last ran; 0 means the scheduler never started it
         'job_last' => (int) ovpnSetting('ovpn_job_last', '0'),
         'now'      => time(),
@@ -1051,18 +1062,30 @@ function ovpnAdminNodeDelete(): void
     done(['id' => $id]);
 }
 
-function ovpnAdminSessions(): void
+/**
+ * The sessions a node is holding right now: open sessions seen within
+ * OVPN_STALE. The card's "active connections" count and the Live connections
+ * list are both built from this one query, so the two can never disagree.
+ */
+function ovpnLiveSessions(int $nodeId = 0): array
 {
-    requireAdmin();
+    $sql = 'SELECT s.nodeid, s.userid, s.ip, s.vip, s.rx, s.tx, s.started, s.seen,
+                   COALESCE(u.email, \'\') AS email, COALESCE(u.username, \'\') AS username
+              FROM ovpn_session s LEFT JOIN user u ON u.id = s.userid
+             WHERE s.closed = 0 AND s.seen >= ?';
+    $params = [time() - OVPN_STALE];
+    if ($nodeId > 0) {
+        $sql .= ' AND s.nodeid = ?';
+        $params[] = $nodeId;
+    }
+    $sql .= ' ORDER BY s.nodeid, s.started DESC LIMIT 500';
 
-    $statement = db()->prepare(
-        'SELECT s.nodeid, s.userid, s.ip, s.vip, s.rx, s.tx, s.started, s.seen,
-                COALESCE(u.email, \'\') AS email, COALESCE(u.username, \'\') AS username
-           FROM ovpn_session s LEFT JOIN user u ON u.id = s.userid
-          WHERE s.closed = 0 AND s.seen >= ?
-          ORDER BY s.nodeid, s.started DESC
-          LIMIT 500');
-    $statement->execute([time() - OVPN_STALE]);
+    try {
+        $statement = db()->prepare($sql);
+        $statement->execute($params);
+    } catch (Throwable $error) {
+        return [];
+    }
 
     $rows = [];
     foreach ($statement as $row) {
@@ -1078,7 +1101,25 @@ function ovpnAdminSessions(): void
         ];
     }
 
-    done(['sessions' => $rows]);
+    return $rows;
+}
+
+/** How many live sessions each node holds, keyed by node id. */
+function ovpnLiveSessionCounts(): array
+{
+    $counts = [];
+    foreach (ovpnLiveSessions() as $row) {
+        $counts[$row['node']] = ($counts[$row['node']] ?? 0) + 1;
+    }
+
+    return $counts;
+}
+
+function ovpnAdminSessions(): void
+{
+    requireAdmin();
+
+    done(['sessions' => ovpnLiveSessions()]);
 }
 
 // ---------------------------------------------------------------- dispatch

@@ -23,6 +23,8 @@
 			<div class="d-flex flex-column gap-2">
 				<label class="wv-check"><input type="checkbox" id="wvEnabled"> {$translate->get('WgAdmEnabled')}</label>
 				<label class="wv-check"><input type="checkbox" id="wvNotify"> {$translate->get('WgAdmNotify')}</label>
+				<label class="wv-check"><input type="checkbox" id="wvChains"> {$translate->get('WgAdmChains')}</label>
+				<small class="text-muted">{$translate->get('WgAdmChainsHint')}</small>
 			</div>
 			<div class="d-flex flex-wrap gap-2">
 				<button type="button" class="btn btn-outline-secondary btn-sm" id="wvNotifyTest">✉️ {$translate->get('WgAdmNotifyTest')}</button>
@@ -67,14 +69,20 @@
 				<input type="text" class="form-control" id="wvHost" dir="ltr" placeholder="vpn.example.com">
 				<small class="text-muted">{$translate->get('WgAdmHostHint')}</small>
 			</div>
-			<div class="col-md-6">
+			<div class="col-md-3">
 				<label class="form-label" for="wvPort">{$translate->get('WgAdmPort')}</label>
 				<input type="text" class="form-control" id="wvPort" dir="ltr" placeholder="{$translate->get('WgAdmPortHint')}">
 				<small class="text-muted">{$translate->get('WgAdmPortHint2')}</small>
 			</div>
+			<div class="col-md-3">
+				<label class="form-label" for="wvMtu">{$translate->get('WgAdmMtu')}</label>
+				<input type="number" class="form-control" id="wvMtu" dir="ltr" min="1280" max="1500" value="1420" placeholder="1420">
+				<small class="text-muted">{$translate->get('WgAdmMtuHint')}</small>
+			</div>
 		</div>
 
 		<h5 class="wv-h">{$translate->get('WgAdmGroups')}</h5>
+		<p class="small text-muted mb-2">فقط کاربرانی که در گروه‌های انتخاب‌شده باشند به این سرور دسترسی خواهند داشت. در صورت انتخاب نکردن هیچ گروهی، سرور برای هیچ کاربری فعال نخواهد شد.</p>
 		<div class="wv-groups" id="wvGroups"></div>
 
 		<label class="wv-check mt-2"><input type="checkbox" id="wvNodeEnabled"> {$translate->get('WgAdmNodeEnabled')}</label>
@@ -88,13 +96,17 @@
 			<h5 class="wv-h">🚀 {$translate->get('WgAdmInstall')}</h5>
 			<p class="small text-muted mb-2">{$translate->get('WgAdmInstallHint')}</p>
 			<div class="row g-2 mb-2">
-				<div class="col-md-8">
+				<div class="col-md-6">
 					<label class="form-label small" for="wvPanelUrl">{$translate->get('WgAdmPanelUrl')}</label>
 					<input type="text" class="form-control form-control-sm" id="wvPanelUrl" dir="ltr">
 				</div>
-				<div class="col-md-2">
+				<div class="col-md-3">
 					<label class="form-label small" for="wvListenPort">Port</label>
 					<input type="text" class="form-control form-control-sm" id="wvListenPort" dir="ltr" value="auto">
+				</div>
+				<div class="col-md-3">
+					<label class="form-label small" for="wvInstallMtu">MTU</label>
+					<input type="number" class="form-control form-control-sm" id="wvInstallMtu" dir="ltr" value="1420" min="1280" max="1500">
 				</div>
 			</div>
 			<pre class="wv-cmd copy-text" id="wvCmd" dir="ltr"></pre>
@@ -123,7 +135,24 @@
 			</div>
 		</details>
 
-		<p class="small mt-3 mb-1">🇮🇷 {$translate->get('WgAdmBypassNote')}</p>
+		
+		<h5 class="wv-h mt-4" id="WgBypass">🇮🇷 {$translate->get('OvpnAdmBypass')}</h5>
+		<p class="small text-muted">{$translate->get('OvpnAdmBypassIntro')}</p>
+		<label class="wv-check mb-2"><input type="checkbox" id="wvBypassIran"> {$translate->get('OvpnAdmBypassIran')}</label>
+		<p class="small text-muted mb-2">
+			<span id="wvIranInfo"></span>
+			<button type="button" class="btn btn-link btn-sm p-0 ms-2" id="wvIranRefresh">🔄 {$translate->get('OvpnAdmIranRefresh')}</button>
+		</p>
+		<label class="form-label" for="wvBypassCustom">{$translate->get('OvpnAdmBypassCustom')}</label>
+		<textarea class="form-control" id="wvBypassCustom" rows="6" dir="ltr" placeholder="bmi.ir&#10;shaparak.ir&#10;digikala.com&#10;185.143.232.0/22&#10;# 1.2.3.4"></textarea>
+		<small class="text-muted d-block mb-2">{$translate->get('OvpnAdmBypassCustomHint')}</small>
+		<div class="small mb-2" id="wvBypassHosts"></div>
+		<label class="wv-check mb-1"><input type="checkbox" id="wvBypassXray"> {$translate->get('OvpnAdmBypassXray')}</label>
+		<small class="text-muted d-block mb-2">{$translate->get('OvpnAdmBypassXrayHint')}</small>
+		<div class="d-flex justify-content-end">
+			<button type="button" class="btn btn-primary btn-sm" id="wvBypassSave">💾 {$translate->get('Save')}</button>
+		</div>
+
 		<p class="small text-muted mt-3 mb-0">{$translate->get('WgAdmPriceNote')}</p>
 		<p class="small text-muted mt-2 mb-0">📱 {$translate->get('WgAdmAppNote')}</p>
 	</div>
@@ -131,6 +160,9 @@
 <script>
 	/* new Object(), not a brace literal: Smarty would read the brace as a tag */
 	window.WgWords = new Object();
+		window.WgWords.iranInfo   = "{$translate->get('OvpnAdmIranInfo')|escape:'javascript'}";
+	window.WgWords.routes     = "{$translate->get('OvpnAdmRoutes')|escape:'javascript'}";
+	window.WgWords.iranCapped = "{$translate->get('OvpnAdmIranCapped')|escape:'javascript'}";
 	window.WgWords.saved     = "{$translate->get('WgAdmSaved')|escape:'javascript'}";
 	window.WgWords.failed    = "{$translate->get('WgAdmFailed')|escape:'javascript'}";
 	window.WgWords.live      = "{$translate->get('WgAdmLive')|escape:'javascript'}";
@@ -155,6 +187,9 @@
 	window.WgWords.download  = "{$translate->get('WgAdmDownload')|escape:'javascript'}";
 	window.WgWords.portInfo  = "{$translate->get('WgAdmPortInfo')|escape:'javascript'}";
 	window.WgWords.noPort    = "{$translate->get('WgAdmNoPort')|escape:'javascript'}";
+	window.WgWords.dnsOk     = "{$translate->get('WgAdmDnsOk')|escape:'javascript'}";
+	window.WgWords.dnsBad    = "{$translate->get('WgAdmDnsBad')|escape:'javascript'}";
+	window.WgWords.notFound  = "{$translate->get('WgAdmNotFound')|escape:'javascript'}";
 </script>
 {literal}
 <style>
@@ -179,7 +214,7 @@
 	var endpoint = '/xmplus-patch.php';
 	var words = window.WgWords || {};
 	var token = '';
-	var state = { nodes: [], groups: [], repo: '', branch: 'main' };
+	var state = { nodes: [], groups: [], repo: '', branch: 'main', sessions: [] };
 	var lastKey = null; // { id, key } right after a server was added or re-keyed
 
 	function $(id) { return document.getElementById(id); }
@@ -252,16 +287,26 @@
 			// WireGuard has one socket: the port customers use is the port the
 			// server listens on, so there is nothing to choose here
 			var address = node.heartbeat
-				? '<span dir="ltr">UDP ' + esc(host) + ' : ' + esc(node.port) + '</span>'
+				? '<span dir="ltr">UDP ' + esc(host) + ' : ' + esc(node.port) + '</span> <span class="badge badge-light" dir="ltr">MTU ' + (node.mtu || 1420) + '</span>'
 				: '<span class="text-muted">UDP ' + esc(host || '—') + ' : ' + esc(words.noPort) + '</span>';
 
-			var groups = node.groups.length ? node.groups.map(groupName).join('، ') : words.all;
+			if (node.domain) {
+				var dom = node.domain;
+				if (dom.points_ok === true) {
+					address += '<br><small class="text-success">✓ ' + esc(words.dnsOk) + ' <span dir="ltr">(' + esc(dom.name) + ')</span></small>';
+				} else if (dom.points_ok === false) {
+					address += '<br><small class="text-danger">⚠️ ' + esc(words.dnsBad.replace('%ip%', dom.server_ip)) + ' <span dir="ltr">'
+						+ esc(dom.points.length ? dom.points.join(', ') : words.notFound) + '</span></small>';
+				}
+			}
+
+			var groups = node.groups.length ? esc(node.groups.map(groupName).join('، ')) : '<span class="text-danger small fw-bold">⚠️ بدون گروه (غیرفعال)</span>';
 
 			return '<tr>'
 				+ '<td><b>' + esc(node.name) + '</b>' + (node.version ? ' <small class="text-muted">v' + esc(node.version) + '</small>' : '') + '</td>'
 				+ '<td><span class="wv-dot ' + dot + '"></span>' + esc(stateText) + '</td>'
 				+ '<td>' + address + '</td>'
-				+ '<td>' + esc(groups) + '</td>'
+				+ '<td>' + groups + '</td>'
 				+ '<td dir="ltr">×' + esc(node.rate) + '</td>'
 				+ '<td dir="ltr">' + gb(node.today_bytes) + '</td>'
 				+ '<td><div class="wv-actions">'
@@ -289,6 +334,7 @@
 		$('wvSort').value = '0';
 		$('wvHost').value = '';
 		$('wvPort').value = '';
+		$('wvMtu').value = '1420';
 		$('wvNodeEnabled').checked = true;
 		$('wvFormTitle').textContent = '➕ ' + words.add;
 		$('wvCancel').classList.add('d-none');
@@ -305,6 +351,7 @@
 		$('wvHost').value = node.host_override;
 		// blank: the port the server itself reported, which is the only one it has
 		$('wvPort').value = '';
+		$('wvMtu').value = String(node.mtu || 1420);
 		$('wvNodeEnabled').checked = !!node.enabled;
 		$('wvFormTitle').textContent = '✏️ ' + words.editing + ' ' + node.name;
 		$('wvCancel').classList.remove('d-none');
@@ -322,12 +369,18 @@
 			return;
 		}
 		var panel = $('wvPanelUrl').value.trim().replace(/\/+$/, '');
+		if (/^https?:\/[^\/]/.test(panel)) {
+			panel = panel.replace(/^(https?):\/([^\/])/, '$1://$2');
+		}
 		var script = 'https://raw.githubusercontent.com/' + state.repo + '/' + state.branch + '/node/wireguard/install.sh';
+		var mtu = parseInt($('wvInstallMtu') ? $('wvInstallMtu').value : '', 10) || 1420;
+		if (mtu < 1280 || mtu > 1500) { mtu = 1420; }
 		$('wvCmd').textContent = 'curl -fsSL ' + script + ' -o wg-install.sh && sudo bash wg-install.sh'
 			+ ' --panel ' + shellQuote(panel)
 			+ ' --node ' + lastKey.id
 			+ ' --key ' + lastKey.key
-			+ ' --listen ' + (parseInt($('wvListenPort').value, 10) || 'auto');
+			+ ' --listen ' + (parseInt($('wvListenPort').value, 10) || 'auto')
+			+ ' --mtu ' + mtu;
 		$('wvCmd').setAttribute('data-clipboard-text', $('wvCmd').textContent);
 		$('wvInstall').classList.remove('d-none');
 	}
@@ -352,6 +405,40 @@
 		}).join('') : '<tr><td colspan="5" class="text-muted">' + esc(words.none) + '</td></tr>';
 	}
 
+	
+	function renderBypass(bypass) {
+		if (!bypass) { return; }
+		$('wvBypassIran').checked = !!bypass.iran;
+		$('wvBypassXray').checked = !!bypass.xray;
+		$('wvBypassCustom').value = bypass.custom || '';
+		$('wvIranInfo').textContent = words.iranInfo.replace('%count%', bypass.iran_ranges).replace('%date%', bypass.iran_date || '—')
+			+ ' · ' + words.routes.replace('%count%', bypass.routes)
+			+ (bypass.iran && bypass.iran_used < bypass.iran_ranges
+				? ' · ' + words.iranCapped.replace('%used%', bypass.iran_used).replace('%share%', bypass.iran_share) : '');
+		var hosts = bypass.hosts || {};
+		$('wvBypassHosts').innerHTML = Object.keys(hosts).map(function (domain) {
+			var ips = hosts[domain] || [];
+			return '<div dir="ltr"><b>' + esc(domain) + '</b> → '
+				+ (ips.length ? esc(ips.join(', ')) : '<span class="text-danger">' + esc(words.notFound) + '</span>') + '</div>';
+		}).join('');
+	}
+
+	$('wvBypassSave').addEventListener('click', function () {
+		post('wg.bypasssave', { iran: $('wvBypassIran').checked ? '1' : '0', xray: $('wvBypassXray').checked ? '1' : '0', custom: $('wvBypassCustom').value }).then(function (data) {
+			if (!data.ok) { say(words.failed + ': ' + data.error); return; }
+			renderBypass(data.bypass);
+			say(words.saved + (data.failed && data.failed.length ? ' · ' + words.notFound + ': ' + data.failed.join(', ') : ''));
+		});
+	});
+
+	$('wvIranRefresh').addEventListener('click', function () {
+		post('wg.iranrefresh', {}).then(function (data) {
+			if (!data.ok) { say(words.failed + ': ' + data.error); return; }
+			renderBypass(data.bypass);
+			say(words.saved);
+		});
+	});
+
 	function load() {
 		return get('wg.admin').then(function (data) {
 			if (!data.ok) { throw new Error(data.error || 'failed'); }
@@ -360,15 +447,20 @@
 			state.groups = data.groups || [];
 			state.repo = data.repo || '';
 			state.branch = data.branch || 'main';
+			// the same snapshot the card's online count came from
+			state.sessions = data.sessions || [];
 			$('wvEnabled').checked = !!data.enabled;
 			$('wvNotify').checked = data.notify !== false;
+			$('wvChains').checked = data.chains !== false;
 			// without sodium the panel cannot derive a customer's key, so no file
 			// can be built at all - say so here instead of failing on download
 			$('wvSodium').textContent = data.sodium ? '' : '🚨 ' + words.noSodium;
 			$('wvSodium').classList.toggle('d-none', !!data.sodium);
 			renderJob(data.job_last, data.now);
 			renderNodes();
+			renderSessions(state.sessions);
 			renderUninstall();
+			renderBypass(data.bypass);
 			if ($('wvId').value === '0') { renderGroups([]); }
 		}).catch(function (error) {
 			$('wvNodes').innerHTML = '<tr><td colspan="7" class="text-danger">' + esc(error.message) + '</td></tr>';
@@ -405,13 +497,15 @@
 	});
 
 	$('wvPanelUrl').value = location.origin;
-	['wvPanelUrl', 'wvListenPort'].forEach(function (id) {
+	['wvPanelUrl', 'wvListenPort', 'wvInstallMtu'].forEach(function (id) {
 		$(id).addEventListener('input', renderInstall);
 		$(id).addEventListener('change', renderInstall);
 	});
 
 	$('wvSaveEnabled').addEventListener('click', function () {
-		post('wg.save', { enabled: $('wvEnabled').checked ? '1' : '0', notify: $('wvNotify').checked ? '1' : '0' }).then(function (data) {
+		post('wg.save', { enabled: $('wvEnabled').checked ? '1' : '0',
+			notify: $('wvNotify').checked ? '1' : '0',
+			chains: $('wvChains').checked ? '1' : '0' }).then(function (data) {
 			say(data.ok ? words.saved : words.failed + ': ' + data.error);
 		});
 	});
@@ -427,6 +521,7 @@
 			sort: $('wvSort').value,
 			host_override: $('wvHost').value,
 			port: $('wvPort').value,
+			mtu: $('wvMtu').value,
 			enabled: $('wvNodeEnabled').checked ? '1' : '0',
 			groups: groups
 		}).then(function (data) {
@@ -466,10 +561,9 @@
 
 	$('wvSessionsBox').addEventListener('toggle', function () {
 		if (!this.open) { return; }
-		get('wg.sessions').then(function (data) {
-			if (!data.ok) { say(words.failed + ': ' + data.error); return; }
-			renderSessions(data.sessions || []);
-		});
+		// refresh the nodes and the list together, so the card's count and the
+		// rows below it are always the same snapshot
+		load();
 	});
 
 	load();

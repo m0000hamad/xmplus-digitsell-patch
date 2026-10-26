@@ -35,6 +35,7 @@ Two subcommands, both used by install.sh:
 import json
 import os
 import re
+import shutil
 import ssl
 import subprocess
 import sys
@@ -42,7 +43,8 @@ import time
 import urllib.error
 import urllib.request
 
-VERSION = "1.0.0"
+VERSION = "1.0.3"
+WG_BIN = "awg" if shutil.which("awg") else "wg"
 
 DEFAULT_CONFIG = "/etc/digitsell-wg/agent.json"
 PUSH_INTERVAL = 60
@@ -145,7 +147,7 @@ class Interface:
         self.gone = False
 
     def check(self):
-        code, _ = run("wg", "show", self.name, check=False)
+        code, _ = run(WG_BIN, "show", self.name, check=False)
         if code != 0:
             if not self.gone:
                 log("interface", self.name, "is not up yet; waiting")
@@ -158,12 +160,12 @@ class Interface:
 
     def dump(self):
         """
-        `wg show <if> dump`, whose first line is the interface itself and whose
+        `wg/awg show <if> dump`, whose first line is the interface itself and whose
         later lines are one peer each:
             public-key  preshared-key  endpoint  allowed-ips  latest-handshake
             rx  tx  keepalive
         """
-        code, out = run("wg", "show", self.name, "dump", check=False)
+        code, out = run(WG_BIN, "show", self.name, "dump", check=False)
         if code != 0:
             return {}
         peers = {}
@@ -183,14 +185,18 @@ class Interface:
                 continue
         return peers
 
-    def set_peer(self, pubkey, address):
+    def set_peer(self, pubkey, address, psk=None):
         """Add a peer, or give an existing one its address again."""
-        run("wg", "set", self.name, "peer", pubkey,
-            "allowed-ips", address + "/32",
-            "persistent-keepalive", str(KEEPALIVE))
+        cmd = [WG_BIN, "set", self.name, "peer", pubkey,
+               "allowed-ips", address + "/32"]
+        if psk and valid_key(psk):
+            cmd += ["preshared-key", "/dev/stdin"]
+            run(*cmd, input_lines=psk.strip() + "\n", check=False)
+        else:
+            run(*cmd, check=False)
 
     def drop_peer(self, pubkey):
-        run("wg", "set", self.name, "peer", pubkey, "remove", check=False)
+        run(WG_BIN, "set", self.name, "peer", pubkey, "remove", check=False)
 
 
 # --------------------------------------------------------- direct-route list
@@ -264,20 +270,28 @@ class Bypass:
 
     # ---------------------------------------------------------- the routing
 
-    def get_gateway(self):
-        if self._gateway:
-            return self._gateway
+    def get_default_route(self):
+        if self._gateway and hasattr(self, "_dev"):
+            return self._gateway, self._dev, getattr(self, "_onlink", False)
         code, out = run("ip", "route", "show", "default", check=False)
-        match = re.search(r"default via (\d+\.\d+\.\d+\.\d+)", out)
-        if not match:
+        gw_match = re.search(r"default via (\d+\.\d+\.\d+\.\d+)", out)
+        dev_match = re.search(r"dev (\S+)", out)
+        onlink = "onlink" in out
+        if not gw_match:
             code2, out2 = run("ip", "-4", "route", "get", "1.1.1.1", check=False)
-            match2 = re.search(r"via (\d+\.\d+\.\d+\.\d+)", out2)
-            if match2:
-                self._gateway = match2.group(1)
-                return self._gateway
+            gw_match = re.search(r"via (\d+\.\d+\.\d+\.\d+)", out2)
+            dev_match = re.search(r"dev (\S+)", out2)
+            onlink = "onlink" in out2
+        if not gw_match:
             raise RuntimeError("this server has no default route, so the direct list cannot be used")
-        self._gateway = match.group(1)
-        return self._gateway
+        self._gateway = gw_match.group(1)
+        self._dev = dev_match.group(1) if dev_match else None
+        self._onlink = onlink
+        return self._gateway, self._dev, self._onlink
+
+    def get_gateway(self):
+        gw, _, _ = self.get_default_route()
+        return gw
 
     def start(self):
         """
@@ -286,7 +300,7 @@ class Bypass:
         """
         self.ensure_set()
 
-        gateway = self.get_gateway()
+        gateway, dev, onlink = self.get_default_route()
         node_id = int(self.config.get("node", 1))
         subnet = "10.%d.0.0/16" % node_id
 
@@ -307,23 +321,38 @@ class Bypass:
         # everything else on the interface goes through the table
         run("iptables", "-t", "mangle", "-A", self.CHAIN,
             "-i", self.iface, "-j", "MARK", "--set-mark", self.mark)
-        # and the marked traffic is answered from the main routing table
+
+        # policy routing rule: remove duplicates then add exactly one
+        while run("ip", "rule", "del", "fwmark", self.mark, "table", self.table, check=False)[0] == 0:
+            pass
         run("ip", "rule", "add", "fwmark", self.mark, "table", self.table, check=False)
-        run("ip", "route", "replace", "default", "via", gateway, "table", self.table)
+
+        route_cmd = ["ip", "route", "replace", "default", "via", gateway]
+        if dev:
+            route_cmd += ["dev", dev]
+        if onlink:
+            route_cmd += ["onlink"]
+        route_cmd += ["table", self.table]
+        run(*route_cmd, check=False)
 
         # NAT for WireGuard subnet
         while run("iptables", "-t", "nat", "-D", "POSTROUTING", "-s", subnet, "-j", "MASQUERADE", check=False)[0] == 0:
             pass
-        run("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", subnet, "-j", "MASQUERADE")
+        run("iptables", "-t", "nat", "-I", "POSTROUTING", "1", "-s", subnet, "-j", "MASQUERADE")
 
         # Forwarding rules
         while run("iptables", "-D", "FORWARD", "-i", self.iface, "-j", "ACCEPT", check=False)[0] == 0:
             pass
-        run("iptables", "-A", "FORWARD", "-i", self.iface, "-j", "ACCEPT")
+        run("iptables", "-I", "FORWARD", "1", "-i", self.iface, "-j", "ACCEPT")
 
         while run("iptables", "-D", "FORWARD", "-o", self.iface, "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT", check=False)[0] == 0:
             pass
-        run("iptables", "-A", "FORWARD", "-o", self.iface, "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT")
+        run("iptables", "-I", "FORWARD", "2", "-o", self.iface, "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT")
+
+        # MSS Clamping (prevents packet loss on mobile / LTE networks)
+        while run("iptables", "-t", "mangle", "-D", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu", check=False)[0] == 0:
+            pass
+        run("iptables", "-t", "mangle", "-I", "FORWARD", "1", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu", check=False)
 
         log("direct routes: table", self.table, "via", gateway, "for everything not in",
             self.set_name)
@@ -347,6 +376,7 @@ class Bypass:
         run("iptables", "-t", "nat", "-D", "POSTROUTING", "-s", subnet, "-j", "MASQUERADE", check=False)
         run("iptables", "-D", "FORWARD", "-i", self.iface, "-j", "ACCEPT", check=False)
         run("iptables", "-D", "FORWARD", "-o", self.iface, "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT", check=False)
+        run("iptables", "-t", "mangle", "-D", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu", check=False)
 
     # ------------------------------------------------------------ the agent
 
@@ -427,11 +457,10 @@ class Agent:
                 "pubkey": pubkey,
                 "ip": address,
                 "endpoint": item["endpoint"],
+                "handshake_ago": max(0, int(time.time()) - item["handshake"]) if item["handshake"] > 0 else 0,
                 "rx": item["rx"],
                 "tx": item["tx"],
             }
-            # a peer that has never said anything and was just added by us is
-            # not a connection; the panel should not be told about it yet
             if item["handshake"] > 0 or item["rx"] > 0 or item["tx"] > 0:
                 peers.append(row)
             else:
@@ -451,10 +480,11 @@ class Agent:
         for item in answer.get("add", []):
             pubkey = str(item.get("pubkey", "")).strip()
             address = str(item.get("address", "")).strip()
+            psk = str(item.get("psk", "")).strip() or None
             if not valid_key(pubkey) or not ADDRESS_RE.match(address):
                 continue
             try:
-                self.iface.set_peer(pubkey, address)
+                self.iface.set_peer(pubkey, address, psk)
                 self.peers[pubkey] = address
                 log("peer added:", pubkey[:12] + "…", address)
             except Exception as error:

@@ -532,7 +532,7 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 
 		<div class="card-body">
 
-			{if $user->paygEnabled() && ($user->paygOnBalance() || $user->paygBalance() > 0)}
+			{if $user->paygEnabled() && $user->paygOnBalance()}
 				{include file='user/dashboard/walletstate.tpl'}
 			{else}
 			<span class="sub-status">
@@ -629,6 +629,8 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 
 			{include file='user/dashboard/tgjoin.tpl'}
 
+			{include file='user/dashboard/reservecard.tpl'}
+
 		</div>
 	</div>
 
@@ -638,7 +640,7 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 		{else}
 		<div class="sub-tile" style="--tile:#8b5cf6">
 			<div class="sub-tile-head"><span class="sub-tile-emoji">💰</span>{$translate->get('Money')}</div>
-			<div class="sub-tile-value"><span id="money">{$currency->symbol_left} {number_format((float)$user->money, (int){$currency->decimals})} {$currency->symbol_right}</span></div>
+			<div class="sub-tile-value"><span id="money">{number_format((float)$user->money, (int){$currency->decimals})} {$translate->get('PaygRial')}</span></div>
 			<div class="sub-tile-note sub-tile-note-money">
 				{if $user->commissionWalletBalance() > 0}
 					🤝 {$translate->get('PaygCommission')}: {number_format((float)$user->commissionWalletBalance(), (int){$currency->decimals})}

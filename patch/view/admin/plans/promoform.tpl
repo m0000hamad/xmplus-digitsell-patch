@@ -9,7 +9,7 @@
 *}
 {$pk = 'none'}{$ppct = 20}{$pprize = 0}{$pmode = 'either'}
 {$pgbmin = 1}{$pgbmax = 5}{$pdmin = 1}{$pdmax = 7}
-{$pocc = ''}{$pends = ''}{$pmax = ''}{$pleft = 0}{$pannounce = 1}{$pchannel = 1}{$ptheme = 'auto'}
+{$pocc = ''}{$pends = ''}{$pmax = ''}{$pleft = 0}{$pannounce_tg = 1}{$pannounce_mail = 1}{$pchannel = 1}{$ptheme = 'auto'}
 {if isset($promoedit) && $promoedit && empty($promoedit.closed_at)}
 	{$pk = $promoedit.kind}
 	{if $promoedit.percent > 0}{$ppct = $promoedit.percent}{/if}
@@ -26,7 +26,9 @@
 	{if !empty($promoedit.ends_field)}{$pends = $promoedit.ends_field}{/if}
 	{if $promoedit.max_sales > 0}{$pmax = $promoedit.max_sales}{/if}
 	{$pleft = $promoedit.show_left}
-	{$pannounce = !empty($promoedit.announce)}
+	{* entries saved before Telegram and e-mail were split follow the old master switch *}
+	{if isset($promoedit.announce_telegram)}{$pannounce_tg = !empty($promoedit.announce_telegram)}{else}{$pannounce_tg = !empty($promoedit.announce)}{/if}
+	{if isset($promoedit.announce_email)}{$pannounce_mail = !empty($promoedit.announce_email)}{else}{$pannounce_mail = !empty($promoedit.announce)}{/if}
 	{$pchannel = !empty($promoedit.channel)}
 	{if !empty($promoedit.theme)}{$ptheme = $promoedit.theme}{/if}
 {/if}
@@ -189,12 +191,17 @@
 			</div>
 		</div>
 		<div class="row mb-2">
-			<label class="col-sm-3 col-form-label form-label" for="promo_announce">📢 {$translate->get('PromoAnnounce')}</label>
+			<label class="col-sm-3 col-form-label form-label" for="promo_announce_telegram">📢 {$translate->get('PromoAnnounce')}</label>
 			<div class="col-sm-9" style="max-width: 60rem">
 				<div class="form-check form-switch mt-2">
-					<input class="form-check-input" type="checkbox" role="switch" id="promo_announce" {if $pannounce}checked{/if}>
-					<label class="form-check-label small text-muted" for="promo_announce">{$translate->get('PromoAnnounceHint')}</label>
+					<input class="form-check-input" type="checkbox" role="switch" id="promo_announce_telegram" {if $pannounce_tg}checked{/if}>
+					<label class="form-check-label" for="promo_announce_telegram">{$translate->get('PromoAnnounceTelegram')}</label>
 				</div>
+				<div class="form-check form-switch mt-2">
+					<input class="form-check-input" type="checkbox" role="switch" id="promo_announce_email" {if $pannounce_mail}checked{/if}>
+					<label class="form-check-label" for="promo_announce_email">{$translate->get('PromoAnnounceEmail')}</label>
+				</div>
+				<label class="form-check-label small text-muted">{$translate->get('PromoAnnounceHint')}</label>
 			</div>
 		</div>
 		<div class="row mb-2">

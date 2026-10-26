@@ -27,7 +27,7 @@
 			<br>🤝 {$translate->get('PaygCommissionShort')}: <bdi>{number_format((float)$user->commissionWalletBalance(), (int){$currency->decimals})}</bdi>
 		{/if}
 		{if (float)$user->money > 0}
-			<br>💰 {$translate->get('PaygPanelMoney')}: <bdi>{number_format((float)$user->money, (int){$currency->decimals})}</bdi>
+			<br>💰 {$translate->get('PaygPanelMoney')}: <bdi>{number_format((float)$user->money, (int){$currency->decimals})} {$translate->get('PaygRial')}</bdi>
 		{/if}
 	</div>
 	<div class="sub-wallet-actions">

@@ -69,6 +69,9 @@ done
 [ -n "$NODE" ] || die "--node is required (the server's number in the panel)"
 [ -n "$KEY" ] || die "--key is required (the key the panel showed when the server was added)"
 [[ "$NODE" =~ ^[0-9]+$ ]] || die "--node must be a number, got: $NODE"
+if [[ "$PANEL" =~ ^(https?):/([^/].*) ]]; then
+    PANEL="${BASH_REMATCH[1]}://${BASH_REMATCH[2]}"
+fi
 case "$PANEL" in
     https://*|http://*) ;;
     *) die "--panel must start with http:// or https://" ;;
@@ -117,7 +120,7 @@ if [ "$LISTEN" = "auto" ]; then
     LISTEN=""
     # an earlier install's port: files customers already have point at it
     if [ -f "/etc/wireguard/$IFACE.conf" ]; then
-        LISTEN=$(awk '/^ListenPort/ {print $2; exit}' "/etc/wireguard/$IFACE.conf" | cut -d/ -f1)
+        LISTEN=$(awk -F= '/^ListenPort/ {gsub(/[[:space:]]/, "", $2); print $2; exit}' "/etc/wireguard/$IFACE.conf")
     fi
     if [ -z "$LISTEN" ] || port_taken "$LISTEN"; then
         LISTEN=""
@@ -160,7 +163,7 @@ cat > "$CONF_DIR/agent.json" <<EOF
   "key": "$KEY",
   "interface": "$IFACE",
   "listen_port": $LISTEN,
-  "host": "$HOST",
+  "host": "${HOST:-$SERVER_IP}",
   "server_ip": "$SERVER_IP",
   "public_key": "$SERVER_PUBKEY",
   "dns": "$DNS",
@@ -181,14 +184,21 @@ ListenPort = $LISTEN
 PrivateKey = $(cat "$SERVER_KEY_FILE")
 MTU = $MTU
 Table = off
+PostUp = iptables -I FORWARD 1 -i %i -j ACCEPT; iptables -I FORWARD 2 -o %i -m state --state RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -I POSTROUTING 1 -s 10.$NODE.0.0/16 -j MASQUERADE; iptables -t mangle -I FORWARD 1 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+PostDown = iptables -D FORWARD -i %i -j ACCEPT 2>/dev/null || true; iptables -D FORWARD -o %i -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true; iptables -t nat -D POSTROUTING -s 10.$NODE.0.0/16 -j MASQUERADE 2>/dev/null || true; iptables -t mangle -D FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
 EOF
 chmod 600 "/etc/wireguard/$IFACE.conf"
 
 echo "==> routing"
 cat > /etc/sysctl.d/99-digitsell-wg.conf <<EOF
 net.ipv4.ip_forward = 1
+net.ipv4.conf.all.rp_filter = 2
+net.ipv4.conf.default.rp_filter = 2
 EOF
-sysctl -q -p /etc/sysctl.d/99-digitsell-wg.conf 2>/dev/null || sysctl -w net.ipv4.ip_forward=1 >/dev/null || true
+sysctl -q -p /etc/sysctl.d/99-digitsell-wg.conf 2>/dev/null || {
+    sysctl -w net.ipv4.ip_forward=1 >/dev/null || true
+    sysctl -w net.ipv4.conf.all.rp_filter=2 >/dev/null || true
+}
 
 echo "==> agent"
 fetch wg-agent.py "$AGENT_DIR/wg-agent.py"
@@ -243,7 +253,7 @@ echo "==> telling the panel who we are"
 # right away instead of on the next report
 quiet curl -fsS -X POST \
     -H "X-Wg-Node: $NODE" -H "X-Wg-Key: $KEY" -H "Content-Type: application/json" \
-    -d "{\"host\":\"$HOST\",\"port\":$LISTEN,\"pubkey\":\"$SERVER_PUBKEY\",\"dns\":\"$DNS\",\"mtu\":$MTU}" \
+    -d "{\"host\":\"${HOST:-$SERVER_IP}\",\"port\":$LISTEN,\"pubkey\":\"$SERVER_PUBKEY\",\"dns\":\"$DNS\",\"mtu\":$MTU}" \
     "$PANEL/xmplus-patch.php?do=wg.hello" >/dev/null || \
     echo "    the panel did not answer; the agent will report in a moment"
 
