@@ -66,6 +66,15 @@ return to the menu with Ctrl+C. Stop and uninstall ask for confirmation; uninsta
 can keep configuration/certificates or restore XMPlus.
 
 Create a server record in the **panel first**, then choose Add and enter its ID.
+Add also reads the local XMPlus YAML (the remembered import path, standard XMPlus
+paths, `/root/config.yml` / `.yaml`, or the current directory). The list labels
+installed nodes, nodes in that YAML, new nodes from the YAML and other available
+panel nodes. The default is the union of installed IDs and YAML IDs: press Enter
+to keep existing nodes and add the new YAML nodes, then Enter to confirm. `q`
+cancels. Certificate/key paths and per-node API credentials for additions are
+imported from the YAML; existing installed overrides are kept. Use
+`dxray add --from /path/config.yml` for a custom file. That file and its referenced
+certificates must be on the **node server**, not only on your workstation.
 Existing node objects (exit location, certificates, per-node panel/key and other
 overrides) are preserved. New nodes use the configured default panel/key; the panel
 settings and listening-port conflicts are checked before saving. Certificate mode

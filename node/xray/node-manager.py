@@ -87,6 +87,92 @@ def show_nodes(conf):
         print('  %s%s' % (node_id(entry), extra))
 
 
+def source_nodes(conf, explicit=None):
+    """Read membership/certificate references from the user's local XMPlus YAML."""
+    paths = [Path(explicit)] if explicit else [Path(p) for p in [
+        conf.get('source_config', ''), '/etc/XMPlus/config.yml', '/etc/XMPlus/config.yaml',
+        '/usr/local/XMPlus/config.yml', '/usr/local/XMPlus/config.yaml',
+        '/root/config.yml', '/root/config.yaml', str(Path.cwd() / 'config.yml'),
+        str(Path.cwd() / 'config.yaml')] if p]
+    source = next((p for p in paths if p.is_file()), None)
+    if source is None:
+        if explicit:
+            raise ValueError('Configuration file not found: %s' % explicit)
+        return None, []
+    try:
+        import yaml
+    except ImportError as error:
+        raise ValueError('Reading %s requires python3-yaml; run dxray update first.' % source) from error
+    try:
+        raw = yaml.safe_load(source.read_text()) or {}
+    except yaml.YAMLError as error:
+        raise ValueError('Invalid YAML configuration: %s' % source) from error
+    if not isinstance(raw, dict) or not isinstance(raw.get('Nodes'), list):
+        raise ValueError('Configuration has no Nodes list: %s' % source)
+    nodes = []
+    seen = set()
+    for item in raw['Nodes']:
+        api = (item or {}).get('ApiConfig') or {}
+        nid = int(api.get('NodeID') or 0)
+        if nid <= 0 or nid in seen:
+            raise ValueError('Invalid or duplicate NodeID in %s' % source)
+        seen.add(nid)
+        node = {'id': nid}
+        for key, name in [('ApiHost', 'panel'), ('ApiKey', 'key')]:
+            if api.get(key):
+                node[name] = str(api[key]).rstrip('/') if name == 'panel' else str(api[key])
+        ctl = (item or {}).get('ControllerConfig') or {}
+        cert = ctl.get('CertConfig') or {}
+        for key, name in [('CertFile', 'cert_file'), ('KeyFile', 'key_file')]:
+            if cert.get(key):
+                file = Path(str(cert[key])).expanduser()
+                node[name] = str(file if file.is_absolute() else source.resolve().parent / file)
+        if ctl.get('EnableFallback'):
+            fallbacks = []
+            for fb in ctl.get('FallBackConfigs') or []:
+                if fb.get('Dest') in (None, ''):
+                    continue
+                entry = {'dest': fb['Dest']}
+                for src, dst in [('SNI', 'name'), ('Alpn', 'alpn'), ('Path', 'path'), ('ProxyProtocolVer', 'xver')]:
+                    if fb.get(src) not in (None, '', 0):
+                        entry[dst] = fb[src]
+                fallbacks.append(entry)
+            if fallbacks:
+                node['fallbacks'] = fallbacks
+        nodes.append(node)
+    return source.resolve(), nodes
+
+
+def add_selection(conf, imported, values):
+    defaults = list(dict.fromkeys([node_id(n) for n in conf.get('nodes', [])] +
+                                 [node_id(n) for n in imported]))
+    ids = parse_ids(values) if any(v.strip() for v in values) else defaults
+    if not ids:
+        raise ValueError('No nodes selected.')
+    candidate = change_nodes(conf, 'add', ids)
+    old = {node_id(n) for n in conf.get('nodes', [])}
+    overrides = {node_id(n): n for n in imported}
+    candidate['nodes'] = [copy.deepcopy(overrides.get(node_id(n), n))
+                          if node_id(n) not in old else n for n in candidate['nodes']]
+    return ids, candidate
+
+
+def show_choices(conf, imported, servers):
+    installed = {node_id(n) for n in conf.get('nodes', [])}
+    configured = {node_id(n) for n in imported}
+    rows = {int(s['id']): str(s.get('name', '')) for s in servers}
+    print('Nodes: [installed] already here; [config NEW] selected from YAML; [available] other panel nodes')
+    for nid in sorted(set(rows) | installed | configured):
+        flags = []
+        if nid in installed:
+            flags.append('installed')
+        if nid in configured:
+            flags.append('config' if nid in installed else 'config NEW')
+        print('  %s  %s  [%s]' % (nid, rows.get(nid, ''), ', '.join(flags) or 'available'))
+    return list(dict.fromkeys([node_id(n) for n in conf.get('nodes', [])] +
+                              [node_id(n) for n in imported]))
+
+
 def validate_additions(agent, path, conf, ids):
     # Normalize exactly as the running agent does, including per-node panel/key.
     fd, name = tempfile.mkstemp(suffix='.json', dir=str(path.parent))
@@ -127,7 +213,10 @@ def validate_additions(agent, path, conf, ids):
                 if not os.path.isfile(crt) or not os.path.isfile(key):
                     raise ValueError('Certificate or private key file does not exist.')
                 index = next(i for i, n in enumerate(conf['nodes']) if node_id(n) == node['id'])
-                conf['nodes'][index] = {'id': node['id'], 'cert_file': crt, 'key_file': key}
+                entry = conf['nodes'][index]
+                entry = dict(entry) if isinstance(entry, dict) else {'id': entry}
+                entry.update(cert_file=crt, key_file=key)
+                conf['nodes'][index] = entry
     return added_ports
 
 
@@ -149,6 +238,7 @@ def open_firewall(ports):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', default='/etc/digitsell-xray/agent.json')
+    parser.add_argument('--from', dest='source', help='XMPlus YAML to read node defaults/certificates from')
     parser.add_argument('action', choices=['list', 'add', 'remove'])
     parser.add_argument('ids', nargs='*')
     args = parser.parse_args()
@@ -163,36 +253,48 @@ def main():
         if args.action == 'list':
             return 0
         agent = load_agent() if args.action == 'add' else None
+        imported = []
+        source = None
+        if args.action == 'add':
+            source, imported = source_nodes(conf, args.source)
+            if source:
+                print('Reading node defaults and certificate paths from: %s' % source)
         if args.action == 'add' and not args.ids:
+            servers = []
             if conf.get('panel') and conf.get('key'):
                 try:
                     result = agent.Panel(conf['panel'], conf['key'], 15).patch_call('node.list', {})
-                    print('Available panel servers (create new server records in the panel first):')
-                    for server in result.get('servers', []):
-                        print('  %s  %s' % (server.get('id'), server.get('name', '')))
+                    servers = result.get('servers', [])
                 except agent.PanelError:
                     print('Panel list unavailable; enter IDs manually (each addition is checked).')
-        values = args.ids or [input('Node IDs to %s (Enter to cancel): ' % args.action)]
-        if not any(v.strip() for v in values):
+            defaults = show_choices(conf, imported, servers)
+            values = [input('Node IDs [%s] (Enter = use config; q = cancel): ' % ','.join(map(str, defaults)))]
+        else:
+            values = args.ids or [input('Node IDs to %s (Enter to cancel): ' % args.action)]
+        if values == ['q'] or (args.action != 'add' and not any(v.strip() for v in values)):
             print('Cancelled; nothing changed.')
             return 0
-        ids = parse_ids(values)
-        candidate = change_nodes(conf, args.action, ids)
+        if args.action == 'add':
+            ids, candidate = add_selection(conf, imported, values)
+        else:
+            ids = parse_ids(values)
+            candidate = change_nodes(conf, args.action, ids)
         added_ports = []
         if candidate == conf:
             print('These nodes are already configured; nothing changed.')
             return 0
         if args.action == 'add':
             added = set(ids) - {node_id(n) for n in conf.get('nodes', [])}
-            if not conf.get('panel') or not conf.get('key'):
-                raise ValueError('Adding by ID requires a default panel/key. Use Install / reconfigure for a different panel.')
             try:
                 added_ports = validate_additions(agent, path, candidate, added)
             except (agent.PanelError, agent.NodeError) as error:
                 raise ValueError(str(error)) from error
+            if source:
+                candidate['source_config'] = str(source)
         print('After change: ' + ', '.join(str(node_id(n)) for n in candidate['nodes']))
         print('Changing node membership can reconnect current users.')
-        if input('Apply this change? [y/N]: ').strip().lower() not in ('y', 'yes', 'بله'):
+        answer = input('Apply this change? %s: ' % ('[Y/n]' if args.action == 'add' else '[y/N]')).strip().lower()
+        if answer not in ('y', 'yes', 'بله') and not (args.action == 'add' and not answer):
             print('Cancelled; nothing changed.')
             return 0
         def restart():

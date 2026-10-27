@@ -6,6 +6,8 @@ from pathlib import Path
 import tempfile
 import types
 import sys
+import contextlib
+import io
 import unittest
 from unittest.mock import patch
 
@@ -15,6 +17,65 @@ spec.loader.exec_module(manager)
 
 
 class MembershipTests(unittest.TestCase):
+    def test_enter_adds_yaml_node_with_its_certificate_and_preserves_installed(self):
+        spec = importlib.util.spec_from_file_location('agent_add_test', Path(__file__).with_name('xray-agent.py'))
+        agent = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(agent)
+        class Panel:
+            def __init__(self, *args): pass
+            def patch_call(self, *args):
+                return {'servers': [{'id': n, 'name': 'S%s' % n} for n in (59, 73, 74, 75)]}
+            def get_json(self, endpoint):
+                nid = int(endpoint.rsplit('/', 1)[1])
+                return {'server': {'type': 'vless', 'listeningport': str(20000 + nid),
+                        'security': 'tls' if nid == 74 else 'none', 'certmode': 'file',
+                        'securitySettings': {'serverName': 's6.example'},
+                        'networkSettings': {'transport': 'ws'}}}, ''
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / 'config.yml'
+            source.write_text('synthetic fixture')
+            (root / 's6.crt').write_text('synthetic certificate')
+            (root / 's6.key').write_text('synthetic key')
+            fixture = {'Nodes': [{'ApiConfig': {'NodeID': n, 'ApiHost': 'https://panel.example', 'ApiKey': 'fixture'},
+                                  'ControllerConfig': {'CertConfig': {'CertFile': 's6.crt', 'KeyFile': 's6.key'}}}
+                                 for n in (59, 73, 74)]}
+            path = root / 'agent.json'
+            original = {'panel': 'https://panel.example', 'key': 'fixture',
+                        'nodes': [{'id': 59, 'tor': 'us', 'cert_file': '/existing/s3.crt'}, 73]}
+            path.write_text(json.dumps(original))
+            yaml = types.SimpleNamespace(safe_load=lambda handle: fixture, YAMLError=ValueError)
+            output = io.StringIO()
+            with patch.dict(sys.modules, {'yaml': yaml}), patch.object(agent, 'Panel', Panel), \
+                 patch.object(manager, 'load_agent', return_value=agent), \
+                 patch.object(sys, 'argv', ['node-manager.py', '--config', str(path), '--from', str(source), 'add']), \
+                 patch('builtins.input', side_effect=['', '']) as ask, \
+                 patch.object(manager.subprocess, 'run') as restart, \
+                 patch.object(manager, 'open_firewall') as firewall, contextlib.redirect_stdout(output):
+                self.assertEqual(manager.main(), 0)
+            result = json.loads(path.read_text())
+            self.assertEqual(result['nodes'][:2], original['nodes'])
+            self.assertEqual(result['nodes'][2], {'id': 74, 'panel': 'https://panel.example', 'key': 'fixture',
+                                                'cert_file': str(root / 's6.crt'), 'key_file': str(root / 's6.key')})
+            self.assertEqual(result['source_config'], str(source))
+            self.assertEqual(ask.call_count, 2)
+            self.assertIn('[59,73,74]', ask.call_args_list[0].args[0])
+            self.assertIn('[config NEW]', output.getvalue())
+            self.assertIn('[available]', output.getvalue())
+            self.assertEqual(json.loads(path.with_name('agent.json.before-nodes').read_text()), original)
+            restart.assert_called_once_with(['systemctl', 'restart', 'digitsell-xray-agent'], check=True)
+            firewall.assert_called_once_with(['20074'])
+
+    def test_enter_defaults_never_remove_existing_nodes_or_import_other_ids(self):
+        conf = {'nodes': [{'id': 59, 'tor': 'us'}, 73]}
+        imported = [{'id': 59, 'cert_file': '/new-cert'}, {'id': 74, 'cert_file': '/s6.crt', 'key_file': '/s6.key'}]
+        ids, candidate = manager.add_selection(conf, imported, [''])
+        self.assertEqual(ids, [59, 73, 74])
+        self.assertEqual(candidate['nodes'], conf['nodes'] + [imported[1]])
+        ids, candidate = manager.add_selection(conf, imported, ['75'])
+        self.assertEqual(candidate['nodes'], conf['nodes'] + [75])
+        self.assertEqual(manager.add_selection(conf, [], [''])[1], conf)
+
     def test_yaml_certificate_paths_resolve_next_to_config_and_missing_fails(self):
         source = Path(__file__).with_name('install.sh').read_text()
         code = source.split('def from_xmplus(file):', 1)[1].split('\nif os.environ.get("FROM"):', 1)[0]

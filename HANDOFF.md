@@ -3,6 +3,20 @@
 Living document. **Update it after every change**, alongside the release it
 describes.
 
+2026-10-27 node-selection follow-up: Add now reads the source XMPlus YAML even
+when agent.json already exists. Discovery checks the remembered source_config,
+standard XMPlus/root paths and the current directory; --from selects a custom
+file. Imports record source_config for subsequent additions. Display labels mark
+installed, YAML and newly configured nodes alongside all other panel nodes.
+Enter defaults to the installed/YAML ID union; Enter confirms additions, q cancels.
+New YAML nodes retain API credentials, certificate/key paths (relative to YAML
+when needed) and enabled fallbacks; existing node objects are never overwritten.
+The installer now always includes PyYAML, also during updates. No customer
+configuration or credentials were copied into the repository. Validation: all
+13 Linux tests pass, including a synthetic multi-node YAML fixture added through
+the actual CLI with two blank answers, real agent parsing, certificate references,
+private backup, single agent restart and firewall handling. Bash syntax passed.
+
 2026-10-27 follow-up: menu Install and dxray install now use --reuse-config,
 preferring installed agent.json and otherwise discovering XMPlus YAML (both
 extensions under /etc/XMPlus, /usr/local/XMPlus, /root or the working directory).

@@ -156,11 +156,11 @@ say "installing packages"
 if command -v apt-get >/dev/null; then
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq >/dev/null || true
-    apt-get install -y -qq curl unzip tar openssl python3 ca-certificates iproute2 >/dev/null
+    apt-get install -y -qq curl unzip tar openssl python3 python3-yaml ca-certificates iproute2 >/dev/null
     if [ -n "$FROM" ]; then apt-get install -y -qq python3-yaml >/dev/null || true; fi
 elif command -v dnf >/dev/null || command -v yum >/dev/null; then
     PM=$(command -v dnf || command -v yum)
-    "$PM" install -y -q curl unzip tar openssl python3 ca-certificates iproute >/dev/null
+    "$PM" install -y -q curl unzip tar openssl python3 python3-pyyaml ca-certificates iproute >/dev/null
     if [ -n "$FROM" ]; then "$PM" install -y -q python3-pyyaml >/dev/null || true; fi
 else
     die "no apt, dnf or yum here; install curl unzip tar openssl python3 by hand and run again"
@@ -870,6 +870,7 @@ def from_xmplus(file):
 
 if os.environ.get("FROM"):
     found = from_xmplus(os.environ["FROM"])
+    conf["source_config"] = os.path.abspath(os.environ["FROM"])
     print("    from %s: panel %s, node(s) %s" % (os.environ["FROM"], found.get("panel") or "per node",
           ", ".join(str(n if isinstance(n, int) else n["id"]) for n in found["nodes"])))
     for k in ("panel", "key", "nodes", "block_regex_file", "dns", "domain_strategy"):
