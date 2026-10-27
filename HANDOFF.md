@@ -3,6 +3,18 @@
 Living document. **Update it after every change**, alongside the release it
 describes.
 
+2026-10-27 follow-up: menu Install and dxray install now use --reuse-config,
+preferring installed agent.json and otherwise discovering XMPlus YAML (both
+extensions under /etc/XMPlus, /usr/local/XMPlus, /root or the working directory).
+Only a missing configuration enters guided setup; explicit menu 17 / dxray setup
+retains the reconfiguration wizard. Explicit --from supports custom YAML paths.
+YAML certificate/key references resolve relative to that file and fail clearly
+if missing instead of being silently dropped. Existing node configuration is
+retained when an old XMPlus YAML also exists.
+Validation: all eleven Linux tests pass, including agent/YAML discovery
+precedence, missing-config setup fallback, relative certificate paths and an
+explicit error for a missing referenced private key. Bash syntax passed.
+
 2026-10-27: Xray standalone installer now opens a management menu by default,
 including on installations with an old dxray command. The bootstrap fetches the
 current CLI and node manager; explicit installer flags retain their old behavior.

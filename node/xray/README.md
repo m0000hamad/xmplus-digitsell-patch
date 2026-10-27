@@ -27,7 +27,11 @@ bash <(curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-
 
 Run as root at a terminal: this command opens the management menu, including on
 already installed servers. `dxray` or `dxray menu` opens the same menu after
-installation. Choose **1 (Install / reconfigure)** for the setup wizard:
+installation. Choose **1 (Install)** to reuse the existing configuration and its
+certificate paths. Existing `/etc/digitsell-xray/agent.json` takes precedence;
+otherwise XMPlus YAML in `/etc/XMPlus`, `/usr/local/XMPlus`, `/root` or the current
+directory is imported. Setup is asked only when neither exists. Choose **17
+(Guided setup / reconfigure)** or `dxray setup` to explicitly run the wizard:
 
 1. **Panel address** (the origin, not one behind a CDN) and **API key** (the ApiKey in the panel's
    API settings; typed hidden). A wrong key is refused on the spot.
@@ -49,6 +53,10 @@ an older panel the installer says so and asks for the node ids, checking each ag
 panel's node API.
 
 `--pick` asks again on a server that is already set up — to add or drop nodes.
+`--reuse-config` installs without setup questions when a config exists. A custom
+YAML path can be passed with `--reuse-config --from /path/config.yml`. Relative
+certificate/key paths are resolved next to that YAML file; a missing referenced
+file is reported as an error rather than silently discarding the setting.
 
 ### Manage nodes without reinstalling
 

@@ -53,6 +53,7 @@ XRAY_VERSION="latest"
 UPDATE=0
 WIZARD=0
 ASSUME_YES=0
+REUSE_CONFIG=0
 
 # Keep the one-line entry point useful on both fresh and installed servers.
 # Fetch the current manager even when the installed command predates the menu.
@@ -86,6 +87,7 @@ while [ $# -gt 0 ]; do
         --dns-env)      DNS_ENV+=("$2"); shift 2 ;;
         --from)         FROM="$2"; AUTO=1; shift 2 ;;
         --auto)         AUTO=1; shift ;;
+        --reuse-config) REUSE_CONFIG=1; AUTO=1; shift ;;
         --keep-xmplus)  KEEP_XMPLUS=1; shift ;;
         --no-bbr)       BBR=0; shift ;;
         --xray-version) XRAY_VERSION="$2"; shift 2 ;;
@@ -110,9 +112,12 @@ if [ "$UPDATE" -eq 0 ] && [ "$WIZARD" -eq 0 ] && [ -z "$PANEL$KEY$NODES" ] && [ 
     AUTO=1
 fi
 if [ "$AUTO" -eq 1 ] && [ -z "$FROM" ]; then
-    for candidate in /etc/XMPlus/config.yml /etc/XMPlus/config.yaml /usr/local/XMPlus/config.yml /root/config.yml; do
-        if [ -f "$candidate" ]; then FROM="$candidate"; break; fi
-    done
+    # An installed agent.json takes precedence over an old migration YAML.
+    if [ ! -f "$ETC/agent.json" ]; then
+        for candidate in /etc/XMPlus/config.yml /etc/XMPlus/config.yaml /usr/local/XMPlus/config.yml /usr/local/XMPlus/config.yaml /root/config.yml /root/config.yaml "$PWD/config.yml" "$PWD/config.yaml"; do
+            if [ -f "$candidate" ]; then FROM="$candidate"; break; fi
+        done
+    fi
     if [ -z "$FROM" ] && [ ! -f "$ETC/agent.json" ]; then
         # a new server: ask instead of giving up
         has_tty || die "no XMPlus config found (/etc/XMPlus/config.yml); give --panel, --key and --node"
@@ -126,12 +131,17 @@ if [ "$UPDATE" -eq 0 ] && [ "$AUTO" -eq 0 ] && [ -z "$NODES" ] && [ -n "$PANEL$K
 fi
 # moving from XMPlus at a terminal: show what config.yml says, with the
 # panel's server list, and ask before installing (--yes skips the questions)
-if [ "$UPDATE" -eq 0 ] && [ -n "$FROM" ] && [ "$ASSUME_YES" -eq 0 ] && [ -z "$NODES" ] && has_tty; then
+if [ "$UPDATE" -eq 0 ] && [ -n "$FROM" ] && [ "$REUSE_CONFIG" -eq 0 ] && [ "$ASSUME_YES" -eq 0 ] && [ -z "$NODES" ] && has_tty; then
     WIZARD=1
 fi
 [ "$WIZARD" -eq 0 ] || [ "$UPDATE" -eq 0 ] || die "--pick and --update do not go together"
 [ "$WIZARD" -eq 0 ] || has_tty || die "--pick needs a terminal to answer in"
 [ -z "$FROM" ] || [ -f "$FROM" ] || die "--from: $FROM does not exist"
+if [ "$REUSE_CONFIG" -eq 1 ]; then
+    if [ -n "$FROM" ]; then say "using existing configuration: $FROM (including certificate paths)"
+    elif [ -f "$ETC/agent.json" ]; then say "using existing configuration: $ETC/agent.json"
+    else say "no existing configuration found; starting guided setup"; fi
+fi
 
 [ -z "$PANEL" ] || [[ "$PANEL" =~ ^https?://[A-Za-z0-9.:-]+(/.*)?$ ]] || die "--panel must look like https://panel.example.com"
 for n in $NODES; do [[ "$n" =~ ^[0-9]+$ ]] || die "--node takes numbers (got $n)"; done
@@ -816,8 +826,13 @@ def from_xmplus(file):
             out["cert"]["provider"] = cert["Provider"]
             out["cert"]["env"] = {k: str(v) for k, v in (cert.get("CertEnv") or {}).items() if v not in (None, "")}
         for src, dst in (("CertFile", "cert_file"), ("KeyFile", "key_file")):
-            if cert.get(src) and os.path.isfile(cert[src]):
-                node[dst] = cert[src]
+            if cert.get(src):
+                cert_path = os.path.expanduser(str(cert[src]))
+                if not os.path.isabs(cert_path):
+                    cert_path = os.path.join(os.path.dirname(os.path.abspath(file)), cert_path)
+                if not os.path.isfile(cert_path):
+                    sys.exit("error: node %d: %s does not exist: %s" % (node["id"], src, cert_path))
+                node[dst] = cert_path
         if ctl.get("EnableFallback"):
             fbs = []
             for fb in ctl.get("FallBackConfigs") or []:

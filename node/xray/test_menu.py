@@ -77,6 +77,34 @@ esac
 
 
 class MenuTests(unittest.TestCase):
+    def test_reuse_prefers_agent_then_yaml_and_only_sets_up_when_missing(self):
+        source = (HERE / 'install.sh').read_text().split('# ---------------------------------------------------------------- packages')[0]
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            etc = root / 'etc'
+            etc.mkdir()
+            yaml = root / 'config.yml'
+            yaml.write_text('Nodes: []\n')
+            # Substitute sandbox paths only; execute production discovery logic.
+            source = source.replace('ETC=/etc/digitsell-xray', 'ETC="%s"' % etc)
+            import re
+            source = re.sub(r'for candidate in .*; do', 'for candidate in "%s"; do' % yaml, source)
+            script = root / 'install.sh'
+            script.write_text(source + '\nprintf "RESULT wizard=%s from=%s\\n" "$WIZARD" "$FROM"\n')
+            (etc / 'agent.json').write_text('{}')
+            code, out = terminal_run(['bash', str(script), '--reuse-config'], '')
+            self.assertEqual(code, 0, out)
+            self.assertIn('RESULT wizard=0 from=\r', out)
+            self.assertIn('using existing configuration: %s/agent.json' % etc, out)
+            (etc / 'agent.json').unlink()
+            code, out = terminal_run(['bash', str(script), '--reuse-config'], '')
+            self.assertEqual(code, 0, out)
+            self.assertIn('RESULT wizard=0 from=%s' % yaml, out)
+            yaml.unlink()
+            code, out = terminal_run(['bash', str(script), '--reuse-config'], '')
+            self.assertEqual(code, 0, out)
+            self.assertIn('RESULT wizard=1 from=', out)
+
     def test_cli_default_menu_and_cancel_destructive_actions(self):
         code, out = terminal_run(['bash', str(HERE / 'digitsell-xray')], '12\nn\n16\n\n0\n')
         self.assertEqual(code, 0, out)

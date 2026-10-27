@@ -1,8 +1,11 @@
 """Run on Linux: python3 -m unittest discover -s node/xray -p 'test_*.py'."""
 import importlib.util
 import json
+import os
 from pathlib import Path
 import tempfile
+import types
+import sys
 import unittest
 from unittest.mock import patch
 
@@ -12,6 +15,29 @@ spec.loader.exec_module(manager)
 
 
 class MembershipTests(unittest.TestCase):
+    def test_yaml_certificate_paths_resolve_next_to_config_and_missing_fails(self):
+        source = Path(__file__).with_name('install.sh').read_text()
+        code = source.split('def from_xmplus(file):', 1)[1].split('\nif os.environ.get("FROM"):', 1)[0]
+        namespace = {'os': os, 'sys': sys, 'json': json}
+        exec('def from_xmplus(file):' + code, namespace)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / 'certs').mkdir()
+            (root / 'certs' / 'server.crt').write_text('test-cert')
+            (root / 'certs' / 'server.key').write_text('test-key')
+            file = root / 'config.yml'
+            file.write_text('fixture')
+            fixture = {'Nodes': [{'ApiConfig': {'NodeID': 74, 'ApiHost': 'https://panel.example', 'ApiKey': 'test'},
+                                  'ControllerConfig': {'CertConfig': {'CertFile': 'certs/server.crt',
+                                                                     'KeyFile': 'certs/server.key'}}}]}
+            with patch.dict(sys.modules, {'yaml': types.SimpleNamespace(safe_load=lambda handle: fixture)}):
+                conf = namespace['from_xmplus'](str(file))
+                self.assertEqual(conf['nodes'][0]['cert_file'], str(root / 'certs' / 'server.crt'))
+                self.assertEqual(conf['nodes'][0]['key_file'], str(root / 'certs' / 'server.key'))
+                (root / 'certs' / 'server.key').unlink()
+                with self.assertRaisesRegex(SystemExit, 'KeyFile does not exist'):
+                    namespace['from_xmplus'](str(file))
+
     def setUp(self):
         self.conf = {'panel': 'https://panel.example', 'key': 'test-key',
                      'nodes': [{'id': 58, 'tor': 'us', 'cert_file': '/tmp/cert',

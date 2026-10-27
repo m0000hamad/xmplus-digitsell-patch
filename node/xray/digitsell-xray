@@ -15,7 +15,8 @@ digitsell-xray <command>
 
   status        what runs: nodes, accounts, online, certificates, last report
   menu          interactive management menu (also the default)
-  install       guided install / reconfigure
+  install       install using existing config; guided setup only if missing
+  setup         explicitly run the guided reconfiguration wizard
   nodes         list nodes configured on this machine
   add [IDs]     add panel nodes, keeping existing nodes and their settings
   remove [IDs]  remove nodes from this machine (not from the panel)
@@ -65,7 +66,7 @@ menu() {
         cat <<'EOF'
 
 Digitsell Xray / dxray
-  1) Install / reconfigure (guided)
+  1) Install (reuse config/certificates; setup only if missing)
   2) Add node(s)
   3) Remove node(s) from this machine
   4) List configured nodes
@@ -81,12 +82,13 @@ Digitsell Xray / dxray
  14) Edit configuration
  15) Versions
  16) Uninstall
+ 17) Guided setup / reconfigure
   0) Exit
 EOF
         ask "Choice: " || return 0
         case "$REPLY" in
             0|q|exit) return 0 ;;
-            1) run_installer --pick ;;
+            1) run_installer --reuse-config ;;
             2) node_command add ;;
             3) node_command remove ;;
             4) node_command list ;;
@@ -101,6 +103,7 @@ EOF
             13) run_installer --update ;;
             14) bash "$0" config ;;
             15) bash "$0" version ;;
+            17) run_installer --pick ;;
             16)
                 echo "1) Keep configuration  2) Delete configuration  3) Restore XMPlus (keep configuration)"
                 ask "Uninstall mode (Enter to cancel): " || continue
@@ -122,7 +125,8 @@ EOF
 
 case "${1:-menu}" in
     menu|--menu) menu ;;
-    install) shift; run_installer --pick "$@" ;;
+    install) shift; run_installer --reuse-config "$@" ;;
+    setup) shift; run_installer --pick "$@" ;;
     nodes|list) node_command list ;;
     add|add-node) shift; node_command add "$@" ;;
     remove|remove-node) shift; node_command remove "$@" ;;
