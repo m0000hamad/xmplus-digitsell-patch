@@ -3,7 +3,8 @@
 # Digitsell Xray node - installs the official Xray-core and the agent that
 # ties it to the XMPlus panel, in place of the XMPlus node binary.
 #
-# Automatic (on a server that runs XMPlus now): no options at all. The panel
+# No options: open the management menu (install, nodes, status, logs, etc.).
+# Automatic migration: use --yes. The panel
 # address, key, node ids, certificate settings and fallbacks are read from
 # /etc/XMPlus/config.yml, XMPlus's certificates are reused, and XMPlus is
 # stopped and disabled (not deleted - see "Going back" in README.md):
@@ -52,6 +53,28 @@ XRAY_VERSION="latest"
 UPDATE=0
 WIZARD=0
 ASSUME_YES=0
+
+# Keep the one-line entry point useful on both fresh and installed servers.
+# Fetch the current manager even when the installed command predates the menu.
+if [ $# -eq 0 ] || [ "${1:-}" = "--menu" ]; then
+    [ "$(id -u)" -eq 0 ] || { echo "run as root" >&2; exit 1; }
+    if ! [ -t 0 ] && ! { [ -e /dev/tty ] && (: < /dev/tty) 2>/dev/null; }; then
+        echo "A terminal is required for the menu; use --help for scripted installation." >&2
+        exit 1
+    fi
+    MANAGER_TMP=$(mktemp -d)
+    trap 'rm -rf "$MANAGER_TMP"' EXIT
+    HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo /nonexistent)"
+    for f in digitsell-xray node-manager.py; do
+        if [ -f "$HERE/$f" ] && [ "${DIGITSELL_FROM_REPO:-0}" != 1 ]; then
+            cp "$HERE/$f" "$MANAGER_TMP/$f"
+        else
+            curl -fsSL --retry 3 "$REPO_RAW/node/xray/$f" -o "$MANAGER_TMP/$f"
+        fi
+    done
+    DIGITSELL_MANAGER_DIR="$MANAGER_TMP" bash "$MANAGER_TMP/digitsell-xray" menu
+    exit $?
+fi
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -731,7 +754,7 @@ fi
 
 say "installing the agent"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo /nonexistent)"
-for f in xray-agent.py digitsell-xray uninstall.sh; do
+for f in xray-agent.py digitsell-xray uninstall.sh node-manager.py; do
     if [ -f "$HERE/$f" ] && [ "${DIGITSELL_FROM_REPO:-0}" != "1" ]; then
         cp "$HERE/$f" "$TMP/$f"
     else
@@ -739,6 +762,8 @@ for f in xray-agent.py digitsell-xray uninstall.sh; do
     fi
 done
 python3 -m py_compile "$TMP/xray-agent.py" || die "the downloaded agent is broken"
+python3 -m py_compile "$TMP/node-manager.py" || die "the downloaded node manager is broken"
+install -m 755 "$TMP/node-manager.py" "$LIB/node-manager.py"
 install -m 755 "$TMP/xray-agent.py" "$LIB/xray-agent.py"
 install -m 755 "$TMP/uninstall.sh" "$LIB/uninstall.sh"
 install -m 755 "$TMP/digitsell-xray" /usr/local/bin/digitsell-xray

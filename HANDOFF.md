@@ -3,6 +3,24 @@
 Living document. **Update it after every change**, alongside the release it
 describes.
 
+2026-10-27: Xray standalone installer now opens a management menu by default,
+including on installations with an old dxray command. The bootstrap fetches the
+current CLI and node manager; explicit installer flags retain their old behavior.
+Installed dxray defaults to the same menu. Add/remove membership is separate from
+binary installation, preserves existing per-node objects, checks additions against
+the panel and port conflicts, confirms changes, writes private atomic config and
+backup files, detects concurrent edits and rolls back if restarting the agent
+fails. Removal affects this machine only and cannot leave an empty node list.
+Menu offers lifecycle, status, recent/live logs, diagnostics, update, configuration
+and confirmed uninstall with keep-config/restore-XMPlus options. No panel release
+version change: these standalone node files are fetched directly from main.
+Validation: nine Linux unittest cases passed under WSL, including PTY tests for
+the /dev/fd process-substitution entry point, cancellation of stop/uninstall,
+headless-menu refusal, real agent parsing, per-node credential/override retention,
+port conflict and last-node guards, private backups, rollback and concurrent-edit
+detection. Bash syntax and git diff whitespace checks passed. The node server was
+unreachable by SSH during this change; no production configuration was modified.
+
 > This repository is **public**. No password, token, connection string or
 > customer data belongs in any file here. Server and database credentials are
 > held by the owner and passed in the working session only.

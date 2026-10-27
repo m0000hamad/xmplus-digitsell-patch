@@ -25,7 +25,9 @@ change; servers are still defined and edited in the panel and this node pulls th
 bash <(curl -fsSL https://raw.githubusercontent.com/m0000hamad/xmplus-digitsell-patch/main/node/xray/install.sh)
 ```
 
-Run as root at a terminal, the installer asks before it changes anything:
+Run as root at a terminal: this command opens the management menu, including on
+already installed servers. `dxray` or `dxray menu` opens the same menu after
+installation. Choose **1 (Install / reconfigure)** for the setup wizard:
 
 1. **Panel address** (the origin, not one behind a CDN) and **API key** (the ApiKey in the panel's
    API settings; typed hidden). A wrong key is refused on the spot.
@@ -47,6 +49,35 @@ an older panel the installer says so and asks for the node ids, checking each ag
 panel's node API.
 
 `--pick` asks again on a server that is already set up — to add or drop nodes.
+
+### Manage nodes without reinstalling
+
+The menu includes Add, Remove, List, Status, recent/live logs, Doctor, panel checks,
+service start/stop/restart, update, configuration, versions and uninstall. Live logs
+return to the menu with Ctrl+C. Stop and uninstall ask for confirmation; uninstall
+can keep configuration/certificates or restore XMPlus.
+
+Create a server record in the **panel first**, then choose Add and enter its ID.
+Existing node objects (exit location, certificates, per-node panel/key and other
+overrides) are preserved. New nodes use the configured default panel/key; the panel
+settings and listening-port conflicts are checked before saving. Certificate mode
+`file` asks for certificate/key paths if the standard files are missing.
+
+```bash
+dxray nodes
+dxray add 74,75
+dxray remove 75
+```
+
+Both changes ask for confirmation, save a root-only backup at
+`/etc/digitsell-xray/agent.json.before-nodes`, and restart the agent. Node changes
+can reconnect users when Xray applies the new inbounds. A failed agent restart
+restores the old configuration. Check `dxray status` and `dxray log -n 50` for
+activation/certificate errors. Remove only detaches this machine; it does not delete
+the panel's server record. Removing the last node is refused; use Stop or Uninstall.
+An old installation can use the latest one-line menu immediately; `dxray update`
+also installs the new local manager. Explicit installer flags (`--yes`, `--pick`,
+`--update`, `--panel`, etc.) continue to bypass the menu for scripts.
 
 ### Automatic (servers that already run XMPlus, no questions)
 

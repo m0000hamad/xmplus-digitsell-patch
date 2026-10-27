@@ -14,6 +14,11 @@ usage() {
 digitsell-xray <command>
 
   status        what runs: nodes, accounts, online, certificates, last report
+  menu          interactive management menu (also the default)
+  install       guided install / reconfigure
+  nodes         list nodes configured on this machine
+  add [IDs]     add panel nodes, keeping existing nodes and their settings
+  remove [IDs]  remove nodes from this machine (not from the panel)
   log [-n N]    live log of the agent and Xray (Ctrl+C to stop)
   check         ask the panel about every node and print what would run
   doctor        check this server end to end
@@ -30,7 +35,97 @@ EOF
 
 [ "$(id -u)" -eq 0 ] || { echo "run as root" >&2; exit 1; }
 
-case "${1:-status}" in
+has_tty() { [ -t 0 ] || { [ -e /dev/tty ] && (: < /dev/tty) 2>/dev/null; }; }
+ask() {
+    if [ -t 0 ]; then read -r -p "$1" REPLY; else read -r -p "$1" REPLY < /dev/tty; fi
+}
+run_installer() (
+    tmp=$(mktemp) || exit 1
+    trap 'rm -f "$tmp"' EXIT
+    curl -fsSL "$REPO_RAW/node/xray/install.sh" -o "$tmp" || exit 1
+    DIGITSELL_FROM_REPO=1 bash "$tmp" "$@"
+)
+node_command() {
+    local manager="${DIGITSELL_MANAGER_DIR:-$LIB}/node-manager.py"
+    [ -f "$ETC/agent.json" ] && [ -f "$LIB/xray-agent.py" ] || {
+        echo "Install first (menu option 1)." >&2; return 1;
+    }
+    [ -f "$manager" ] || { echo "Run the latest install.sh menu or 'dxray update' first." >&2; return 1; }
+    if [ -t 0 ]; then
+        python3 "$manager" --config "$ETC/agent.json" "$@"
+    elif has_tty; then
+        python3 "$manager" --config "$ETC/agent.json" "$@" < /dev/tty
+    else
+        python3 "$manager" --config "$ETC/agent.json" "$@"
+    fi
+}
+menu() {
+    has_tty || { echo "A terminal is required for the menu; use --help for commands." >&2; return 1; }
+    while true; do
+        cat <<'EOF'
+
+Digitsell Xray / dxray
+  1) Install / reconfigure (guided)
+  2) Add node(s)
+  3) Remove node(s) from this machine
+  4) List configured nodes
+  5) Status
+  6) Recent logs
+  7) Live logs (Ctrl+C to return)
+  8) Doctor / diagnostics
+  9) Check panel settings
+ 10) Restart agent / sync settings
+ 11) Start services
+ 12) Stop services
+ 13) Update Xray and agent
+ 14) Edit configuration
+ 15) Versions
+ 16) Uninstall
+  0) Exit
+EOF
+        ask "Choice: " || return 0
+        case "$REPLY" in
+            0|q|exit) return 0 ;;
+            1) run_installer --pick ;;
+            2) node_command add ;;
+            3) node_command remove ;;
+            4) node_command list ;;
+            5) bash "$0" status ;;
+            6) bash "$0" log -n 100 ;;
+            7) (trap 'exit 0' INT; journalctl -u digitsell-xray-agent -u digitsell-xray -f -n 50) ;;
+            8) bash "$0" doctor ;;
+            9) bash "$0" check ;;
+            10) bash "$0" restart ;;
+            11) bash "$0" start ;;
+            12) ask "Stop all configured nodes? [y/N]: " && [[ "$REPLY" =~ ^[yY]([eE][sS])?$ ]] && bash "$0" stop ;;
+            13) run_installer --update ;;
+            14) bash "$0" config ;;
+            15) bash "$0" version ;;
+            16)
+                echo "1) Keep configuration  2) Delete configuration  3) Restore XMPlus (keep configuration)"
+                ask "Uninstall mode (Enter to cancel): " || continue
+                local uninstall_args=()
+                case "$REPLY" in
+                    1) uninstall_args=(--keep-config) ;;
+                    2) uninstall_args=() ;;
+                    3) uninstall_args=(--keep-config --restore-xmplus) ;;
+                    *) continue ;;
+                esac
+                ask "Uninstall Xray from this machine? Type YES: " || continue
+                if [ "$REPLY" = YES ]; then
+                    bash "$LIB/uninstall.sh" "${uninstall_args[@]}" && return 0
+                fi ;;
+            *) echo "Choose a number from the menu." ;;
+        esac
+    done
+}
+
+case "${1:-menu}" in
+    menu|--menu) menu ;;
+    install) shift; run_installer --pick "$@" ;;
+    nodes|list) node_command list ;;
+    add|add-node) shift; node_command add "$@" ;;
+    remove|remove-node) shift; node_command remove "$@" ;;
     status)
         systemctl --no-pager --lines=0 status digitsell-xray digitsell-xray-agent 2>/dev/null | grep -E "●|Active:" || true
         echo
@@ -50,10 +145,7 @@ case "${1:-status}" in
     stop)    systemctl stop digitsell-xray-agent digitsell-xray ;;
     update)
         shift
-        tmp=$(mktemp)
-        curl -fsSL "$REPO_RAW/node/xray/install.sh" -o "$tmp" || { echo "cannot download install.sh" >&2; exit 1; }
-        DIGITSELL_FROM_REPO=1 bash "$tmp" --update "$@"
-        rm -f "$tmp" ;;
+        run_installer --update "$@" ;;
     config)
         "${EDITOR:-nano}" "$ETC/agent.json" || vi "$ETC/agent.json"
         python3 -c "import json; json.load(open('$ETC/agent.json'))" \
