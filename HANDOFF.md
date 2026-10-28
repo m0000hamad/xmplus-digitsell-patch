@@ -16,7 +16,8 @@ Backup: storage/patch/backup-20261028-193347-subprofiles. Installed metadata and
 rollback pointer updated. Publication follow-up: this release includes the
 complete source, manifest and version for the updater repository. AGENTS.md now
 requires publication plus matching live installed/latest status before any
-future release is reported complete. See SUBSCRIPTION_PROFILES.md.
+future release is reported complete. Live authenticated updater verification
+confirmed installed=latest=1.38.0 after publication. See SUBSCRIPTION_PROFILES.md.
 
 Living document. **Update it after every change**, alongside the release it
 describes.
