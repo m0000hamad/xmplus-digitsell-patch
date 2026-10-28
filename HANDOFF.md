@@ -1,13 +1,15 @@
 # Handoff â€” Digitsell XMPlus panel patch
 
-2026-10-28 — 1.38.1 layout follow-up: dashboard subscription titles and multiline
+Installed and published 2026-10-28: **1.38.1** layout follow-up: dashboard subscription titles and multiline
 descriptions now sit inside their respective link cards. Both cards are adjacent;
 the connection heading, application download/help actions and how-to render once
 per app. Native Smarty/DOM regression verifies title-description order, adjacent
 cards, no download inside either card, one shared download below both, correct
 profile copy/import URLs, disabled/group scoping and legacy behavior. Only the
 dashboard template changes at runtime; profile settings and access are unchanged.
-Release must pass the AGENTS.md publication/live-version completion gate.
+Live customer dashboard verification passed for the two titled/described cards
+and single download below them. The updater reports installed=latest=1.38.1.
+Backup: storage/patch/backup-20261028-200011-subprofiles.
 
 Installed 2026-10-28: **1.38.0**, two independently configurable subscription
 links with editable titles and multiline descriptions, subscriber-group and
