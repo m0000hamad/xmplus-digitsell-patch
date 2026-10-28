@@ -154,6 +154,13 @@
 .app-btn-help { background: rgba(23, 32, 61, .07); color: #16203d !important; }
 .app-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 11px; }
 
+.app-profile-list { display: grid; gap: 12px; }
+.app-profile-title { margin: 0 0 5px; font-size: 15px; font-weight: 800; line-height: 1.8; color: #16203d; }
+.app-profile-description { margin: 0 0 13px; font-size: 13px; line-height: 1.9; white-space: pre-line; color: #52627e; }
+.app-download { margin-top: 15px; }
+html[data-hs-theme="dark"] .app-profile-title { color: #e7eaf3; }
+html[data-hs-theme="dark"] .app-profile-description { color: #c5cee0; }
+
 /* ---- the 3 line how-to ---- */
 .app-howto {
 	display: grid;
@@ -365,15 +372,6 @@ html[data-hs-theme="dark"] .app-howto-item {
                                 {$legacySubLink = $subLink}
                                 {$linkProfiles = $user->subscriptionProfiles()}
                                 {if !$linkProfiles}<p class="text-muted">لینک اتصالی برای گروه اشتراک شما فعال نیست.</p>{/if}
-                                {foreach $linkProfiles as $linkProfile}
-                                {$subLink = $legacySubLink}
-                                {if $linkProfile.id > 0}
-                                    {$subTail = $contentTab->link|regex_replace:'~^[?&]~':''}
-                                    {$subTail = '&'|cat:$subTail}
-                                    {$subLink = $SubUrl|regex_replace:'~/link/([A-Za-z0-9_-]+)/?$~':'/xmplus-patch.php?do=sub&t=$1'|cat:'&profile='|cat:$linkProfile.id|cat:$subTail}
-                                {/if}
-                                {if $linkProfile.name}<h5 class="mt-3">{$linkProfile.name|escape}</h5>{/if}
-                                {if $linkProfile.description}<p class="text-muted" style="white-space:pre-line">{$linkProfile.description|escape}</p>{/if}
 								<div class="app-step">
 									<div class="app-step-head">
 										<span class="app-step-num">3</span>
@@ -383,8 +381,18 @@ html[data-hs-theme="dark"] .app-howto-item {
 										</div>
 									</div>
 
-									<div class="app-connect">
-										<div class="app-link-row">
+									<div class="app-profile-list">
+                                {foreach $linkProfiles as $linkProfile}
+                                {$subLink = $legacySubLink}
+                                {if $linkProfile.id > 0}
+                                    {$subTail = $contentTab->link|regex_replace:'~^[?&]~':''}
+                                    {$subTail = '&'|cat:$subTail}
+                                    {$subLink = $SubUrl|regex_replace:'~/link/([A-Za-z0-9_-]+)/?$~':'/xmplus-patch.php?do=sub&t=$1'|cat:'&profile='|cat:$linkProfile.id|cat:$subTail}
+                                {/if}
+                                    <article class="app-connect app-profile">
+                                        {if $linkProfile.name}<h5 class="app-profile-title">{$linkProfile.name|escape}</h5>{/if}
+                                        {if $linkProfile.description}<p class="app-profile-description">{$linkProfile.description|escape}</p>{/if}
+                                        <div class="app-link-row">
 											<input class="app-link-field" type="text" readonly onclick="this.select()" value="{$subLink}">
 											<button type="button" class="app-btn app-btn-copy copy-text" data-clipboard-text="{$subLink}">
 												📋 <span>{$translate->get('CopyLink')}</span>
@@ -404,22 +412,23 @@ html[data-hs-theme="dark"] .app-howto-item {
 											{if strpos($contentTab->client, "Stash") !== false}
 												<a class="app-btn app-btn-import" href="stash://install-config?url={urlencode($subLink)}">⚡ {$translate->get('ExportLink')}</a>
 											{/if}
-
-											<a class="app-btn app-btn-get" href="{$contentTab->url}" target="_blank" rel="noopener">⬇️ {$translate->get('Download')} {$contentTab->client}</a>
+                                    </div>
+                                    </article>
+                                {/foreach}
+                                    </div>
+                                    <div class="app-actions app-download">
+                                        <a class="app-btn app-btn-get" href="{$contentTab->url}" target="_blank" rel="noopener">⬇️ {$translate->get('Download')} {$contentTab->client}</a>
 
 											{if $contentTab->uuid || $contentTab->uuid != 0}
 												<a class="app-btn app-btn-help" href="/portal/knowledgebase/{$contentTab->uuid}">📖 {$translate->get('Instruction')}</a>
 											{/if}
-										</div>
-
-										<div class="app-howto">
+                                    </div>
+                                    <div class="app-howto">
 											<div class="app-howto-item"><span class="app-howto-emoji">⬇️</span><span>{$translate->get('HowToStep1')}</span></div>
 											<div class="app-howto-item"><span class="app-howto-emoji">📋</span><span>{$translate->get('HowToStep2')}</span></div>
 											<div class="app-howto-item"><span class="app-howto-emoji">🔌</span><span>{$translate->get('HowToStep3')}</span></div>
-										</div>
-									</div>
-								</div>
-								{/foreach}
+                                    </div>
+                                </div>
 {/if}
 
 							</div>

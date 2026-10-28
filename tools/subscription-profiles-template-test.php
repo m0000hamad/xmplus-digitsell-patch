@@ -40,6 +40,19 @@ check(strpos($html,'&profile=1&quantumultx=1')!==false,'format selector without 
 check(strpos($html,'<script>bad()</script>')===false && strpos($html,'&lt;script&gt;bad()&lt;/script&gt;')!==false,'editable titles escaped');
 check(strpos($html,'&lt;b&gt;plain text&lt;/b&gt;')!==false,'descriptions are plain text');
 $dom=new DOMDocument();@$dom->loadHTML('<?xml encoding="UTF-8">'.$html);$xp=new DOMXPath($dom);
+$lists=$xp->query('//div[contains(concat(" ",normalize-space(@class)," ")," app-profile-list ")]');
+check($lists->length===5,'one profile list per application');
+foreach($lists as $list) {
+    $cards=$xp->query('./article[contains(@class,"app-profile")]',$list);
+    check($cards->length===2,'both subscription cards are consecutive');
+    foreach($cards as $card) {
+        check($xp->query('./h5[contains(@class,"app-profile-title")]/following-sibling::p[contains(@class,"app-profile-description")][1]',$card)->length===1,'subscription title immediately precedes its description');
+        check($xp->query('.//a[contains(@class,"app-btn-get")]',$card)->length===0,'no download button between subscription cards');
+    }
+    check($xp->query('following-sibling::div[contains(@class,"app-download")][1]//a[contains(@class,"app-btn-get")]',$list)->length===1,'one download below both subscriptions');
+}
+check($xp->query('//a[contains(@class,"app-btn-get")]')->length===5,'download is not duplicated per profile');
+
 foreach($xp->query('//input[contains(@class,"app-link-field")]') as $input) {
     check(strpos($input->getAttribute('value'),'do=sub&t=fixture_token_123&profile=')!==false,'copy field uses profile URL');
 }

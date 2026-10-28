@@ -12,6 +12,8 @@ table, consistent with plan/server-group assignment. It is not the employee
 permissions table `user_group`.
 
 The dashboard app card renders one copy/import block per authorized profile.
+Layout follow-up 1.38.1 places each title and description inside its link card,
+with adjacent cards and one shared download/help/how-to section below them.
 Admin → Users → Edit shows the same authorized profile URLs and descriptions.
 Titles and descriptions are escaped in Smarty. The selected title is also sent
 as the client's `profile-title` header. OpenVPN/WireGuard download cards retain

@@ -1,7 +1,7 @@
 {
-    "version": "1.38.0",
+    "version": "1.38.1",
     "released": "2026-10-28",
-    "notes": "Two independently scoped subscription links with editable titles and descriptions, subscriber-group and server selection, signed native filtering, relay support and per-profile copy/import/refresh URLs.",
+    "notes": "Fix subscription card layout: show each title and description inside its link card, keep both links adjacent, and show app download/help instructions once below both links.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -155,7 +155,7 @@
         "view/user/affiliate/sharebar.tpl": "2cb65c4fbddc59c8e713f65fbf979c8e640efe1232f759d85e43bc137b183bbc",
         "view/user/affiliate/stats.tpl": "29b9ba28c071ea963e83f4b0f1b57b26e2909c56f8998fb4be823ae335ea6410",
         "view/user/affiliate/widthdraw.tpl": "186900dc998b81478bf96ce093a9abc7f807f6b0425378cddc93fe7ee1e219ec",
-        "view/user/dashboard/application.tpl": "8922e0966b4f4a0a4d517b0de94d2efc84c8730845bb4903ab293ff1230c4b06",
+        "view/user/dashboard/application.tpl": "0b44bfe7c0600b4beaf77874ac75e997ccf98acffb023f5805a0a7e8da6a40af",
         "view/user/dashboard/chart.tpl": "2be509daa4994c092acc3ab4d1ee2c5aff35a96c328f3acee9e4604f820a60cb",
         "view/user/dashboard/dashboard.tpl": "c1b5dd6a64cfebde0e813e28c5318ae10cf5437dab4dbc430ed3bae5e14e78ef",
         "view/user/dashboard/giftpopup.tpl": "921e7b34dec6616c2a81ef313c5d05d7432feb4b630f6c3a6f80c32f770eec70",
