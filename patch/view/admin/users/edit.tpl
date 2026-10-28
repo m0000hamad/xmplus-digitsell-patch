@@ -77,7 +77,19 @@
 						<div class="row mb-2">
 							<label class="col-sm-3 col-form-label form-label" for="link">{$translate->get('ConfigLinks')}</label>
 							<div class="col-sm-9"  style="max-width: 60rem">
-								<input type="text" class="form-control shadow-lg copy-text" id="link" value="{$helpers->SubUrl()}{$user_edit->token}" data-clipboard-text="{$helpers->SubUrl()}{$user_edit->token}" disabled>
+								{$adminLinks = $user_edit->subscriptionProfiles()}
+                                {$nativeLink = $helpers->SubUrl()|cat:$user_edit->token}
+                                {foreach $adminLinks as $profile}
+                                    {$profileLink = $nativeLink}
+                                    {if $profile.id > 0}
+                                        {$profileLink = $nativeLink|regex_replace:'~/link/([A-Za-z0-9_-]+)/?$~':'/xmplus-patch.php?do=sub&t=$1'|cat:'&profile='|cat:$profile.id|cat:'&config=1'}
+                                    {/if}
+                                    {if $profile.name}<label class="form-label">{$profile.name|escape}</label>{/if}
+                                    {if $profile.description}<p class="text-muted small" style="white-space:pre-line">{$profile.description|escape}</p>{/if}
+                                    <input type="text" class="form-control shadow-lg copy-text mb-2" value="{$profileLink|escape}" data-clipboard-text="{$profileLink|escape}" readonly onclick="this.select()">
+                                {foreachelse}
+                                    <span class="text-muted">لینکی برای گروه اشتراک این کاربر فعال نیست.</span>
+                                {/foreach}
 							</div>
 						</div>
 					</div>	

@@ -22,6 +22,21 @@ final class User extends Model
     /* the account whose sold-but-unlinked reservations were pulled in already */
     private static $reserveLinkedFor = 0;
 
+    public function subscriptionProfiles(): array
+    {
+        require_once dirname(__DIR__, 2) . '/Patch/SubscriptionProfiles.php';
+        $config = new \App\Provider\ConfigProvider;
+        $profiles = \SubscriptionProfiles::read((string) $config->get('sub_profiles'));
+        if (!$profiles) return [['id' => 0, 'name' => '', 'description' => '']];
+        $result = [];
+        foreach ($profiles as $i => $profile) {
+            if (\SubscriptionProfiles::allowed($profile, ['server_group' => $this->server_group])) {
+                $result[] = ['id' => $i + 1, 'name' => $profile['name'], 'description' => $profile['description'] ?? ''];
+            }
+        }
+        return $result;
+    }
+
     public function image()
     {
         $hash = md5(strtolower(trim($this->email)));

@@ -1,0 +1,103 @@
+# Two subscription profiles
+
+Installed on the existing panel, 2026-10-28: **1.38.0**. The release includes the complete source, manifest and version
+for the configured GitHub update repository.
+
+Settings → لینک‌های اتصال defines two independently enabled profiles, each with
+a title, multiline plain-text description, selected subscriber groups and exact
+server IDs. A subscriber group may belong to either or both profiles; server
+selections may overlap. Empty selections never mean everyone/every server.
+The subscriber group is `user.server_group`, matched against the panel's `group`
+table, consistent with plan/server-group assignment. It is not the employee
+permissions table `user_group`.
+
+The dashboard app card renders one copy/import block per authorized profile.
+Admin → Users → Edit shows the same authorized profile URLs and descriptions.
+Titles and descriptions are escaped in Smarty. The selected title is also sent
+as the client's `profile-title` header. OpenVPN/WireGuard download cards retain
+their existing behavior; profiles apply to native `/link/` subscriptions.
+Before any configuration has been saved, the original app card/link remains.
+Once profiles are saved, groups not selected for either see no subscription
+copy/import block in that card. Disabled profiles are hidden and denied.
+
+Links retain the user's existing token, with `do=sub&t=...&profile=1` or `2`.
+The endpoint resolves that token directly and checks group membership before
+fetching anything. The internal request carries a short-lived HMAC over the
+profile number, expiry and token. ConfigProvider verifies it and installs an
+Eloquent Server scope selecting the configured IDs. Native serializers therefore
+retain their formats and protocol handling. A marker from that scope must be
+present in the internal response; otherwise the external request is denied.
+A selected relay may resolve its underlying transport by an exact primary-key
+lookup; that dependency is never added to the subscription listing. Native
+managed-config refresh URLs in bodies/headers are rewritten to the profile URL.
+Scoped links never redirect to the unrestricted native subscription on error.
+No token, account, plan, server or node entitlement is modified by these settings.
+
+This is an intersection with existing native access. Selecting a server does
+not grant node access to accounts whose native group cannot use it. The original
+native link and individual configs are not revoked by this presentation feature.
+
+Settings are stored atomically in `sub_profiles`; `sub_profiles_secret` is
+generated server-side and is never included in the settings API response.
+Admin saves use the existing session authorization and CSRF mechanism and
+validate both profiles before writing either. No schema migration is needed.
+
+Local validation:
+
+```
+php tools/subscription-profiles-test.php
+php tools/subscription-profiles-endpoint-test.php
+```
+
+The endpoint suite uses an in-memory SQLite fixture and shared-auth substitutes;
+it tests settings validation, persistence, CSRF handling and secret stability,
+not the real panel login. The scope suite uses a recording model substitute;
+it does not prove the encoded controller's query path.
+
+Native validation on the installed panel used synthetic users, nodes and
+connection-local temporary MySQL tables, including temporary subscribe_log.
+No customer table was modified by those fixtures. Minimal YAML/JSON template
+arrays were explicitly supplied to the CLI fixture, rather than relying on the
+normal web entry point's environment initialization. The native baseline and
+both profile selections passed URI, Shadowrocket, Surfboard, Stash, Clash,
+Clash Meta and sing-box serialization, including relay transport lookup.
+
+```
+php tools/subscription-profiles-native-test.php PANEL_ROOT SOURCE_ROOT 1 config Trojan relay
+php tools/subscription-profiles-template-test.php PANEL_ROOT SOURCE_ROOT
+```
+
+For these commands, SOURCE_ROOT contains app/ and view/ from patch/, or is the
+installed panel root. The template test expects application.tpl,
+subprofiles.tpl and admin-edit.tpl in its test view directory; the private test
+staging tree has those aliases. The native fixture tool takes profile 0 for the
+unfiltered baseline, 1/2 for profile selection, and a native format selector.
+
+A pair of loopback-only PHP servers exercised actual SubInfo HTTP fetching and
+signature acknowledgement across all seven formats, checked selected titles,
+excluded unrelated servers, retained scoped refresh URLs, and denied disabled,
+wrong-group and missing-marker requests without redirects. Native Smarty
+rendering tested shared/distinct/unauthorized groups, disabled profiles,
+legacy behavior, escaped titles/descriptions and correct per-app copy/import
+URLs, including QuantumultX's selector without a leading question mark.
+Settings and administrator user-edit templates compiled successfully.
+
+Live FPM checks passed: unauthenticated settings denied, native administrator
+session accepted, invalid CSRF rejected, invalid group/server selections rejected,
+settings page contains the profile editor, and invalid profile token denied.
+The short-lived health session was removed afterward. The production
+sub_profiles/sub_profiles_secret rows remained unchanged; no real group/server
+membership or customer config was selected on the owner's behalf.
+
+The owner explicitly authorized transfer, testing and installation after the
+initial automatic approval rejection. Only the ten changed runtime files were
+installed, after verifying all original hashes against the repository baseline
+and checking PHP 7.4 syntax. Replacements were atomic; new files belong to the
+panel worker. Runtime hashes were checked against the prepared manifest.
+
+Backup: storage/patch/backup-20261028-193347-subprofiles. The updater's rollback
+pointer and version metadata were updated. Rollback restores replaced files;
+new inert helpers may remain. Private deployment metadata and test scripts are
+under /tmp/digitsell-subprofiles-check on the server. The publication follow-up includes this release in the update
+repository. AGENTS.md makes publication and live installed/latest version
+agreement mandatory before declaring future releases complete.

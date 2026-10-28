@@ -1,5 +1,23 @@
 # Handoff â€” Digitsell XMPlus panel patch
 
+Installed 2026-10-28: **1.38.0**, two independently configurable subscription
+links with editable titles and multiline descriptions, subscriber-group and
+server-ID selection, per-profile customer/admin copy/import blocks and signed
+native-query filtering. Relay transport lookups stay private; managed refresh
+URLs retain their profile. Unconfigured installations keep the old link.
+The owner explicitly approved server transfer/testing/installation after the
+initial automatic approval rejection. Local suites, native baseline/both-profile
+serializer matrix (URI, Shadowrocket, Surfboard, Stash, Clash, Meta, sing-box),
+loopback HTTP filtering/denial tests and native Smarty rendering passed. Live
+admin settings rendering, real auth/CSRF/validation and invalid-token denial
+passed. No production profile/group/server selection was changed; the owner
+must configure the new Settings → لینک‌های اتصال card. No migrations.
+Backup: storage/patch/backup-20261028-193347-subprofiles. Installed metadata and
+rollback pointer updated. Publication follow-up: this release includes the
+complete source, manifest and version for the updater repository. AGENTS.md now
+requires publication plus matching live installed/latest status before any
+future release is reported complete. See SUBSCRIPTION_PROFILES.md.
+
 Living document. **Update it after every change**, alongside the release it
 describes.
 

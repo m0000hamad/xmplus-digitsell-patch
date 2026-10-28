@@ -15,6 +15,7 @@ templates and the localization files — plus one standalone PHP file under
 | Area | What changed |
 |---|---|
 | Dashboard | Usage chart rebuilt on ApexCharts with day/week/month/year ranges, per-server split and upload/download/total; subscription card, balance and IP tiles redesigned; apps card rewritten as a guided flow |
+| Subscription links | Two links with independent subscriber-group/server selections, editable titles and descriptions, and scoped copy/import/refresh URLs; see [SUBSCRIPTION_PROFILES.md](SUBSCRIPTION_PROFILES.md) |
 | Servers page | QR and copy are real buttons instead of hidden click targets; per-protocol colours; config link shown as text with its own copy button |
 | Tickets | Multi-paragraph messages survive, links are clickable, Telegram-style sides, sticker support, staff signature; stored XSS in ticket bodies closed |
 | Affiliate | Split into an invite tab and a commission tab; per-referral earnings; withdrawal form with card and IBAN; written cash-out rules |
@@ -98,6 +99,10 @@ the repository's write access tight, and if it is public, remember that its
 contents are readable by anyone.
 
 ## Releasing a new version
+
+Follow the mandatory publication and live version checks in [AGENTS.md](AGENTS.md).
+A direct server installation alone does not complete a release.
+
 
 ```bash
 # edit files under patch/

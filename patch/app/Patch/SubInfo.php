@@ -166,7 +166,7 @@ function subinfoMoney(float $rial): string
 function subinfoQuery(): string
 {
     $query = $_GET;
-    unset($query['do'], $query['t']);
+    unset($query['do'], $query['t'], $query['profile']);
 
     return $query ? '?' . http_build_query($query) : '';
 }
@@ -201,6 +201,7 @@ function subinfoOrigin(string $token): string
 /** Go back to the panel's own public link: never leave the app with nothing. */
 function subinfoBail(string $token): void
 {
+    if (isset($_GET['profile'])) { http_response_code(403); exit; }
     header_remove('Content-Type');
     header('Location: https://' . subinfoHost() . '/link/' . $token . subinfoQuery(), true, 302);
     exit;
@@ -226,7 +227,7 @@ function subinfoFetch(string $url): ?array
             CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_TIMEOUT => 15,
             CURLOPT_USERAGENT => (string) ($_SERVER['HTTP_USER_AGENT'] ?? 'xmplus-subinfo'),
-            CURLOPT_HTTPHEADER => ['X-Sub-Raw: 1', 'Accept: */*'],
+            CURLOPT_HTTPHEADER => array_merge(['X-Sub-Raw: 1', 'Accept: */*'], $GLOBALS['subProfileHeader'] ?? []),
             CURLOPT_HEADERFUNCTION => static function ($curl, string $line) use (&$headers): int {
                 $parts = explode(':', $line, 2);
                 if (count($parts) === 2) {
@@ -262,7 +263,7 @@ function subinfoFetch(string $url): ?array
  */
 function subinfoUser(string $token, string $plain): ?array
 {
-    $fields = 'id, transfer_enable, u, d, expire_in, plan';
+    $fields = 'id, transfer_enable, u, d, expire_in, plan, server_group';
 
     $text = $plain;
     // vmess:// carries its settings as base64 JSON
@@ -412,7 +413,23 @@ if ($config !== null && !preg_match('~^[A-Za-z0-9_-]{1,32}$~', (string) $config)
     subinfoBail($subToken);
 }
 
+$subProfile = null;
+if (isset($_GET['profile'])) {
+    require_once ROOT . '/app/Patch/SubscriptionProfiles.php';
+    $slot = (string) $_GET['profile'];
+    $profiles = SubscriptionProfiles::read((string) setting('sub_profiles', '[]'));
+    if (!in_array($slot, ['1', '2'], true)) subinfoBail($subToken);
+    $subProfile = $profiles[(int) $slot - 1] ?? [];
+    $q = db()->prepare('SELECT id,server_group FROM user WHERE token = ? LIMIT 2');
+    $q->execute([$subToken]);
+    $accounts = $q->fetchAll();
+    $secret = (string) setting('sub_profiles_secret', '');
+    if (count($accounts) !== 1 || !SubscriptionProfiles::allowed($subProfile, $accounts[0]) || $secret === '') subinfoBail($subToken);
+    $until = (string) (time() + 60);
+    $GLOBALS['subProfileHeader'] = ['X-Digitsell-Profile: ' . $slot . ':' . $until . ':' . hash_hmac('sha256', $slot . ':' . $until . ':' . $subToken, $secret)];
+}
 $upstream = subinfoFetch(subinfoOrigin($subToken));
+if ($subProfile !== null && ($upstream['headers']['x-digitsell-profile-applied'] ?? '') !== (string) $_GET['profile']) subinfoBail($subToken);
 
 if ($upstream === null) {
     subinfoBail($subToken);
@@ -422,6 +439,14 @@ $raw = trim($upstream['body']);
 $decoded = base64_decode(strtr((string) preg_replace('~\s+~', '', $raw), '-_', '+/'), true);
 $isBase64 = $decoded !== false && strpos($decoded, '://') !== false;
 $plain = $isBase64 ? $decoded : $raw;
+if ($subProfile !== null) {
+    $profileBase = 'https://' . subinfoHost() . '/xmplus-patch.php?do=sub&t=' . $subToken . '&profile=' . $_GET['profile'];
+    $plain = SubscriptionProfiles::rewriteUrls($plain, $subToken, $profileBase);
+    $upstream['body'] = $isBase64 ? base64_encode($plain) : $plain;
+    foreach ($upstream['headers'] as &$value) $value = SubscriptionProfiles::rewriteUrls($value, $subToken, $profileBase);
+    unset($value);
+}
+
 
 // only URI lists get rows; Clash YAML and sing-box JSON pass through untouched
 $isList = (bool) preg_match('~^[a-z0-9+.-]+://~im', $plain)
@@ -449,6 +474,8 @@ foreach ($upstream['headers'] as $name => $value) {
         header($name . ': ' . $value);
     }
 }
+
+if ($subProfile !== null) header('profile-title: base64:' . base64_encode($subProfile['name']));
 
 // direct routes (Iran, chosen sites) for Happ; the other apps ignore the header
 if (preg_match('~\bhapp\b~i', (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''))) {

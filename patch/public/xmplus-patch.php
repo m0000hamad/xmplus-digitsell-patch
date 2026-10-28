@@ -421,6 +421,11 @@ if (strpos($action, 'invoice.') === 0) {
 
 // Subscription link with the plan and wallet status on top, for the client
 // apps. No session: the token in the link is the credential, as on /link/.
+if (strpos($action, 'subprofiles.') === 0) {
+    require ROOT . '/app/Patch/SubscriptionProfilesEndpoint.php';
+    exit;
+}
+
 if ($action === 'sub') {
     require ROOT . '/app/Patch/SubInfo.php';
     exit;

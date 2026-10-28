@@ -349,7 +349,8 @@ html[data-hs-theme="dark"] .app-howto-item {
 								{* the link with the plan / wallet status on top (app/Patch/SubInfo.php), once switched on *}
 								{$subLink = $SubUrl|cat:$contentTab->link}
 								{if isset($Config['sub_info_enabled']) && $Config['sub_info_enabled'] == 1 && preg_match('~/link/[A-Za-z0-9_-]+/?$~', $SubUrl)}
-									{$subTail = $contentTab->link|replace:'?':'&'}
+									{$subTail = $contentTab->link|regex_replace:'~^[?&]~':''}
+                                    {$subTail = '&'|cat:$subTail}
 									{$subLink = $SubUrl|regex_replace:'~/link/([A-Za-z0-9_-]+)/?$~':'/xmplus-patch.php?do=sub&t=$1'|cat:$subTail}
 								{/if}
 
@@ -361,6 +362,18 @@ html[data-hs-theme="dark"] .app-howto-item {
 								{elseif strpos($appName, 'wireguard') !== false || strpos($appName, 'amnezia') !== false}
 									{include file='user/dashboard/wgapp.tpl' app=$contentTab}
 								{else}
+                                {$legacySubLink = $subLink}
+                                {$linkProfiles = $user->subscriptionProfiles()}
+                                {if !$linkProfiles}<p class="text-muted">لینک اتصالی برای گروه اشتراک شما فعال نیست.</p>{/if}
+                                {foreach $linkProfiles as $linkProfile}
+                                {$subLink = $legacySubLink}
+                                {if $linkProfile.id > 0}
+                                    {$subTail = $contentTab->link|regex_replace:'~^[?&]~':''}
+                                    {$subTail = '&'|cat:$subTail}
+                                    {$subLink = $SubUrl|regex_replace:'~/link/([A-Za-z0-9_-]+)/?$~':'/xmplus-patch.php?do=sub&t=$1'|cat:'&profile='|cat:$linkProfile.id|cat:$subTail}
+                                {/if}
+                                {if $linkProfile.name}<h5 class="mt-3">{$linkProfile.name|escape}</h5>{/if}
+                                {if $linkProfile.description}<p class="text-muted" style="white-space:pre-line">{$linkProfile.description|escape}</p>{/if}
 								<div class="app-step">
 									<div class="app-step-head">
 										<span class="app-step-num">3</span>
@@ -380,16 +393,16 @@ html[data-hs-theme="dark"] .app-howto-item {
 
 										<div class="app-actions">
 											{if strpos($contentTab->client, "Clash") !== false && strpos($contentTab->client, "Open") === false}
-												<a class="app-btn app-btn-import" href="clash://install-config?url={urlencode($SubUrl)}{urlencode($contentTab->link)}">⚡ {$translate->get('ExportLink')}</a>
+												<a class="app-btn app-btn-import" href="clash://install-config?url={urlencode($subLink)}">⚡ {$translate->get('ExportLink')}</a>
 											{/if}
 											{if strpos($contentTab->client, "Shadowrocket") !== false}
 												<a class="app-btn app-btn-import" onclick=AddSub("{$subLink}","shadowrocket://add/sub://")>⚡ {$translate->get('ExportLink')}</a>
 											{/if}
 											{if strpos($contentTab->client, "Surfboard") !== false}
-												<a class="app-btn app-btn-import" href="surfboard:///install-config?url={urlencode($SubUrl)}{urlencode($contentTab->link)}">⚡ {$translate->get('ExportLink')}</a>
+												<a class="app-btn app-btn-import" href="surfboard:///install-config?url={urlencode($subLink)}">⚡ {$translate->get('ExportLink')}</a>
 											{/if}
 											{if strpos($contentTab->client, "Stash") !== false}
-												<a class="app-btn app-btn-import" href="stash://install-config?url={urlencode($SubUrl)}{urlencode($contentTab->link)}">⚡ {$translate->get('ExportLink')}</a>
+												<a class="app-btn app-btn-import" href="stash://install-config?url={urlencode($subLink)}">⚡ {$translate->get('ExportLink')}</a>
 											{/if}
 
 											<a class="app-btn app-btn-get" href="{$contentTab->url}" target="_blank" rel="noopener">⬇️ {$translate->get('Download')} {$contentTab->client}</a>
@@ -406,7 +419,8 @@ html[data-hs-theme="dark"] .app-howto-item {
 										</div>
 									</div>
 								</div>
-								{/if}
+								{/foreach}
+{/if}
 
 							</div>
 						{/if}

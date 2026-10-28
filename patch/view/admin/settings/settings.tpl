@@ -114,7 +114,8 @@
                      <i class="fa-brands fa-telegram nav-icon"></i> {$translate->get('PromoChannelTitle')}
                   </a>
                 </li>
-				<li class="nav-item">
+				<li class="nav-item"><a class="nav-link" href="#SubscriptionProfiles" data-scroll="SubscriptionProfiles"><i class="fa-solid fa-link nav-icon"></i> لینک‌های اتصال</a></li>
+                <li class="nav-item">
                   <a class="nav-link" href="#PaygSettings"  data-scroll="PaygSettings">
                      <i class="fa-solid fa-wallet nav-icon"></i> {$translate->get('PaygAdmTitle')}
                   </a>
@@ -151,6 +152,7 @@
 			{include file='admin/settings/patchsettings.tpl'}
 			{include file='admin/settings/promochannel.tpl'}
 			{include file='admin/settings/paygsettings.tpl'}
+            {include file='admin/settings/subprofiles.tpl'}
 			{include file='admin/settings/reservesettings.tpl'}
 			{include file='admin/settings/c2csettings.tpl'}
           </div>
