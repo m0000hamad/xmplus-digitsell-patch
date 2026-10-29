@@ -9,8 +9,14 @@ restart briefly reconnects all users in that Xray process; the owner explicitly
 approved activation and one-time Xray cleanup on 2026-10-29. Startup now restores
 this node's own online-IP share before admission, preventing full-quota users
 being evicted merely by an agent restart. All 24 node tests pass. Owner will
-update the other machines personally; Turkey deployment and repository
-publication are in progress. See ONLINE_PRESENCE.md.
+update the other machines personally. Published agent source: 87226aa. Turkey
+is running agent 1.3.2 with healthy S3/S5 services; the approved one-time core
+restart completed, and credential-revocation restarts were observed in the live
+log. The full native panel updater applied 1.38.2 from published source, backup
+storage/patch/backup-20261030-003519 (server-generated name). Authenticated status
+confirms installed=latest=1.38.2, uptodate=true; GET /login returns 200. Other
+machines were not restarted by this chat after the owner elected to handle them.
+See ONLINE_PRESENCE.md.
 
 2026-10-29 online-presence hotfix: native ingestion now scopes membership to
 user + IP + server instead of letting a heartbeat move a shared-IP row between
@@ -21,7 +27,7 @@ and never refreshes cached users after a stats API failure. See
 
 XMPlus and XMPlusNew subscription APIs now return the calculated active global IP count instead of constant zero. This restores the existing node-agent contract for remaining device capacity across nodes. Existing expiry, traffic, group, verification and over-limit admission rules are unchanged. Dashboard continues reporting distinct observed IPs; IPs are not physical device identities. Polling and node enforcement still apply, so this is not an atomic connection reservation system.
 
-Regression: tools/ip-limit-api-test.php passes for both shipped controllers (empty, partially occupied, full, over-limit and unlimited accounts, plus count-sensitive response caching). The online snapshot PHP suite and all 18 Python tests pass. The online-presence hotfix is deployed on the panel and Turkey agent; its real disconnect test passed. The full 1.38.2 package also includes the previously prepared global IP count fix; that admission-count change has not been separately deployed in this session. Publication authorized by the owner on 2026-10-29.
+Regression: tools/ip-limit-api-test.php passes for both shipped controllers (empty, partially occupied, full, over-limit and unlimited accounts, plus count-sensitive response caching). The online snapshot PHP suite and all 24 Python tests pass. The online-presence hotfix is deployed on the panel and Turkey agent; its real disconnect test passed. The full 1.38.2 package, including global IP counts, has now been installed through the native updater and verified against the published version. Publication authorized by the owner on 2026-10-29.
 
 # Handoff â€” Digitsell XMPlus panel patch
 

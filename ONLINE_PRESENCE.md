@@ -84,3 +84,9 @@ The owner elected to update the remaining node machines personally. Deployment
 to Turkey and publication are tracked in HANDOFF.md; do not claim other machines
 were restarted by this chat. Other nodes can run `dxray update` followed by
 `systemctl restart digitsell-xray` for the approved one-time cleanup.
+
+Agent source was published at 87226aa and installed on Turkey from that immutable
+URL after SHA-256 verification. Backup: /root/xray-agent.before-1.3.2-20261029.py.
+Both node services are active and the live status reports agent 1.3.2. The full
+panel package was installed through its authenticated native updater, with
+installed/latest both 1.38.2 and uptodate=true. GET /login returned HTTP 200.
