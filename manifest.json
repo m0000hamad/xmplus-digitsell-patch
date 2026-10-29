@@ -1,7 +1,7 @@
 {
-    "version": "1.38.1",
-    "released": "2026-10-28",
-    "notes": "Fix subscription card layout: show each title and description inside its link card, keep both links adjacent, and show app download/help instructions once below both links.",
+    "version": "1.38.2",
+    "released": "2026-10-29",
+    "notes": "Forward actual global online IP counts to XMPlus and XMPlusNew node APIs so nodes can apply shared account capacity. Preserve existing account eligibility and over-limit admission. Keep online membership separate per server and provide authoritative per-node snapshots, including disconnects, for Xray agent 1.3.1.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -37,6 +37,8 @@
     ],
     "files": {
         "app/Console/Commands/TaskCommand.php": "36a67044267f9fd4669dc936f697d63ad93c7c70da96cb18bf1bc323fafb4d84",
+        "app/Http/Controllers/Api/XMPlus/UserController.php": "4fb8dd6da9ce90cf3f6cad99a937a1d698e5f7db78a3952c18c384967e0ff72b",
+        "app/Http/Controllers/Api/XMPlusNew/UserController.php": "2834e148e213da5b8cb7b3bd70c436c951753abe5222255bb74f461c5ba76fab",
         "app/Http/Models/CommissionLog.php": "b5ff0ba69d77668113550e5887051c154bbbf87e077116cc63ebbcd08cf46e50",
         "app/Http/Models/Order.php": "a560d42000ecf0ded7906972a5de4ca548b29063135e9b0ff4afe35d74fb0849",
         "app/Http/Models/Package.php": "6339ce53b6cb39ece385751c0d47bc41d0be5c0f901175981306b789b2d2c70c",
@@ -63,8 +65,9 @@
         "app/Patch/CheckoutFundsEndpoint.php": "f35fcf0c936219a1d33b5e1bad52da1812c324c66dcfa6c2e1b4453f595d73f5",
         "app/Patch/Dashboard.php": "f98274de6fb67b1dcc13a876d0d091bba2fc2652f04d460d93d97c79872a9df8",
         "app/Patch/Invoice.php": "ef4c1a35cbe1f314652fd812daa30275b4e010db8226d7980a98254f0aba1c73",
-        "app/Patch/NodeApi.php": "b6bc5fd0f9ada2371fe00af41c9a286f8a24ca52c4934e010420e9c4fd1d2ea0",
+        "app/Patch/NodeApi.php": "cabcf68dddce8e58505df8574d6c6d15fa594e595eb286f72361eb2c19c59d0c",
         "app/Patch/NodeKey.php": "ab67bacaa6f708d2d29ffef76f1c1c06b5fbd02668a36cf422ce95f983bf281f",
+        "app/Patch/NodeOnline.php": "f4901949430d6330ec68e5d7e984b591729d17343800bc3c0652f78ae96703ef",
         "app/Patch/Ovpn.php": "4d2ff76ec8db15ca6485713762112af7933e06023d089ef883ccc7a2d3005c90",
         "app/Patch/Payg.php": "ff81072f4a0729770f5ad34e4918a8c50164cca7bcc72b19a41daf5c5d3e4246",
         "app/Patch/Promo.php": "e18c9634fc17eb13b173c20c7d8deec5db7dba3c8825e48c2c38c82192d30dc7",

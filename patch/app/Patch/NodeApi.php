@@ -91,6 +91,21 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 switch ($nodeApiAction) {
+    case 'node.online':
+        patchRequireNodeKey();
+        $body = json_decode((string) file_get_contents('php://input'), true);
+        if (!is_array($body) || !isset($body['node_id'], $body['data'])
+            || !is_scalar($body['node_id']) || !ctype_digit((string) $body['node_id'])
+            || !is_array($body['data'])) {
+            fail('invalid online snapshot');
+        }
+        require_once __DIR__ . '/NodeOnline.php';
+        try {
+            $count = nodeOnlineSnapshot(db(), (int) $body['node_id'], $body['data'], time());
+        } catch (InvalidArgumentException $error) {
+            fail($error->getMessage());
+        }
+        done(['online_ips' => $count]);
     case 'node.list':
         nodeApiList();
 }

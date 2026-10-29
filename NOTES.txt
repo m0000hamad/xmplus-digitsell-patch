@@ -1,1 +1,1 @@
-Fix admin user balance save: explicitly allowlist native profile fields so request keys, wallet metadata and CSRF tokens cannot become user columns. Preserve the account token, keep profile and balance writes atomic, and test the complete browser form payload.
+Forward actual global online IP counts to XMPlus and XMPlusNew node APIs so nodes can apply shared account capacity. Preserve existing account eligibility and over-limit admission. Keep online membership separate per server and provide authoritative per-node snapshots, including disconnects, for Xray agent 1.3.1.

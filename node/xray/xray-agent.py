@@ -63,7 +63,7 @@ import urllib.parse
 import urllib.request
 import uuid as uuidlib
 
-VERSION = "1.3.0"
+VERSION = "1.3.1"
 
 ETC = "/etc/digitsell-xray"
 LIB = "/usr/local/lib/digitsell-xray"
@@ -1273,6 +1273,7 @@ class Agent:
         self.subs = {}          # node id -> {email: subscription row} (relay needs the row)
         self.limits = {}        # email -> device limit on this node, 0 = none
         self.last_online = {}   # node id -> {uid: addresses reported last time}
+        self.online_snapshot = {}  # node id -> supports authoritative per-node snapshots
         self.ipstate = {}       # email -> {ip: {"first": t, "seen": t, "ok": bool}}
         self.blocked = {}       # email -> [ip] refused for the device limit
         self.online = {}        # email -> [ip] let in, from the last look
@@ -2235,7 +2236,7 @@ class Agent:
             online = self.read_online()
         except (XrayError, ValueError) as error:
             log("could not read online addresses from Xray: %s" % error)
-            return
+            return False
         now = time.time()
         use_limit = as_bool(self.conf.get("ip_limit"))
         blocked, allowed_now = {}, {}
@@ -2273,9 +2274,15 @@ class Agent:
         self.blocked = blocked
         self.online = allowed_now
         self.push_rules()
+        return True
 
     def report_online(self):
-        self.enforce_limits()
+        # An unavailable observation is not a new heartbeat. Reposting the
+        # cached list here would keep disconnected users alive indefinitely
+        # during a stats API outage. Preserve enforcement state, but let the
+        # panel's last successful observation expire normally.
+        if not self.enforce_limits():
+            return
         per_node = {}
         for email, ips in self.online.items():
             node_id, uid = email_node_uid(email)
@@ -2289,11 +2296,22 @@ class Agent:
             status = self.node_status(node_id)
             status["online_accounts"] = len(counts)
             status["online_ips"] = len(rows)
-            if not rows:
-                self.last_online[node_id] = {}
-                continue
             try:
-                self.panels[node_id].post("/api/onlineip/%d" % node_id, rows)
+                snapshot = self.online_snapshot.get(node_id)
+                if snapshot is not False:
+                    try:
+                        self.panels[node_id].patch_call('node.online', {'node_id': node_id, 'data': rows})
+                        self.online_snapshot[node_id] = True
+                    except PanelError as error:
+                        # Only a panel without this action uses the legacy API.
+                        # An outage on a capable panel must not resurrect old rows.
+                        if snapshot is None and ('unknown node action' in str(error) or 'HTTP 404' in str(error)):
+                            self.online_snapshot[node_id] = False
+                        else:
+                            raise
+                if self.online_snapshot.get(node_id) is False:
+                    if rows:
+                        self.panels[node_id].post("/api/onlineip/%d" % node_id, rows)
                 self.last_online[node_id] = counts
             except PanelError as error:
                 log("node %d: online addresses not reported: %s" % (node_id, error))
@@ -2350,6 +2368,7 @@ class Agent:
         now = time.time()
         next_sync = now + self.conf["interval"]
         next_limit = now + self.conf["limit_interval"]
+        next_online = now  # presence is independent of the slower panel/user sync
         next_cert = now + CERT_CHECK
         while self.running:
             now = time.time()
@@ -2358,13 +2377,16 @@ class Agent:
                 self.guard("exit locations", self.torexit_sync)
                 self.guard("sync", self.sync)
                 self.guard("traffic report", self.report_traffic)
-                self.guard("online report", self.report_online)
                 self.write_status()
                 next_limit = time.time() + self.conf["limit_interval"]
             elif now >= next_limit:
                 next_limit = now + self.conf["limit_interval"]
                 if any(self.limits.values()):
                     self.guard("device limit", self.enforce_limits)
+            if now >= next_online:
+                next_online = time.time() + min(15, self.conf['limit_interval'])
+                self.guard("online report", self.report_online)
+                self.write_status()
             if now >= next_cert:
                 # a certificate not had yet is retried by sync; this renews the ones in place
                 next_cert = now + CERT_CHECK

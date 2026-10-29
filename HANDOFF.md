@@ -1,3 +1,16 @@
+## 1.38.2 — online presence and global IP count propagation
+
+2026-10-29 online-presence hotfix: native ingestion now scopes membership to
+user + IP + server instead of letting a heartbeat move a shared-IP row between
+countries. Authenticated node.online snapshots clear only the reporting node,
+including on empty reports. Agent 1.3.1 reports presence independently at 15 s
+and never refreshes cached users after a stats API failure. See
+[ONLINE_PRESENCE.md](ONLINE_PRESENCE.md) for deployment, rollback and tests.
+
+XMPlus and XMPlusNew subscription APIs now return the calculated active global IP count instead of constant zero. This restores the existing node-agent contract for remaining device capacity across nodes. Existing expiry, traffic, group, verification and over-limit admission rules are unchanged. Dashboard continues reporting distinct observed IPs; IPs are not physical device identities. Polling and node enforcement still apply, so this is not an atomic connection reservation system.
+
+Regression: tools/ip-limit-api-test.php passes for both shipped controllers (empty, partially occupied, full, over-limit and unlimited accounts, plus count-sensitive response caching). The online snapshot PHP suite and all 18 Python tests pass. The online-presence hotfix is deployed on the panel and Turkey agent; its real disconnect test passed. The full 1.38.2 package also includes the previously prepared global IP count fix; that admission-count change has not been separately deployed in this session. Publication authorized by the owner on 2026-10-29.
+
 # Handoff â€” Digitsell XMPlus panel patch
 
 Installed and published 2026-10-28: **1.38.1** layout follow-up: dashboard subscription titles and multiline
