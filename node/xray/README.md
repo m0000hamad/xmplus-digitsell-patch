@@ -10,7 +10,7 @@ change; servers are still defined and edited in the panel and this node pulls th
 |---|---|---|
 | Xray core | XMPlus fork, updated when they update it | official; `digitsell-xray update` always gets the newest |
 | XHTTP (`mode` and extras) | `mode` is ignored (bug) | complete; any xhttp key from the panel's network settings |
-| Add / remove users | no restart | no restart (Xray API) |
+| Add / remove users | no restart | no restart (Xray API); UUID/password reset reconnects sessions |
 | Updating the node | all connections drop | agent is separate from Xray; nobody is disconnected |
 | Panel briefly down | traffic of that period is lost | traffic stays on disk and is reported later |
 | Reboot while panel is down | node does not come up | comes up with the last saved settings and users |
@@ -383,6 +383,14 @@ The agent calls `xmplus-patch.php?do=torexit.sync` with the panel's API key (in 
 header) every minute. The panel never connects to the servers and stores no server password.
 
 ## How it works
+
+**Agent 1.3.2:** resetting a UUID/password restarts Xray once for the changed
+batch after collecting pending usage. This closes already authenticated sessions
+that the account-removal API cannot terminate. All users of that Xray process
+briefly reconnect, including other inbounds. Normal additions, IP-limit removals
+and noncredential edits keep using the hot-update API. Restarting only the agent
+also restores this node's existing online-IP share before admission, so full-quota
+users are not mistaken for capacity consumed on other servers.
 
 - **Two services:** `digitsell-xray` (the official Xray) and `digitsell-xray-agent` (Python,
   standard library only). Restarting or updating the agent disconnects nobody.

@@ -63,7 +63,7 @@ import urllib.parse
 import urllib.request
 import uuid as uuidlib
 
-VERSION = "1.3.1"
+VERSION = "1.3.2"
 
 ETC = "/etc/digitsell-xray"
 LIB = "/usr/local/lib/digitsell-xray"
@@ -2026,14 +2026,32 @@ class Agent:
             log("Xray did not start - see: journalctl -u %s -n 50" % self.conf["service"])
 
     def apply_users(self, new_clients, sub_rows):
-        """Accounts added / removed / changed, through Xray's API - no restart."""
+        """Hot-update accounts; restart once when a credential was revoked.
+
+        Xray's RemoveUser API rejects future authentication but does not end
+        previously authenticated TCP sessions. Keeping those alive after a UUID
+        reset also keeps their old IP slots occupied indefinitely.
+        """
         changed = False
         failed = False
+        credentials_changed = set()
         for node_id, spec in self.specs.items():
             old = self.clients.get(node_id, {})
             new = new_clients.get(node_id, {})
+            # Compare the fetched subscription too: a full IP quota can keep
+            # the replacement credential out of new_clients while old sockets
+            # still need to be revoked.
+            previous_rows = self.subs.get(node_id, {})
+            next_rows = sub_rows.get(node_id, {})
+            for email in previous_rows.keys() & next_rows.keys():
+                if any(as_str(previous_rows[email].get(key)) != as_str(next_rows[email].get(key))
+                       for key in ('uuid', 'passwd')):
+                    credentials_changed.add(email)
             removed = [e for e in old if e not in new or old[e] != new[e]]
             added = [e for e in new if e not in old or old[e] != new[e]]
+            for email in old.keys() & new.keys():
+                if any(old[email].get(key) != new[email].get(key) for key in ('id', 'password')):
+                    credentials_changed.add(email)
             if not removed and not added:
                 continue
             changed = True
@@ -2053,13 +2071,17 @@ class Agent:
                 log("node %d: Xray's API failed while changing accounts: %s" % (node_id, error))
         self.clients = {n: new_clients.get(n, {}) for n in self.specs}
         self.subs = sub_rows
-        if changed:
+        if changed or credentials_changed:
             self.write_config(self.build_config())
             self.push_rules()
-        if failed:
+        if credentials_changed or failed:
             # the config file holds every account; a restart puts Xray in line with it
-            if time.time() - self.last_restart >= RESTART_BACKOFF:
-                log("restarting Xray so it runs the accounts in its config file")
+            # Credential revocation is immediate, even during the API-error backoff.
+            if credentials_changed or time.time() - self.last_restart >= RESTART_BACKOFF:
+                if credentials_changed:
+                    log("restarting Xray to close sessions after %d credential change(s)" % len(credentials_changed))
+                else:
+                    log("restarting Xray so it runs the accounts in its config file")
                 self.collect_traffic()
                 self.xray_restart()
 
@@ -2231,6 +2253,21 @@ class Agent:
                 online[email] = ips
         return online
 
+    def restore_online_capacity(self):
+        """Credit this running core's own IPs before the first admission sync.
+
+        Restarting only the agent must not treat its existing users as capacity
+        used entirely on other nodes and remove their authentication records.
+        """
+        online = self.read_online()
+        per_node = {node_id: {} for node_id in self.panels}
+        for email, ips in online.items():
+            node_id, uid = email_node_uid(email)
+            if node_id in per_node and uid:
+                per_node[node_id].setdefault(uid, set()).update(ips)
+        self.last_online = {node_id: {uid: len(ips) for uid, ips in users.items()}
+                            for node_id, users in per_node.items()}
+
     def enforce_limits(self):
         try:
             online = self.read_online()
@@ -2363,6 +2400,7 @@ class Agent:
         self.torexit.start()
         self.guard("exit locations", self.torexit_sync)
         # restore what the last run reported, so the device limit starts right
+        self.guard("restore online capacity", self.restore_online_capacity)
         self.guard("start", self.sync, True)
         self.write_status()
         now = time.time()

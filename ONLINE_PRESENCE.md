@@ -53,3 +53,34 @@ The owner authorized committing and pushing the prepared update on 2026-10-29.
 The package preserves that fix, its regression test and the presence fix together;
 both native API suites pass. Publishing this package does not itself install the
 full panel update or change the other nodes' agent binaries.
+
+## Agent 1.3.2: credential revocation
+
+Follow-up evidence found continuously refreshed online rows backed by genuinely
+established TCP sockets long after the owner reset subscription credentials.
+Removing/replacing an account through Xray's HandlerService changes subsequent
+authentication; it does not close existing authenticated sessions. Their old IPs
+can therefore keep occupying capacity even though the new link is being used.
+
+Immediate recovery closed only the existing TCP tuples for the two reported
+accounts after verifying that their source IPs were not shared with other accounts
+on that inbound. Both accounts then had zero online IPs in Xray. Other users and
+the Xray process were left running. This operational recovery did not change
+customer credentials, quotas or limits.
+
+Agent 1.3.2 detects UUID/password changes both in installed clients and in raw
+subscription rows (so full-quota admission cannot hide a credential reset).
+It saves the new config, collects pending traffic and restarts Xray once per sync
+batch to revoke established sessions. Such a restart briefly reconnects **all
+users on the same Xray process**, including other inbounds. Ordinary additions,
+IP-limit removals and noncredential client changes retain the hot-update path.
+The owner explicitly approved this behavior change and a one-time Xray restart
+on 2026-10-29. The agent also restores its own existing online-IP capacity before
+the first admission sync, avoiding account eviction merely from restarting the
+agent. All 24 Linux node tests pass, including credential changes masked by quota,
+usage collection before restart and normal updates without restart.
+
+The owner elected to update the remaining node machines personally. Deployment
+to Turkey and publication are tracked in HANDOFF.md; do not claim other machines
+were restarted by this chat. Other nodes can run `dxray update` followed by
+`systemctl restart digitsell-xray` for the approved one-time cleanup.

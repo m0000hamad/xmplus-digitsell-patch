@@ -1,5 +1,17 @@
 ## 1.38.2 — online presence and global IP count propagation
 
+Approved follow-up (agent 1.3.2): old authenticated
+TCP sessions survive HandlerService account replacement. Targeted recovery for
+the two reported accounts cleared their old sessions without restarting other
+users. Agent fix detects UUID/password rotation even when IP admission masks the
+new client and collects usage before one Xray restart per changed batch. The
+restart briefly reconnects all users in that Xray process; the owner explicitly
+approved activation and one-time Xray cleanup on 2026-10-29. Startup now restores
+this node's own online-IP share before admission, preventing full-quota users
+being evicted merely by an agent restart. All 24 node tests pass. Owner will
+update the other machines personally; Turkey deployment and repository
+publication are in progress. See ONLINE_PRESENCE.md.
+
 2026-10-29 online-presence hotfix: native ingestion now scopes membership to
 user + IP + server instead of letting a heartbeat move a shared-IP row between
 countries. Authenticated node.online snapshots clear only the reporting node,
