@@ -25,7 +25,14 @@ no recent agent/core restart. TLS handshake timeouts were also observed but
 cannot be attributed to this quota regression or a particular customer.
 Regression: both API suites cover stable full-quota admission, intact per-node
 limits, existing over-limit exclusion, unlimited accounts and stable caching.
-Publication, install and live verification pending.
+Published source: 772a1e94275bfe6ed25ab7e7b258575a0dbd9c40, verified against
+origin/main and the immutable raw manifest. Two controller files installed
+atomically after checking their prior hashes; backup:
+storage/patch/backup-20261030-131142-subprofiles. Native PHP regression passed
+against installed files. Authenticated updater reports installed=latest=1.38.3;
+profile settings unchanged. From the Turkey machine, both live subscriptions
+APIs returned ipcount=0 for all 339 accounts, including all reported accounts.
+No node/core restart was performed. End-user latency recovery remains unconfirmed.
 
 ## 1.38.2 — online presence and global IP count propagation
 
