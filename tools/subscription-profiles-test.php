@@ -37,9 +37,11 @@ check(SubscriptionProfiles::rewriteUrls('https://native.example/link/test_token_
 $_SERVER['REQUEST_URI'] = '/link/test_token?config=1';
 $until = (string) (time() + 60);
 $settings = ['sub_profiles_secret' => 'test-secret', 'sub_profiles' => json_encode([$profile, ['enabled' => true, 'groups' => [2], 'servers' => [12]]])];
+$settings['server_profile_domains_11'] = '{"1":"first.example.com","2":"second.example.com"}';
 $_SERVER['HTTP_X_DIGITSELL_PROFILE'] = '1:' . $until . ':forged';
 SubscriptionProfiles::scope($settings);
 check(!\App\Http\Models\Server::$scopes, 'forged header cannot change native queries');
+check(SubscriptionProfiles::address(11, 'original.example.com') === 'original.example.com', 'forged request cannot override an address');
 foreach ([time() - 1, time() + 120] as $badTime) {
     $_SERVER['HTTP_X_DIGITSELL_PROFILE'] = '1:' . $badTime . ':' . hash_hmac('sha256', '1:' . $badTime . ':test_token', 'test-secret');
     SubscriptionProfiles::scope($settings);
@@ -51,6 +53,8 @@ check(!\App\Http\Models\Server::$scopes, 'signature bound to subscription creden
 $_SERVER['HTTP_X_DIGITSELL_PROFILE'] = '1:' . $until . ':' . hash_hmac('sha256', '1:' . $until . ':test_token', 'test-secret');
 SubscriptionProfiles::scope($settings);
 check(count(\App\Http\Models\Server::$scopes) === 1, 'signed request installs one native scope');
+check(SubscriptionProfiles::address(11, 'original.example.com') === 'first.example.com', 'verified profile selects its own domain');
+check(SubscriptionProfiles::address(12, 'original.example.com') === 'original.example.com', 'unmapped server retains original address');
 $query = new class { public $ids; public $wheres = []; public function getQuery() { return $this; } public function whereIn($column, $ids) { $this->ids = [$column, $ids]; }};
 ob_start(); (\App\Http\Models\Server::$scopes['digitsell_subscription_profile'])($query); ob_end_clean();
 check($query->ids === ['servers.id', [11]], 'native query restricted to exact server IDs');

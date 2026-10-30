@@ -4,6 +4,19 @@ declare(strict_types=1);
 /** Two independent presentation profiles; native node entitlements still apply. */
 final class SubscriptionProfiles
 {
+    private static $addresses = [];
+    private static $names = [];
+
+    public static function name(int $serverId, $fallback)
+    {
+        return self::$names[$serverId] ?? $fallback;
+    }
+
+    public static function address(int $serverId, $fallback)
+    {
+        return self::$addresses[$serverId] ?? $fallback;
+    }
+
     public static function allowed(array $profile, array $user): bool
     {
         return !empty($profile['enabled']) && in_array((int) ($user['server_group'] ?? 0), $profile['groups'] ?? [], true);
@@ -56,6 +69,14 @@ final class SubscriptionProfiles
         $profiles = self::read((string) ($settings['sub_profiles'] ?? '[]'));
         $profile = $profiles[(int) $slot - 1] ?? [];
         $ids = array_map('intval', $profile['servers'] ?? []);
+        foreach ($ids as $id) {
+            $domains = json_decode((string) ($settings['server_profile_domains_' . $id] ?? '{}'), true);
+            $domain = is_array($domains) ? ($domains[$slot] ?? '') : '';
+            if (is_string($domain) && $domain !== '') self::$addresses[$id] = $domain;
+            $names = json_decode((string) ($settings['server_profile_names_' . $id] ?? '{}'), true);
+            $name = is_array($names) ? ($names[$slot] ?? '') : '';
+            if (is_string($name) && $name !== '') self::$names[$id] = $name;
+        }
         $dependencies = array_map('intval', \Illuminate\Database\Capsule\Manager::table('servers')
             ->whereIn('id', $ids)->where('relay_type', 2)->pluck('relayid')->all());
         $installed = true;

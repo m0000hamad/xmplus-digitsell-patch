@@ -40,3 +40,34 @@ check(runEndpoint('save',['profiles'=>json_encode($profiles),'token'=>$initial['
 $invalid=$profiles; $invalid[0]['description']=str_repeat('x',4001);
 check(!runEndpoint('save',['profiles'=>json_encode($invalid),'token'=>$initial['token']])['ok'], 'description size validated');
 check(!runEndpoint('save',['profiles'=>'{"a":{},"b":{}}','token'=>$initial['token']])['ok'], 'non-list profile object rejected');
+
+function runDomains(string $verb, array $body): array {
+    $action = 'subprofiles.domains.' . $verb;
+    $_GET = $body; $_POST = $body; $_SERVER['REQUEST_METHOD'] = $verb === 'save' ? 'POST' : 'GET';
+    try { require ROOT . '/app/Patch/SubscriptionProfilesEndpoint.php'; } catch (EndpointResult $e) { return $e->data; }
+    throw new RuntimeException('No response');
+}
+$before = setting('sub_profiles');
+$body = ['server_id' => 11, 'token' => $initial['token'], 'domains' => '{"1":" First.Example.com. ","2":"second.example.com"}'];
+check(runDomains('get', ['server_id' => 11])['ok'], 'server editor loads existing profiles without changing configuration');
+check(!runDomains('save', array_replace($body, ['token' => 'bad']))['ok'], 'domain save requires CSRF');
+check(!runDomains('save', array_replace($body, ['server_id' => 999]))['ok'], 'domain save rejects nonexistent server');
+check(runDomains('save', $body)['ok'], 'two domains saved for same native server');
+check(runDomains('get', ['server_id' => 11])['domains'] == [1 => 'first.example.com', 2 => 'second.example.com'], 'normalized per-link domains round trip');
+$saved = setting('server_profile_domains_11');
+foreach (['https://bad.example.com', 'bad.example.com:443', 'bad.example.com/path', 'bad.example.com?x=1', 'bad_example.com', '<script>'] as $bad) {
+    check(!runDomains('save', array_replace($body, ['domains' => json_encode([1 => 'good.example.com', 2 => $bad])]))['ok']
+        && setting('server_profile_domains_11') === $saved, 'invalid domain rejected atomically: ' . $bad);
+}
+check(!runDomains('save', array_replace($body, ['domains' => '{"1":"only.example.com"}']))['ok'], 'partial mapping rejected');
+check(runDomains('save', array_replace($body, ['server_id' => 12]))['ok'] && setting('server_profile_domains_11') === $saved, 'editing another server preserves first mapping');
+check(runDomains('save', array_replace($body, ['domains' => '{"1":"","2":"second.example.com"}']))['ok'], 'empty domain permits native fallback');
+check(setting('sub_profiles') === $before && setting('sub_profiles_secret') === $secret, 'domain saves preserve link membership and signing secret');
+$named = array_replace($body, ['names' => json_encode([1 => 'آلمان مستقیم', 2 => 'آلمان تانل'])]);
+check(runDomains('save', $named)['ok'], 'per-link names and domains save together');
+check(runDomains('get', ['server_id' => 11])['names'] == [1 => 'آلمان مستقیم', 2 => 'آلمان تانل'], 'independent UTF-8 names round trip');
+$saved = setting('server_profile_domains_11'); $savedNames = setting('server_profile_names_11');
+foreach ([json_encode([1 => 'valid', 2 => str_repeat('x', 241)]), json_encode([1 => 'valid', 2 => "invalid\nname"]), '{"1":"only"}'] as $bad) {
+    check(!runDomains('save', array_replace($named, ['domains' => '{"1":"changed.example.com","2":"changed.example.com"}', 'names' => $bad]))['ok']
+        && setting('server_profile_domains_11') === $saved && setting('server_profile_names_11') === $savedNames, 'invalid name rejects names and domains atomically');
+}

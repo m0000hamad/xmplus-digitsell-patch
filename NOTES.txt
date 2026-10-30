@@ -1,1 +1,1 @@
-Restore native per-node IP capacity: prevent global occupancy from reducing node quotas or blocking existing devices switching nodes. Keep subscription profiles and online-presence fixes.
+Independent server names and connection hostnames for each subscription link, sharing the native connection configuration. Server editors show only the two profile groups with original-value fallback. Preserve node capacity and online-presence behavior.

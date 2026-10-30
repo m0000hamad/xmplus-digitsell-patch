@@ -2,6 +2,51 @@
 declare(strict_types=1);
 require_once ROOT . '/app/Patch/SubscriptionProfiles.php';
 requireAdmin();
+if (in_array($action, ['subprofiles.domains.get', 'subprofiles.domains.save'], true)) {
+    $saving = $action === 'subprofiles.domains.save';
+    if ($saving) {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') fail('POST required', 405);
+        requireToken();
+    }
+    $id = filter_var(($saving ? $_POST : $_GET)['server_id'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if (!$id) fail('سرور معتبر نیست.');
+    $query = db()->prepare('SELECT id FROM servers WHERE id=?');
+    $query->execute([$id]);
+    if (!$query->fetchColumn()) fail('سرور پیدا نشد.', 404);
+    $key = 'server_profile_domains_' . $id;
+    if ($saving) {
+        $domains = json_decode((string) ($_POST['domains'] ?? ''), true);
+        if (!is_array($domains) || count($domains) !== 2 || !array_key_exists(1, $domains) || !array_key_exists(2, $domains)) fail('دامنه‌های هر دو لینک لازم است.');
+        foreach ($domains as &$domain) {
+            if (!is_string($domain)) fail('دامنه معتبر نیست.');
+            $domain = strtolower(rtrim(trim($domain), '.'));
+            if ($domain !== '' && (strlen($domain) > 253 || strpos($domain, '.') === false
+                || !filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME))) fail('فقط نام دامنه وارد کنید؛ بدون https، پورت یا مسیر.');
+        }
+        unset($domain);
+        $names = json_decode((string) ($_POST['names'] ?? '{"1":"","2":""}'), true);
+        if (!is_array($names) || count($names) !== 2 || !array_key_exists(1, $names) || !array_key_exists(2, $names)) fail('نام‌های هر دو لینک لازم است.');
+        foreach ($names as &$name) {
+            if (!is_string($name)) fail('نام سرور معتبر نیست.');
+            $name = trim($name);
+            if (strlen($name) > 240 || !preg_match('//u', $name) || preg_match('/[\x00-\x1F\x7F]/', $name)) fail('نام سرور معتبر نیست یا بیش از حد طولانی است.');
+        }
+        unset($name);
+        db()->beginTransaction();
+        try {
+            putSetting($key, json_encode($domains, JSON_UNESCAPED_UNICODE));
+            putSetting('server_profile_names_' . $id, json_encode($names, JSON_UNESCAPED_UNICODE));
+            db()->commit();
+        } catch (Throwable $e) { db()->rollBack(); fail('ذخیره انجام نشد.'); }
+        done(['saved' => true]);
+    }
+    $domains = json_decode((string) setting($key, '{}'), true);
+    $names = json_decode((string) setting('server_profile_names_' . $id, '{}'), true);
+    done(['domains' => is_array($domains) ? $domains : new stdClass(),
+        'names' => is_array($names) ? $names : new stdClass(),
+        'profiles' => SubscriptionProfiles::read((string) setting('sub_profiles', '[]')),
+        'token' => ($_SESSION['patch_csrf'] ?? ($_SESSION['patch_csrf'] = bin2hex(random_bytes(24))))]);
+}
 if ($action === 'subprofiles.save') {
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') fail('POST required', 405);
     requireToken();

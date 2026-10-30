@@ -1,3 +1,40 @@
+## Prepared 1.38.4 — per-profile server names and hostnames
+
+Local implementation complete; NOT published or installed. Every native server
+edit page gains two hostname inputs labeled by subscription profile and an
+independent save button. The owner subsequently requested independent names:
+each link now has its own server-name and hostname field. Both links may contain
+the same server with different names and addresses, sharing every other
+connection field. Empty legacy overrides use the
+native address. Owner's UI follow-up: hide the native address row, show only
+the two profile hostname inputs, prefill unconfigured values from the existing
+address, and require both visible inputs on save. The hidden native input is
+retained solely for compatibility with the encoded native save handler.
+No production mapping or customer configuration was changed.
+
+Local scope, endpoint, real-model attribute/serializer-item and syntax checks
+pass, including separate UTF-8 names and atomic names/domains saves. Loopback
+HTTP tests pass both profiles in all seven formats with different names and
+hostnames for the same server, plus disabled/wrong-group/missing-marker denial.
+Tests cover both profiles, all four native protocol item constructors,
+relay inheritance, empty fallback, forged signatures, CSRF, invalid hostnames,
+atomic pair validation and isolation between servers. See
+SUBSCRIPTION_PROFILES.md for the remaining native serializer matrix.
+
+The owner explicitly authorized staging, native testing, installation and
+publication on 2026-10-30 after the earlier automatic staging rejection.
+The private staging directory is /tmp/digitsell-server-domains-check; synthetic
+fixtures use connection-local temporary tables and never change customer rows.
+Installed checksums match all files in the preceding published manifest.
+Native matrix passed 156 baseline/profile protocol/relay/format cases. Four
+protocol/relay/format combinations were omitted by the original native baseline
+and are not claimed as supported by this change. Native VLESS Shadowrocket and
+SS payloads require decoding an additional URI base64 layer in assertions.
+Next: publish the complete release, install through
+the native updater and verify
+the installed/latest version agreement and authenticated edit-page health.
+The last completed release remains 1.38.3; never lower installed metadata.
+
 ## 1.38.3 — restore native node capacity during connection incident
 
 Emergency compatibility rollback: 1.38.2 began forwarding global online-IP

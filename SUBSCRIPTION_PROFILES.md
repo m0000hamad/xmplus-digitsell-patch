@@ -1,5 +1,60 @@
 # Two subscription profiles
 
+Prepared follow-up **1.38.4** (not yet installed or published): every existing
+Admin → Server → Edit page adds a “نام و دامنه هر لینک اشتراک” block beneath the native
+address position, hiding the original address row at the owner's request.
+Only two profile groups remain visible, each with its own server name and
+hostname, labeled with the subscription titles. Each group maps directly to
+that profile, including when both profiles contain
+the same server. The block has its own explicit save button. Native server-save
+continues to save the shared connection configuration independently. Unconfigured
+hostnames start with the existing address. Suggested names append the profile
+title so direct/tunnel entries can be distinguished; names remain editable.
+All four visible fields are required. The native name is labeled “نام سرور در پنل”.
+The hidden original input remains for encoded native-handler compatibility.
+
+Absent/legacy empty overrides use the server's original values. Only the display
+name and connection address change in an authenticated profile subscription: UUID/password, SNI, TLS,
+transport host/path, port, protocol and node identity stay native. This feature
+does not configure DNS or certificates; the supplied hostname must already route
+to the intended connection. Selecting a hostname does not add that server to a
+profile or expand its access. The original native subscription stays unchanged.
+
+Each server's two overrides are stored together in the existing settings table
+as `server_profile_domains_<id>` and `server_profile_names_<id>`. Saves validate
+the real server, admin session, CSRF, both hostnames and UTF-8 names before writing
+the two settings in one transaction; other servers and the profile definitions
+are untouched. No schema migration or node restart is required. The shipped
+native Server model adds address and name accessors; verified profile context
+supplies overrides, with stored values as fallbacks. A relay uses
+the selected entry's hostname and retains its underlying transport settings.
+
+Additional local validation:
+
+```
+php tools/server-profile-domains-model-test.php 1
+php tools/server-profile-domains-model-test.php 2
+php tools/server-profile-domains-model-test.php 1 empty
+php tools/server-profile-domains-model-test.php 1 names
+php tools/server-profile-domains-model-test.php 2 names
+```
+
+The native serializer fixture accepts an extra final `domains` argument:
+`php tools/subscription-profiles-native-test.php PANEL_ROOT SOURCE_ROOT 1 config Trojan relay domains`.
+It selects the same native server in both profiles with different hostnames,
+checks unchanged SNI, credentials, port and stored address, and verifies the
+chosen hostname and server name reach the native serializer. Run baseline/profile
+1/profile 2 across supported formats before installation. The owner explicitly
+authorized transfer, testing and installation on 2026-10-30, and then requested
+independent server names. Loopback HTTP tests passed both profiles in all seven
+formats, with distinct names/addresses for the same server and no cross-profile
+leakage. Disabled, wrong-group and missing-marker requests remain denied.
+The native serializer matrix passed 156 cases across four protocols, direct and
+relay nodes, baseline and both profiles. Four protocol/relay/format combinations
+are absent even in the original baseline; this release does not add those native
+serializer capabilities. VMess, Shadowrocket VLESS and SS URIs are decoded at
+their additional base64 layer before checking the selected endpoint.
+
 Installed on the existing panel, 2026-10-28: **1.38.0**. The release includes the complete source, manifest and version
 for the configured GitHub update repository.
 
