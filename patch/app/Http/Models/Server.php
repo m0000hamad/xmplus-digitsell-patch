@@ -27,7 +27,7 @@ final class Server extends Model
     public function is_relay()
     {
 		if($this->relayid > 0 && $this->relay_type == 1) {
-           return "<span class='badge bg-soft-success text-success'>" . $this->id . " <i class='fa-solid fa-arrow-right-long'></i> " . $this->relayid . "</span>"; 
+           return "<span class='badge bg-soft-success text-success'>" . $this->id . " <i class='fa-solid fa-arrow-right-long'></i> " . $this->relayid . "</span>";
         }elseif($this->relayid > 0 && $this->relay_type == 2) {
 			return "<span class='badge bg-soft-success text-info'>" . $this->id . " <i class='fa-solid fa-arrow-right-long'></i> " . $this->relayid . "</span>";
 		}else{
@@ -40,22 +40,22 @@ final class Server extends Model
 		$config = new \App\Provider\ConfigProvider;
 		return OnlineIp::where('datetime', '>', (time() - 60))->where('serverid', $this->id)->count();
 	}
-	
+
     public function online()
     {
 		$state = $this->getServerStatus();
-        
+
 		if($state == 1){
 			return	'<i class="fa fa-circle" style="color: #05b34d"></i> ';
 		}elseif($state == -1){
-			return	'<i class="fa fa-circle" style="color: #ff0808"></i> '; 
+			return	'<i class="fa fa-circle" style="color: #ff0808"></i> ';
 		}elseif($state == 0){
-			return  '<i class="fa fa-circle" style="color: #ffc107"></i> '; 
+			return  '<i class="fa fa-circle" style="color: #ffc107"></i> ';
 		}elseif($state == 2){
-			return  '<i class="fa fa-circle" style="color: #ffc107"></i> '; 
+			return  '<i class="fa fa-circle" style="color: #ffc107"></i> ';
 		}
-    }	
-	
+    }
+
 	public function getServerStatus(): int
     {
 		$config = new \App\Provider\ConfigProvider;
@@ -79,7 +79,7 @@ final class Server extends Model
         }
         return ($this->heartbeat > time() - 120);
     }
-	
+
     public function servername($emoji)
     {
 		/*
@@ -97,7 +97,7 @@ final class Server extends Model
 			return $this->name;
 		}
     }
-		
+
 	public function getServerItem(User $user, string $type, bool $emoji): array
     {
 		if($this->relayid > 0 && $this->relay_type == 2) {
@@ -133,13 +133,13 @@ final class Server extends Model
 		$securitySettings 	= json_decode($this->securitySettings,true, JSON_UNESCAPED_SLASHES);
 		$networkSettings 	= json_decode($this->networkSettings,true, JSON_UNESCAPED_SLASHES);
 		$network = isset($networkSettings['transport']) ? $networkSettings['transport'] : '';
-		
+
 		$shortid = '';
 		if(isset($securitySettings['shortids'])){
 			$shortids = (array)$securitySettings['shortids'] ;
 			$shortid = $shortids[array_rand($shortids)];
 		}
-		
+
 		$serverName ='';
 		if(isset($securitySettings['serverNames'])){
 			$serverNames = (array)$securitySettings['serverNames'] ;
@@ -147,7 +147,7 @@ final class Server extends Model
 		}else{
 			$serverName = $securitySettings['serverName'];
 		}
-		
+
 		$item['type']   	= strtolower($type);
 		$item['name']     	= $this->name;
 		$item['remark']   	= self::servername($emoji);
@@ -171,7 +171,7 @@ final class Server extends Model
 			case 'tcp':
 				$item['headerType'] = isset($networkSettings['header']['type']) ? $networkSettings['header']['type'] : "none";
 				$item['path'] = isset($networkSettings['header']['request']['path']) ? $networkSettings['header']['request']['path'] : "/";
-			
+
 				if(isset($networkSettings['header']['request']['headers']['Host'])){
 					$host = (array)$networkSettings['header']['request']['headers']['Host'];
 					$item['host'] = $host[array_rand($host)];
@@ -193,7 +193,7 @@ final class Server extends Model
 				$item['headerType'] = isset($networkSettings['header']['type']) ? $networkSettings['header']['type'] : "none";
 				$item['seed'] = $networkSettings['seed'] ?? "";
 				$item['congestion'] = $networkSettings['congestion'] ?? false;
-				break;	
+				break;
 			case 'h2':
 			case 'ws':
 			case 'httpupgrade':
@@ -207,9 +207,9 @@ final class Server extends Model
 				}else{
 					$item['host'] = "";
 				}
-				break;	
+				break;
 		}
-		
+
 		$methods = [
 			'2022-blake3-aes-128-gcm',
 			'2022-blake3-aes-256-gcm',
@@ -223,7 +223,7 @@ final class Server extends Model
 					if ($this->cipher == '2022-blake3-aes-128-gcm') {
 						$userKey = (new Helpers)->uuidToBase64($user->uuid, 16);
 						$serverKey = (new Helpers)->getServerKey($this->created_at, 16);
-					}else{					
+					}else{
 						$userKey = (new Helpers)->uuidToBase64($user->uuid, 32);
 						$serverKey = (new Helpers)->getServerKey($this->created_at, 32);
 					}
@@ -245,25 +245,25 @@ final class Server extends Model
 				break;
 			case 'Trojan':
 				$item['passwd']   = $user->uuid;
-				break;	
+				break;
 		}
 		return $item;
 	}
-	
+
 	public function getRelayServerItem(User $user, string $type, bool $emoji): array
     {
 		$server = Server::find($this->relayid);
-		
+
 		$securitySettings 	= json_decode($server->securitySettings,true, JSON_UNESCAPED_SLASHES);
 		$networkSettings 	= json_decode($server->networkSettings,true, JSON_UNESCAPED_SLASHES);
 		$network = $networkSettings['transport'] ?? '';
-		
+
 		$shortid = '';
 		if(isset($securitySettings['shortids'])){
 			$shortids = (array)$securitySettings['shortids'] ;
 			$shortid = $shortids[array_rand($shortids)];
 		}
-		
+
 		$serverName ='';
 		if(isset($securitySettings['serverNames'])){
 			$serverNames = (array)$securitySettings['serverNames'] ;
@@ -271,7 +271,7 @@ final class Server extends Model
 		}else{
 			$serverName = $securitySettings['serverName'];
 		}
-		
+
 		$item['type']   	= strtolower($type);
 		$item['name']     	= $this->name;
 		$item['remark']   	= self::servername($emoji);
@@ -316,7 +316,7 @@ final class Server extends Model
 				$item['headerType'] = isset($networkSettings['header']['type']) ? $networkSettings['header']['type'] : "none";
 				$item['seed'] = $networkSettings['seed'] ?? "";
 				$item['congestion'] = $networkSettings['congestion'] ?? false;
-				break;	
+				break;
 			case 'h2':
 			case 'ws':
 			case 'httpupgrade':
@@ -332,7 +332,7 @@ final class Server extends Model
 				}
 				break;
 		}
-		
+
 		$methods = [
 			'2022-blake3-aes-128-gcm',
 			'2022-blake3-aes-256-gcm',
@@ -346,7 +346,7 @@ final class Server extends Model
 					if ($server->cipher == '2022-blake3-aes-128-gcm') {
 						$userKey = (new Helpers)->uuidToBase64($user->uuid, 16);
 						$server_key = (new Helpers)->getServerKey($server->created_at, 16);
-					}else{					
+					}else{
 						$userKey = (new Helpers)->uuidToBase64($user->uuid, 32);
 						$server_key = (new Helpers)->getServerKey($server->created_at, 32);
 					}
@@ -369,8 +369,8 @@ final class Server extends Model
 			case 'Trojan':
 				$item['passwd']   = $user->uuid;
 				$item['flow']	  = isset($networkSettings['flow']) ? $networkSettings['flow'] : "";
-				break;	
+				break;
 		}
 		return $item;
-	}	
+	}
 }

@@ -42,7 +42,7 @@
         "app/Http/Models/CommissionLog.php": "b5ff0ba69d77668113550e5887051c154bbbf87e077116cc63ebbcd08cf46e50",
         "app/Http/Models/Order.php": "a560d42000ecf0ded7906972a5de4ca548b29063135e9b0ff4afe35d74fb0849",
         "app/Http/Models/Package.php": "6339ce53b6cb39ece385751c0d47bc41d0be5c0f901175981306b789b2d2c70c",
-        "app/Http/Models/Server.php": "4c3dbfab793feb8b185553b599c4c1282608d917776c0a5d7bce769f8259bb73",
+        "app/Http/Models/Server.php": "7187eb41b6ee55e8fe2a118f204297904cc782a94fdd0f0656761662e25d85aa",
         "app/Http/Models/Ticket.php": "2725842f26f84d4f01be5d30001468591221cd7d95571ddbc47304840ee5c2a0",
         "app/Http/Models/TrafficDaily.php": "f67b2efe0fb0a261f17ef7aae4aebe133db2e9b5608288112890d8a28bf75906",
         "app/Http/Models/User.php": "dbbe9cdc59b9c1336b7b41c430303a0bc639221238a20f8b27c324a57b9baa99",
