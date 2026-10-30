@@ -71,3 +71,14 @@ foreach ([json_encode([1 => 'valid', 2 => str_repeat('x', 241)]), json_encode([1
     check(!runDomains('save', array_replace($named, ['domains' => '{"1":"changed.example.com","2":"changed.example.com"}', 'names' => $bad]))['ok']
         && setting('server_profile_domains_11') === $saved && setting('server_profile_names_11') === $savedNames, 'invalid name rejects names and domains atomically');
 }
+$billing=['enabled'=>true,'ports'=>[1=>443,2=>8443],'rates'=>[1=>1,2=>4]];
+check(!runDomains('save',array_replace($named,['billing'=>json_encode($billing)]))['ok'], 'profile ports cannot be enabled on an old or offline agent');
+putSetting('profile_agent_11',json_encode(['at'=>time(),'capability'=>'profile-billing-v1']));
+check(runDomains('save',array_replace($named,['billing'=>json_encode($billing)]))['ok'], 'capable agent permits two ports and independent multipliers');
+$stored=json_decode(setting('server_profile_billing_11'),true);
+check(json_decode(setting('server_profile_billing_history_11_'.$stored['revision']),true)===$stored, 'immutable billing revision saved atomically with current settings');
+$billing['ports'][2]=443;
+check(!runDomains('save',array_replace($named,['billing'=>json_encode($billing)]))['ok'] && json_decode(setting('server_profile_billing_11'),true)===$stored, 'conflicting ports preserve the previous working configuration');
+$billing['ports'][2]=8443;
+putSetting('profile_agent_11',json_encode(['at'=>time(),'capability'=>'profile-billing-v1','reserved_ports'=>[8443]]));
+check(!runDomains('save',array_replace($named,['billing'=>json_encode($billing)]))['ok'], 'ports reserved by another inbound or API cannot be selected');

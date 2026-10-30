@@ -32,10 +32,28 @@ if (in_array($action, ['subprofiles.domains.get', 'subprofiles.domains.save'], t
             if (strlen($name) > 240 || !preg_match('//u', $name) || preg_match('/[\x00-\x1F\x7F]/', $name)) fail('نام سرور معتبر نیست یا بیش از حد طولانی است.');
         }
         unset($name);
+        $billing = null;
+        if (isset($_POST['billing'])) {
+            require_once __DIR__ . '/ProfileBilling.php';
+            $value = json_decode((string) $_POST['billing'], true);
+            if (!is_array($value)) fail('تنظیمات پورت و ضریب معتبر نیست.');
+            try { $billing = ProfileBilling::normalize($value); }
+            catch (InvalidArgumentException $error) { fail($error->getMessage()); }
+            if ($billing['enabled']) {
+                $agent = ProfileBilling::read((string) setting('profile_agent_' . $id, '{}'));
+                if (($agent['capability'] ?? '') !== 'profile-billing-v1' || (int) ($agent['at'] ?? 0) < time() - 180)
+                    fail('ابتدا عامل Xray این سرور را به نسخه ۱.۴.۰ به‌روزرسانی کنید و تا اتصال آن به پنل صبر کنید.');
+                if (array_intersect($billing['ports'], $agent['reserved_ports'] ?? [])) fail('یکی از پورت‌ها در همین عامل برای نود دیگر یا API رزرو شده است.');
+            }
+        }
         db()->beginTransaction();
         try {
             putSetting($key, json_encode($domains, JSON_UNESCAPED_UNICODE));
             putSetting('server_profile_names_' . $id, json_encode($names, JSON_UNESCAPED_UNICODE));
+            if ($billing !== null) {
+                putSetting('server_profile_billing_' . $id, json_encode($billing));
+                if ($billing['enabled']) putSetting('server_profile_billing_history_' . $id . '_' . $billing['revision'], json_encode($billing));
+            }
             db()->commit();
         } catch (Throwable $e) { db()->rollBack(); fail('ذخیره انجام نشد.'); }
         done(['saved' => true]);
@@ -44,6 +62,8 @@ if (in_array($action, ['subprofiles.domains.get', 'subprofiles.domains.save'], t
     $names = json_decode((string) setting('server_profile_names_' . $id, '{}'), true);
     done(['domains' => is_array($domains) ? $domains : new stdClass(),
         'names' => is_array($names) ? $names : new stdClass(),
+        'billing' => json_decode((string) setting('server_profile_billing_' . $id, '{}')) ?: new stdClass(),
+        'agent' => json_decode((string) setting('profile_agent_' . $id, '{}')) ?: new stdClass(),
         'profiles' => SubscriptionProfiles::read((string) setting('sub_profiles', '[]')),
         'token' => ($_SESSION['patch_csrf'] ?? ($_SESSION['patch_csrf'] = bin2hex(random_bytes(24))))]);
 }

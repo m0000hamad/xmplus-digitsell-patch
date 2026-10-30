@@ -110,6 +110,9 @@ final class Server extends Model
 
     public function port(): int
     {
+        require_once dirname(__DIR__, 2) . '/Patch/SubscriptionProfiles.php';
+        $profilePort = method_exists(\SubscriptionProfiles::class, 'port') ? \SubscriptionProfiles::port((int) $this->id, null) : null;
+        if ($profilePort !== null) return $profilePort;
         $server_port = explode("-", $this->port);
         if (count($server_port) > 1) {
             return (int)rand((int)$server_port[0], (int)$server_port[1]);

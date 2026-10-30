@@ -63,7 +63,7 @@ import urllib.parse
 import urllib.request
 import uuid as uuidlib
 
-VERSION = "1.3.2"
+VERSION = "1.4.0"
 
 ETC = "/etc/digitsell-xray"
 LIB = "/usr/local/lib/digitsell-xray"
@@ -428,6 +428,14 @@ def parse_node(node_id, raw):
 
     if as_bool(raw.get("relay")):
         spec["relay"] = parse_relay(node_id, as_obj(raw.get("relay_server")))
+    billing = as_obj(raw.get('profile_billing'))
+    if billing.get('enabled'):
+        revision = as_str(billing.get('revision'))
+        ports = as_obj(billing.get('ports'))
+        values = [as_int(ports.get(str(slot))) for slot in (1, 2)]
+        if not re.fullmatch(r'[a-f0-9]{64}', revision) or any(p < 1 or p > 65535 for p in values) or values[0] == values[1]:
+            raise NodeError('invalid subscription-profile ports or billing revision')
+        spec['profile_billing'] = billing
     return spec
 
 
@@ -491,6 +499,56 @@ def node_warnings(spec):
 
 def user_email(node_id, sub):
     return "n%d|%s|%d" % (node_id, as_str(sub.get("email")), as_int(sub.get("id")))
+
+
+def profile_identity(email):
+    parts = email.split('|')
+    if len(parts) >= 4:
+        match = re.fullmatch(r'p([12]):([a-f0-9]{64})', parts[1])
+        if match:
+            return '|'.join([parts[0]] + parts[2:]), int(match.group(1)), match.group(2)
+    return email, None, None
+
+
+def profile_email(email, spec):
+    slot = spec.get('profile')
+    if not slot:
+        return email
+    parts = email.split('|')
+    return '|'.join([parts[0], 'p%d:%s' % (slot, spec['profile_revision'])] + parts[1:])
+
+
+def profile_specs(spec):
+    billing = spec.get('profile_billing') or {}
+    if not billing.get('enabled'):
+        return [spec]
+    result = []
+    for slot in (1, 2):
+        item = dict(spec, profile=slot, profile_revision=billing['revision'])
+        item['tag'] = spec['tag'] + 'p%d' % slot
+        item['port'] = str(billing['ports'][str(slot)])
+        result.append(item)
+    return result
+
+
+def profile_clients(clients, spec):
+    return [dict(client, email=profile_email(client['email'], spec)) for client in clients]
+
+
+def profile_rules(rules, specs):
+    result = copy.deepcopy(rules)
+    tags = {spec['tag']: [p['tag'] for p in profile_specs(spec)] for spec in specs.values()}
+    for rule in result:
+        if 'inboundTag' in rule:
+            rule['inboundTag'] = [tag for old in rule['inboundTag'] for tag in tags.get(old, [old])]
+        if 'user' in rule:
+            users = []
+            for email in rule['user']:
+                node, _ = email_node_uid(email)
+                variants = profile_specs(specs[node]) if node in specs else [{}]
+                users.extend(profile_email(email, variant) for variant in variants)
+            rule['user'] = users
+    return result
 
 
 def email_node_uid(email):
@@ -1328,8 +1386,10 @@ class Agent:
     def save_state(self):
         try:
             write_atomic(self.state_path, json.dumps(self.state, ensure_ascii=False))
+            return True
         except OSError as error:
             log("could not save state: %s" % error)
+            return False
 
     def node_state(self, node_id):
         return self.state["nodes"].setdefault(str(node_id), {})
@@ -1372,7 +1432,23 @@ class Agent:
                 raise
             log("node %d: panel unreachable, using its last account list: %s" % (node_id, error))
 
-        return st.get("server"), st.get("subs") or [], changed
+        try:
+            reserved = {as_int(self.conf.get('api', '').rsplit(':', 1)[-1])}
+            for other, spec in self.specs.items():
+                if other != node_id:
+                    for variant in profile_specs(spec):
+                        ends = variant['port'].split('-')
+                        reserved.update(range(int(ends[0]), int(ends[-1]) + 1))
+            answer = panel.patch_call('node.profileconfig', {'node_id': node_id, 'capability': 'profile-billing-v1',
+                                                           'reserved_ports': sorted(reserved - {0})})
+            st['profile_billing'] = answer.get('billing') or {}
+        except PanelError:
+            # Old panels have no profile endpoint. An outage retains cached ports.
+            pass
+        raw = copy.deepcopy(st.get('server'))
+        if isinstance(raw, dict) and st.get('profile_billing'):
+            raw['profile_billing'] = st['profile_billing']
+        return raw, st.get("subs") or [], changed
 
     # --------------------------------------------------------- certificates
 
@@ -1850,8 +1926,9 @@ class Agent:
             spec = specs[node_id]
             fallbacks = self.node_conf.get(node_id, {}).get("fallbacks")
             node_clients = [clients.get(node_id, {})[e] for e in sorted(clients.get(node_id, {}))]
-            inbounds.append(build_inbound(spec, node_clients, self.certs.get(node_id), fallbacks,
-                                          self.conf.get("trusted_xff")))
+            for variant in profile_specs(spec):
+                inbounds.append(build_inbound(variant, profile_clients(node_clients, variant), self.certs.get(node_id), fallbacks,
+                                              self.conf.get("trusted_xff")))
             if spec["send_through"]:
                 outbounds.append(self.freedom("direct-%s" % spec["tag"], spec["send_through"]))
             exit_out = self.exit_outbound(spec)
@@ -1876,7 +1953,7 @@ class Agent:
             "inbounds": inbounds,
             "outbounds": outbounds,
             "routing": {"domainStrategy": "AsIs",
-                        "rules": self.static_rules() + self.exit_rules(specs, exit_tags_of(outbounds))},
+                        "rules": profile_rules(self.static_rules() + self.exit_rules(specs, exit_tags_of(outbounds)), specs)},
         }
         if self.conf.get("dns"):
             config["dns"] = self.conf["dns"]
@@ -2086,6 +2163,10 @@ class Agent:
                 self.xray_restart()
 
     def add_users(self, spec, clients):
+        if spec.get('profile_billing') and not spec.get('profile'):
+            for variant in profile_specs(spec):
+                self.add_users(variant, profile_clients(clients, variant))
+            return
         for start in range(0, len(clients), 500):
             batch = clients[start:start + 500]
             inbound = build_inbound(spec, batch, self.certs.get(spec["id"]))
@@ -2105,6 +2186,10 @@ class Agent:
                                                                     " | ".join(problems[-3:])))
 
     def remove_users(self, spec, emails):
+        if spec.get('profile_billing') and not spec.get('profile'):
+            for variant in profile_specs(spec):
+                self.remove_users(variant, [profile_email(email, variant) for email in emails])
+            return
         for start in range(0, len(emails), 500):
             self.api("rmu", "-tag=" + spec["tag"], *emails[start:start + 500], timeout=60)
 
@@ -2151,7 +2236,7 @@ class Agent:
         self.pushed_rules = fingerprint(rules)
 
     def push_rules(self):
-        rules = self.static_rules() + self.limit_rules() + self.exit_rules()
+        rules = profile_rules(self.static_rules() + self.limit_rules() + self.exit_rules(), self.specs)
         if not rules and self.pushed_rules is None:
             self.pushed_rules = fingerprint(rules)
             return
@@ -2191,7 +2276,9 @@ class Agent:
             node_id, uid = email_node_uid(parts[1])
             if not node_id or node_id not in self.panels:
                 continue
-            row = pending.setdefault(str(node_id), {}).setdefault(str(uid), [0, 0])
+            _, slot, revision = profile_identity(parts[1])
+            key = '%d:%d:%s' % (uid, slot, revision) if slot else str(uid)
+            row = pending.setdefault(str(node_id), {}).setdefault(key, [0, 0])
             if parts[3] == "uplink":
                 row[0] += value
             elif parts[3] == "downlink":
@@ -2201,15 +2288,47 @@ class Agent:
     def report_traffic(self):
         self.collect_traffic()
         pending = self.state["pending"]
+        batches = self.state.setdefault('profile_batches', {})
+        for node_key, rows in list(pending.items()):
+            if node_key in batches:
+                continue
+            keys = [key for key in rows if re.fullmatch(r'\d+:[12]:[a-f0-9]{64}', key)]
+            if keys:
+                data = []
+                for key in keys[:10000]:
+                    uid, slot, revision = key.split(':')
+                    ud = rows.pop(key)
+                    data.append({'subscription_id': int(uid), 'profile': int(slot), 'revision': revision, 'u': ud[0], 'd': ud[1]})
+                batches[node_key] = {'node_id': int(node_key), 'batch_id': uuidlib.uuid4().hex, 'data': data}
+                self.save_state()
+        if batches and self.save_state() is False:
+            return  # Persist the batch ID before anything can be charged.
+        for node_key, batch in list(batches.items()):
+            node_id = int(node_key)
+            if node_id not in self.panels:
+                continue  # Never discard an unacknowledged profile batch.
+            try:
+                result = self.panels[node_id].patch_call('node.profiletraffic', batch)
+                if not result.get('accepted'):
+                    raise PanelError('traffic batch was not acknowledged')
+            except PanelError as error:
+                log('node %d: profile usage retained for retry: %s' % (node_id, error))
+                continue
+            del batches[node_key]
+            self.save_state()
         for node_key in list(pending):
             node_id = as_int(node_key)
             rows = pending[node_key]
             if node_id not in self.panels:
-                pending.pop(node_key, None)
+                if not any(':' in key for key in rows):
+                    pending.pop(node_key, None)
                 continue
             if not rows:
                 continue
-            data = [{"subscription_id": as_int(uid), "u": ud[0], "d": ud[1]} for uid, ud in rows.items()]
+            legacy = {uid: ud for uid, ud in rows.items() if uid.isdigit()}
+            if not legacy:
+                continue
+            data = [{"subscription_id": as_int(uid), "u": ud[0], "d": ud[1]} for uid, ud in legacy.items()]
             try:
                 self.panels[node_id].post("/api/traffic/%d" % node_id, data)
             except PanelError as error:
@@ -2217,7 +2336,8 @@ class Agent:
                 log("node %d: usage not reported, kept for the next try (%d account(s), %.1f MB): %s"
                     % (node_id, len(rows), total / 1e6, error))
                 continue
-            pending[node_key] = {}
+            for uid in legacy:
+                rows.pop(uid, None)
             self.node_status(node_id)["traffic_at"] = int(time.time())
             self.node_status(node_id)["traffic_accounts"] = len(data)
         self.save_state()
@@ -2274,6 +2394,11 @@ class Agent:
         except (XrayError, ValueError) as error:
             log("could not read online addresses from Xray: %s" % error)
             return False
+        combined = {}
+        for email, ips in online.items():
+            canonical, _, _ = profile_identity(email)
+            combined.setdefault(canonical, {}).update(ips)
+        online = combined
         now = time.time()
         use_limit = as_bool(self.conf.get("ip_limit"))
         blocked, allowed_now = {}, {}

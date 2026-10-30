@@ -60,10 +60,12 @@ foreach ([900001 => 'DIRECT', 900002 => 'TUNNEL', 900003 => 'TRANSPORT'] as $id 
 $profiles = [['enabled' => true, 'name' => 'Direct', 'description' => 'first', 'groups' => [7999], 'servers' => [900001]],
     ['enabled' => true, 'name' => 'Tunnel', 'description' => 'second', 'groups' => [7999], 'servers' => [900002]]];
 $domainFixture = ($argv[7] ?? '') === 'domains';
+$billingFixture = ($argv[8] ?? '') === 'billing';
 if ($domainFixture) {
     $profiles[1]['servers'] = [900001];
     settingFixture('server_profile_domains_900001', json_encode([1 => 'first.example.invalid', 2 => 'second.example.invalid']));
     settingFixture('server_profile_names_900001', json_encode([1 => 'PROFILE-FIRST', 2 => 'PROFILE-SECOND']));
+    if ($billingFixture) settingFixture('server_profile_billing_900001', json_encode(['enabled'=>true,'ports'=>[1=>1443,2=>2443],'rates'=>[1=>1,2=>4]]));
 }
 settingFixture('sub_profiles', json_encode($profiles));
 settingFixture('sub_profiles_secret', 'fixture-secret-not-a-production-key');
@@ -84,7 +86,8 @@ if ($domainFixture) {
     $item = $node->getServerItem(App\Http\Models\User::find(900001), $argv[5] ?? 'Trojan', false);
     $expectedAddress = $slot === '0' ? 'direct.example.invalid' : ($slot === '1' ? 'first.example.invalid' : 'second.example.invalid');
     $expectedName = $slot === '0' ? 'PROFILE-DIRECT' : ($slot === '1' ? 'PROFILE-FIRST' : 'PROFILE-SECOND');
-    if ($item['add'] !== $expectedAddress || $item['sni'] !== 'example.invalid' || $item['port'] !== 443
+    $expectedPort = $billingFixture && $slot !== '0' ? ($slot === '1' ? 1443 : 2443) : 443;
+    if ($item['add'] !== $expectedAddress || $item['sni'] !== 'example.invalid' || $item['port'] !== $expectedPort
         || $item['name'] !== $expectedName || $item['remark'] !== $expectedName
         || ($item['passwd'] ?? '') !== $user['uuid']) throw new RuntimeException('Profile overrides changed shared connection settings');
     if ($pdo->query('SELECT address FROM servers WHERE id=900001')->fetchColumn() !== 'direct.example.invalid') throw new RuntimeException('Native address mutated');
@@ -120,5 +123,9 @@ if ($response->getStatusCode() !== 200 || strpos($body, 'PROFILE-' . $want) === 
     // Only synthetic fixture output may be displayed on failure.
     echo substr($body, 0, 500) . "\n";
     exit(1);
+}
+if ($billingFixture && $slot !== '0' && (strpos($body, (string) $expectedPort) === false
+    || preg_match('/(?<![0-9])' . ($slot === '1' ? '2443' : '1443') . '(?![0-9])/', $body))) {
+    throw new RuntimeException('Serialized profile port missing or other profile port leaked');
 }
 echo 'PASS native fixture slot=' . $slot . ' format=' . $format . "\n";

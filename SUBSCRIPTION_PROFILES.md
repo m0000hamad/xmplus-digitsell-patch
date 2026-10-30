@@ -1,5 +1,11 @@
 # Two subscription profiles
 
+Follow-up **1.38.5** adds opt-in port and traffic-multiplier fields per profile
+on the same native server. It requires standalone Xray agent 1.4.0, keeps the
+credential/configuration/quota shared and distinguishes usage at the two
+inbounds. Existing names/domains and legacy ports work unchanged until enabled.
+See [PROFILE_BILLING.md](PROFILE_BILLING.md).
+
 Installed and published follow-up **1.38.4**, 2026-10-30: every existing
 Admin → Server → Edit page adds a “نام و دامنه هر لینک اشتراک” block beneath the native
 address position, hiding the original address row at the owner's request.

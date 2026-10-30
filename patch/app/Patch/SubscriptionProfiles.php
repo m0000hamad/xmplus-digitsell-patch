@@ -6,6 +6,12 @@ final class SubscriptionProfiles
 {
     private static $addresses = [];
     private static $names = [];
+    private static $ports = [];
+
+    public static function port(int $serverId, $fallback)
+    {
+        return self::$ports[$serverId] ?? $fallback;
+    }
 
     public static function name(int $serverId, $fallback)
     {
@@ -70,6 +76,8 @@ final class SubscriptionProfiles
         $profile = $profiles[(int) $slot - 1] ?? [];
         $ids = array_map('intval', $profile['servers'] ?? []);
         foreach ($ids as $id) {
+            $billing = json_decode((string) ($settings['server_profile_billing_' . $id] ?? '{}'), true);
+            if (!empty($billing['enabled']) && !empty($billing['ports'][$slot])) self::$ports[$id] = (int) $billing['ports'][$slot];
             $domains = json_decode((string) ($settings['server_profile_domains_' . $id] ?? '{}'), true);
             $domain = is_array($domains) ? ($domains[$slot] ?? '') : '';
             if (is_string($domain) && $domain !== '') self::$addresses[$id] = $domain;

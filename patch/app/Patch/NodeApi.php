@@ -91,6 +91,24 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 switch ($nodeApiAction) {
+    case 'node.profileconfig':
+    case 'node.profiletraffic':
+        patchRequireNodeKey();
+        require_once __DIR__ . '/ProfileBilling.php';
+        $body = json_decode((string) file_get_contents('php://input'), true);
+        if (!is_array($body)) fail('Invalid profile request');
+        if ($nodeApiAction === 'node.profiletraffic') {
+            try { done(ProfileBilling::charge(db(), $body)); }
+            catch (InvalidArgumentException $error) { fail($error->getMessage()); }
+            catch (Throwable $error) { fail('Traffic batch not accepted; retry required'); }
+        }
+        $node = filter_var($body['node_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $q = db()->prepare('SELECT id FROM servers WHERE id=?'); $q->execute([$node]);
+        if (!$node || !$q->fetchColumn()) fail('Unknown node');
+        if (($body['capability'] ?? '') !== 'profile-billing-v1') fail('Unsupported profile agent');
+        $reserved = array_values(array_unique(array_filter(array_map('intval', (array) ($body['reserved_ports'] ?? [])), static function ($port) { return $port > 0 && $port <= 65535; })));
+        putSetting('profile_agent_' . $node, json_encode(['at' => time(), 'capability' => 'profile-billing-v1', 'reserved_ports' => $reserved]));
+        done(['billing' => ProfileBilling::read((string) setting('server_profile_billing_' . $node, '{}'))]);
     case 'node.online':
         patchRequireNodeKey();
         $body = json_decode((string) file_get_contents('php://input'), true);

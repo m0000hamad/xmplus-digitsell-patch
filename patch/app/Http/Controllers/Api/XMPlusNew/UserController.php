@@ -119,9 +119,9 @@ class UserController extends Controller
             }
 			
 			$user->update([
-				'u' => $user->u + (int)($u * $rate),
-				'd' => $user->d + (int)($d* $rate),
-				'total_data_used' => $user->total_data_used + (int)(($u* $rate) + ($d* $rate)),
+				'u' => DB::raw('u + ' . (int)($u * $rate)),
+				'd' => DB::raw('d + ' . (int)($d * $rate)),
+				'total_data_used' => DB::raw('total_data_used + ' . (int)(($u * $rate) + ($d * $rate))),
 				't' => time()
 			]);
 			

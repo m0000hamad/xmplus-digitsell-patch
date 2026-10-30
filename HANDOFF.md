@@ -1,3 +1,44 @@
+## Prepared 1.38.5 — separate profile ports and traffic multipliers
+
+Owner approved separate ports while sharing one native server/configuration and
+quota. The server editor now adds an opt-in checkbox, port and rate per profile
+(suggested rates 1 and 4). No port or multiplier is activated automatically.
+Activation requires a recent standalone agent 1.4.0 capability heartbeat and
+rejects equal/out-of-range or agent-reserved ports. While enabled, legacy
+port/listening-port/rate controls are hidden but their values are retained.
+
+Agent 1.4.0 builds two inbounds using the same account credential, certificates,
+transport, relay and exit settings. Counter labels distinguish profile/revision;
+block/exit/relay rules expand to both ports and online IP limits merge both by
+the native account. A rate or port change rebuilds Xray once and reconnects its
+users; names/domains alone do not. External firewall/tunnel forwarding remains
+the owner's configuration. Other machines were previously elected for the
+owner's own updates; publishing this agent does not claim deployment there.
+
+New authenticated node.profileconfig and node.profiletraffic actions use the
+existing node API key. Billing revisions are immutable settings snapshots.
+Profile batches have durable IDs, retry on failure, and are acknowledged only
+after a transaction records replay protection, atomic shared-quota increments,
+native weighted traffic logs and raw node bandwidth. Migration 030 adds
+profile_traffic_batch; existing native traffic controllers now use atomic
+increments so legacy reports cannot overwrite a concurrent profile debit.
+
+Validation: local billing/endpoint/scope/native-model suites passed; all 31 Linux
+agent/menu tests passed as root. MySQL temporary-table fixtures passed exact
+1x/4x quota, replay deduplication, old-revision rates, and both actual native
+controller/schema paths. Native baseline/profile port serializer matrix passed
+72 supported Trojan/VLESS direct/relay cases across seven formats; four native
+protocol/relay/format combinations are already omitted by the original baseline.
+Tests and source staged privately in /tmp/digitsell-profile-billing-check.
+Owner explicitly authorized transferring, publishing and installing this release
+after the automatic approval review rejection. Final archive transfer and PHP
+lint on the panel runtime passed; publication/native updater installation and
+live health checks are next. No production profile port/rate setting or agent
+has been changed. Agent 1.4.0 is published with this source; installation on
+the remaining node machines follows the owner's existing self-update choice.
+See PROFILE_BILLING.md for
+activation, accounting, tests and safe rollback/draining requirements.
+
 ## Installed and published 1.38.4 — per-profile server names and hostnames
 
 Owner authorized installation on 2026-10-30 and then requested separate server

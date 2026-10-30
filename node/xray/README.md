@@ -19,6 +19,15 @@ change; servers are still defined and edited in the panel and this node pulls th
 
 ## Install
 
+Agent **1.4.0** with panel **1.38.5** supports two subscription-profile ports
+and traffic multipliers on one native node. The editor's opt-in switch requires
+a recent capable-agent heartbeat; update this agent before enabling it. Both
+inbounds share the account credential and quota, with deduplicated traffic
+batches and historical rates. No port is changed during an agent update while
+the feature is disabled. Port/rate activation or changes rebuild Xray and
+reconnect its users; open the selected firewall/tunnel ports separately.
+See [PROFILE_BILLING.md](../../PROFILE_BILLING.md) for setup and safe rollback.
+
 ### Guided (any server)
 
 ```bash

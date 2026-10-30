@@ -1,1 +1,1 @@
-Independent server names and connection hostnames for each subscription link, sharing the native connection configuration. Server editors show only the two profile groups with original-value fallback. Preserve node capacity and online-presence behavior.
+Opt-in ports and traffic multipliers per subscription profile, with one shared node/configuration/account quota. Requires Xray agent 1.4.0. Durable deduplicated profile traffic batches retain historical rates; native accounting increments are atomic. Existing ports and rates stay unchanged until enabled.
