@@ -1,6 +1,6 @@
 # Two profile ports and traffic multipliers
 
-Follow-up 1.38.7 restricts two-row online display to nodes whose split checkbox
+Installed and published follow-up 1.38.7 restricts two-row online display to nodes whose split checkbox
 is enabled in current settings. Unchecked nodes keep their original native
 single counter; clearing the checkbox restores it even if old profile snapshots
 remain. Only checked nodes use the “—” state when split observations are missing.

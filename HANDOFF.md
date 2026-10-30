@@ -1,4 +1,4 @@
-## Prepared 1.38.7 — retain native count for nodes without split enabled
+## Installed and published 1.38.7 — retain native count for nodes without split enabled
 
 Owner clarified that only nodes with the saved per-profile billing/ports
 checkbox enabled should render two online-count rows. The admin aggregate API
@@ -10,12 +10,15 @@ presence, quota or migration change is needed.
 
 Endpoint tests and headless Edge using real DataTables passed unchecked/native
 counts, checked two-row counts, live enable/disable, paging and stale/zero
-behavior. Publication/installation and live checks remain pending.
-The owner explicitly approved 1.38.7 transfer, publication and panel installation
-after the approval block. The two-file fix and health script were staged;
-actual-runtime PHP lint and installed baseline checks passed. Publication,
-native updater installation and live checks are next. No agent update is
-needed for this display correction.
+behavior. Owner explicitly approved transfer, publication and installation.
+Source 6d7683022fb0813bec3290f17257aaccb4ef8272 was published to origin/main;
+its immutable manifest and all 185 committed-source checksums were verified.
+The authenticated native updater installed 1.38.7; backup:
+storage/patch/backup-20261031-070648. All 185 installed checksums match.
+Authenticated installed=latest=1.38.7, aggregate API, server editor, authorization
+and login health checks passed. No profile settings, node agents, ports, rates,
+presence tables or schema were changed by this fix. No agent update is needed
+for unchecked nodes to regain their native counter.
 
 ## Installed and published 1.38.6 — online accounts split by subscription profile
 
