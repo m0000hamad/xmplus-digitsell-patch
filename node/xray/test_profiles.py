@@ -93,6 +93,34 @@ class ProfileTests(unittest.TestCase):
         agent.report_traffic()
         agent.panels[25].patch_call.assert_not_called()
 
+    def test_profile_online_keeps_membership_before_merging_ip_limits(self):
+        agent = m.Agent.__new__(m.Agent)
+        agent.panels = {25: Mock()}; agent.state = {'status': {}}; agent.online_snapshot = {}; agent.last_online = {}
+        agent.specs = {25: self.spec()}
+        variants = m.profile_specs(self.spec())
+        agent.read_online = Mock(return_value={m.profile_email('n25|fixture|7', spec): {'198.51.100.1': 1} for spec in variants})
+        agent.conf = {'ip_limit': True}; agent.ipstate = {}; agent.limits = {'n25|fixture|7': 1}
+        agent.blocked = {}; agent.push_rules = Mock()
+        agent.report_online()
+        body = agent.panels[25].patch_call.call_args.args[1]
+        self.assertEqual(body['data'], [{'subscription_id': 7, 'ip': '198.51.100.1'}])
+        self.assertEqual([r['profile'] for r in body['profiles']], [1,2])
+        self.assertTrue(body['profiles_active'])
+        agent.read_online.return_value = {}
+        agent.report_online()
+        self.assertEqual(agent.panels[25].patch_call.call_args.args[1]['profiles'], [])
+
+    def test_blocked_ip_is_not_reported_as_an_online_profile_member(self):
+        agent = m.Agent.__new__(m.Agent)
+        variants = m.profile_specs(self.spec())
+        agent.read_online = Mock(return_value={
+            m.profile_email('n25|fixture|7',variants[0]): {'198.51.100.1':1},
+            m.profile_email('n25|fixture|7',variants[1]): {'198.51.100.2':1}})
+        agent.conf = {'ip_limit': True}; agent.ipstate = {}; agent.limits = {'n25|fixture|7':1}
+        agent.blocked = {}; agent.push_rules = Mock()
+        agent.enforce_limits()
+        self.assertEqual(agent.profile_online[25], [{'subscription_id':7,'ip':'198.51.100.1','profile':1}])
+
 
 if __name__ == '__main__':
     unittest.main()

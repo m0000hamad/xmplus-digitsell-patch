@@ -63,7 +63,7 @@ import urllib.parse
 import urllib.request
 import uuid as uuidlib
 
-VERSION = "1.4.0"
+VERSION = "1.4.1"
 
 ETC = "/etc/digitsell-xray"
 LIB = "/usr/local/lib/digitsell-xray"
@@ -2394,6 +2394,7 @@ class Agent:
         except (XrayError, ValueError) as error:
             log("could not read online addresses from Xray: %s" % error)
             return False
+        observed = online
         combined = {}
         for email, ips in online.items():
             canonical, _, _ = profile_identity(email)
@@ -2435,6 +2436,16 @@ class Agent:
             log("device limit: %s is over its limit of %d, refusing %s" % (email, self.limits.get(email, 0), ", ".join(ips)))
         self.blocked = blocked
         self.online = allowed_now
+        # Preserve actual inbound/profile membership separately from merged IP limits.
+        self.profile_online = {}
+        for email, ips in observed.items():
+            canonical, slot, _ = profile_identity(email)
+            node, uid = email_node_uid(email)
+            if not slot or not node or not uid:
+                continue
+            allowed = set(allowed_now.get(canonical, []))
+            self.profile_online.setdefault(node, []).extend(
+                {'subscription_id': uid, 'ip': ip, 'profile': slot} for ip in ips if ip in allowed)
         self.push_rules()
         return True
 
@@ -2462,7 +2473,11 @@ class Agent:
                 snapshot = self.online_snapshot.get(node_id)
                 if snapshot is not False:
                     try:
-                        self.panels[node_id].patch_call('node.online', {'node_id': node_id, 'data': rows})
+                        payload = {'node_id': node_id, 'data': rows}
+                        spec = getattr(self, 'specs', {}).get(node_id, {})
+                        if (spec.get('profile_billing') or {}).get('enabled'):
+                            payload.update({'profiles_active': True, 'profiles': self.profile_online.get(node_id, [])})
+                        self.panels[node_id].patch_call('node.online', payload)
                         self.online_snapshot[node_id] = True
                     except PanelError as error:
                         # Only a panel without this action uses the legacy API.

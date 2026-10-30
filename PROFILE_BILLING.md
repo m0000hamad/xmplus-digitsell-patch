@@ -77,6 +77,19 @@ the legacy traffic endpoint.
 
 ## Verification and rollback
 
+Panel 1.38.6 with agent 1.4.1 also splits Admin → Servers → online-users into
+two rows, profile 1 above profile 2. These count unique accounts actually
+observed on each inbound, not everyone allowed to access that link. One account
+can appear in both rows, regardless of its number of IPs/devices. The ordinary
+native online-IP union and device limits are preserved. Only aggregate counts
+are stored in new `node_profile_online` (migration 031).
+
+Missing, stale, unsplit or old-agent observations display “—”, not a fabricated
+profile count; known empty observations display 0. Counts expire after 60 seconds
+and refresh every 15 seconds. A tooltip identifies the configured link and warns
+if some observed accounts could not be classified. Empty reports clear the
+reporting node only. The new admin endpoint returns no account/IP details.
+
 Local tests cover exact 1x/4x shared quota, raw bandwidth, native logs, immutable
 rates, replay deduplication, invalid/atomic configuration and negative usage.
 Linux agent tests cover two generated inbounds with one credential, rules for

@@ -1,7 +1,7 @@
 {
-    "version": "1.38.5",
+    "version": "1.38.6",
     "released": "2026-10-30",
-    "notes": "Opt-in ports and traffic multipliers per subscription profile, with one shared node/configuration/account quota. Requires Xray agent 1.4.0. Durable deduplicated profile traffic batches retain historical rates; native accounting increments are atomic. Existing ports and rates stay unchanged until enabled.",
+    "notes": "Separate online account counts per subscription profile in the server list: link 1 above link 2. Actual inbound attribution requires agent 1.4.1 and profile ports. Preserve native presence/device limits; unknown or stale counts show a dash, known empty profiles show zero. Aggregate-only storage and admin endpoint.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -34,7 +34,8 @@
         "027_invoices.php",
         "028_checkout_funds.php",
         "029_admin_balance_edits.php",
-        "030_profile_traffic.php"
+        "030_profile_traffic.php",
+        "031_profile_online.php"
     ],
     "files": {
         "app/Console/Commands/TaskCommand.php": "36a67044267f9fd4669dc936f697d63ad93c7c70da96cb18bf1bc323fafb4d84",
@@ -67,9 +68,9 @@
         "app/Patch/CheckoutFundsEndpoint.php": "f35fcf0c936219a1d33b5e1bad52da1812c324c66dcfa6c2e1b4453f595d73f5",
         "app/Patch/Dashboard.php": "f98274de6fb67b1dcc13a876d0d091bba2fc2652f04d460d93d97c79872a9df8",
         "app/Patch/Invoice.php": "ef4c1a35cbe1f314652fd812daa30275b4e010db8226d7980a98254f0aba1c73",
-        "app/Patch/NodeApi.php": "42dc83c06e00033f5901c9c77dd78ea9356544f9fe2f5528260008438d1e3c87",
+        "app/Patch/NodeApi.php": "febcbddd93d71750afa21bec4ed857349db977f94b4e83ddcfc9ff985362454b",
         "app/Patch/NodeKey.php": "ab67bacaa6f708d2d29ffef76f1c1c06b5fbd02668a36cf422ce95f983bf281f",
-        "app/Patch/NodeOnline.php": "f4901949430d6330ec68e5d7e984b591729d17343800bc3c0652f78ae96703ef",
+        "app/Patch/NodeOnline.php": "abb7be17c3c46a46ef51c25017225d0529462334c06a36e634bc3f8d9fa03d3d",
         "app/Patch/Ovpn.php": "4d2ff76ec8db15ca6485713762112af7933e06023d089ef883ccc7a2d3005c90",
         "app/Patch/Payg.php": "ff81072f4a0729770f5ad34e4918a8c50164cca7bcc72b19a41daf5c5d3e4246",
         "app/Patch/ProfileBilling.php": "2831429676c281f8edaf879a21a2a064cbd58aef90b3250a5298c8aeaf3f8bb3",
@@ -79,7 +80,7 @@
         "app/Patch/ServerUsage.php": "87fe8c3c831db97f148c0d8b85f653694771133e126af75a3e988d91552b8a6e",
         "app/Patch/SubInfo.php": "4719c4da60823109cffe85b2bf6f0c952e79cec54d04bb99a59ed237ecf58d4f",
         "app/Patch/SubscriptionProfiles.php": "ad1f970cded8a5703bfdc72dd978306dd654c05e239220f139f7e6bd02c3d736",
-        "app/Patch/SubscriptionProfilesEndpoint.php": "2e31e669fa96ee88282242e26bf0e4aa3cf82e91599eee7558e1ca7aab81e799",
+        "app/Patch/SubscriptionProfilesEndpoint.php": "38c504e30e58ed0a726499c4477e0a6992aa1d9cf2e47f1a22c4a259f5a91fc6",
         "app/Patch/TgGift.php": "bc691f338913bf46bb88f0d91c360bf864c2d54c7839d2bac62ea54d0afacb77",
         "app/Patch/TimePlan.php": "38fd91b67c8c189aa1af3f58b1c671371129a3d123af740655a1be90990cb65a",
         "app/Patch/TorExit.php": "481a5d2547e0fe07e5f9c3bdb25be7be281be82a76e9068aac53a91d2a2c0afd",
@@ -119,8 +120,9 @@
         "view/admin/plans/timeplanform.tpl": "f5142cc2db96f9edd8aba3cd29ee650dde1fa98f3c9f16562ba1f4795b59e022",
         "view/admin/plans/timeplanjs.tpl": "9b971a878ef83f7bd58d915ded3fb44405473c7ecb266a104b85def55244bb93",
         "view/admin/plans/topupscopeform.tpl": "78aec7d0a0da0daf8840f03a241a888c55d565b99a85b02967f9a4dbbe8a31ea",
-        "view/admin/servers/index.tpl": "5a9b819f8548aaabb103a995f7653b2ab4d694b7473a8defef42730f7bc9d6bc",
+        "view/admin/servers/index.tpl": "fe8a0332d6cda39f9e257b954769da46cec58a3903e40a704a336cffc95a3b85",
         "view/admin/servers/profiledomains.tpl": "ed3af1ea4fca0ec2113aaa678ffd902af04c29ff6deae165e45fae741c9879a4",
+        "view/admin/servers/profileonline.tpl": "759fd8ff180254d66f8ad81a823e4afd38bdcba056bd44c9ed47d4f31271af65",
         "view/admin/settings/basicsettings.tpl": "1f353147218dbfe19be3c622a488d5e81348c5325101757cdbd9f00df7df89d1",
         "view/admin/settings/c2csettings.tpl": "6fb938802540f80cf2593c34454f22e65ffe8c423640a23785ff84c59dae857e",
         "view/admin/settings/ovpnsettings.tpl": "172c3ae6e0839f6060c61b7e4245630ce81a8fad291039917daebb17c895f752",

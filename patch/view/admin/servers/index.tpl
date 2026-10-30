@@ -112,6 +112,7 @@
 		{/literal}
 	</style>
 {include file='admin/layout/footer.tpl'}
+{include file='admin/servers/profileonline.tpl'}
 
 <script>
     {include file='table/table_storage.tpl'}

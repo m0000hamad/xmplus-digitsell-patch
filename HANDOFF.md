@@ -1,3 +1,40 @@
+## Prepared 1.38.6 — online accounts split by subscription profile
+
+Owner requested two rows in Admin → Servers → online-users column: profile 1
+above profile 2. The existing DataTables count cell is now rendered as two
+labelled counts without changing row IDs, filtering, pagination or native
+online/accounting/device-limit data. Counts are distinct native account IDs per
+actual inbound profile; an account connected through both appears once in each.
+
+Agent 1.4.1 retains profile membership from the same successful Xray observation
+before merging IPs for shared device limits. Only allowed IPs are reported, and
+the native union snapshot is unchanged. An optional profile payload on node.online
+updates new aggregate-only node_profile_online rows in the same transaction as
+native presence (migration 031). Empty snapshots clear only that node. Legacy
+or inactive-profile reports are explicitly unclassified, rather than guessed
+from group access or profile selections. No extra account/IP identifiers leave
+the new admin-only aggregate endpoint.
+
+Counts refresh every 15 seconds and expire after 60 seconds, including request
+latency. Missing/stale/legacy counts display “—”; known empty profiles show 0.
+Tooltip marks partial/unclassified data and identifies each configured link.
+On old agents or unsplit ports, actual per-link attribution is unavailable and
+requires agent 1.4.1 plus separate profile inbounds. No node agent was upgraded
+or production port setting changed by this preparation.
+
+Verification: snapshot/endpoint suites, all 33 Linux agent tests, native MySQL
+temporary-table membership/count tests and native Smarty rendering passed.
+Headless Edge with the actual panel DataTables libraries passed vertical order,
+paging, unknown versus zero, stale expiry and script-error checks. Native server
+list contract verified: row.id is numeric; online-users data key is count.
+Private test staging: /tmp/digitsell-profile-online-check. Publication/native
+updater installation and final health checks remain pending. The owner explicitly
+confirmed transfer/publication of panel 1.38.6 and agent 1.4.1 and panel
+installation after the approval-review block. Final archive transfer, actual
+runtime lint and native MySQL/Smarty checks passed. Publication/checksums and
+authenticated installation/health checks are next. No live profile settings or
+node agents were changed by this task.
+
 ## Installed and published 1.38.5 — separate profile ports and traffic multipliers
 
 Owner approved separate ports while sharing one native server/configuration and

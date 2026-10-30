@@ -2,6 +2,17 @@
 declare(strict_types=1);
 require_once ROOT . '/app/Patch/SubscriptionProfiles.php';
 requireAdmin();
+if ($action === 'subprofiles.online') {
+    $nodes = [];
+    foreach (db()->query('SELECT serverid,profile1,profile2,unclassified,ready,datetime FROM node_profile_online') as $row) {
+        $nodes[(int) $row['serverid']] = ['counts' => [(int) $row['profile1'], (int) $row['profile2']],
+            'unclassified' => (int) $row['unclassified'], 'ready' => (bool) $row['ready'], 'at' => (int) $row['datetime']];
+    }
+    $profiles = SubscriptionProfiles::read((string) setting('sub_profiles', '[]'));
+    done(['nodes' => (object) $nodes, 'titles' => array_map(static function ($slot) use ($profiles) {
+        return (string) ($profiles[$slot - 1]['name'] ?? ('لینک ' . $slot));
+    }, [1, 2]), 'now' => time()]);
+}
 if (in_array($action, ['subprofiles.domains.get', 'subprofiles.domains.save'], true)) {
     $saving = $action === 'subprofiles.domains.save';
     if ($saving) {

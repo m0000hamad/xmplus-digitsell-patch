@@ -82,3 +82,10 @@ check(!runDomains('save',array_replace($named,['billing'=>json_encode($billing)]
 $billing['ports'][2]=8443;
 putSetting('profile_agent_11',json_encode(['at'=>time(),'capability'=>'profile-billing-v1','reserved_ports'=>[8443]]));
 check(!runDomains('save',array_replace($named,['billing'=>json_encode($billing)]))['ok'], 'ports reserved by another inbound or API cannot be selected');
+$pdo->exec('CREATE TABLE node_profile_online(serverid INTEGER PRIMARY KEY,profile1 INTEGER,profile2 INTEGER,unclassified INTEGER,ready INTEGER,datetime INTEGER)');
+$online=runEndpoint('online');
+check($online['ok'] && (array)$online['nodes']===[], 'online endpoint leaves unreported nodes unknown');
+$pdo->prepare('INSERT INTO node_profile_online VALUES(?,?,?,?,?,?)')->execute([11,2,3,1,1,time()]);
+$online=runEndpoint('online');
+check($online['nodes']->{11}['counts']===[2,3] && $online['nodes']->{11}['unclassified']===1, 'online endpoint returns actual independent counts in profile order');
+check(array_keys($online['nodes']->{11})===['counts','unclassified','ready','at'], 'online endpoint exposes aggregate counts without account or IP details');

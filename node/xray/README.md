@@ -19,6 +19,11 @@ change; servers are still defined and edited in the panel and this node pulls th
 
 ## Install
 
+Agent **1.4.1** with panel **1.38.6** additionally reports online membership per
+subscription-profile inbound. The server list shows profile 1 above profile 2,
+counting each account once per profile while keeping shared IP/device limits.
+Unsplit or older-agent connections cannot be classified and display “—”.
+
 Agent **1.4.0** with panel **1.38.5** supports two subscription-profile ports
 and traffic multipliers on one native node. The editor's opt-in switch requires
 a recent capable-agent heartbeat; update this agent before enabling it. Both

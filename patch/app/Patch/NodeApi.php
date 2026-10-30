@@ -118,8 +118,10 @@ switch ($nodeApiAction) {
             fail('invalid online snapshot');
         }
         require_once __DIR__ . '/NodeOnline.php';
+        if ((isset($body['profiles']) && !is_array($body['profiles']))
+            || (isset($body['profiles_active']) && !is_bool($body['profiles_active']))) fail('invalid profile snapshot');
         try {
-            $count = nodeOnlineSnapshot(db(), (int) $body['node_id'], $body['data'], time());
+            $count = nodeOnlineSnapshot(db(), (int) $body['node_id'], $body['data'], time(), $body['profiles'] ?? null, $body['profiles_active'] ?? false);
         } catch (InvalidArgumentException $error) {
             fail($error->getMessage());
         }
