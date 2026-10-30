@@ -1,39 +1,42 @@
-## Prepared 1.38.4 — per-profile server names and hostnames
+## Installed and published 1.38.4 — per-profile server names and hostnames
 
-Local implementation complete; NOT published or installed. Every native server
-edit page gains two hostname inputs labeled by subscription profile and an
-independent save button. The owner subsequently requested independent names:
-each link now has its own server-name and hostname field. Both links may contain
-the same server with different names and addresses, sharing every other
-connection field. Empty legacy overrides use the
-native address. Owner's UI follow-up: hide the native address row, show only
-the two profile hostname inputs, prefill unconfigured values from the existing
-address, and require both visible inputs on save. The hidden native input is
-retained solely for compatibility with the encoded native save handler.
-No production mapping or customer configuration was changed.
+Owner authorized installation on 2026-10-30 and then requested separate server
+names so direct/tunnel entries can be distinguished. Every native server edit
+page now includes two subscription-profile groups, each with its own display
+name and connection hostname, labeled with the configured profile title. The
+original address row is hidden; its native input is kept for compatibility with
+the encoded save handler. The original name is labeled “نام سرور در پنل”.
+Unconfigured hostname inputs start with the existing address; suggested names
+append the profile title. All four visible fields are required and saved using
+the block's own button. The shared server-save remains independent.
 
-Local scope, endpoint, real-model attribute/serializer-item and syntax checks
-pass, including separate UTF-8 names and atomic names/domains saves. Loopback
-HTTP tests pass both profiles in all seven formats with different names and
-hostnames for the same server, plus disabled/wrong-group/missing-marker denial.
-Tests cover both profiles, all four native protocol item constructors,
-relay inheritance, empty fallback, forged signatures, CSRF, invalid hostnames,
-atomic pair validation and isolation between servers. See
-SUBSCRIPTION_PROFILES.md for the remaining native serializer matrix.
+A verified profile request applies that profile's name/address through two
+accessors on the native Server model. Both links may contain the same node and
+retain its UUID/password, SNI, TLS, transport, port and relay dependency. Legacy
+or missing overrides retain the stored native values. Names/domains are stored
+per server in existing settings and saved together in one transaction, with
+admin/CSRF, server existence, hostname and UTF-8 validation. No schema change,
+node restart or production domain/profile selection was performed.
 
-The owner explicitly authorized staging, native testing, installation and
-publication on 2026-10-30 after the earlier automatic staging rejection.
-The private staging directory is /tmp/digitsell-server-domains-check; synthetic
-fixtures use connection-local temporary tables and never change customer rows.
-Installed checksums match all files in the preceding published manifest.
-Native matrix passed 156 baseline/profile protocol/relay/format cases. Four
-protocol/relay/format combinations were omitted by the original native baseline
-and are not claimed as supported by this change. Native VLESS Shadowrocket and
-SS payloads require decoding an additional URI base64 layer in assertions.
-Next: publish the complete release, install through
-the native updater and verify
-the installed/latest version agreement and authenticated edit-page health.
-The last completed release remains 1.38.3; never lower installed metadata.
+Validation passed: local scopes/endpoints/model tests, both names and empty
+fallbacks, four native protocol item constructors and relays, 156 supported
+native serializer cases across baseline/both profiles and seven formats, plus
+loopback HTTP name/domain separation and disabled/wrong-group/missing-marker
+denials. Four protocol/relay/format combinations are omitted by the original
+native baseline and are not claimed as newly supported. VMess, Shadowrocket
+VLESS and SS assertions decode the extra URI base64 layer. Synthetic database
+fixtures are connection-local temporary tables; customer rows stay untouched.
+
+Source release: aaf73382ec8c8c056549ecab9534c32f75037fa8, published to origin/main.
+The immutable manifest and all 183 committed-source checksums were verified.
+Installation used the authenticated native updater; backup:
+storage/patch/backup-20261030-224735. All 183 installed checksums match the
+published manifest. Authenticated updater reports installed=latest=1.38.4;
+server 25 edit renders both name/domain groups and hides the original address.
+Live bootstrap, CSRF denial, unauthenticated denial and login health passed;
+customer profile definitions, signing secret and per-server mappings were
+unchanged. Deployment/test scratch stays private in
+/tmp/digitsell-server-domains-check. No service or node restart was performed.
 
 ## 1.38.3 — restore native node capacity during connection incident
 

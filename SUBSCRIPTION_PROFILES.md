@@ -1,6 +1,6 @@
 # Two subscription profiles
 
-Prepared follow-up **1.38.4** (not yet installed or published): every existing
+Installed and published follow-up **1.38.4**, 2026-10-30: every existing
 Admin → Server → Edit page adds a “نام و دامنه هر لینک اشتراک” block beneath the native
 address position, hiding the original address row at the owner's request.
 Only two profile groups remain visible, each with its own server name and
@@ -54,6 +54,13 @@ relay nodes, baseline and both profiles. Four protocol/relay/format combinations
 are absent even in the original baseline; this release does not add those native
 serializer capabilities. VMess, Shadowrocket VLESS and SS URIs are decoded at
 their additional base64 layer before checking the selected endpoint.
+
+Installed through the native updater from source `aaf73382ec8c8c056549ecab9534c32f75037fa8`.
+All 183 installed runtime checksums match its immutable manifest. Authenticated
+status confirms installed=latest=1.38.4, server-edit controls render, domain/name
+bootstrap works, invalid CSRF and unauthenticated requests are denied, and login
+health passes. Customer profile and per-server mappings were not changed. Backup:
+`storage/patch/backup-20261030-224735`.
 
 Installed on the existing panel, 2026-10-28: **1.38.0**. The release includes the complete source, manifest and version
 for the configured GitHub update repository.
