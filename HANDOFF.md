@@ -1,4 +1,4 @@
-## Prepared 1.38.5 — separate profile ports and traffic multipliers
+## Installed and published 1.38.5 — separate profile ports and traffic multipliers
 
 Owner approved separate ports while sharing one native server/configuration and
 quota. The server editor now adds an opt-in checkbox, port and rate per profile
@@ -30,12 +30,21 @@ controller/schema paths. Native baseline/profile port serializer matrix passed
 72 supported Trojan/VLESS direct/relay cases across seven formats; four native
 protocol/relay/format combinations are already omitted by the original baseline.
 Tests and source staged privately in /tmp/digitsell-profile-billing-check.
-Owner explicitly authorized transferring, publishing and installing this release
-after the automatic approval review rejection. Final archive transfer and PHP
-lint on the panel runtime passed; publication/native updater installation and
-live health checks are next. No production profile port/rate setting or agent
-has been changed. Agent 1.4.0 is published with this source; installation on
-the remaining node machines follows the owner's existing self-update choice.
+Owner explicitly authorized final transfer, publication and panel installation
+following the automatic approval rejection. Source release:
+dca5b417abc23fd269f67918912d2014e5e984a4, published to origin/main. The immutable
+manifest and all 184 committed-source checksums were verified. The authenticated
+native updater installed 1.38.5 and migration 030; backup:
+storage/patch/backup-20261031-015701. All 184 installed checksums match.
+Authenticated updater confirms installed=latest=1.38.5. Live editor port/rate
+controls, migration presence, bootstrap, invalid-CSRF denial, unauthenticated
+denial and login health passed. Both native billing controller/schema fixtures
+and both VLESS relay profile-port fixtures passed against actually installed
+code using connection-local temporary tables.
+No production profile port/rate configuration or node agent was changed. Agent
+1.4.0 is published with this source; install it on the intended machines before
+enabling their two ports/rates. Remaining-node updates follow the owner's prior
+self-update choice. No node/core restart was performed by this deployment.
 See PROFILE_BILLING.md for
 activation, accounting, tests and safe rollback/draining requirements.
 

@@ -1,5 +1,13 @@
 # Two profile ports and traffic multipliers
 
+Panel 1.38.5 is installed and published; authenticated installed/latest agree.
+Agent 1.4.0 is published and must be installed on intended node machines before
+activation. No real port/rate configuration or node agent was changed by the
+panel release. Source: `dca5b417abc23fd269f67918912d2014e5e984a4`.
+Backup: `storage/patch/backup-20261031-015701`. All 184 installed file checksums,
+live migration/editor/auth/health and installed-code synthetic billing/port
+fixtures passed.
+
 Panel 1.38.5 and standalone Xray agent 1.4.0 add opt-in per-profile ports and
 traffic multipliers to the existing server editor. There is still one native
 server record, API identity, physical machine and account UUID/password. TLS,
