@@ -1,3 +1,22 @@
+## Prepared 1.38.7 — retain native count for nodes without split enabled
+
+Owner clarified that only nodes with the saved per-profile billing/ports
+checkbox enabled should render two online-count rows. The admin aggregate API
+now returns enabled native node IDs from current billing settings only (not
+history or snapshot readiness). The renderer leaves/restores the native count
+for all other nodes, including before the first API response. Stale snapshots
+cannot keep split display enabled after the checkbox is cleared. No agent,
+presence, quota or migration change is needed.
+
+Endpoint tests and headless Edge using real DataTables passed unchecked/native
+counts, checked two-row counts, live enable/disable, paging and stale/zero
+behavior. Publication/installation and live checks remain pending.
+The owner explicitly approved 1.38.7 transfer, publication and panel installation
+after the approval block. The two-file fix and health script were staged;
+actual-runtime PHP lint and installed baseline checks passed. Publication,
+native updater installation and live checks are next. No agent update is
+needed for this display correction.
+
 ## Installed and published 1.38.6 — online accounts split by subscription profile
 
 Owner requested two rows in Admin → Servers → online-users column: profile 1

@@ -1,1 +1,1 @@
-Separate online account counts per subscription profile in the server list: link 1 above link 2. Actual inbound attribution requires agent 1.4.1 and profile ports. Preserve native presence/device limits; unknown or stale counts show a dash, known empty profiles show zero. Aggregate-only storage and admin endpoint.
+Only nodes with the split checkbox enabled show two profile online-count rows. Unchecked nodes retain the original native counter, including when old profile snapshots remain. No node-agent, port, traffic-accounting or migration changes.

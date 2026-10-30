@@ -18,6 +18,10 @@ document.addEventListener('DOMContentLoaded', function () {
     table.rows({page: 'current'}).every(function () {
       const data = this.data(), id = Number(data.id), cell = table.cell(this.index(), column).node();
       if (!cell || !Number.isInteger(id) || id <= 0) return;
+      if (!snapshot || !(snapshot.split || []).includes(id)) {
+        cell.innerHTML = data.count == null ? '' : String(data.count);
+        return;
+      }
       const node = snapshot && snapshot.nodes[id];
       const age = node ? (snapshot.now - node.at) + (Date.now() - received) / 1000 : Infinity;
       const ready = !!(node && node.ready && age >= 0 && age < 60);

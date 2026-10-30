@@ -1,5 +1,10 @@
 # Two profile ports and traffic multipliers
 
+Follow-up 1.38.7 restricts two-row online display to nodes whose split checkbox
+is enabled in current settings. Unchecked nodes keep their original native
+single counter; clearing the checkbox restores it even if old profile snapshots
+remain. Only checked nodes use the “—” state when split observations are missing.
+
 Online-count follow-up 1.38.6 is installed and published with matching live
 installed/latest status. Agent 1.4.1 is published and required for actual
 per-profile presence; older/unsplit observations remain unclassified. This

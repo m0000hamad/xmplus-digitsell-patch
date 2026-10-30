@@ -89,3 +89,7 @@ $pdo->prepare('INSERT INTO node_profile_online VALUES(?,?,?,?,?,?)')->execute([1
 $online=runEndpoint('online');
 check($online['nodes']->{11}['counts']===[2,3] && $online['nodes']->{11}['unclassified']===1, 'online endpoint returns actual independent counts in profile order');
 check(array_keys($online['nodes']->{11})===['counts','unclassified','ready','at'], 'online endpoint exposes aggregate counts without account or IP details');
+check($online['split']===[11], 'split display is enabled only by the saved per-node checkbox');
+putSetting('server_profile_billing_11',json_encode(['enabled'=>false]));
+$online=runEndpoint('online');
+check($online['split']===[] && $online['nodes']->{11}['ready'], 'disabling split overrides an older fresh profile snapshot');
