@@ -1,4 +1,4 @@
-## Prepared 1.38.6 — online accounts split by subscription profile
+## Installed and published 1.38.6 — online accounts split by subscription profile
 
 Owner requested two rows in Admin → Servers → online-users column: profile 1
 above profile 2. The existing DataTables count cell is now rendered as two
@@ -27,13 +27,21 @@ temporary-table membership/count tests and native Smarty rendering passed.
 Headless Edge with the actual panel DataTables libraries passed vertical order,
 paging, unknown versus zero, stale expiry and script-error checks. Native server
 list contract verified: row.id is numeric; online-users data key is count.
-Private test staging: /tmp/digitsell-profile-online-check. Publication/native
-updater installation and final health checks remain pending. The owner explicitly
-confirmed transfer/publication of panel 1.38.6 and agent 1.4.1 and panel
-installation after the approval-review block. Final archive transfer, actual
-runtime lint and native MySQL/Smarty checks passed. Publication/checksums and
-authenticated installation/health checks are next. No live profile settings or
-node agents were changed by this task.
+Private test staging: /tmp/digitsell-profile-online-check. Owner confirmed final
+transfer/publication and panel installation. Source release
+4ca6a9e725c2fda07e060f19177d4f13e0a7c6b7 was published to origin/main; its immutable
+manifest and all 185 committed-source hashes were verified. The native updater
+installed 1.38.6 and migration 031; backup:
+storage/patch/backup-20261031-042136. All 185 installed hashes match.
+Authenticated status confirmed installed=latest=1.38.6. Live two-row server-list
+markup, private aggregate API, migrations, CSRF and anonymous denial, server-edit
+controls and login health passed. Installed-code MySQL/Smarty fixtures passed
+using connection-local temporary tables. Customer profile configuration and
+signing key were unchanged. Agent 1.4.1 is published; no node agent or core was
+restarted or upgraded by this deployment. Real split counts require that running
+agent and configured profile ports; older/unsplit observations show “—”.
+Final documentation publication was interrupted by automatic approval-review
+usage exhaustion; the owner requested continuation to finish that step.
 
 ## Installed and published 1.38.5 — separate profile ports and traffic multipliers
 

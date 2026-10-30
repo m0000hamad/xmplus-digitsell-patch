@@ -1,5 +1,10 @@
 # Two profile ports and traffic multipliers
 
+Online-count follow-up 1.38.6 is installed and published with matching live
+installed/latest status. Agent 1.4.1 is published and required for actual
+per-profile presence; older/unsplit observations remain unclassified. This
+panel deployment did not update node agents or change profile ports/rates.
+
 Panel 1.38.5 is installed and published; authenticated installed/latest agree.
 Agent 1.4.0 is published and must be installed on intended node machines before
 activation. No real port/rate configuration or node agent was changed by the
