@@ -14,11 +14,15 @@ foreach(['XMPlus'=>'users','XMPlusNew'=>'subscriptions'] as $api=>$key){
  \Illuminate\Database\Capsule\Manager::$rows=[(object)['id'=>7,'uuid'=>'fixture','iplimit'=>$limit,'speedlimit'=>0,'verify'=>1]];
  $response=$controller->getUsers(new Request,new Response,['id'=>1]);$rows=json_decode($response->body->text,true)[$key];
  check(count($rows)===($present?1:0),$api.' admission');
- if($present){check($rows[0]['ipcount']===$count,$api.' must forward global active count');check($rows[0]['iplimit']===$limit,$api.' limit must stay intact');}
+ if($present){check($rows[0]['ipcount']===0,$api.' must not reduce a node quota from global occupancy');check($rows[0]['iplimit']===$limit,$api.' limit must stay intact');}
  }
- // Online count affects the ETag, preventing cached zero-count replies.
- \App\Http\Models\OnlineIp::$count=2;$request=new Request;$request->etag=sha1(json_encode($rows));
- check($controller->getUsers($request,new Response,['id'=>1])->status===200,$api.' count change invalidates cache');
- echo 'PASS '.$api.' global count, admission, unlimited account and cache'.PHP_EOL;
+ // Below the global over-limit threshold, occupancy must not churn node clients.
+ \Illuminate\Database\Capsule\Manager::$rows=[(object)['id'=>7,'uuid'=>'fixture','iplimit'=>3,'speedlimit'=>0,'verify'=>1]];
+ \App\Http\Models\OnlineIp::$count=2;
+ $first=$controller->getUsers(new Request,new Response,['id'=>1]);
+ $request=new Request;$request->etag=sha1(json_encode(json_decode($first->body->text,true)[$key]));
+ \App\Http\Models\OnlineIp::$count=3;
+ check($controller->getUsers($request,new Response,['id'=>1])->status===304,$api.' full quota must preserve node admission and stable cache');
+ echo 'PASS '.$api.' full-quota node switching, native limits, admission and stable cache'.PHP_EOL;
 }
 }

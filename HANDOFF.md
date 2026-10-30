@@ -1,3 +1,32 @@
+## 1.38.3 — restore native node capacity during connection incident
+
+Emergency compatibility rollback: 1.38.2 began forwarding global online-IP
+occupancy to XMPlus/XMPlusNew agents. The agent subtracts that count from the
+node quota and drops account admission entirely on a new node at full quota.
+This cannot distinguish a new device from an existing public IP switching nodes.
+Reproduced: quota=2, global=2, local=0 produces no client; local=1 produces
+capacity=1. Live Turkey logs also showed a two-IP account being constrained to
+one local IP. This is a confirmed connection-failure mechanism, not proof of
+every reported latency symptom.
+
+Restore the native ipcount=0 API contract, preserving configured iplimit,
+existing global over-limit eligibility, expiry, traffic, subscriber groups,
+profile links and per-node authoritative presence. No customer account changes
+or node/core restarts are required; normal API refresh removes reduced local
+quotas. This temporarily forgoes the added cross-node residual allocation and
+may again permit aggregate occupancy above a plan limit between polling cycles.
+A future global solution must recognize source-IP membership rather than evict
+whole accounts based on occupancy alone. Do not re-enable count-only allocation.
+
+Diagnostics: real configs in both profiles exactly matched native link entries
+for both reported accounts; all six endpoints accepted TCP and verified TLS
+from the panel. Turkey has no request-count cap, no listen drops/overflow and
+no recent agent/core restart. TLS handshake timeouts were also observed but
+cannot be attributed to this quota regression or a particular customer.
+Regression: both API suites cover stable full-quota admission, intact per-node
+limits, existing over-limit exclusion, unlimited accounts and stable caching.
+Publication, install and live verification pending.
+
 ## 1.38.2 — online presence and global IP count propagation
 
 Approved follow-up (agent 1.3.2): old authenticated

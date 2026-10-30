@@ -74,7 +74,9 @@ class UserController extends Controller
 			$user->speedlimit = (float)$user->speedlimit;
 			$user->id = (int)$user->id;
 			$user->email = "user_".$user->id.'@xmplus.user';
-			$user->ipcount = $ipcount;
+			// Global occupancy cannot reserve capacity for a future source IP.
+			// Keep native per-node admission; a known IP may switch nodes at full quota.
+			$user->ipcount = 0;
 			$user->passwd = $user->uuid;
 			
 			$user = self::keyFilter($user, $key_list);

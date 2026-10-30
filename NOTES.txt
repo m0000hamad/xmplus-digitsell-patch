@@ -1,1 +1,1 @@
-Forward actual global online IP counts to XMPlus and XMPlusNew node APIs so nodes can apply shared account capacity. Preserve existing account eligibility and over-limit admission. Keep online membership separate per server and provide authoritative per-node snapshots, including disconnects, for Xray agent 1.3.1.
+Restore native per-node IP capacity: prevent global occupancy from reducing node quotas or blocking existing devices switching nodes. Keep subscription profiles and online-presence fixes.
