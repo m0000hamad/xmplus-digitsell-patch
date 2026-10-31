@@ -102,16 +102,29 @@ if ($action === 'subprofiles.save') {
         if ($profile['enabled'] && (!$profile['groups'] || !$profile['servers'])) fail('برای لینک فعال، گروه کاربران و سرور انتخاب کنید.');
     }
     unset($profile);
+    $combined = null;
+    if (isset($_POST['combined'])) {
+        $value = json_decode((string) $_POST['combined'], true);
+        if (!is_array($value) || !isset($value['name'], $value['description'])
+            || !is_string($value['name']) || !is_string($value['description'])) fail('تنظیمات لینک ترکیبی معتبر نیست.');
+        $combined = SubscriptionProfiles::combined((string) $_POST['combined']);
+        $combined['name'] = trim($combined['name']);
+        $combined['description'] = trim($combined['description']);
+        if ($combined['name'] === '' || strlen($combined['name']) > 160 || strlen($combined['description']) > 4000
+            || !preg_match('//u', $combined['name'] . $combined['description'])) fail('عنوان یا توضیحات لینک ترکیبی معتبر نیست.');
+    }
     db()->beginTransaction();
     try {
         if (!setting('sub_profiles_secret', '')) putSetting('sub_profiles_secret', bin2hex(random_bytes(32)));
         putSetting('sub_profiles', json_encode($profiles, JSON_UNESCAPED_UNICODE));
+        if ($combined !== null) putSetting('sub_profiles_combined', json_encode($combined, JSON_UNESCAPED_UNICODE));
         db()->commit();
     } catch (Throwable $e) { db()->rollBack(); fail('ذخیره انجام نشد.'); }
     done(['saved' => true]);
 }
 if ($action !== 'subprofiles.get') fail('عملیات معتبر نیست.');
 done(['profiles' => SubscriptionProfiles::read((string) setting('sub_profiles', '[]')),
+    'combined' => SubscriptionProfiles::combined((string) setting('sub_profiles_combined', '{}')),
     'groups' => db()->query('SELECT id,name FROM `group` ORDER BY id')->fetchAll(),
     'servers' => db()->query('SELECT id,name FROM servers ORDER BY sort,id')->fetchAll(),
     'token' => ($_SESSION['patch_csrf'] ?? ($_SESSION['patch_csrf'] = bin2hex(random_bytes(24))))]);

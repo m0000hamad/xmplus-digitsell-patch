@@ -1,3 +1,35 @@
+## 1.38.9 — optional automatically combined subscription
+
+Admin Settings -> subscription links now has an opt-in combined-link checkbox
+with editable title and description. It is off when absent. Saving remains
+admin/POST/CSRF protected and transactional; older saves omitting the combined
+field preserve its value. Invalid combined metadata cannot partially save sources.
+
+Profile 3 dynamically includes only enabled source profiles allowed for the
+subscriber's server_group. Their selected IDs are intersected with native node
+entitlements. No separate server/group list must be maintained. Disabled sources
+and subsequent source selection changes are reflected on subscription refresh.
+The customer dashboard and admin user editor append the third card through their
+existing profile loop, retaining the one shared application download below.
+
+A verified internal signature for slot 3 resolves the token's current group
+again before installing a union scope. Server collections expand read-only
+clones for each authorized source variant before native serialization. Each
+variant keeps its source name/address/billing port, shared credentials, SNI and
+transport. Identical variants are deduplicated; conflicting display labels get
+stable numeric suffixes for structured-client validity. Stored model attributes,
+node APIs and native/unprofiled subscriptions remain unchanged. Managed refresh
+URLs retain profile=3 in every supported format. No migration or node restart.
+Combined information rows currently use the existing legacy/default row behavior;
+the independent row editors for source profiles 1 and 2 are unchanged.
+
+Validation: pure combined access/model tests, source-profile and endpoint suites,
+full-quota admission regression, original per-profile model variants, 28 native
+serializer cases (source slots and combined, shared billing ports/hostnames and
+relay dependencies), native Smarty/customer/admin card checks, and loopback HTTP
+for seven formats with wrong-group/disabled/missing-marker denial passed.
+Prepared for publication and installation; live verification pending.
+
 ## Installed and published 1.38.8 — editable information rows per subscription link
 
 Owner requested row-level checkboxes and editable subscription information text

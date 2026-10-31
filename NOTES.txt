@@ -1,1 +1,1 @@
-Independent editable information rows for subscription links 1 and 2: per-link master, per-row display checkbox and safe dynamic text templates at the bottom of Admin Servers. All-off removes native information placeholders; preserve real configs, billing, ports and online behavior. No agent update or migration required.
+Add optional combined subscription checkbox with editable title and description. Automatically include authorized servers from both source links, preserve independent hostname and billing-port variants, and keep native client formats and access rules.

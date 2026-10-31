@@ -4,6 +4,12 @@
     <p class="text-muted">برای هر لینک عنوان، توضیحات، گروه کاربران و سرورها را جدا انتخاب کنید. گروه مشترک می‌تواند هر دو لینک را ببیند. انتخاب سرورها دسترسی اصلی اشتراک را گسترش نمی‌دهد.</p>
     <p class="small text-muted">با غیرفعال‌کردن هر دو لینک، لینک اتصالی به کاربران نمایش داده نمی‌شود.</p>
     <div id="spForms" class="row g-3"></div>
+    <fieldset id="spCombined" class="border rounded p-3 mt-3" disabled>
+      <label class="form-check"><input id="spCombinedEnabled" type="checkbox" class="form-check-input"> نمایش لینک اشتراک ترکیبی</label>
+      <p class="small text-muted mt-2">سرورهای هر دو لینک خودکار ترکیب می‌شوند. هر کاربر فقط سرورهای لینک‌های مجاز گروه خودش را می‌گیرد؛ تنظیمات دامنه و پورت هر لینک حفظ می‌شود.</p>
+      <label class="d-block mb-2">عنوان لینک ترکیبی<input id="spCombinedName" class="form-control" maxlength="80"></label>
+      <label class="d-block">توضیحات<textarea id="spCombinedDescription" class="form-control" rows="2" maxlength="1000"></textarea></label>
+    </fieldset>
     <button id="spSave" type="button" class="btn btn-primary mt-3" disabled>ذخیره لینک‌ها</button>
     <span id="spStatus" role="status" class="ms-2"></span>
   </div>
@@ -41,7 +47,12 @@ document.addEventListener('DOMContentLoaded', function () {
       choices(box, 'گروه کاربران (گروه اشتراک)', data.groups, profile.groups, 'groups');
       choices(box, 'سرورهای این لینک', data.servers, profile.servers, 'servers');
       col.appendChild(box); root.appendChild(col);
-    }); save.disabled = false;
+    });
+    document.getElementById('spCombinedEnabled').checked = !!data.combined.enabled;
+    document.getElementById('spCombinedName').value = data.combined.name;
+    document.getElementById('spCombinedDescription').value = data.combined.description;
+    document.getElementById('spCombined').disabled = false;
+    save.disabled = false;
   }).catch(e => {status.textContent = 'بارگذاری انجام نشد: ' + e.message;});
   save.addEventListener('click', async function () {
     const profiles = Array.from(root.querySelectorAll('[data-profile]')).map(box => {
@@ -51,7 +62,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     save.disabled = true; status.textContent = 'در حال ذخیره…';
     try {
-      const body = new URLSearchParams({token, profiles: JSON.stringify(profiles)});
+      const combined = {enabled: document.getElementById('spCombinedEnabled').checked,
+        name: document.getElementById('spCombinedName').value, description: document.getElementById('spCombinedDescription').value};
+      const body = new URLSearchParams({token, profiles: JSON.stringify(profiles), combined: JSON.stringify(combined)});
       const data = await (await fetch(endpoint + 'save', {method: 'POST', credentials: 'same-origin', body})).json();
       if (!data.ok) throw new Error(data.error); status.textContent = 'ذخیره شد';
     } catch (e) {status.textContent = e.message;} finally {save.disabled = false;}

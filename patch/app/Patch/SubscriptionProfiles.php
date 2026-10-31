@@ -7,19 +7,76 @@ final class SubscriptionProfiles
     private static $addresses = [];
     private static $names = [];
     private static $ports = [];
+    private static $variants = [];
 
-    public static function port(int $serverId, $fallback)
+    public static function combined(string $json): array
     {
+        $value = json_decode($json, true);
+        return ['enabled' => !empty($value['enabled']),
+            'name' => (string) ($value['name'] ?? 'لینک اشتراک ترکیبی'),
+            'description' => (string) ($value['description'] ?? 'همه سرورهای مجاز دو لینک')];
+    }
+
+    /** Union only the enabled source profiles this subscriber may access. */
+    public static function sources(array $profiles, array $user): array
+    {
+        return array_filter($profiles, static function ($profile) use ($user) { return self::allowed($profile, $user); });
+    }
+
+    public static function resolve(array $profiles, string $slot, array $user, array $combined): array
+    {
+        if (in_array($slot, ['1', '2'], true)) {
+            $profile = $profiles[(int) $slot - 1] ?? [];
+            return self::allowed($profile, $user) ? $profile : [];
+        }
+        if ($slot !== '3' || empty($combined['enabled'])) return [];
+        $sources = self::sources($profiles, $user);
+        if (!$sources) return [];
+        $ids = [];
+        foreach ($sources as $profile) $ids = array_merge($ids, $profile['servers'] ?? []);
+        return $combined + ['servers' => array_values(array_unique(array_map('intval', $ids)))];
+    }
+
+    /** Expand read-only model results before the native serializers build any format. */
+    public static function expand(array $models): array
+    {
+        if (!self::$variants) return $models;
+        $result = [];
+        $usedNames = [];
+        foreach ($models as $model) {
+            $seen = [];
+            foreach (self::$variants[(int) $model->id] ?? [] as $slot => $overrides) {
+                $copy = clone $model;
+                $copy->subscriptionProfileSlot = $slot;
+                $signature = json_encode([$copy->address, $copy->name, self::port((int) $model->id, $model->port, $slot)]);
+                if (isset($seen[$signature])) continue;
+                $seen[$signature] = true;
+                $number = 2;
+                while (isset($usedNames[$copy->name])) $copy->subscriptionProfileNameSuffix = ' (' . $number++ . ')';
+                $usedNames[$copy->name] = true;
+                $result[] = $copy;
+            }
+            // A selected relay's transport is an internal dependency, not a profile entry.
+            if (!isset(self::$variants[(int) $model->id])) $result[] = $model;
+        }
+        return $result;
+    }
+
+    public static function port(int $serverId, $fallback, ?int $slot = null)
+    {
+        if ($slot !== null) return self::$variants[$serverId][$slot]['port'] ?? $fallback;
         return self::$ports[$serverId] ?? $fallback;
     }
 
-    public static function name(int $serverId, $fallback)
+    public static function name(int $serverId, $fallback, ?int $slot = null)
     {
+        if ($slot !== null) return self::$variants[$serverId][$slot]['name'] ?? $fallback;
         return self::$names[$serverId] ?? $fallback;
     }
 
-    public static function address(int $serverId, $fallback)
+    public static function address(int $serverId, $fallback, ?int $slot = null)
     {
+        if ($slot !== null) return self::$variants[$serverId][$slot]['address'] ?? $fallback;
         return self::$addresses[$serverId] ?? $fallback;
     }
 
@@ -69,11 +126,29 @@ final class SubscriptionProfiles
         $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
         $secret = (string) ($settings['sub_profiles_secret'] ?? '');
         if ($secret === '' || !preg_match('~^/link/([A-Za-z0-9_-]{6,128})/?$~', $path, $match)
-            || !in_array($slot, ['1', '2'], true) || !ctype_digit($until)
+            || !in_array($slot, ['1', '2', '3'], true) || !ctype_digit($until)
             || (int) $until < time() || (int) $until > time() + 90
             || !hash_equals(hash_hmac('sha256', $slot . ':' . $until . ':' . $match[1], $secret), $mac)) return;
         $profiles = self::read((string) ($settings['sub_profiles'] ?? '[]'));
         $profile = $profiles[(int) $slot - 1] ?? [];
+        if ($slot === '3') {
+            $user = \Illuminate\Database\Capsule\Manager::table('user')->where('token', $match[1])->first(['server_group']);
+            if (!$user) return;
+            $profile = self::resolve($profiles, $slot, (array) $user, self::combined((string) ($settings['sub_profiles_combined'] ?? '{}')));
+            if (!$profile) return;
+            foreach (self::sources($profiles, (array) $user) as $index => $source) {
+                $sourceSlot = $index + 1;
+                foreach ($source['servers'] as $id) {
+                    $billing = json_decode((string) ($settings['server_profile_billing_' . $id] ?? '{}'), true);
+                    $domains = json_decode((string) ($settings['server_profile_domains_' . $id] ?? '{}'), true);
+                    $names = json_decode((string) ($settings['server_profile_names_' . $id] ?? '{}'), true);
+                    self::$variants[(int) $id][$sourceSlot] = [
+                        'port' => !empty($billing['enabled']) ? ($billing['ports'][$sourceSlot] ?? null) : null,
+                        'address' => ($domains[$sourceSlot] ?? '') ?: null,
+                        'name' => ($names[$sourceSlot] ?? '') ?: null];
+                }
+            }
+        }
         $ids = array_map('intval', $profile['servers'] ?? []);
         foreach ($ids as $id) {
             $billing = json_decode((string) ($settings['server_profile_billing_' . $id] ?? '{}'), true);

@@ -398,13 +398,16 @@ if (isset($_GET['profile'])) {
     require_once ROOT . '/app/Patch/SubscriptionProfiles.php';
     $slot = (string) $_GET['profile'];
     $profiles = SubscriptionProfiles::read((string) setting('sub_profiles', '[]'));
-    if (!in_array($slot, ['1', '2'], true)) subinfoBail($subToken);
+    if (!in_array($slot, ['1', '2', '3'], true)) subinfoBail($subToken);
     $subProfile = $profiles[(int) $slot - 1] ?? [];
     $q = db()->prepare('SELECT id,server_group FROM user WHERE token = ? LIMIT 2');
     $q->execute([$subToken]);
     $accounts = $q->fetchAll();
     $secret = (string) setting('sub_profiles_secret', '');
-    if (count($accounts) !== 1 || !SubscriptionProfiles::allowed($subProfile, $accounts[0]) || $secret === '') subinfoBail($subToken);
+    if (count($accounts) !== 1 || $secret === '') subinfoBail($subToken);
+    $subProfile = SubscriptionProfiles::resolve($profiles, $slot, $accounts[0],
+        SubscriptionProfiles::combined((string) setting('sub_profiles_combined', '{}')));
+    if (!$subProfile) subinfoBail($subToken);
     $until = (string) (time() + 60);
     $GLOBALS['subProfileHeader'] = ['X-Digitsell-Profile: ' . $slot . ':' . $until . ':' . hash_hmac('sha256', $slot . ':' . $until . ':' . $subToken, $secret)];
 }

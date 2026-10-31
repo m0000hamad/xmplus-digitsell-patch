@@ -1,3 +1,23 @@
+# Optional combined link (1.38.9)
+
+In Admin -> Settings -> لینک‌های اتصال, enable **نمایش لینک اشتراک ترکیبی**,
+edit its title/description if desired, and save. A third subscription card then
+appears below the two source cards; the application download stays below them.
+The endpoint is `profile=3`. The checkbox defaults off and does not activate
+automatically during installation.
+
+Its membership updates automatically from the two configured links. Subscribers
+receive only the enabled source links allowed for their own subscription group;
+a combined link cannot grant another group's servers or bypass native access.
+The same native node may appear twice when the source profiles use different
+names, hostnames or ports; each preserves its original connection and billing
+variant. Identical entries appear once. No customer/node configuration changes
+are required. Turning the checkbox off hides the card and rejects its endpoint.
+
+Validation: `php tools/subscription-combined-test.php`, existing profile/endpoint
+suites and native template tests. The native serializer fixture now accepts slot
+`3`, including `3 config Trojan relay domains billing` for both source variants.
+
 # Two subscription profiles
 
 Follow-up **1.38.5** adds opt-in port and traffic-multiplier fields per profile

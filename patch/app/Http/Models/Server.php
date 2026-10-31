@@ -7,17 +7,26 @@ use App\Helpers\Emoji;
 
 final class Server extends Model
 {
+    public $subscriptionProfileSlot = null;
+    public $subscriptionProfileNameSuffix = '';
+
+    public function newCollection(array $models = [])
+    {
+        require_once dirname(__DIR__, 2) . '/Patch/SubscriptionProfiles.php';
+        return parent::newCollection(\SubscriptionProfiles::expand($models));
+    }
+
     /** Only a verified subscription-profile request supplies an override. */
     public function getAddressAttribute($value)
     {
         require_once dirname(__DIR__, 2) . '/Patch/SubscriptionProfiles.php';
-        return \SubscriptionProfiles::address((int) $this->id, $value);
+        return \SubscriptionProfiles::address((int) $this->id, $value, $this->subscriptionProfileSlot);
     }
 
     public function getNameAttribute($value)
     {
         require_once dirname(__DIR__, 2) . '/Patch/SubscriptionProfiles.php';
-        return \SubscriptionProfiles::name((int) $this->id, $value);
+        return \SubscriptionProfiles::name((int) $this->id, $value, $this->subscriptionProfileSlot) . $this->subscriptionProfileNameSuffix;
     }
 
     protected $connection = 'default';
@@ -111,7 +120,7 @@ final class Server extends Model
     public function port(): int
     {
         require_once dirname(__DIR__, 2) . '/Patch/SubscriptionProfiles.php';
-        $profilePort = method_exists(\SubscriptionProfiles::class, 'port') ? \SubscriptionProfiles::port((int) $this->id, null) : null;
+        $profilePort = method_exists(\SubscriptionProfiles::class, 'port') ? \SubscriptionProfiles::port((int) $this->id, null, $this->subscriptionProfileSlot) : null;
         if ($profilePort !== null) return $profilePort;
         $server_port = explode("-", $this->port);
         if (count($server_port) > 1) {

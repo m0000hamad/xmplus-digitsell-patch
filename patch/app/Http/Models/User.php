@@ -34,6 +34,10 @@ final class User extends Model
                 $result[] = ['id' => $i + 1, 'name' => $profile['name'], 'description' => $profile['description'] ?? ''];
             }
         }
+        $combined = \SubscriptionProfiles::combined((string) $config->get('sub_profiles_combined'));
+        if (\SubscriptionProfiles::resolve($profiles, '3', ['server_group' => $this->server_group], $combined)) {
+            $result[] = ['id' => 3, 'name' => $combined['name'], 'description' => $combined['description']];
+        }
         return $result;
     }
 

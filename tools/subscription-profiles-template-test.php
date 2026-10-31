@@ -63,6 +63,13 @@ check(substr_count(renderGroup(4),'class="app-link-field"')===5,'distinct group 
 check(substr_count(renderGroup(99),'class="app-link-field"')===0,'unselected group has no link');
 $profiles[1]['enabled']=false;setProfiles($profiles);
 check(substr_count(renderGroup(4),'class="app-link-field"')===0,'disabled profile hidden');
+$profiles[1]['enabled']=true;
+setProfiles($profiles);
+$pdo->prepare('INSERT INTO settings(name,value) VALUES(?,?)')->execute(['sub_profiles_combined','{"enabled":true,"name":"Combined <b>safe</b>","description":"Both sources"}']);
+$html=renderGroup(2);
+check(substr_count($html,'class="app-link-field"')===15 && strpos($html,'&profile=3&clash=1')!==false,'combined card is added automatically for every app');
+check(strpos($html,'Combined &lt;b&gt;safe&lt;/b&gt;')!==false,'combined title escaped');
+$html=renderGroup(99);check(strpos($html,'&profile=3')===false,'unentitled group cannot see combined card');
 setProfiles([]);$html=renderGroup(99);
 check(substr_count($html,'class="app-link-field"')===5 && strpos($html,'&profile=')===false,'unconfigured feature retains legacy links');
 $s->fetch('subprofiles.tpl');echo "PASS admin settings render\n";

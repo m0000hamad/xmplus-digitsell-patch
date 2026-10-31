@@ -6,6 +6,8 @@ $panel = $argv[1];
 $source = $argv[2];
 $slot = $argv[3] ?? '1';
 $format = $argv[4] ?? 'config';
+require $panel . '/vendor/autoload.php';
+require $source . '/app/Http/Models/Server.php';
 require $source . '/app/Provider/ConfigProvider.php';
 require $panel . '/bin/console.php';
 if (!class_exists('App\\Http\\Models\\Server', false) && is_file($source . '/app/Http/Models/Server.php')) {
@@ -68,6 +70,7 @@ if ($domainFixture) {
     if ($billingFixture) settingFixture('server_profile_billing_900001', json_encode(['enabled'=>true,'ports'=>[1=>1443,2=>2443],'rates'=>[1=>1,2=>4]]));
 }
 settingFixture('sub_profiles', json_encode($profiles));
+settingFixture('sub_profiles_combined', '{"enabled":true,"name":"Combined","description":"Both"}');
 settingFixture('sub_profiles_secret', 'fixture-secret-not-a-production-key');
 settingFixture('sub_info_enabled', '0');
 $_SERVER['REQUEST_URI'] = '/link/' . $token . '?' . $format . '=1';
@@ -84,9 +87,9 @@ $config = new App\Provider\ConfigProvider();
 if ($domainFixture) {
     $node = App\Http\Models\Server::find(900001);
     $item = $node->getServerItem(App\Http\Models\User::find(900001), $argv[5] ?? 'Trojan', false);
-    $expectedAddress = $slot === '0' ? 'direct.example.invalid' : ($slot === '1' ? 'first.example.invalid' : 'second.example.invalid');
-    $expectedName = $slot === '0' ? 'PROFILE-DIRECT' : ($slot === '1' ? 'PROFILE-FIRST' : 'PROFILE-SECOND');
-    $expectedPort = $billingFixture && $slot !== '0' ? ($slot === '1' ? 1443 : 2443) : 443;
+    $expectedAddress = $slot === '0' ? 'direct.example.invalid' : ($slot === '2' ? 'second.example.invalid' : 'first.example.invalid');
+    $expectedName = $slot === '0' ? 'PROFILE-DIRECT' : ($slot === '2' ? 'PROFILE-SECOND' : 'PROFILE-FIRST');
+    $expectedPort = $billingFixture && $slot !== '0' ? ($slot === '2' ? 2443 : 1443) : 443;
     if ($item['add'] !== $expectedAddress || $item['sni'] !== 'example.invalid' || $item['port'] !== $expectedPort
         || $item['name'] !== $expectedName || $item['remark'] !== $expectedName
         || ($item['passwd'] ?? '') !== $user['uuid']) throw new RuntimeException('Profile overrides changed shared connection settings');
@@ -103,7 +106,7 @@ $decoded = base64_decode($body, true);
 if ($decoded !== false) $body = $decoded;
 $want = $slot === '2' && !$domainFixture ? 'TUNNEL' : 'DIRECT';
 $other = $slot === '2' && !$domainFixture ? 'DIRECT' : 'TUNNEL';
-if ($domainFixture && $slot !== '0') $want = $slot === '1' ? 'FIRST' : 'SECOND';
+if ($domainFixture && $slot !== '0') $want = $slot === '2' ? 'SECOND' : 'FIRST';
 if ($domainFixture && strpos($body, $expectedAddress) === false) {
     // Native VMess, Shadowrocket VLESS and SS URIs can encode the endpoint again.
     if (preg_match_all('~(?:vmess|vless|ss)://([A-Za-z0-9+/_=-]+)(?=[?#\s]|$)~', $body, $links)) {
@@ -118,13 +121,17 @@ if ($domainFixture && strpos($body, $expectedAddress) === false) {
     }
 }
 if ($response->getStatusCode() !== 200 || strpos($body, 'PROFILE-' . $want) === false
-    || ($slot !== '0' && strpos($body, 'PROFILE-' . $other) !== false)) {
+    || (in_array($slot, ['1','2'], true) && strpos($body, 'PROFILE-' . $other) !== false)) {
     echo 'FAIL native fixture slot=' . $slot . ' format=' . $format . ' status=' . $response->getStatusCode() . ' bytes=' . strlen($body) . "\n";
     // Only synthetic fixture output may be displayed on failure.
     echo substr($body, 0, 500) . "\n";
     exit(1);
 }
-if ($billingFixture && $slot !== '0' && (strpos($body, (string) $expectedPort) === false
+if ($slot === '3' && (strpos($body, 'PROFILE-' . ($domainFixture ? 'SECOND' : 'TUNNEL')) === false
+    || ($billingFixture && (strpos($body, '1443') === false || strpos($body, '2443') === false)))) {
+    throw new RuntimeException('Combined native format omitted one source profile');
+}
+if ($billingFixture && in_array($slot, ['1','2'], true) && (strpos($body, (string) $expectedPort) === false
     || preg_match('/(?<![0-9])' . ($slot === '1' ? '2443' : '1443') . '(?![0-9])/', $body))) {
     throw new RuntimeException('Serialized profile port missing or other profile port leaked');
 }

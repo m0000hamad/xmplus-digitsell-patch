@@ -41,6 +41,13 @@ $invalid=$profiles; $invalid[0]['description']=str_repeat('x',4001);
 check(!runEndpoint('save',['profiles'=>json_encode($invalid),'token'=>$initial['token']])['ok'], 'description size validated');
 check(!runEndpoint('save',['profiles'=>'{"a":{},"b":{}}','token'=>$initial['token']])['ok'], 'non-list profile object rejected');
 
+$combined=['enabled'=>true,'name'=>'Combined','description'=>'Both sources'];
+check(runEndpoint('save',['profiles'=>json_encode($profiles),'combined'=>json_encode($combined),'token'=>$initial['token']])['ok'], 'combined checkbox saves alongside sources');
+check(runEndpoint('get')['combined']===$combined, 'combined title description and checkbox round trip');
+$beforeCombined=setting('sub_profiles_combined');$beforeProfiles=setting('sub_profiles');
+check(!runEndpoint('save',['profiles'=>json_encode($profiles),'combined'=>'{"enabled":true,"name":"","description":""}','token'=>$initial['token']])['ok'] && setting('sub_profiles_combined')===$beforeCombined && setting('sub_profiles')===$beforeProfiles, 'invalid combined settings preserve all three links atomically');
+check(runEndpoint('save',['profiles'=>json_encode($profiles),'token'=>$initial['token']])['ok'] && setting('sub_profiles_combined')===$beforeCombined, 'older saves preserve combined checkbox');
+
 function runDomains(string $verb, array $body): array {
     $action = 'subprofiles.domains.' . $verb;
     $_GET = $body; $_POST = $body; $_SERVER['REQUEST_METHOD'] = $verb === 'save' ? 'POST' : 'GET';
