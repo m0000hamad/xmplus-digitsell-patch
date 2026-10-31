@@ -14,7 +14,16 @@ Original profiles and access restrictions remain unchanged. A proposed read-only
 count using a real administrator subscription token was rejected by automatic
 approval review; it was not executed or retried. Synthetic fixtures supply the
 cardinality proof without accessing real subscription credentials.
-Publication/install/live verification pending.
+Published source 37d65dcb1d925b59866bec14a0071296bf143040, with remote branch
+and immutable manifest verified. Installed only the helper after prior-hash
+verification; backup storage/patch/backup-20261031-105424-subprofiles. All 188
+installed runtime hashes match the release. Authenticated status confirms
+installed=latest=1.38.10; editor/bootstrap/access/login health pass. Source and
+combined settings, names/domains/ports/rates and signing secret are unchanged.
+The native 28-case matrix now passes exact cardinality as well as content;
+seven-format loopback HTTP and denial cases pass. No node restart or customer
+subscription-token access was performed. Refresh the combined subscription in
+the client to replace the old generated list.
 
 ## 1.38.9 — optional automatically combined subscription
 
