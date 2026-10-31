@@ -28,7 +28,15 @@ full-quota admission regression, original per-profile model variants, 28 native
 serializer cases (source slots and combined, shared billing ports/hostnames and
 relay dependencies), native Smarty/customer/admin card checks, and loopback HTTP
 for seven formats with wrong-group/disabled/missing-marker denial passed.
-Prepared for publication and installation; live verification pending.
+Published source 2d5f0999c566ca7a75484bcc19c1e1c4434cfbbd, with origin/main and
+immutable manifest verified. Six runtime files installed atomically after prior
+hash verification; backup storage/patch/backup-20261031-104244-subprofiles.
+All 188 installed runtime hashes match the published manifest. Authenticated
+updater confirms installed=latest=1.38.9. The live admin settings editor and
+combined bootstrap/default-off state, anonymous denial and login health pass.
+Existing source profiles, signing secret, information rows and per-server
+name/domain/port/rate settings remained unchanged. The checkbox was left off
+for the owner to choose; no customer account or node service was modified.
 
 ## Installed and published 1.38.8 — editable information rows per subscription link
 
