@@ -1,4 +1,4 @@
-## Prepared 1.38.8 — editable information rows per subscription link
+## Installed and published 1.38.8 — editable information rows per subscription link
 
 Owner requested row-level checkboxes and editable subscription information text
 at the bottom of Admin → Servers, then clarified that link 1 and link 2 must
@@ -18,12 +18,18 @@ customer account was modified during preparation.
 Pure rendering/settings suites, the headless two-card editor test, native Smarty
 and loopback HTTP/native serializer tests passed for both profiles. See
 SUB_INFO_ROWS.md for behavior, compatibility and validation. Private staging is
-/tmp/digitsell-sub-info-rows-check. Final publication/installation checks pending.
-The owner explicitly accepted 1.38.8 transfer, publication and panel installation
-after the approval block. Final release transfer and actual-runtime PHP lint
-passed; the installed source matches the preceding published baseline. Final
-publication, native installation and authenticated live checks are next. No
-agent update is required.
+/tmp/digitsell-sub-info-rows-check. Owner explicitly accepted final transfer,
+publication and panel installation following the approval block. Source release
+5cdbf4e0ac5c8694b1469d0550ef650c9a9f0618 was published to origin/main. Its immutable
+manifest and all 188 committed-source hashes were verified. The authenticated
+native updater installed 1.38.8; backup: storage/patch/backup-20261031-103702.
+All 188 installed hashes match. Authenticated status confirms
+installed=latest=1.38.8. The live final Servers card, two-link bootstrap, invalid
+template rejection, CSRF/anonymous denial and login health passed. Existing
+profile names/domains/ports/rates, signing key and row settings were unchanged;
+no row choices were configured for the owner. No node agent, account, traffic
+quota or schema was changed. Customers receive future text/checkbox edits after
+refreshing their subscription; no backend/node update is required.
 
 ## Installed and published 1.38.7 — retain native count for nodes without split enabled
 

@@ -1,6 +1,6 @@
 # Editable information rows per subscription link
 
-Prepared for panel 1.38.8. Admin → Servers ends with “ردیف‌های اطلاعات داخل
+Installed and published in panel 1.38.8; authenticated installed/latest agree. Admin → Servers ends with “ردیف‌های اطلاعات داخل
 اشتراک”, after the existing VPN cards. Link 1 and link 2 have separate master
 switches, row checkboxes and complete editable text templates. One save validates
 both cards and writes one complete JSON setting, `sub_info_profile_rows`.
@@ -63,3 +63,8 @@ lookups; no production customer row or setting is changed by tests.
 
 Rollback to the preceding panel source leaves this inert configuration setting
 in place. Existing profile billing/ports and online-count behavior are unaffected.
+
+Release source: `5cdbf4e0ac5c8694b1469d0550ef650c9a9f0618`. All 188 installed
+runtime hashes match the immutable manifest. Native editor/bootstrap/validation,
+CSRF and anonymous denial, and login health passed. Backup:
+`storage/patch/backup-20261031-103702`. Production row choices were not changed.
