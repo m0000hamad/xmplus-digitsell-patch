@@ -84,6 +84,8 @@ if ($slot !== '0') {
     $_SERVER['HTTP_X_DIGITSELL_PROFILE'] = $slot . ':' . $until . ':' . hash_hmac('sha256', $slot . ':' . $until . ':' . $token, 'fixture-secret-not-a-production-key');
 }
 $config = new App\Provider\ConfigProvider();
+$count = App\Http\Models\Server::where('id', 900001)->get()->count();
+if ($count !== ($slot === '3' && $domainFixture ? 2 : 1)) throw new RuntimeException('Native ORM duplicated profile variants');
 if ($domainFixture) {
     $node = App\Http\Models\Server::find(900001);
     $item = $node->getServerItem(App\Http\Models\User::find(900001), $argv[5] ?? 'Trojan', false);

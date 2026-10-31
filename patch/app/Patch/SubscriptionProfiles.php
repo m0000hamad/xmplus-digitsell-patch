@@ -44,6 +44,13 @@ final class SubscriptionProfiles
         $result = [];
         $usedNames = [];
         foreach ($models as $model) {
+            // Eloquent calls newCollection during both hydration and get().
+            // These instances already represent their individual source variant.
+            if ($model->subscriptionProfileSlot !== null) {
+                $usedNames[$model->name] = true;
+                $result[] = $model;
+                continue;
+            }
             $seen = [];
             foreach (self::$variants[(int) $model->id] ?? [] as $slot => $overrides) {
                 $copy = clone $model;

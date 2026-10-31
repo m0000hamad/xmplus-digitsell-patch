@@ -1,3 +1,21 @@
+## 1.38.10 — prevent repeated combined-variant expansion
+
+The 1.38.9 combined hook expanded shared servers twice: Eloquent hydrate()
+and Builder::get() both call Model::newCollection(). A server present in both
+source profiles therefore became four entries instead of two, with unwanted
+numeric name suffixes. Make expansion idempotent by retaining already marked
+source-variant instances unchanged. Legitimate direct/tunnel endpoint variants
+remain distinct; no stored selection, address, port, rate or name is edited.
+
+Regression now rebuilds the same collection twice and checks object identity
+and exact cardinality. The native serializer fixture asserts the real ORM
+returns exactly two variants for a shared split server, across all formats.
+Original profiles and access restrictions remain unchanged. A proposed read-only
+count using a real administrator subscription token was rejected by automatic
+approval review; it was not executed or retried. Synthetic fixtures supply the
+cardinality proof without accessing real subscription credentials.
+Publication/install/live verification pending.
+
 ## 1.38.9 — optional automatically combined subscription
 
 Admin Settings -> subscription links now has an opt-in combined-link checkbox

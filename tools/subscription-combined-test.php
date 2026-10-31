@@ -49,6 +49,7 @@ $node=new \App\Http\Models\Server(['id'=>11,'address'=>'native.example.invalid',
 $same=new \App\Http\Models\Server(['id'=>12,'address'=>'duplicate.example.invalid','name'=>'Duplicate','port'=>443]);
 $rows=$node->newCollection([$node,$same]);
 check(count($rows)===3, 'distinct per-profile endpoints retained and exact duplicates removed');
+check($node->newCollection($rows)===$rows, 'ORM rebuilding a collection must not expand variants twice');
 check([$rows[0]->address,$rows[0]->port(),$rows[1]->address,$rows[1]->port()]===['first.example.invalid',1443,'second.example.invalid',2443], 'native clones retain each source hostname and billing port');
 check($rows[0]->name!==$rows[1]->name, 'structured formats receive unique proxy labels');
 check($node->address==='native.example.invalid' && $node->port()===443, 'stored/native model remains unchanged');

@@ -1,7 +1,7 @@
 {
-    "version": "1.38.9",
+    "version": "1.38.10",
     "released": "2026-10-31",
-    "notes": "Add optional combined subscription checkbox with editable title and description. Automatically include authorized servers from both source links, preserve independent hostname and billing-port variants, and keep native client formats and access rules.",
+    "notes": "Fix duplicate combined subscription entries: Eloquent builds collections twice, so already expanded profile variants must not be expanded again. Preserve the two legitimate direct/tunnel endpoints.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -81,7 +81,7 @@
         "app/Patch/SubInfo.php": "91e2927fcb2473b8c2af6561889b15e69e587e62255253fb83769f8f147db119",
         "app/Patch/SubInfoRows.php": "8828990b0b2ea1e852f2b6a9ecca321fddb457fb7f85133d55a6c5cb6b2345e1",
         "app/Patch/SubInfoRowsEndpoint.php": "26390b19d453d4fb6080fb852991114a566290f401d4fefd476ba70f5ba1da86",
-        "app/Patch/SubscriptionProfiles.php": "be307ecf7ca07bcf0afa09560bf1bb8e627070c76bfc2c7dc5034bd71f51016a",
+        "app/Patch/SubscriptionProfiles.php": "2dc8a97edbd6bcd6b54f0acd281f5a52046e70fe8f8cda395761380e806f8645",
         "app/Patch/SubscriptionProfilesEndpoint.php": "f11695dce9c2030528f3bd7e19bf1051d136347834d9df43b089e27301ac4c5a",
         "app/Patch/TgGift.php": "bc691f338913bf46bb88f0d91c360bf864c2d54c7839d2bac62ea54d0afacb77",
         "app/Patch/TimePlan.php": "38fd91b67c8c189aa1af3f58b1c671371129a3d123af740655a1be90990cb65a",

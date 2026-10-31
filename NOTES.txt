@@ -1,1 +1,1 @@
-Add optional combined subscription checkbox with editable title and description. Automatically include authorized servers from both source links, preserve independent hostname and billing-port variants, and keep native client formats and access rules.
+Fix duplicate combined subscription entries: Eloquent builds collections twice, so already expanded profile variants must not be expanded again. Preserve the two legitimate direct/tunnel endpoints.
