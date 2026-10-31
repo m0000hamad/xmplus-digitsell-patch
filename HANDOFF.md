@@ -1,3 +1,30 @@
+## Prepared 1.38.8 — editable information rows per subscription link
+
+Owner requested row-level checkboxes and editable subscription information text
+at the bottom of Admin → Servers, then clarified that link 1 and link 2 must
+be independently configured. The new final card has two separate master switches
+and complete row/template controls, with safe sample previews and documented
+dynamic placeholders. One admin/POST/CSRF-protected setting write saves both
+validated profile configurations atomically. No schema/agent change is needed.
+
+SubInfo keeps account-specific dynamic values and its existing status conditions.
+Configured profile links use their own row settings; unconfigured and unprofiled
+links retain legacy behavior. All-off cannot resurrect native English metadata
+or Shadowrocket STATUS rows. Real connection entries are retained, including
+real endpoints with Total/Expire-like labels. Structured configuration bodies
+remain pass-through. No real profile settings, tokens, quota, agent, port or
+customer account was modified during preparation.
+
+Pure rendering/settings suites, the headless two-card editor test, native Smarty
+and loopback HTTP/native serializer tests passed for both profiles. See
+SUB_INFO_ROWS.md for behavior, compatibility and validation. Private staging is
+/tmp/digitsell-sub-info-rows-check. Final publication/installation checks pending.
+The owner explicitly accepted 1.38.8 transfer, publication and panel installation
+after the approval block. Final release transfer and actual-runtime PHP lint
+passed; the installed source matches the preceding published baseline. Final
+publication, native installation and authenticated live checks are next. No
+agent update is required.
+
 ## Installed and published 1.38.7 — retain native count for nodes without split enabled
 
 Owner clarified that only nodes with the saved per-profile billing/ports

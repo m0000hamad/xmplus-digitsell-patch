@@ -1,1 +1,1 @@
-Only nodes with the split checkbox enabled show two profile online-count rows. Unchecked nodes retain the original native counter, including when old profile snapshots remain. No node-agent, port, traffic-accounting or migration changes.
+Independent editable information rows for subscription links 1 and 2: per-link master, per-row display checkbox and safe dynamic text templates at the bottom of Admin Servers. All-off removes native information placeholders; preserve real configs, billing, ports and online behavior. No agent update or migration required.

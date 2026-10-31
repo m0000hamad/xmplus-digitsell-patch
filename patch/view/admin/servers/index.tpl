@@ -85,6 +85,7 @@
 			{include file='admin/settings/wgsettings.tpl'}
 		</div>
 	</div>
+	{include file='admin/servers/subinforows.tpl'}
 	<style>
 		{literal}
 		.su-chart-wrap { position: relative; height: 320px; }

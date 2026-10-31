@@ -93,3 +93,21 @@ check($online['split']===[11], 'split display is enabled only by the saved per-n
 putSetting('server_profile_billing_11',json_encode(['enabled'=>false]));
 $online=runEndpoint('online');
 check($online['split']===[] && $online['nodes']->{11}['ready'], 'disabling split overrides an older fresh profile snapshot');
+
+function runInfoRows(string $verb,array $body=[]):array{
+    $action='subprofiles.inforows.'.$verb;$_POST=$body;$_SERVER['REQUEST_METHOD']=$verb==='save'?'POST':'GET';
+    try{require ROOT.'/app/Patch/SubscriptionProfilesEndpoint.php';}catch(EndpointResult $e){return $e->data;}
+    throw new RuntimeException('No response');
+}
+$rowSettings=runInfoRows('get');$cards=(array)$rowSettings['profiles'];
+$cards[1]['enabled']=true;$cards[2]['enabled']=true;
+$cards[1]['rows']['expiry']['text']='اول {expire_date}';
+$cards[2]['rows']['expiry']['enabled']=false;
+$linksBefore=setting('sub_profiles');$secretBefore=setting('sub_profiles_secret');
+check(!runInfoRows('save',['token'=>'bad','profiles'=>json_encode($cards)])['ok'], 'info row saves require CSRF');
+check(runInfoRows('save',['token'=>$rowSettings['token'],'profiles'=>json_encode($cards)])['ok'], 'both independent info row sets save together');
+$read=(array)runInfoRows('get')['profiles'];
+check($read[1]['rows']['expiry']['text']==='اول {expire_date}'&&!$read[2]['rows']['expiry']['enabled'], 'per-link checkboxes and edited text round trip independently');
+$saved=setting('sub_info_profile_rows');$cards[2]['rows']['hint']['text']='{not_allowed}';
+check(!runInfoRows('save',['token'=>$rowSettings['token'],'profiles'=>json_encode($cards)])['ok']&&setting('sub_info_profile_rows')===$saved, 'invalid second-link template prevents partial first-link save');
+check(setting('sub_profiles')===$linksBefore&&setting('sub_profiles_secret')===$secretBefore,'info row editing preserves link access and signing secret');

@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once ROOT . '/app/Patch/SubscriptionProfiles.php';
 requireAdmin();
+if(strpos($action,'subprofiles.inforows.')===0){require __DIR__.'/SubInfoRowsEndpoint.php';exit;}
 if ($action === 'subprofiles.online') {
     $split = [];
     foreach (db()->query("SELECT name,value FROM settings WHERE name LIKE 'server_profile_billing_%'") as $setting) {

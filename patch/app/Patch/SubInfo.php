@@ -326,7 +326,7 @@ function subinfoWallet(int $userId): ?array
  * name, so each row is kept short enough for a phone screen (about 25
  * characters); longer facts go on two rows.
  */
-function subinfoLines(array $user): array
+function subinfoLines(array $user, ?array $profile = null): array
 {
     $now = time();
     $expire = $user['expire_in'] ? (int) strtotime((string) $user['expire_in']) : 0;
@@ -339,38 +339,14 @@ function subinfoLines(array $user): array
     $mode = $wallet ? (string) $wallet['mode'] : 'plan';
     $balance = $wallet ? (float) $wallet['balance'] : 0.0;
 
-    $lines = [];
-
-    if ($mode === 'balance') {
-        $lines[] = '⚡ مصرف از موجودی شارژ';
-    } elseif ($mode === 'empty') {
-        $lines[] = '⛔ موجودی تمام؛ شارژ کنید';
-    } elseif ($expire > 0 && $expire <= $now) {
-        $lines[] = '⛔ بسته تمام شد؛ تمدید کنید';
-    } else {
-        $never = ($user['plan'] ?? '') === 'onetime' || $expire > strtotime('+10 years');
-
-        if ($never) {
-            $lines[] = '📅 بدون تاریخ انقضا';
-        } elseif ($expire > 0) {
-            $days = (int) ceil(($expire - $now) / 86400);
-            $lines[] = '📅 پایان: ' . subinfoJalali($expire);
-            $lines[] = '⏳ ' . subinfoFa((string) $days) . ' روز مانده';
-        }
-
-        $lines[] = $quota > 0 && $left <= 0
-            ? '📦 حجم تمام شد'
-            : '📦 ' . preg_replace('~ گیگ$~u', '', subinfoGb($left)) . ' از ' . subinfoGb($quota);
-    }
-
-    if ($walletOn) {
-        $lines[] = '💰 موجودی: ' . subinfoMoney($balance);
-    }
-
-    $lines[] = '🔄 به‌روز: ' . subinfoTime($now);
-    $lines[] = '👆 برای تازه‌شدن آپدیت کنید';
-
-    return $lines;
+    require_once __DIR__ . '/SubInfoRows.php';
+    $never = ($user['plan'] ?? '') === 'onetime' || $expire > strtotime('+10 years');
+    $values = ['expire_date'=>$expire>0?subinfoJalali($expire):'',
+        'days_left'=>subinfoFa((string)max(0,(int)ceil(($expire-$now)/86400))),
+        'remaining'=>subinfoGb($left),'remaining_short'=>preg_replace('~ گیگ$~u','',subinfoGb($left)),
+        'total'=>subinfoGb($quota),'used'=>subinfoGb($used),'balance'=>subinfoMoney($balance),'updated_time'=>subinfoTime($now)];
+    $visible = SubInfoRows::visibility($mode,$expire,$never,$quota,$left,$walletOn,$now);
+    return SubInfoRows::lines($profile ?? SubInfoRows::defaults(),$values,$visible);
 }
 
 /**
@@ -383,14 +359,18 @@ function subinfoIsPanelInfo(string $line): bool
 {
     $line = trim($line);
     $name = '';
+    $host = '';
     if (stripos($line, 'vmess://') === 0) {
         $json = json_decode((string) base64_decode(strtr(substr($line, 8), '-_', '+/'), false), true);
         $name = is_array($json) ? (string) ($json['ps'] ?? '') : '';
+        $host = is_array($json) ? (string) ($json['add'] ?? '') : '';
     } elseif (($hash = strrpos($line, '#')) !== false) {
         $name = rawurldecode(substr($line, $hash + 1));
+        $host = (string) parse_url($line, PHP_URL_HOST);
     }
 
-    return (bool) preg_match('~^\s*(total|used|expire|expiry|expired|remaining|traffic|reset)\s*(?::|：)~i', $name);
+    return in_array(strtolower($host), ['127.0.0.1','localhost','::1','[::1]'], true)
+        && (bool) preg_match('~^\s*(total|used|expire|expiry|expired|remaining|traffic|reset)\s*(?::|：)~i', $name);
 }
 
 function subinfoRow(string $name, int $i): string
@@ -454,11 +434,18 @@ $isList = (bool) preg_match('~^[a-z0-9+.-]+://~im', $plain)
     && !preg_match('~^\s*(proxies|port|mixed-port)\s*:~m', $plain);
 
 $user = subinfoUser($subToken, $plain);
-$lines = $user !== null && setting('sub_info_enabled', '1') !== '0' ? subinfoLines($user) : [];
+require_once __DIR__ . '/SubInfoRows.php';
+$infoProfiles = SubInfoRows::read((string)setting('sub_info_profile_rows',''));
+$infoSlot = (int)($_GET['profile'] ?? 0);
+$infoProfile = $infoProfiles[$infoSlot] ?? null;
+$managedRows = $infoProfile !== null;
+$infoEnabled = $managedRows ? $infoProfile['enabled'] : setting('sub_info_enabled','1') !== '0';
+$lines = $user !== null && $infoEnabled ? subinfoLines($user,$infoProfile) : [];
 
 // the rows carry the plan in Solar Hijri and toman; the app's own bar would
 // repeat it with a Gregorian date, so the owner wants that bar gone
 $withRows = $isList && $lines !== [];
+$controlsRows = $isList && $user !== null && ($managedRows || $lines !== []);
 
 header_remove('Content-Type');
 header('Content-Type: text/plain; charset=utf-8');
@@ -467,7 +454,8 @@ foreach ($upstream['headers'] as $name => $value) {
     if ($name === 'content-type' && stripos($value, 'text/html') !== false) {
         continue;
     }
-    if ($name === 'subscription-userinfo' && $withRows) {
+    if ($name === 'announce' && $managedRows) continue;
+    if ($name === 'subscription-userinfo' && $controlsRows) {
         continue;
     }
     if (in_array($name, SUBINFO_PASS, true)) {
@@ -490,9 +478,11 @@ if (preg_match('~\bhapp\b~i', (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''))) {
 
 // Leaving the header out is not enough: the apps keep the total and expiry
 // from their last update. All zeros overwrite what they stored.
-if ($withRows) {
+if ($controlsRows) {
     header('subscription-userinfo: upload=0; download=0; total=0; expire=0');
 }
+
+if ($managedRows && $lines === []) header('announce: base64:');
 
 if ($user !== null && $lines !== []) {
     // Happ shows this text above the server list
@@ -507,7 +497,7 @@ if ($user !== null && $lines !== []) {
     }
 }
 
-if (!$isList || $lines === []) {
+if (!$isList || (!$controlsRows && $lines === [])) {
     echo $upstream['body'];
     exit;
 }
@@ -518,15 +508,15 @@ foreach ($lines as $i => $line) {
 }
 
 $ua = strtolower((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
-$head = implode("\n", $rows) . "\n";
+$head = $rows ? implode("\n", $rows) . "\n" : "";
 
 // Shadowrocket reads a first STATUS= line as the subscription's status text
-if (strpos($ua, 'shadowrocket') !== false) {
+if ($lines !== [] && strpos($ua, 'shadowrocket') !== false) {
     $head = 'STATUS=' . implode(' | ', $lines) . "\n" . $head;
 }
 
-$kept = array_filter(preg_split('~\r?\n~', $plain), function ($line) {
-    return !subinfoIsPanelInfo($line);
+$kept = array_filter(preg_split('~\r?\n~', $plain), function ($line) use ($managedRows) {
+    return !subinfoIsPanelInfo($line) && (!$managedRows || !preg_match('~^\s*STATUS=~i',$line));
 });
 
 $out = $head . implode("\n", $kept);
