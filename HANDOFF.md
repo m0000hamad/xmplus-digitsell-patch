@@ -27,7 +27,13 @@ by the test. Local worker/routing and endpoint authorization regressions pass.
 Native latest Xray-core config validation and an actual SOCKS TCP DNS request
 redirected to AdGuard pass, with the official filter downloaded. All 51 Linux
 node regressions, seven endpoint checks and native Smarty rendering pass.
-Publication/deployment: pending.
+Published source b87ddee45613 to origin/main; published branch and immutable
+manifest bytes verified. Authenticated native updater installed 1.38.13 on the
+panel. Live status confirms installed=latest=1.38.13; all 194 runtime hashes
+match. Native live AdGuard card, default-off bootstrap, anonymous read denial,
+invalid-CSRF denial and login health pass. No server switch was enabled and no
+customer node was updated remotely. Node deployment/actual user DNS coverage
+remain owner-run, not inferred from panel installation.
 Existing nodes require owner-run `digitsell-xray update` before switches take effect;
 no customer node or server selection has been changed by development.
 
