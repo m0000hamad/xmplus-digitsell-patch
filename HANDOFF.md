@@ -1,3 +1,26 @@
+## 1.38.12 — per-server managed WARP (2026-11-04)
+
+Servers now has an independent WARP switch, backed by admin/session/POST/CSRF
+checks and per-ID settings. Existing authenticated torexit.sync transports only
+reported nodes' desired state and bounded WARP health reports. No schema change.
+Agent 1.5.0 ships warp-worker.py through the existing installer/update path.
+Its background worker installs the official signed Cloudflare package on
+supported Debian/Ubuntu, registers and configures local proxy before connect,
+then verifies Cloudflare trace through SOCKS. A healthy proxy takes precedence
+for selected inbounds only. UDP is blocked. Disable restores prior Tor/file
+policy. The shared package/proxy is retained; unmanaged installations are refused.
+Initial install retains prior exit; later failures retain the WARP route to avoid
+a direct fallback. Persisted desired state survives restart/panel outage.
+
+Existing node agents need a one-time `digitsell-xray update`; the panel cannot
+remotely update old agents without node access. No server is enabled by this
+release. Automatic setup is only triggered by an administrator's switch.
+Validation: eight WARP worker/routing regressions, seven endpoint checks, existing
+20 profile/online/revocation checks and PHP lint pass locally. Native Smarty rendering passes. Linux modules pass independently; the combined
+suite has a PTY menu timeout, while that menu suite passes in isolation. Real
+WARP provisioning has not been triggered on a customer node. Publication and
+live panel installation pending.
+
 ## 1.38.10 — prevent repeated combined-variant expansion
 
 The 1.38.9 combined hook expanded shared servers twice: Eloquent hydrate()

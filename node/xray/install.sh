@@ -764,7 +764,7 @@ fi
 
 say "installing the agent"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo /nonexistent)"
-for f in xray-agent.py digitsell-xray uninstall.sh node-manager.py; do
+for f in xray-agent.py digitsell-xray uninstall.sh node-manager.py warp-worker.py; do
     if [ -f "$HERE/$f" ] && [ "${DIGITSELL_FROM_REPO:-0}" != "1" ]; then
         cp "$HERE/$f" "$TMP/$f"
     else
@@ -774,6 +774,8 @@ done
 python3 -m py_compile "$TMP/xray-agent.py" || die "the downloaded agent is broken"
 python3 -m py_compile "$TMP/node-manager.py" || die "the downloaded node manager is broken"
 install -m 755 "$TMP/node-manager.py" "$LIB/node-manager.py"
+python3 -m py_compile "$TMP/warp-worker.py" || die "the downloaded WARP worker is broken"
+install -m 644 "$TMP/warp-worker.py" "$LIB/warp-worker.py"
 install -m 755 "$TMP/xray-agent.py" "$LIB/xray-agent.py"
 install -m 755 "$TMP/uninstall.sh" "$LIB/uninstall.sh"
 install -m 755 "$TMP/digitsell-xray" /usr/local/bin/digitsell-xray

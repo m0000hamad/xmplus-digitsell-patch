@@ -466,6 +466,11 @@ if (strpos($action, 'wg.') === 0) {
 
 // Exit location per Xray server: the nodes' agents report in with the panel's
 // API key, the admin half checks for itself.
+if (strpos($action, 'warp.') === 0) {
+    require ROOT . '/app/Patch/Warp.php';
+    fail('unknown WARP action');
+}
+
 if (strpos($action, 'torexit.') === 0) {
     require ROOT . '/app/Patch/TorExit.php';
     fail('unknown exit location action');

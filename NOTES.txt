@@ -1,1 +1,1 @@
-Fix duplicate combined subscription entries: Eloquent builds collections twice, so already expanded profile variants must not be expanded again. Preserve the two legitimate direct/tunnel endpoints.
+وارپ مستقل برای هر سرور، با نصب و فعال‌سازی خودکار توسط نود digitsell-xray 1.5.0 و نمایش وضعیت اتصال. نودهای قدیمی یک‌بار به به‌روزرسانی نیاز دارند.

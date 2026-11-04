@@ -507,3 +507,26 @@ does not point to this server's IP (or to a CDN with the right origin). `dxray d
   up — use XHTTP.
 - The agent does not build subscription links; the panel does. If your panel's transport list
   has no XHTTP, keep WS (profile 5) — this node works with it too.
+
+## WARP per server (agent 1.5.0, panel 1.38.12)
+
+Admin → Servers → WARP has an independent switch for each panel server ID.
+Update existing digitsell-xray agents once with `digitsell-xray update`.
+The panel has no SSH credentials and cannot update old/non-digitsell agents.
+After that, enabling the switch makes the root agent install the official signed
+Cloudflare package, register, select local proxy mode on 127.0.0.1:40000, connect,
+and verify `warp=on/plus` through the proxy before switching that inbound.
+The worker runs separately from account/usage synchronization and retries errors.
+Automatic installation supports Debian 12/13 and Ubuntu 22.04/24.04/26.04.
+
+WARP takes precedence over the Tor/file exit while enabled. Disabling restores
+that selection; it does not uninstall WARP or disconnect a shared proxy.
+UDP is blocked for WARP inbounds because local proxy mode carries TCP only.
+Existing manually installed WARP is not reconfigured; the panel reports an error.
+Before first success the previous exit remains in use. After first activation,
+a WARP outage retains its proxy route rather than silently leaking direct.
+Desired state and the selected exit survive agent restarts and panel outages.
+No machine-wide default route or DNS setting is changed.
+
+References: https://pkg.cloudflareclient.com/ and
+https://developers.cloudflare.com/warp-client/get-started/linux/ .

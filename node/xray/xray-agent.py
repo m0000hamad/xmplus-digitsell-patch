@@ -63,7 +63,15 @@ import urllib.parse
 import urllib.request
 import uuid as uuidlib
 
-VERSION = "1.4.1"
+VERSION = "1.5.0"
+
+# The installer ships this module beside the agent.
+import importlib.util
+_warp_spec = importlib.util.spec_from_file_location("warp_worker", os.path.join(os.path.dirname(__file__), "warp-worker.py"))
+_warp_module = importlib.util.module_from_spec(_warp_spec)
+_warp_spec.loader.exec_module(_warp_module)
+WarpWorker = _warp_module.WarpWorker
+WARP_PROXY = _warp_module.PROXY
 
 ETC = "/etc/digitsell-xray"
 LIB = "/usr/local/lib/digitsell-xray"
@@ -1365,6 +1373,9 @@ class Agent:
                 self.exit_current[as_int(key)] = (chosen, as_str(value[1]))
         self.torexit_error = None
         self.torexit = TorExit(self)
+        self.warp = WarpWorker()
+        self.warp_wants = {as_int(k): bool(v) for k, v in (self.state.get("warp_wants") or {}).items()}
+        self.warp.wanted = any(self.warp_wants.values())
         self.last_restart = 0
         self.process = None     # xray_manager "process": the child Xray
         self.running = True
@@ -1725,6 +1736,9 @@ class Agent:
             direct = "direct-%s" % spec["tag"] if spec["send_through"] else "direct"
             out = "exit-%s" % spec["tag"]
             if out in exit_tags:
+                if self.exit_conf(node_id).get("proxy") == WARP_PROXY:
+                    rules.append({"ruleTag": "warp-udp-%s" % spec["tag"], "inboundTag": [spec["tag"]],
+                                  "network": "udp", "outboundTag": "block"})
                 if self.exit_conf(node_id).get("tor"):
                     # Tor carries TCP only. QUIC is refused so browsers fall
                     # back to TCP through Tor; other UDP (DNS, games) goes direct.
@@ -1761,6 +1775,13 @@ class Agent:
             node_id = node["id"]
             from_file = self.file_exit(node_id)
             fallback = self.exit_current.get(node_id) or (from_file, "agent.json" if from_file else "")
+            if self.warp_wants.get(node_id):
+                # Retain the previous exit during first installation. Once applied,
+                # keep the proxy on health failures to prevent silently leaking direct.
+                result[node_id] = ({"proxy": WARP_PROXY}, "warp") if self.warp.ready else fallback
+                continue
+            if fallback[1] == "warp":
+                fallback = (from_file, "agent.json" if from_file else "")
             if node_id not in self.exit_wants:
                 result[node_id] = (from_file, "agent.json" if from_file else "")
             elif self.exit_wants[node_id] == "":
@@ -1790,6 +1811,7 @@ class Agent:
 
         want = self.exit_wants.get(node_id)
         report = {
+            "warp": self.warp_report(node_id),
             "agent": VERSION,
             "host": socket.gethostname(),
             "torgeo": worker.version,
@@ -1815,6 +1837,14 @@ class Agent:
             report["pending_state"] = worker.describe(want)
         return report
 
+    def warp_report(self, node_id):
+        report = dict(self.warp.report) if self.warp_wants.get(node_id) else {"state": "off"}
+        report["enabled"] = bool(self.warp_wants.get(node_id))
+        chosen, source = self.exit_current.get(node_id, ({}, ""))
+        if report["state"] == "ready" and source == "warp" and "exit-n%d" % node_id in self.exit_tags:
+            report["state"] = "active"
+        return report
+
     def torexit_sync(self):
         """Report every node's exit to its panel and take back the countries
         the admin picked. A panel without the patch (or older than 1.18.0)
@@ -1830,6 +1860,11 @@ class Agent:
             except PanelError as error:
                 problems.append(str(error))
                 continue
+            if isinstance(answer.get("warp"), dict):
+                for node_id in ids:
+                    value = answer["warp"].get(str(node_id))
+                    if isinstance(value, bool):
+                        self.warp_wants[node_id] = value
             wanted = answer.get("nodes") if isinstance(answer.get("nodes"), dict) else {}
             for node_id in ids:
                 entry = wanted.get(str(node_id))
@@ -1843,6 +1878,8 @@ class Agent:
             log("exit locations: %s" % (problem or "the panel answers again"))
         self.torexit_error = problem
 
+        self.state["warp_wants"] = {str(k): v for k, v in self.warp_wants.items()}
+        self.warp.wanted = any(self.warp_wants.get(n["id"]) for n in self.conf["nodes"])
         keep = set()
         for node_id in [n["id"] for n in self.conf["nodes"]]:
             for chosen in (self.exit_conf(node_id), self.file_exit(node_id)):
@@ -2537,6 +2574,7 @@ class Agent:
             pass  # not the main thread (tests)
         log("digitsell-xray agent %s, Xray %s, node(s) %s" % (
             VERSION, xray_version(self.xray) or "?", ", ".join(str(n["id"]) for n in self.conf["nodes"])))
+        self.warp.start()
         self.torexit.start()
         self.guard("exit locations", self.torexit_sync)
         # restore what the last run reported, so the device limit starts right

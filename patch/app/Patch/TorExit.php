@@ -41,6 +41,7 @@ function torexitToken(): string
 }
 
 require_once __DIR__ . '/NodeKey.php';
+require_once __DIR__ . '/Warp.php';
 
 function torexitServerIds(): array
 {
@@ -88,6 +89,15 @@ function torexitSync(): void
         }
         $save->execute([$id, $json, $now]);
         $ids[] = $id;
+        if (is_array($report['warp'] ?? null)) {
+            $warp = $report['warp'];
+            putSetting('warp_report_' . $id, json_encode([
+                'state' => substr((string) ($warp['state'] ?? ''), 0, 32),
+                'error' => substr((string) ($warp['error'] ?? ''), 0, 300),
+                'ip' => filter_var($warp['ip'] ?? '', FILTER_VALIDATE_IP) ?: '',
+                'enabled' => !empty($warp['enabled']), 'seen_at' => $now,
+            ]));
+        }
     }
 
     // only servers an admin has decided for; the agent keeps its own
@@ -105,7 +115,9 @@ function torexitSync(): void
         }
     }
 
-    done(['nodes' => $wanted, 'now' => $now]);
+    $warpWanted = new stdClass();
+    foreach ($ids as $id) $warpWanted->{(string) $id} = warpEnabled($id);
+    done(['nodes' => $wanted, 'warp' => $warpWanted, 'now' => $now]);
 }
 
 // ------------------------------------------------------------------ admin
