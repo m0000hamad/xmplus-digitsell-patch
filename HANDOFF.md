@@ -1082,5 +1082,4 @@ recorded uncertain without automatic duplicate sends. Recipients are exactly
 the configured admin telegramchatid, using the panel bot/master switch.
 
 Validation: pure formatter tests cover gateway-only, mixed funding, full wallet,
-legacy commission and explicit adjustments; PHP syntax checks. Deployment and
-publication verification pending. Live installation: 1.38.11; both panel hosts HTTP 200. Real PHP 7.4/MySQL integration passed with connection-local temporary tables and mocked Telegram: paid delivery, duplicate suppression, historical and pending exclusion.
+legacy commission and explicit adjustments; PHP syntax checks. Published to configured main and installed 1.38.11; authenticated updater status confirms installed/latest equality (uptodate=true). Live installation: 1.38.11; both panel hosts HTTP 200. Real PHP 7.4/MySQL integration passed with connection-local temporary tables and mocked Telegram: paid delivery, duplicate suppression, historical and pending exclusion.
