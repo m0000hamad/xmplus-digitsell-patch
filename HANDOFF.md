@@ -18,8 +18,15 @@ release. Automatic setup is only triggered by an administrator's switch.
 Validation: eight WARP worker/routing regressions, seven endpoint checks, existing
 20 profile/online/revocation checks and PHP lint pass locally. Native Smarty rendering passes. Linux modules pass independently; the combined
 suite has a PTY menu timeout, while that menu suite passes in isolation. Real
-WARP provisioning has not been triggered on a customer node. Publication and
-live panel installation pending.
+WARP provisioning has not been triggered on a customer node.
+Published source b02496ca2a52442feaf546e6d9133ce5ae2214cb to origin/main;
+remote branch and immutable published manifest verified. All 192 committed
+runtime checksums match. Native authenticated updater installed 1.38.12 after
+verifying the entire installed 1.38.11 baseline against its manifest.
+Authenticated live status confirms installed=latest=1.38.12. All 192 installed
+runtime hashes match. Live Servers WARP card, default-off bootstrap, anonymous
+read denial, invalid-CSRF denial and login health pass. No WARP node selection,
+node agent, host route or customer traffic was changed during panel deployment.
 
 ## 1.38.10 — prevent repeated combined-variant expansion
 
