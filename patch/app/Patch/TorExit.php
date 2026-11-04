@@ -42,6 +42,7 @@ function torexitToken(): string
 
 require_once __DIR__ . '/NodeKey.php';
 require_once __DIR__ . '/Warp.php';
+require_once __DIR__ . '/Adguard.php';
 
 function torexitServerIds(): array
 {
@@ -89,6 +90,14 @@ function torexitSync(): void
         }
         $save->execute([$id, $json, $now]);
         $ids[] = $id;
+        if (is_array($report['adguard'] ?? null)) {
+            $ag = $report['adguard'];
+            putSetting('adguard_report_' . $id, json_encode([
+                'state' => substr((string) ($ag['state'] ?? ''), 0, 32),
+                'error' => substr((string) ($ag['error'] ?? ''), 0, 300),
+                'enabled' => !empty($ag['enabled']), 'seen_at' => $now,
+            ]));
+        }
         if (is_array($report['warp'] ?? null)) {
             $warp = $report['warp'];
             putSetting('warp_report_' . $id, json_encode([
@@ -117,7 +126,9 @@ function torexitSync(): void
 
     $warpWanted = new stdClass();
     foreach ($ids as $id) $warpWanted->{(string) $id} = warpEnabled($id);
-    done(['nodes' => $wanted, 'warp' => $warpWanted, 'now' => $now]);
+    $adguardWanted = new stdClass();
+    foreach ($ids as $id) $adguardWanted->{(string) $id} = adguardEnabled($id);
+    done(['nodes' => $wanted, 'warp' => $warpWanted, 'adguard' => $adguardWanted, 'now' => $now]);
 }
 
 // ------------------------------------------------------------------ admin

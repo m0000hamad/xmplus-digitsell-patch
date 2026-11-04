@@ -72,6 +72,7 @@
 				{* exit location (country) per Xray server, carried out by the node's agent through tor-geo *}
 				{include file='admin/settings/torexitsettings.tpl'}
                 {include file='admin/servers/warp.tpl'}
+                {include file='admin/servers/adguard.tpl'}
 			</div>
 	</div>
 	<div class="row">

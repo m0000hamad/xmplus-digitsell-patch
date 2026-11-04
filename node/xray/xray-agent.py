@@ -63,7 +63,7 @@ import urllib.parse
 import urllib.request
 import uuid as uuidlib
 
-VERSION = "1.5.2"
+VERSION = "1.5.3"
 
 # The installer ships this module beside the agent.
 import importlib.util
@@ -71,6 +71,10 @@ _warp_spec = importlib.util.spec_from_file_location("warp_worker", os.path.join(
 _warp_module = importlib.util.module_from_spec(_warp_spec)
 _warp_spec.loader.exec_module(_warp_module)
 WarpWorker = _warp_module.WarpWorker
+_ag_spec = importlib.util.spec_from_file_location("adguard_worker", os.path.join(os.path.dirname(__file__), "adguard-worker.py"))
+_ag_module = importlib.util.module_from_spec(_ag_spec)
+_ag_spec.loader.exec_module(_ag_module)
+AdguardWorker = _ag_module.AdguardWorker
 WARP_PROXY = _warp_module.PROXY
 
 ETC = "/etc/digitsell-xray"
@@ -1373,6 +1377,10 @@ class Agent:
                 self.exit_current[as_int(key)] = (chosen, as_str(value[1]))
         self.torexit_error = None
         self.torexit = TorExit(self)
+        self.adguard = AdguardWorker()
+        self.adguard_wants = {as_int(k): bool(v) for k, v in (self.state.get("adguard_wants") or {}).items()}
+        self.adguard.wanted = any(self.adguard_wants.values())
+        self.adguard_applied = set()
         self.warp = WarpWorker(self.conf.get("warp_blocked_ips"))
         self.warp_wants = {as_int(k): bool(v) for k, v in (self.state.get("warp_wants") or {}).items()}
         self.warp.wanted = any(self.warp_wants.values())
@@ -1714,6 +1722,7 @@ class Agent:
             if spec["rules"]:
                 rules.append({"ruleTag": "panel-block-%s" % spec["tag"], "inboundTag": [spec["tag"]],
                               "domain": ["regexp:" + r for r in spec["rules"]], "outboundTag": "block"})
+        rules.extend(self.adguard_rules(self.specs))
         for node_id in sorted(self.specs):
             spec = self.specs[node_id]
             if spec["relay"]:
@@ -1817,6 +1826,7 @@ class Agent:
         want = self.exit_wants.get(node_id)
         report = {
             "warp": self.warp_report(node_id),
+            "adguard": self.adguard_report(node_id),
             "agent": VERSION,
             "host": socket.gethostname(),
             "torgeo": worker.version,
@@ -1842,6 +1852,20 @@ class Agent:
             report["pending_state"] = worker.describe(want)
         return report
 
+    def adguard_report(self, node_id):
+        enabled = bool(self.adguard_wants.get(node_id))
+        report = dict(self.adguard.report) if enabled else {"state": "off", "error": ""}
+        report["enabled"] = enabled
+        if report["state"] == "ready" and node_id in self.adguard_applied and self.xray_active():
+            report["state"] = "active"
+        return report
+
+    def adguard_rules(self, specs):
+        return [{"ruleTag": "adguard-n%d" % i, "inboundTag": [spec["tag"]],
+                 "network": "tcp,udp", "port": "53", "outboundTag": "adguard-dns"}
+                for i, spec in sorted(specs.items())
+                if getattr(self, "adguard_wants", {}).get(i) and getattr(self, "adguard", None) and self.adguard.ready]
+
     def warp_report(self, node_id):
         report = dict(self.warp.report) if self.warp_wants.get(node_id) else {"state": "off"}
         report["enabled"] = bool(self.warp_wants.get(node_id))
@@ -1865,6 +1889,11 @@ class Agent:
             except PanelError as error:
                 problems.append(str(error))
                 continue
+            if isinstance(answer.get("adguard"), dict):
+                for node_id in ids:
+                    value = answer["adguard"].get(str(node_id))
+                    if isinstance(value, bool):
+                        self.adguard_wants[node_id] = value
             if isinstance(answer.get("warp"), dict):
                 for node_id in ids:
                     value = answer["warp"].get(str(node_id))
@@ -1883,6 +1912,8 @@ class Agent:
             log("exit locations: %s" % (problem or "the panel answers again"))
         self.torexit_error = problem
 
+        self.state["adguard_wants"] = {str(k): v for k, v in self.adguard_wants.items()}
+        self.adguard.wanted = any(self.adguard_wants.get(n["id"]) for n in self.conf["nodes"])
         self.state["warp_wants"] = {str(k): v for k, v in self.warp_wants.items()}
         self.warp.wanted = any(self.warp_wants.get(n["id"]) for n in self.conf["nodes"])
         keep = set()
@@ -1971,6 +2002,8 @@ class Agent:
         policy.update({"statsUserUplink": True, "statsUserDownlink": True, "statsUserOnline": True})
 
         inbounds, outbounds = [], [self.freedom("direct"), {"tag": "block", "protocol": "blackhole"}]
+        outbounds.append({"tag": "adguard-dns", "protocol": "freedom",
+                          "settings": {"redirect": "127.0.0.1:55353"}})
         for node_id in sorted(specs):
             spec = specs[node_id]
             fallbacks = self.node_conf.get(node_id, {}).get("fallbacks")
@@ -2028,6 +2061,7 @@ class Agent:
     def write_config(self, config):
         write_atomic(self.conf["xray_config"], dumps(config))
         self.exit_tags = exit_tags_of(config["outbounds"])
+        self.adguard_applied = {int(r["ruleTag"].split("-n")[1]) for r in config["routing"]["rules"] if r.get("ruleTag", "").startswith("adguard-n")}
 
     # --------------------------------------------------------------- sync
 
@@ -2082,7 +2116,8 @@ class Agent:
         self.exit_current = new_exits
         self.state["exit_current"] = {str(k): [v[0], v[1]] for k, v in new_exits.items()}
         panel_fp = fingerprint({"specs": new_specs, "certs": {str(k): list(self.certs.get(k) or []) for k in new_specs},
-                                "exits": {str(k): v[0] for k, v in new_exits.items()}})
+                                "exits": {str(k): v[0] for k, v in new_exits.items()},
+                                "adguard": self.adguard_rules(new_specs)})
         restarted_elsewhere = self.xray_identity is not None and self.xray_ident() != self.xray_identity
 
         if first or panel_fp != self.applied_fp or not self.xray_active():
@@ -2285,7 +2320,7 @@ class Agent:
         self.pushed_rules = fingerprint(rules)
 
     def push_rules(self):
-        rules = profile_rules(self.static_rules() + self.limit_rules() + self.exit_rules(), self.specs)
+        rules = profile_rules(self.limit_rules() + self.static_rules() + self.exit_rules(), self.specs)
         if not rules and self.pushed_rules is None:
             self.pushed_rules = fingerprint(rules)
             return
@@ -2586,6 +2621,7 @@ class Agent:
             pass  # not the main thread (tests)
         log("digitsell-xray agent %s, Xray %s, node(s) %s" % (
             VERSION, xray_version(self.xray) or "?", ", ".join(str(n["id"]) for n in self.conf["nodes"])))
+        self.adguard.start()
         self.warp.start()
         self.torexit.start()
         self.guard("exit locations", self.torexit_sync)

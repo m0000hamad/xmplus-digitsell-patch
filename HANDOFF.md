@@ -1,3 +1,36 @@
+## 1.38.13 / node 1.5.3 — managed AdGuard Home (2026-11-05)
+
+Independent administrator switches on Servers use admin/session/POST/CSRF checks.
+Desired per-ID state and bounded reports reuse authenticated torexit.sync. Default
+is off; unsupported/old agents never claim activation. Agent persists desire and
+starts a background worker only when selected. A private, separately managed
+AdGuard Home is installed in /opt/digitsell-adguard, with official release SHA256
+verification, amd64/arm64 binaries and a dedicated systemd unit. Existing unmanaged
+paths/units are refused. DNS/admin bind only to 127.0.0.1:55353/55354; host resolver,
+firewall, DHCP and other AdGuard installations are not changed. Query logging and
+statistics are disabled. AdGuard DNS filter updates daily. A deterministic DNS
+blocking probe must pass before interception is configured.
+
+Only selected Xray inbounds (including profile variants) redirect plain TCP/UDP
+port 53 through a private freedom outbound. Security blocks and IP limits precede
+this rule; relays/WARP/Tor catchalls follow it. Non-DNS traffic retains its exit.
+Disable removes interception; the shared service is retained for in-flight users.
+Initial provisioning/health failure reports failure and retains normal DNS routing;
+this feature is not a mandatory/fail-closed DNS policy. DoH/DoT, local DNS resolution,
+and DNS outside the tunnel bypass it. Domain/IP proxy connections are not magically
+filtered when their DNS does not traverse the tunnel. YouTube ads are not guaranteed.
+The administrator card explicitly states this limited DNS scope.
+
+Native Linux official archive verification, config migration/check and actual
+AdGuard Home DNS blocking probe pass in isolated /tmp; no host service was installed
+by the test. Local worker/routing and endpoint authorization regressions pass.
+Native latest Xray-core config validation and an actual SOCKS TCP DNS request
+redirected to AdGuard pass, with the official filter downloaded. All 51 Linux
+node regressions, seven endpoint checks and native Smarty rendering pass.
+Publication/deployment: pending.
+Existing nodes require owner-run `digitsell-xray update` before switches take effect;
+no customer node or server selection has been changed by development.
+
 ## Node 1.5.2 — rejected WARP exit IPs (2026-11-04)
 
 Adds local agent.json `warp_blocked_ips`, a validated list of IPv4 addresses.
