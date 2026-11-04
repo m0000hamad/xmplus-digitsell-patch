@@ -530,3 +530,9 @@ No machine-wide default route or DNS setting is changed.
 
 References: https://pkg.cloudflareclient.com/ and
 https://developers.cloudflare.com/warp-client/get-started/linux/ .
+
+Agent 1.5.1 enforces IPv4-only destinations for managed WARP: SOCKS outbound
+`targetStrategy: ForceIPv4`, literal IPv6 requests blocked, IPv4-validated health
+probe. Update with `digitsell-xray update`. Test the local proxy with
+`curl -4 --socks5 127.0.0.1:40000 https://www.cloudflare.com/cdn-cgi/trace`.
+See https://xtls.github.io/en/config/outbound.html#outboundobject .

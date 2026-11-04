@@ -1,4 +1,5 @@
 """Managed local WARP proxy. No host default-route or DNS changes."""
+import ipaddress
 import os
 import shutil
 import subprocess
@@ -65,12 +66,15 @@ class WarpWorker(threading.Thread):
         self.cli('connect')
 
     def probe(self):
-        result = self.run_command(['curl', '-fsS', '--max-time', '20', '--socks5-hostname',
+        result = self.run_command(['curl', '-4', '-fsS', '--max-time', '20', '--socks5',
                                   '127.0.0.1:40000', 'https://www.cloudflare.com/cdn-cgi/trace'], timeout=25)
         fields = dict(line.split('=', 1) for line in result.stdout.splitlines() if '=' in line)
         if fields.get('warp') not in ('on', 'plus'):
             raise RuntimeError('Proxy answered without an active WARP tunnel')
-        return fields.get('ip', '')
+        ip = fields.get('ip', '')
+        if not isinstance(ipaddress.ip_address(ip), ipaddress.IPv4Address):
+            raise RuntimeError('WARP probe did not return an IPv4 exit')
+        return ip
 
     def step(self):
         if not self.wanted:

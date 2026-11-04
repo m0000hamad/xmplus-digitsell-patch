@@ -63,7 +63,7 @@ import urllib.parse
 import urllib.request
 import uuid as uuidlib
 
-VERSION = "1.5.0"
+VERSION = "1.5.1"
 
 # The installer ships this module beside the agent.
 import importlib.util
@@ -1737,6 +1737,8 @@ class Agent:
             out = "exit-%s" % spec["tag"]
             if out in exit_tags:
                 if self.exit_conf(node_id).get("proxy") == WARP_PROXY:
+                    rules.append({"ruleTag": "warp-ipv6-%s" % spec["tag"], "inboundTag": [spec["tag"]],
+                                  "ip": ["::/0"], "outboundTag": "block"})
                     rules.append({"ruleTag": "warp-udp-%s" % spec["tag"], "inboundTag": [spec["tag"]],
                                   "network": "udp", "outboundTag": "block"})
                 if self.exit_conf(node_id).get("tor"):
@@ -1929,7 +1931,12 @@ class Agent:
         server = {"address": host, "port": port}
         if user:
             server["users"] = [{"user": user, "pass": password}]
-        return {"tag": "exit-%s" % spec["tag"], "protocol": "socks", "settings": {"servers": [server]}}
+        outbound = {"tag": "exit-%s" % spec["tag"], "protocol": "socks", "settings": {"servers": [server]}}
+        if self.exit_conf(node_id).get("proxy") == WARP_PROXY:
+            # Resolve the proxied destination to IPv4 before handing it to WARP.
+            # Sockopt.domainStrategy would only constrain the proxy's own address.
+            outbound["targetStrategy"] = "ForceIPv4"
+        return outbound
 
     def limit_rules(self):
         rules = []

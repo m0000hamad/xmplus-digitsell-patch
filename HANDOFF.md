@@ -1,3 +1,19 @@
+## Node 1.5.1 — IPv4-only WARP (2026-11-04)
+
+Owner requested IPv4 instead of the reported IPv6 WARP exit and will execute
+the node update themselves. Only the node agent/worker changes; panel remains
+installed/published 1.38.12 with the same manifest and runtime checksums.
+WARP SOCKS outbounds now use Xray targetStrategy=ForceIPv4 to resolve target
+domains before proxying. An inbound-scoped ::/0 block rejects literal IPv6
+requests, alongside the existing UDP block. Other proxy/Tor/direct exits are
+unchanged. Health uses curl -4 with --socks5 (local IPv4 resolution), validates
+the returned address is IPv4 and still requires warp=on/plus. Merely adding
+curl -4 with --socks5-hostname would leave remote resolution unconstrained.
+Ten focused regressions pass, including IPv6 rejection and non-WARP isolation.
+Node-only source release published on origin/main. Node deployment and live WARP IPv4 verification
+are owner-run; do not claim them complete from panel reports alone.
+Reference: https://xtls.github.io/en/config/outbound.html#outboundobject
+
 ## 1.38.12 — per-server managed WARP (2026-11-04)
 
 Servers now has an independent WARP switch, backed by admin/session/POST/CSRF

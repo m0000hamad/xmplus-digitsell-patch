@@ -46,7 +46,8 @@ class WarpTests(unittest.TestCase):
         a.exit_current[1] = ({'proxy': agent.WARP_PROXY}, 'warp')
         specs = {i: {'tag': 'n%d' % i, 'send_through': ''} for i in (1, 2)}
         rules = a.exit_rules(specs, {'exit-n1'})
-        self.assertEqual(rules[0]['network'], 'udp')
+        self.assertEqual(rules[0]['ip'], ['::/0'])
+        self.assertEqual(rules[1]['network'], 'udp')
         self.assertEqual(rules[0]['outboundTag'], 'block')
         self.assertEqual(rules[0]['inboundTag'], ['n1'])
 
@@ -60,6 +61,26 @@ class WarpTests(unittest.TestCase):
         with patch.object(w, 'ensure'), patch.object(w, 'run_command', return_value=types.SimpleNamespace(stdout='warp=on\nip=192.0.2.1')):
             w.step()
         self.assertTrue(w.ready)
+
+    def test_ipv4_target_strategy_only_on_warp(self):
+        a = self.instance()
+        a.exit_errors = {}
+        a.exit_current[1] = ({'proxy': agent.WARP_PROXY}, 'warp')
+        a.exit_current[2] = ({'proxy': 'socks5://127.0.0.1:1080'}, 'agent.json')
+        self.assertEqual(a.exit_outbound({'id': 1, 'tag': 'n1'})['targetStrategy'], 'ForceIPv4')
+        self.assertNotIn('targetStrategy', a.exit_outbound({'id': 2, 'tag': 'n2'}))
+
+    def test_ipv4_probe_uses_local_resolution_and_rejects_ipv6(self):
+        w = agent.WarpWorker()
+        with patch.object(w, 'run_command', return_value=types.SimpleNamespace(stdout='warp=on\nip=192.0.2.1')) as command:
+            self.assertEqual(w.probe(), '192.0.2.1')
+            args = command.call_args[0][0]
+            self.assertIn('-4', args)
+            self.assertIn('--socks5', args)
+            self.assertNotIn('--socks5-hostname', args)
+        with patch.object(w, 'run_command', return_value=types.SimpleNamespace(stdout='warp=on\nip=2001:db8::1')):
+            with self.assertRaisesRegex(RuntimeError, 'IPv4'):
+                w.probe()
 
     def test_off_never_installs(self):
         w = agent.WarpWorker()
