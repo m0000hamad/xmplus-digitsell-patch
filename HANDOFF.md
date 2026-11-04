@@ -1064,3 +1064,23 @@ page, `shareCompact=1` in the popup), `User::referralCount()`,
 | 1.32.0 | The display title is editable (`c2c_title`, default "کارت به کارت", up to 60 characters) in Settings -> Card to card -> "Display title". It is used at checkout, in the dialog header, in the admin request message, in the buyer's approval/rejection message, in the bot's /start text, and as the order's payment-method label (shortened for the column). |
 | 1.32.1 | Mobile fix for the card-to-card dialog: it is scrollable and capped to the viewport, and a full-width "انصراف" button at the bottom closes it in every state (form, waiting, rejected, approved), so the top X is no longer the only way out. |
 | 1.32.2 | The dialog is moved to `<body>` at runtime (escaping the page's stacking context), gets a high z-index, starts 72px below the top and is capped to the viewport as a flex column: the title and the cancel footer stay fixed while the body scrolls. This fixes the title still sitting under the menu bar on phones. |
+
+## 1.38.11 — purchase payment breakdown (2026-11-04)
+
+Adds an admin Telegram companion to the encoded transaction alert, keyed by
+order number. Shows package price, coupon discount, usage-wallet debit, combined
+legacy/dedicated commission debit, gateway fee and actual external payment.
+Any remaining native upgrade/proration adjustment is explicitly labeled rather
+than silently attributed to a coupon or wallet. Reads paid order snapshots and
+reserved/spent checkout_funds only; never mutates financial records.
+
+Scheduled by the existing minute checkout-funds script. Migration 032 seeds a
+payment-time cutoff so historical purchases are not replayed; an older pending
+order paid after installation is included. Per-order/chat claims prevent
+concurrent delivery; explicit Telegram errors retry, ambiguous timeouts are
+recorded uncertain without automatic duplicate sends. Recipients are exactly
+the configured admin telegramchatid, using the panel bot/master switch.
+
+Validation: pure formatter tests cover gateway-only, mixed funding, full wallet,
+legacy commission and explicit adjustments; PHP syntax checks. Deployment and
+publication verification pending. Live installation: 1.38.11; both panel hosts HTTP 200. Real PHP 7.4/MySQL integration passed with connection-local temporary tables and mocked Telegram: paid delivery, duplicate suppression, historical and pending exclusion.

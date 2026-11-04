@@ -1,7 +1,7 @@
 {
-    "version": "1.38.10",
-    "released": "2026-10-31",
-    "notes": "Fix duplicate combined subscription entries: Eloquent builds collections twice, so already expanded profile variants must not be expanded again. Preserve the two legitimate direct/tunnel endpoints.",
+    "version": "1.38.11",
+    "released": "2026-11-04",
+    "notes": "Admin Telegram purchase breakdown: discount, wallet, commission, gateway fee and final payment.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -35,7 +35,8 @@
         "028_checkout_funds.php",
         "029_admin_balance_edits.php",
         "030_profile_traffic.php",
-        "031_profile_online.php"
+        "031_profile_online.php",
+        "032_purchase_breakdown.php"
     ],
     "files": {
         "app/Console/Commands/TaskCommand.php": "36a67044267f9fd4669dc936f697d63ad93c7c70da96cb18bf1bc323fafb4d84",
@@ -55,6 +56,7 @@
         "app/Jobs/OvpnJob.php": "b63cfe015b93aa008595b2599833fff17d4b335ffcb3c5c899663b10e3941caa",
         "app/Jobs/PaygJob.php": "96119c9cd90dd715b2272ab65ac88776418581ec69f4b7fc29a880cde592ea29",
         "app/Jobs/PromoJob.php": "70d3a556b1bc546e07fd7bc2765ba754c955e637dd2a57370254ff60ac6feeea",
+        "app/Jobs/PurchaseBreakdownJob.php": "54ff1717e5b439ac4e7014d9f60aaa16a185a64a1705a4fed208f52d2da06ff5",
         "app/Jobs/ReserveJob.php": "74956cac985e6de7c2c9db70277ea4a4f538c2e41734c85f15eca93e262f9260",
         "app/Jobs/TgJoinJob.php": "74233f6e34c62a6b286ad4322f0f01a78c6579b0a29fc6ecb91aa230bf681aa0",
         "app/Jobs/TimePlanJob.php": "808e2a531426df8543a310a9d67a24f1de9700ff82c296ae1b5dce3cf8a88bda",
@@ -75,6 +77,7 @@
         "app/Patch/Payg.php": "ff81072f4a0729770f5ad34e4918a8c50164cca7bcc72b19a41daf5c5d3e4246",
         "app/Patch/ProfileBilling.php": "2831429676c281f8edaf879a21a2a064cbd58aef90b3250a5298c8aeaf3f8bb3",
         "app/Patch/Promo.php": "e18c9634fc17eb13b173c20c7d8deec5db7dba3c8825e48c2c38c82192d30dc7",
+        "app/Patch/PurchaseBreakdown.php": "ff9a119c772dd19bbd208a2dab1fe99aa137f96b5b6a750f1563ac9bff715ef6",
         "app/Patch/Reserve.php": "68186ac058e2256b4c3bb83110edd5cd16768f11c810eac3df05843eba2f94ae",
         "app/Patch/SchemaFix.php": "b4e1e18902398c92864f6c218beb823231c4977d9dbc8c0a83bdbc3bc5eeee3c",
         "app/Patch/ServerUsage.php": "87fe8c3c831db97f148c0d8b85f653694771133e126af75a3e988d91552b8a6e",
@@ -92,7 +95,7 @@
         "app/Provider/ConfigProvider.php": "8693509969aa304440a09a437fd9bce2cb83f30d1a13441258345a97545683b1",
         "app/Provider/SmartyProvider.php": "7c5119f9ff8f399841618851e3a9dc15feb9c5074afd0e8c9eb8f17befdf585e",
         "bin/c2c.php": "1d02314f309984bb8db1fb8ae330bfea2c207b4c9e449aaa874958c7eb12b96d",
-        "bin/checkout-funds.php": "e170e4a3521654dc0c99068d87dd33c6f1b8d25c57a7e8f091d868ccf52845d3",
+        "bin/checkout-funds.php": "1717ffdb58a123abc0436b4900b91a4da7ed6d1c603b706ab0d45da79da62510",
         "bin/commissions.php": "bcbd35c28bb31a89ac6ea36fab2a18fa5e23c75f135b584305ada1f3d780c1a9",
         "bin/giftcards.php": "07315a83a7a8908c6500e81cb30b5fc7b29d4d5d1d16926eba991689596995e8",
         "bin/ovpn.php": "a0e69868f517b86ac34325ef6146624f3b158f3701eec92b253c0306fb7f6219",
