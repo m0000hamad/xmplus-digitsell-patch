@@ -63,7 +63,7 @@ import urllib.parse
 import urllib.request
 import uuid as uuidlib
 
-VERSION = "1.5.1"
+VERSION = "1.5.2"
 
 # The installer ships this module beside the agent.
 import importlib.util
@@ -1366,14 +1366,14 @@ class Agent:
         for key, value in (self.state.get("exit_current") or {}).items():
             if not isinstance(value, list) or len(value) != 2 or not isinstance(value[0], dict):
                 continue
-            chosen = {k: as_str(v) for k, v in value[0].items() if k in ("tor", "proxy") and as_str(v)}
+            chosen = {k: as_str(v) for k, v in value[0].items() if k in ("tor", "proxy", "blocked") and as_str(v)}
             if chosen.get("tor") and chosen["tor"] not in known:
                 continue
             if as_int(key) > 0:
                 self.exit_current[as_int(key)] = (chosen, as_str(value[1]))
         self.torexit_error = None
         self.torexit = TorExit(self)
-        self.warp = WarpWorker()
+        self.warp = WarpWorker(self.conf.get("warp_blocked_ips"))
         self.warp_wants = {as_int(k): bool(v) for k, v in (self.state.get("warp_wants") or {}).items()}
         self.warp.wanted = any(self.warp_wants.values())
         self.last_restart = 0
@@ -1778,6 +1778,9 @@ class Agent:
             from_file = self.file_exit(node_id)
             fallback = self.exit_current.get(node_id) or (from_file, "agent.json" if from_file else "")
             if self.warp_wants.get(node_id):
+                if self.warp.blocked:
+                    result[node_id] = ({"proxy": WARP_PROXY, "blocked": "1"}, "warp")
+                    continue
                 # Retain the previous exit during first installation. Once applied,
                 # keep the proxy on health failures to prevent silently leaking direct.
                 result[node_id] = ({"proxy": WARP_PROXY}, "warp") if self.warp.ready else fallback
@@ -1917,6 +1920,8 @@ class Agent:
     def exit_outbound(self, spec):
         """The socks outbound for a node with an exit proxy, or None."""
         node_id = spec["id"]
+        if self.exit_conf(node_id).get("blocked"):
+            return {"tag": "exit-%s" % spec["tag"], "protocol": "blackhole"}
         try:
             found = exit_proxy(self.exit_conf(node_id))
         except ValueError as error:

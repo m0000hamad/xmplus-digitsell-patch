@@ -536,3 +536,10 @@ Agent 1.5.1 enforces IPv4-only destinations for managed WARP: SOCKS outbound
 probe. Update with `digitsell-xray update`. Test the local proxy with
 `curl -4 --socks5 127.0.0.1:40000 https://www.cloudflare.com/cdn-cgi/trace`.
 See https://xtls.github.io/en/config/outbound.html#outboundobject .
+
+Agent 1.5.2 accepts `"warp_blocked_ips": ["192.0.2.81"]` in agent.json.
+With this nonempty list, selected WARP inbounds are blocked until a health probe
+confirms an allowed IPv4 exit, and blocked again if a later probe matches the
+list. Restart/update the agent after editing. This does not force a new WARP IP;
+Cloudflare's NAT for another destination may differ from the trace result.
+It does not add a host firewall rule or change unselected nodes.

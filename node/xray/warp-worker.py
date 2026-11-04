@@ -28,8 +28,15 @@ apt-get install -y cloudflare-warp
 
 
 class WarpWorker(threading.Thread):
-    def __init__(self):
+    def __init__(self, blocked_ips=None):
         super().__init__(name='warp', daemon=True)
+        if blocked_ips is None:
+            blocked_ips = []
+        if not isinstance(blocked_ips, list):
+            raise ValueError('warp_blocked_ips must be an array of IPv4 addresses')
+        self.blocked_ips = {str(ipaddress.IPv4Address(ip)) for ip in blocked_ips}
+        # With an exclusion policy, fail closed until an allowed exit is verified.
+        self.blocked = bool(self.blocked_ips)
         self.wanted = False
         self.report = {'state': 'off', 'error': '', 'ip': ''}
         self.ready = False
@@ -74,6 +81,10 @@ class WarpWorker(threading.Thread):
         ip = fields.get('ip', '')
         if not isinstance(ipaddress.ip_address(ip), ipaddress.IPv4Address):
             raise RuntimeError('WARP probe did not return an IPv4 exit')
+        if ip in self.blocked_ips:
+            self.blocked = True
+            raise RuntimeError('WARP exit %s is blocked by warp_blocked_ips; traffic remains blocked' % ip)
+        self.blocked = False
         return ip
 
     def step(self):

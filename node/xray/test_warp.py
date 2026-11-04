@@ -88,6 +88,47 @@ class WarpTests(unittest.TestCase):
             w.step()
             ensure.assert_not_called()
 
+    def test_excluded_exit_fails_closed_until_allowed_probe(self):
+        a = self.instance()
+        a.warp = agent.WarpWorker(['192.0.2.81'])
+        a.exit_errors = {}
+        a.exit_current = a.compute_exits()
+        self.assertEqual(a.exit_outbound({'id': 1, 'tag': 'n1'})['protocol'], 'blackhole')
+        self.assertEqual(a.exit_current[2][0], {})
+        with patch.object(a.warp, 'run_command', return_value=types.SimpleNamespace(stdout='warp=on\nip=192.0.2.81')):
+            with self.assertRaisesRegex(RuntimeError, 'blocked'):
+                a.warp.probe()
+        self.assertTrue(a.warp.blocked)
+        with patch.object(a.warp, 'run_command', return_value=types.SimpleNamespace(stdout='warp=on\nip=192.0.2.82')):
+            a.warp.probe()
+        a.warp.ready = True
+        a.exit_current = a.compute_exits()
+        self.assertEqual(a.exit_outbound({'id': 1, 'tag': 'n1'})['protocol'], 'socks')
+        # A later denied exit changes the config fingerprint back to blackhole.
+        with patch.object(a.warp, 'run_command', return_value=types.SimpleNamespace(stdout='warp=on\nip=192.0.2.81')):
+            a.warp.wanted = True
+            a.warp.step()
+        self.assertTrue(a.warp.blocked)
+        self.assertFalse(a.warp.ready)
+        a.exit_current = a.compute_exits()
+        self.assertEqual(a.exit_outbound({'id': 1, 'tag': 'n1'})['protocol'], 'blackhole')
+
+    def test_exclusion_survives_health_failure_and_disable_restores_direct(self):
+        a = self.instance()
+        a.warp = agent.WarpWorker(['192.0.2.81'])
+        a.warp.wanted = True
+        with patch.object(a.warp, 'ensure', side_effect=RuntimeError('offline')):
+            a.warp.step()
+        self.assertTrue(a.warp.blocked)
+        a.exit_current = a.compute_exits()
+        a.warp_wants[1] = False
+        self.assertEqual(a.compute_exits()[1][0], {})
+
+    def test_exclusion_configuration_validation(self):
+        for value in ['192.0.2.81', ['not-an-ip'], ['2001:db8::1']]:
+            with self.assertRaises(ValueError):
+                agent.WarpWorker(value)
+
     def test_unmanaged_installation_is_untouched(self):
         w = agent.WarpWorker()
         with patch.object(agent._warp_module.os.path, 'exists', return_value=False), patch.object(agent._warp_module.shutil, 'which', return_value='/usr/bin/warp-cli'):

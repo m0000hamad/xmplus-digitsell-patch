@@ -1,3 +1,22 @@
+## Node 1.5.2 — rejected WARP exit IPs (2026-11-04)
+
+Adds local agent.json `warp_blocked_ips`, a validated list of IPv4 addresses.
+The list is private node configuration, not a hardcoded customer policy in the
+public source. A matching Cloudflare trace exit fails health with an explicit
+error. With exclusions configured, managed WARP inbounds start with an exit-tag
+blackhole until an allowed IPv4 trace succeeds. Later denied exits select the
+blackhole again, changing the config fingerprint, rather than retaining a
+previous SOCKS route or falling back direct. The marker survives state restore.
+Other node IDs and disabling WARP keep their previous behavior. No firewall rule
+against a public NAT address is added: that cannot control Cloudflare's egress
+allocation. This rejects the observed trace exit; it cannot prove the NAT address
+Cloudflare uses for every other destination, force a replacement, or reserve an IP.
+Thirteen focused tests and the twenty adjacent profile/online/revocation checks
+pass. Node-only source is published on origin/main; panel/runtime manifest remain
+1.38.12 unchanged. Owner will configure the private exclusion and run the node
+update themselves. Live node blocking and replacement-IP verification are pending
+owner execution; no customer node was remotely modified.
+
 ## Node 1.5.1 — IPv4-only WARP (2026-11-04)
 
 Owner requested IPv4 instead of the reported IPv6 WARP exit and will execute
