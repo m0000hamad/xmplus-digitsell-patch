@@ -18,8 +18,9 @@ backdrop, both buttons, Escape, Tab/Shift+Tab, restored focus/scroll and uncondi
 include. Browser visual QA and native installed Smarty rendering were unavailable
 in this environment; responsive CSS is implemented but not visually verified.
 Release manifest/checksums are rebuilt and independently checked before publication.
-Publication target is origin/main. Live deployment and authenticated installed/latest
-version verification are pending: no panel administrator session or server access
+Published release commit b222acdc20984f9d87d93b4222466f7fd750489d to origin/main.
+Published branch, immutable manifest and all 195 published file checksums verified.
+Live deployment and authenticated installed/latest version verification are pending: no panel administrator session or server access
 is available in this task. Do not describe this release as live/synchronized.
 
 ## 1.38.13 / node 1.5.3 — managed AdGuard Home (2026-11-05)
