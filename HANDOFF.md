@@ -1,3 +1,7 @@
+## 1.38.18 - remove dashboard connection notice (2026-11-06)
+
+Removed the dashboard include. Publication and live verification pending.
+
 ## 1.38.17 — shorter ticket closure notification (2026-11-05)
 
 Removed the final instruction to open a new ticket from the closure message
