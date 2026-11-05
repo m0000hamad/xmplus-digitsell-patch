@@ -2,7 +2,12 @@
 
 Removed the final instruction to open a new ticket from the closure message
 shared by Telegram and queued email. The closed-thread page retains its guidance.
-Publication and native updater deployment pending verification.
+Published source 12fda76c539d65216a81d7f347d7df725c120269 to origin/main;
+branch and immutable manifest verified. Authenticated native updater installed
+1.38.17; live installed/latest agree and all 202 runtime checksums match.
+Ticket bootstrap/list, session/CSRF/traversal denial and login health pass.
+The old suffix was also removed from 1165 pending closure emails only, matching
+the exact subject/template/message prefix and suffix. Sent messages were untouched.
 
 ## 1.38.16 — ticket lifecycle and private images (2026-11-05)
 
