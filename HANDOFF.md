@@ -1,6 +1,6 @@
 ## 1.38.18 - remove dashboard connection notice (2026-11-06)
 
-Removed the dashboard include. Publication and live verification pending.
+Removed the dashboard include. Published 9c75def to origin/main and verified the immutable manifest. Native updater installed 1.38.18. Authenticated installed/latest agree, all 202 runtime hashes match, and login and ticket health checks passed.
 
 ## 1.38.17 — shorter ticket closure notification (2026-11-05)
 
