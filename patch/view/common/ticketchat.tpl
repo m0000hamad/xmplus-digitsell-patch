@@ -326,7 +326,7 @@ window.TicketChat = (function () {
         var held = document.getElementById('files');
         if (!input || !input.files.length) { if (held) held.value = ''; return; }
         var file = input.files[0];
-        if (held.dataset.uploaded === [file.name, file.size, file.lastModified].join(':')) return;
+        if (held.value && held.dataset.uploaded === [file.name, file.size, file.lastModified].join(':')) return;
         if (file.size > 5 * 1024 * 1024) throw new Error('حداکثر حجم عکس ۵ مگابایت است.');
         var token = await fetch('/xmplus-patch.php?do=ticket.token', {credentials: 'same-origin'}).then(function(r) { return r.json(); });
         if (!token.ok) throw new Error(token.error);

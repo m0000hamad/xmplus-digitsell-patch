@@ -37,6 +37,18 @@ check(DB::table('ticket_close_notice')->count()===1, 'durable single notificatio
 check((int)Ticket::find(3)->status===1, 'active thread preserved');
 denied(function(){App\Tickets\Lifecycle::validateAttachment('../config.php',900001);}, 'reject path traversal');
 denied(function(){App\Tickets\Lifecycle::validateAttachment('tk_900002_'.str_repeat('a',48).'.png',900001);},'reject foreign attachment');
+// Exercise notification enqueue without sending anything to external services.
+$pdo->exec('CREATE TEMPORARY TABLE user(id BIGINT PRIMARY KEY,username TEXT,email TEXT,telegram_id TEXT)');
+$pdo->exec("INSERT INTO user VALUES(900001,'fixture','fixture@example.invalid','')");
+$pdo->exec('CREATE TEMPORARY TABLE settings(name VARCHAR(100),value TEXT)');
+$pdo->exec("INSERT INTO settings VALUES('maildriver','1'),('telegram','0')");
+$pdo->exec('CREATE TEMPORARY TABLE queue_messages(to_email TEXT,subject TEXT,telegramid TEXT,template TEXT,`array` TEXT,time BIGINT)');
+require_once $source . '/app/Jobs/TicketJob.php';
+(new App\Jobs\TicketJob)->dispatch();
+check(DB::table('queue_messages')->count()===1,'email queued once without external delivery');
+(new App\Jobs\TicketJob)->dispatch();
+check(DB::table('queue_messages')->count()===1,'completed notification not enqueued again');
+check((int)DB::table('ticket_close_notice')->value('telegram_sent')===1,'unconnected Telegram skipped');
 $smarty = new Smarty();
 $smarty->setTemplateDir($source . '/view');
 $compile=sys_get_temp_dir().'/ticket-smarty-'.getmypid();mkdir($compile);$smarty->setCompileDir($compile);

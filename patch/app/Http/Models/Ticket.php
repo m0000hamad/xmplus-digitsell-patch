@@ -52,6 +52,11 @@ final class Ticket extends Model
         return '/uploads/tickets/' . rawurlencode(basename($name));
     }
 
+    public function attachmentDownloadUrl()
+    {
+        return $this->attachmentUrl() . (\App\Tickets\Lifecycle::attachmentName((string) $this->files) ? '&download=1' : '');
+    }
+
     public function isImage()
     {
         return (bool) preg_match('/\.(jpg|jpeg|png|webp|gif)$/iD', (string) $this->files);

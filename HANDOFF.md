@@ -1,4 +1,4 @@
-## 1.38.15 — ticket lifecycle and private images (2026-11-05)
+## 1.38.16 — ticket lifecycle and private images (2026-11-05)
 
 Tickets expire after 172800 seconds since the latest message (root or reply).
 The minute scheduler closes up to 100 due roots per run. Parent-row locks serialize
@@ -26,8 +26,14 @@ with save/download and a new-tab fallback. Full image downloads are authenticate
 Validation: native temporary-table ORM checks cover deadline boundary, activity
 reset, both write guards, idempotent close/outbox and malicious attachment refs.
 Seven modified Smarty templates compile on the installed engine. PHP lint passes.
-Publication/deployment: pending; do not report the release complete until the
-published immutable manifest and live installed/latest 1.38.15 are verified.
+Notification tests also prove single email enqueue and skip disconnected Telegram.
+Published 1.38.15 source 22ef48aa8e8ec9e66eb61ea4572ff6c57ca8984b;
+immutable manifest verified and authenticated updater installed it. Live exact
+multipart image bytes, protected reads/downloads and open/closed native thread
+rendering pass. Installed/latest agreed and all 202 runtime hashes matched.
+The real minute scheduler has closed tickets and processed the notification outbox.
+1.38.16 corrects legacy public-image download URLs and reuse of a previously
+selected upload after submitting a new ticket. Final publication/deployment pending.
 
 ## 1.38.14 — Happ connection notice (2026-11-05)
 
