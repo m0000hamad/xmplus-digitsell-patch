@@ -1,5 +1,10 @@
 {literal}
 <style>
+.tk-image-link { display: block; max-width: min(85%, 640px); }
+.tk-image { display: block; width: auto; max-width: 100%; max-height: 320px; object-fit: contain; border-radius: 12px; cursor: zoom-in; }
+.tk-lightbox { width: 96vw; max-width: 1200px; max-height: 96vh; padding: 12px; border: 0; border-radius: 12px; }
+.tk-lightbox::backdrop { background: rgba(0,0,0,.8); }
+.tk-lightbox img { display: block; max-width: 100%; max-height: 78vh; margin: auto; object-fit: contain; }
 .tk-thread {
 	height: 26rem;
 	overflow-y: auto;
@@ -316,8 +321,42 @@ window.TicketChat = (function () {
 		if (thread) { thread.scrollTop = thread.scrollHeight; }
 	}
 
+    async function upload() {
+        var input = document.getElementById('tkImageInput');
+        var held = document.getElementById('files');
+        if (!input || !input.files.length) { if (held) held.value = ''; return; }
+        var file = input.files[0];
+        if (held.dataset.uploaded === [file.name, file.size, file.lastModified].join(':')) return;
+        if (file.size > 5 * 1024 * 1024) throw new Error('حداکثر حجم عکس ۵ مگابایت است.');
+        var token = await fetch('/xmplus-patch.php?do=ticket.token', {credentials: 'same-origin'}).then(function(r) { return r.json(); });
+        if (!token.ok) throw new Error(token.error);
+        var form = new FormData();
+        form.append('token', token.token); form.append('image', file);
+        var result = await fetch('/xmplus-patch.php?do=ticket.upload', {method: 'POST', credentials: 'same-origin', body: form}).then(function(r) { return r.json(); });
+        if (!result.ok) throw new Error(result.error);
+        held.value = result.file;
+        held.dataset.uploaded = [file.name, file.size, file.lastModified].join(':');
+    }
+
+    document.addEventListener('click', function(event) {
+        var link = event.target.closest('.tk-image-link');
+        if (!link || typeof HTMLDialogElement === 'undefined') return;
+        event.preventDefault();
+        var box = document.createElement('dialog'); box.className = 'tk-lightbox';
+        var close = document.createElement('button'); close.type = 'button'; close.textContent = '×'; close.setAttribute('aria-label', 'Close');
+        var img = document.createElement('img'); img.src = link.href; img.alt = link.querySelector('img').alt;
+        var download = document.createElement('a'); download.href = link.href + (link.href.indexOf('?') >= 0 ? '&download=1' : ''); download.download = ''; download.textContent = link.nextElementSibling.textContent;
+        box.appendChild(close); box.appendChild(img); box.appendChild(download);
+        document.body.appendChild(box);
+        close.onclick = function() { box.close(); };
+        box.addEventListener('click', function(e) { if(e.target === box) box.close(); });
+        box.addEventListener('close', function() { box.remove(); });
+        box.showModal();
+    });
+
 	return {
-		attachEmoji: attachEmoji,
+		upload: upload,
+        attachEmoji: attachEmoji,
 		insert: insert,
 		scrollToBottom: scrollToBottom
 	};

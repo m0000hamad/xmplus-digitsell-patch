@@ -1,1 +1,1 @@
-اطلاعیه مهم اتصال: جایگزینی پاپ‌آپ دعوت دوستان با هشدار مشکل Happ و معرفی V2Box، OpenVPN و Amnezia VPN؛ طراحی واکنش‌گرا برای موبایل و دسکتاپ.
+Ticket auto-close after 48 hours of inactivity, permanent closed-thread guard, connected email/Telegram notice, private responsive image attachments and downloads.

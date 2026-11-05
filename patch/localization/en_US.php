@@ -2214,4 +2214,8 @@ If you want a fast, reliable service, sign up with my link 👇",
 	'C2cAdmNoCardAvailable'     => "No enabled card has room left; card to card is hidden.",
 	'C2cAdmRefresh'             => "Refresh",
 	'C2cAdmDelete'              => "Delete",
+
+    'TicketPermanentlyClosed' => 'This ticket is closed. Please open a new ticket to continue.',
+    'TicketAttachImage' => 'Attach image (JPG, PNG, WebP — up to 5 MB)',
+    'TicketDownloadImage' => 'Download image',
 );

@@ -489,6 +489,11 @@ if (strpos($action, 'node.') === 0) {
 
 // Reserved plans: the buying half answers ordinary users, the admin half checks
 // for itself (app/Patch/Reserve.php).
+if (strpos($action, 'ticket.') === 0) {
+    require ROOT . '/app/Patch/Tickets.php';
+    fail('unknown ticket action');
+}
+
 if (strpos($action, 'reserve.') === 0) {
     require ROOT . '/app/Patch/Reserve.php';
     fail('unknown reservation action');

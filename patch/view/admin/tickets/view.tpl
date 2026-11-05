@@ -30,18 +30,17 @@
 										<time>{date('Y-m-d H:i',$ticket->datetime)}</time>
 									</div>
 									<div class="tk-bubble{if $ticket->isSticker()} tk-sticker{/if}">{$ticket->html() nofilter}</div>
-									{if $ticket->files != ""}
-										<a class="tk-file" href="/uploads/tickets/{$ticket->files}" target="_blank" rel="noopener">
-											<i class="fa fa-image"></i>
-											<span>{$ticket->files}</span>
-										</a>
-									{/if}
+{include file='common/ticketattachment.tpl'}
 								</div>
 							{/foreach}
 						</div>
 					</div>
 
-					<div class="card-footer">
+					{$tkClosed = false}{foreach $ticketset as $tkEntry}{$tkClosed = $tkEntry->isClosed()}{break}{/foreach}
+                    {if $tkClosed}
+                    <div class="card-footer"><div class="alert alert-info" role="status">{$translate->get('TicketPermanentlyClosed')}</div><a href="/admin/tickets" class="btn btn-dark">{$translate->get('Tickets')}</a></div>
+                    {else}
+                    <div class="card-footer">
 						<div class="tk-composer">
 							<textarea rows="3" class="form-control" name="message" id="message" placeholder="{$translate->get('TypeHere')}"></textarea>
 							<div class="tk-tools">
@@ -53,11 +52,12 @@
 								<span class="tk-hint">{$translate->get('NewLineHint')}</span>
 							</div>
 						</div>
-						<input type="text" class="form-control" name="files" id="files" hidden>
+						{include file='common/ticketupload.tpl'}
 						<div class="d-grid mt-3">
 							<button class="btn btn-dark btn-space mb-0" onClick="replyTicket()">{$translate->get('Submit')}</button>
 						</div>
 					</div>
+                    {/if}
 				</div>
 			</div>
 		</div>
@@ -121,8 +121,10 @@
 	})();
 {/literal}
 
-	function replyTicket() {
+	async function replyTicket() {
 		if (window.TicketApplyAutoSignature) { window.TicketApplyAutoSignature(); }
+
+        try { await TicketChat.upload(); } catch (error) { layer.msg(error.message); return; }
 
         $.ajax({
             type: "PUT",

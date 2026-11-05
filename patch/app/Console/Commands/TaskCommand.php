@@ -193,6 +193,14 @@ final class TaskCommand extends Command
             'enabled' => true,
         ));
 
+        $scheduler->add('TicketJob', [
+            'command' => 'php '.BASE_PATH.'/bin/tickets.php',
+            'schedule' => '* * * * *',
+            'output' => BASE_PATH.'/storage/logs/tickets.log',
+            'lock_dir' => BASE_PATH.'/storage/cron/',
+            'enabled' => true,
+        ]);
+
 		$scheduler->run();
 		return 0;
     }

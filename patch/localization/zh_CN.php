@@ -2215,4 +2215,8 @@ $i18n['zh_CN'] = array(
 	'C2cAdmNoCardAvailable'     => "没有仍有额度的启用卡；银行卡转账不会显示。",
 	'C2cAdmRefresh'             => "刷新",
 	'C2cAdmDelete'              => "删除",
+
+    'TicketPermanentlyClosed' => 'This ticket is closed. Please open a new ticket to continue.',
+    'TicketAttachImage' => 'Attach image (JPG, PNG, WebP — up to 5 MB)',
+    'TicketDownloadImage' => 'Download image',
 );

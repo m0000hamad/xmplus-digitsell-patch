@@ -1,3 +1,34 @@
+## 1.38.15 — ticket lifecycle and private images (2026-11-05)
+
+Tickets expire after 172800 seconds since the latest message (root or reply).
+The minute scheduler closes up to 100 due roots per run. Parent-row locks serialize
+closure against ORM replies. Model save and custom Eloquent Builder update refuse
+replies to expired/closed roots and refuse reopening a closed root, including
+encoded controller paths. Closed threads retain history and display the instruction
+to open a new ticket. Existing manually closed tickets are also immutable.
+
+A migration creates ticket_close_notice. Closing and the outbox insert are atomic;
+email enqueue and its completion marker are atomic. Connected configured email
+and Telegram receive the closure notice. Telegram failures retry; a crash after
+remote acceptance but before marking may repeat a Telegram notice. Disabled or
+unconnected channels are marked skipped, preventing starvation by disconnected
+accounts. Old open inactive tickets are eligible when the scheduled job starts.
+
+New image uploads allow server-verified JPEG/PNG/WebP, up to 5 MiB and 24 MP,
+with random owner-prefixed names stored outside public/ in storage/ticket-images.
+The session/CSRF endpoint requires an existing account, and serving requires an
+attached ticket owned by the viewer or a current administrator. File references
+are validated at model write time. Existing attachments retain legacy URLs.
+User and staff composers support image uploads; native handlers omitting files
+are supplemented at model creation. Responsive thumbnails open a full image dialog
+with save/download and a new-tab fallback. Full image downloads are authenticated.
+
+Validation: native temporary-table ORM checks cover deadline boundary, activity
+reset, both write guards, idempotent close/outbox and malicious attachment refs.
+Seven modified Smarty templates compile on the installed engine. PHP lint passes.
+Publication/deployment: pending; do not report the release complete until the
+published immutable manifest and live installed/latest 1.38.15 are verified.
+
 ## 1.38.14 — Happ connection notice (2026-11-05)
 
 Replaces the dashboard referral-popup include with a standalone Persian connection

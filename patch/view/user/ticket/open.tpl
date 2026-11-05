@@ -38,7 +38,7 @@
 					<div class="row align-items-center">
 						<label class="col-xl-2 form-label"></label>
 						<div class="col-xl-10">
-							<input type="text" class="form-control" name="files" id="files">
+
 						</div>
 					</div>
 				</div>
@@ -46,7 +46,8 @@
 					<div class="row">
 						<label class="col-xl-2 form-label">{$translate->get('Message')}</label>
 						<div class="col-xl-10">
-							<div class="tk-composer">
+							{include file='common/ticketupload.tpl'}
+                            <div class="tk-composer">
 							<textarea rows="8" class="form-control shadow-lg" name="message" id="message" placeholder="{$translate->get('TypeHere')}"></textarea>
 							<div class="tk-tools">
 								<button type="button" class="tk-tool" id="tkOpenEmojiBtn">😊 {$translate->get('Emoji')}</button>

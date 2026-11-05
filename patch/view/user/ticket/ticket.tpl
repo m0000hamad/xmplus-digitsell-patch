@@ -75,9 +75,11 @@
         });
     }
 	
-	$('.sendTicket').click(function(e) {
+	$('.sendTicket').click(async function(e) {
 		var me = $(this);
 		e.preventDefault();
+        try { await TicketChat.upload(); } catch (error) { layer.msg(error.message); return; }
+
         $.ajax({
             type: "POST",
             url: "/portal/ticket",
@@ -86,6 +88,7 @@
 				department : $("#department").val(),
 				title: $("#title").val(),
 				content: $("#message").val(),
+                files: $("#files").val(),
 			},
             success: data => {
                 if (data.ret) {
@@ -94,6 +97,8 @@
 						offset: '100px'
 					});
 					$('#add_ticket').modal('hide');
+                    document.getElementById('tkImageInput').value = '';
+                    document.getElementById('files').value = '';
                     {include file='table/reload.tpl'}
                 } else {
 					layer.msg(data.msg, {

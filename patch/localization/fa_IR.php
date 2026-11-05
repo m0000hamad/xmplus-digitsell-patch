@@ -2216,4 +2216,8 @@ $i18n['fa_IR'] = array(
 	'C2cAdmNoCardAvailable'     => "هیچ کارت فعالی با ظرفیت باقی‌مانده نیست؛ کارت به کارت نمایش داده نمی‌شود.",
 	'C2cAdmRefresh'             => "تازه‌سازی",
 	'C2cAdmDelete'              => "حذف",
+
+    'TicketPermanentlyClosed' => 'این تیکت بسته شده است. برای ادامه، تیکت جدید باز کنید.',
+    'TicketAttachImage' => 'پیوست عکس (JPG، PNG، WebP — حداکثر ۵ مگابایت)',
+    'TicketDownloadImage' => 'دانلود عکس',
 );

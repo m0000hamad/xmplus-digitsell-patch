@@ -8,6 +8,55 @@ final class Ticket extends Model
     protected $table = 'tickets';
 	protected $guarded = ['id'];
 
+    public function newEloquentBuilder($query)
+    {
+        return new \App\Tickets\Builder($query);
+    }
+
+    public function save(array $options = [])
+    {
+        return $this->getConnection()->transaction(function () use ($options) {
+            if ((int) $this->rootid !== 0) {
+                \App\Tickets\Lifecycle::assertOpen((int) ($this->main_id ?: $this->rootid));
+            } elseif ($this->exists && $this->isDirty('status') && (int) $this->status !== 0) {
+                \App\Tickets\Lifecycle::assertOpen((int) $this->id);
+            }
+            // The native create handler predates attachments and may omit files.
+            if (!$this->exists && !$this->files) {
+                $input = $_POST;
+                if (($_SERVER['REQUEST_METHOD'] ?? '') === 'PUT') parse_str((string) file_get_contents('php://input'), $input);
+                if (isset($input['files']) && is_string($input['files'])) $this->files = $input['files'];
+            }
+            if ($this->isDirty('files')) {
+                \App\Tickets\Lifecycle::validateAttachment((string) $this->files, (int) $this->userid);
+            }
+            return parent::save($options);
+        });
+    }
+
+    public function isClosed()
+    {
+        $id = (int) ($this->rootid ? $this->main_id : $this->id);
+        $root = self::find($id);
+        if (!$root) return true;
+        $latest = (int) self::where('main_id', $id)->max('datetime');
+        return \App\Tickets\Lifecycle::expired($root, $latest);
+    }
+
+    public function attachmentUrl()
+    {
+        $name = (string) $this->files;
+        if (\App\Tickets\Lifecycle::attachmentName($name)) {
+            return '/xmplus-patch.php?do=ticket.image&file=' . rawurlencode($name);
+        }
+        return '/uploads/tickets/' . rawurlencode(basename($name));
+    }
+
+    public function isImage()
+    {
+        return (bool) preg_match('/\.(jpg|jpeg|png|webp|gif)$/iD', (string) $this->files);
+    }
+
 	/*
 	 * Ticket bodies are plain text typed into a textarea, but they used to be
 	 * printed straight into the page. That collapsed every line break, left URLs
