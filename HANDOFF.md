@@ -1,3 +1,27 @@
+## 1.38.14 — Happ connection notice (2026-11-05)
+
+Replaces the dashboard referral-popup include with a standalone Persian connection
+notice, regardless of the rebate switch. Owner-approved copy identifies the Happ
+application issue and lists V2Box, OpenVPN and Amnezia VPN; users are reminded to
+choose the app matching their configuration. Existing referral pages are retained.
+
+Matches the approved red/white concept with an alert icon, prominent heading,
+three alternative-app cards and full-width acknowledgement. Cards stack on phones;
+viewport-height caps, scrollable body and fixed footer keep dismissal accessible.
+Dark-theme styles, RTL/bidi, keyboard focus containment/restoration, Escape and
+44px close control are included. The notice appears on each dashboard entry,
+waits for existing notice/commission/gift dialogs, and requires explicit dismissal
+(backdrop does not close it). No referral cooldown or storage state suppresses it.
+
+Validation: JavaScript syntax and DOM checks pass for modal sequencing, long wait,
+backdrop, both buttons, Escape, Tab/Shift+Tab, restored focus/scroll and unconditional
+include. Browser visual QA and native installed Smarty rendering were unavailable
+in this environment; responsive CSS is implemented but not visually verified.
+Release manifest/checksums are rebuilt and independently checked before publication.
+Publication target is origin/main. Live deployment and authenticated installed/latest
+version verification are pending: no panel administrator session or server access
+is available in this task. Do not describe this release as live/synchronized.
+
 ## 1.38.13 / node 1.5.3 — managed AdGuard Home (2026-11-05)
 
 Independent administrator switches on Servers use admin/session/POST/CSRF checks.
