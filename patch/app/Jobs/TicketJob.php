@@ -30,7 +30,7 @@ final class TicketJob
                     DB::table('ticket_close_notice')->where('ticketid', $notice->ticketid)->update(['mail_sent' => 1]);
                 if ($this->setting('telegram') != 1 || empty($user->telegram_id) || trim((string) $this->setting('telegramtoken')) === '')
                     DB::table('ticket_close_notice')->where('ticketid', $notice->ticketid)->update(['telegram_sent' => 1]);
-                $text = 'تیکت شماره ' . $notice->ticketid . ' پس از ۴۸ ساعت بدون پیام جدید، خودکار بسته شد. برای ادامه، تیکت جدید باز کنید.';
+                $text = 'تیکت شماره ' . $notice->ticketid . ' پس از ۴۸ ساعت بدون پیام جدید، خودکار بسته شد.';
                 if (!$notice->mail_sent && $this->setting('maildriver') == 1 && filter_var($user->email, FILTER_VALIDATE_EMAIL)) {
                     DB::connection()->transaction(function () use ($notice, $user, $text) {
                         Queue::insert(['to_email' => $user->email, 'subject' => 'تیکت بسته شد', 'telegramid' => 0,

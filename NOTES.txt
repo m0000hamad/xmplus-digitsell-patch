@@ -1,1 +1,1 @@
-Ticket auto-close after 48 hours of inactivity, permanent closed-thread guard, connected email/Telegram notice, private responsive image attachments and downloads.
+Remove the new-ticket instruction from outgoing ticket closure notifications.

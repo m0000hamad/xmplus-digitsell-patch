@@ -1,7 +1,7 @@
 {
-    "version": "1.38.16",
+    "version": "1.38.17",
     "released": "2026-11-05",
-    "notes": "Ticket auto-close after 48 hours of inactivity, permanent closed-thread guard, connected email/Telegram notice, private responsive image attachments and downloads.",
+    "notes": "Remove the new-ticket instruction from outgoing ticket closure notifications.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -60,7 +60,7 @@
         "app/Jobs/PurchaseBreakdownJob.php": "54ff1717e5b439ac4e7014d9f60aaa16a185a64a1705a4fed208f52d2da06ff5",
         "app/Jobs/ReserveJob.php": "74956cac985e6de7c2c9db70277ea4a4f538c2e41734c85f15eca93e262f9260",
         "app/Jobs/TgJoinJob.php": "74233f6e34c62a6b286ad4322f0f01a78c6579b0a29fc6ecb91aa230bf681aa0",
-        "app/Jobs/TicketJob.php": "467db361f2e4fba9b6763793478ed48a3925eac239fc81302c976f6234d5abaf",
+        "app/Jobs/TicketJob.php": "92804aaaeb0b0001cacf3f2a7db83263ff99542ce0a905653f5791daedbe6088",
         "app/Jobs/TimePlanJob.php": "808e2a531426df8543a310a9d67a24f1de9700ff82c296ae1b5dce3cf8a88bda",
         "app/Jobs/TrafficStatsJob.php": "8cde9d7167ed068664d9f31ce4e25ac43e7884be866d3689d6507c12d34d247e",
         "app/Jobs/UserJob.php": "622ce66f3fe2987ec01917ab3cbc050d9023aa96d440ec9d80a091d5353c4428",

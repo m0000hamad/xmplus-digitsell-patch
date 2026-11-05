@@ -1,3 +1,9 @@
+## 1.38.17 — shorter ticket closure notification (2026-11-05)
+
+Removed the final instruction to open a new ticket from the closure message
+shared by Telegram and queued email. The closed-thread page retains its guidance.
+Publication and native updater deployment pending verification.
+
 ## 1.38.16 — ticket lifecycle and private images (2026-11-05)
 
 Tickets expire after 172800 seconds since the latest message (root or reply).
