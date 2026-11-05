@@ -33,7 +33,14 @@ multipart image bytes, protected reads/downloads and open/closed native thread
 rendering pass. Installed/latest agreed and all 202 runtime hashes matched.
 The real minute scheduler has closed tickets and processed the notification outbox.
 1.38.16 corrects legacy public-image download URLs and reuse of a previously
-selected upload after submitting a new ticket. Final publication/deployment pending.
+selected upload after submitting a new ticket. Published final runtime source da3c32a0f89034805ddd1e96f880d2719b7c1ccc to
+origin/main; branch and immutable manifest bytes verified. Authenticated updater
+installed 1.38.16; live installed=latest=1.38.16 and all 202 runtime hashes match.
+Final native ORM/notification/Smarty regressions pass. Live multipart upload,
+exact protected image/download bytes, anonymous denial, CSRF/traversal rejection,
+ticket list/bootstrap/login and open/closed native thread rendering pass.
+No customer ticket content or credentials were used by the image fixture; its
+administrator-owned synthetic ticket and private image were removed afterward.
 
 ## 1.38.14 — Happ connection notice (2026-11-05)
 
