@@ -1,7 +1,7 @@
 {
-    "version": "1.38.20",
+    "version": "1.38.21",
     "released": "2026-11-06",
-    "notes": "Refresh connection notice with prominent blue styling and conditional Xray guidance.",
+    "notes": "Disable the dashboard connection announcement.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -185,7 +185,7 @@
         "view/user/dashboard/application.tpl": "0b44bfe7c0600b4beaf77874ac75e997ccf98acffb023f5805a0a7e8da6a40af",
         "view/user/dashboard/chart.tpl": "2be509daa4994c092acc3ab4d1ee2c5aff35a96c328f3acee9e4604f820a60cb",
         "view/user/dashboard/connectionnotice.tpl": "781e6190666dc7831c4d3c9ecb8b014abe783cfb78d05397d4892e807b8b9c28",
-        "view/user/dashboard/dashboard.tpl": "2c357a236e756ab437674762441f6e301c1f5969b7147d4f22d92e795f6a1bc1",
+        "view/user/dashboard/dashboard.tpl": "3ea0b50dc5c5841518961708b9e690b94ef59a1df4feaefd0a868d01c3db0a51",
         "view/user/dashboard/giftpopup.tpl": "921e7b34dec6616c2a81ef313c5d05d7432feb4b630f6c3a6f80c32f770eec70",
         "view/user/dashboard/order.tpl": "32435416680e7d6e1e90cdc0a5eb7ae48bcd555b0327507d5e09e1c2b74ed8da",
         "view/user/dashboard/ovpn.tpl": "ac6111b8c424b5639ace951c7acbbf1c47afaf51c4f915ebbd24c1fcd036ab54",
