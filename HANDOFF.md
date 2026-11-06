@@ -1,5 +1,7 @@
 ## 1.38.21 - disable connection announcement (2026-11-06)
 
+Published e71a206 to origin/main and verified immutable manifest. Native updater installed 1.38.21. Authenticated installed/latest agree and all 202 runtime checksums match. Live health passed.
+
 Removed dashboard notice include at owner request. Announcement template retained for future use.
 
 ## 1.38.20 - approachable connection guidance (2026-11-06)
