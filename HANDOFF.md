@@ -1,5 +1,7 @@
 ## 1.38.19 - Xray connection announcement (2026-11-06)
 
+Published d9fbf0b to origin/main, verified immutable manifest, installed through native updater. Authenticated installed/latest 1.38.19 and all runtime hashes verified. Live health passed.
+
 Restored dashboard notice with the owner-provided Xray restriction message and OpenVPN/Amnezia alternatives.
 
 ## 1.38.18 - remove dashboard connection notice (2026-11-06)
