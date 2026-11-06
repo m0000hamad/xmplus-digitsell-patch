@@ -1,5 +1,7 @@
 ## 1.38.20 - approachable connection guidance (2026-11-06)
 
+Published 102d872 to origin/main with immutable manifest verified. Native updater installed 1.38.20, authenticated installed/latest agree and all 202 runtime checksums match. Live health checks passed.
+
 Prominent blue information dialog replaces red warning styling. Conditional connection guidance names V2Box, Happ, v2rayNG and subscription clients, recommending OpenVPN or Amnezia until further notice.
 
 ## S4 throughput investigation — no release (2026-11-06)
