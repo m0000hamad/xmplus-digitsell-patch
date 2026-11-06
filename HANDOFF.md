@@ -1,3 +1,7 @@
+## 1.38.19 - Xray connection announcement (2026-11-06)
+
+Restored dashboard notice with the owner-provided Xray restriction message and OpenVPN/Amnezia alternatives.
+
 ## 1.38.18 - remove dashboard connection notice (2026-11-06)
 
 Removed the dashboard include. Published 9c75def to origin/main and verified the immutable manifest. Native updater installed 1.38.18. Authenticated installed/latest agree, all 202 runtime hashes match, and login and ticket health checks passed.

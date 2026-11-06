@@ -14,7 +14,7 @@
 .dcn-chip{display:inline-block;padding:5px 18px;border-radius:999px;background:#ffe1e5;color:#aa0019;font-size:15px;font-weight:800}
 .dcn-dialog .dcn-copy{margin:16px 0 12px;color:#303642;font-size:16px;line-height:1.95}
 .dcn-dialog .dcn-lead{margin:0 0 16px;color:#303642;font-size:16px;line-height:1.9}
-.dcn-apps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;direction:ltr;list-style:none;margin:0;padding:0}
+.dcn-apps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;direction:ltr;list-style:none;margin:0;padding:0}
 .dcn-apps li{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-width:0;padding:16px 8px;border:1px solid #cbd1dc;border-radius:14px;background:#f5f7fa;color:#20242c;font-size:16px;font-weight:800;line-height:1.5}
 .dcn-app-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;color:#fff;font:bold 21px/1 sans-serif;background:#7054df}
 .dcn-app-icon.dcn-openvpn{background:#c45b00}.dcn-app-icon.dcn-amnezia{background:#30495c}
@@ -36,11 +36,10 @@ html[data-hs-theme="dark"] .dcn-footer{background:#182132}
   <div class="dcn-body">
    <div class="dcn-warning" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7a3.5 3.5 0 0 1 6 0l17 29a3.5 3.5 0 0 1-3 5H7a3.5 3.5 0 0 1-3-5Z"/><path d="M24 17v10m0 7v.2"/></svg></div>
    <h2 class="dcn-title" id="dcnTitle">اطلاعیه مهم اتصال</h2>
-   <span class="dcn-chip">ویژه کاربران <bdi dir="ltr">Happ</bdi></span>
-   <p class="dcn-copy" id="dcnCopy">اپلیکیشن <bdi dir="ltr">Happ</bdi> در حال حاضر باگ دارد و ممکن است اتصال شما را مختل کند. این مشکل مربوط به خود برنامه است.</p>
+   <span class="dcn-chip">محدودیت سراسری Xray</span>
+   <p class="dcn-copy" id="dcnCopy">به‌دلیل محدودیت سراسری روی شبکهٔ <bdi dir="ltr">Xray</bdi>، اگر در اتصال مشکل دارید، تا اطلاع بعدی از <bdi dir="ltr">OpenVPN</bdi> یا امنزیا استفاده کنید.</p>
    <p class="dcn-lead" id="dcnLead">برای اتصال، لطفاً از یکی از برنامه‌های زیر استفاده کنید:</p>
    <ul class="dcn-apps" aria-label="برنامه‌های جایگزین">
-    <li><span class="dcn-app-icon" aria-hidden="true">◇</span><bdi dir="ltr">V2Box</bdi></li>
     <li><span class="dcn-app-icon dcn-openvpn" aria-hidden="true">⏻</span><bdi dir="ltr">OpenVPN</bdi></li>
     <li><span class="dcn-app-icon dcn-amnezia" aria-hidden="true">A</span><bdi dir="ltr">Amnezia VPN</bdi></li>
    </ul>
