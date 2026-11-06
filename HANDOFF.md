@@ -1,3 +1,46 @@
+## 1.38.20 - approachable connection guidance (2026-11-06)
+
+Prominent blue information dialog replaces red warning styling. Conditional connection guidance names V2Box, Happ, v2rayNG and subscription clients, recommending OpenVPN or Amnezia until further notice.
+
+## S4 throughput investigation — no release (2026-11-06)
+
+Owner reported fast direct Internet and stalled downloads through VLESS / WS /
+TLS. Reproduced from the desktop with checksum-verified official Xray 26.10.31,
+using an isolated loopback SOCKS listener; system proxy and routing unchanged.
+
+Evidence:
+- Server direct 10 MB download: 23.55 MB/s; same production account through
+  the production WS/TLS inbound over server loopback: 17.71 MB/s.
+- Desktop direct 10 MB: 7.19 MB/s. Production VLESS path downloaded only
+  41,575 bytes in 20 s. A separate ordinary HTTPS responder on this server,
+  serving generated zero bytes only (no filesystem access), likewise stalled
+  after 50,000 of 2,000,000 bytes in 15 s. Thus the failure is reproducible
+  independently of the agent and proxy implementation.
+- Temporary WS on two other ports, XHTTP/H2, raw TLS, REALITY/Vision, and
+  Shadowsocks 2022 all stalled after tens of KB. SSH transfers completed,
+  though achieved throughput varied; this does not establish full link capacity.
+- Destination-scoped route MTU 1280 / advertised MSS 1200 did not help.
+  Destination-scoped CUBIC instead of BBR did not help the production VLESS
+  transfer. Briefly disabling TSO/GSO/GRO did not help either.
+- Server CPU/memory were not saturated; fq had no queue drops. Most tiny-MSS
+  sockets were long-unacknowledged old connections; recently acknowledged
+  sockets usually had normal MSS. Do not equate that stale-socket symptom
+  with proof that the physical MTU is wrong.
+
+Conclusion: strong evidence of a failing/throttled external path to this host,
+not an identified agent regression. ISP filtering, routing and upstream faults
+are not distinguishable from these measurements alone. Await the owner's ISP
+name and comparison using another access network. Do not claim an agent update,
+MTU adjustment, transport change or arbitrary IP change is a demonstrated fix.
+No product code/version/manifest changed and no release was published or deployed.
+Production agent was 1.5.2, core 26.10.31; repository agent is already 1.5.3.
+
+All temporary routes and offload changes were reverted. Diagnostic services and
+local clients are removed/stopped at the end of this investigation. Production
+services remained active. Client credentials/private keys are excluded from
+this repository; raw scratch remains outside repo/. Verify the alternative
+network/path before deciding on remediation or a general agent release.
+
 ## 1.38.19 - Xray connection announcement (2026-11-06)
 
 Published d9fbf0b to origin/main, verified immutable manifest, installed through native updater. Authenticated installed/latest 1.38.19 and all runtime hashes verified. Live health passed.
