@@ -1,3 +1,29 @@
+## 1.38.22 — Telegram channel invitation (2026-11-08)
+
+Adds the owner-approved red/cream channel invitation with a large central Telegram
+blue membership CTA immediately below the up-to-50GB reward badge, news/important
+announcements copy, the actual round site logo (/uploads/digit.jpg), and a subtle
+later/close action. Responsive layout caps modal height and permits scrolling;
+CTA precedes explanatory copy. Existing connection notice stays disabled.
+
+Channel URL comes from User::tgJoin() / configured tgjoin_link, HTML-escaped; popup
+is omitted when the channel feature is off. All configured-channel users may see
+the invitation (including past gift recipients, for news access). Unlinked users
+also receive the existing bot-account linking path. The CTA itself always opens
+the channel, not the bot. No gift eligibility or award logic is changed: TgJoinJob
+remains authoritative (new-member detection, one-time awards and plan-dependent
+reward ranges). Clicking the CTA never awards anything or asserts membership.
+
+Opens on each dashboard entry after other modal/commission/gift notifications.
+Keyboard focus containment, scroll/focus restoration and Escape/close/later are
+retained; no client storage suppresses subsequent invitations. The preview's
+illustrative gift is represented by a decorative gift glyph in the actual UI.
+
+Publication target: configured main. Owner explicitly handles installation using
+the website updater; no live deployment or authenticated version synchronization
+is claimed. Browser visual QA/native installed Smarty verification unavailable;
+JavaScript/DOM behavior and complete manifest byte checks are performed locally.
+
 ## 1.38.21 - disable connection announcement (2026-11-06)
 
 Published e71a206 to origin/main and verified immutable manifest. Native updater installed 1.38.21. Authenticated installed/latest agree and all 202 runtime checksums match. Live health passed.

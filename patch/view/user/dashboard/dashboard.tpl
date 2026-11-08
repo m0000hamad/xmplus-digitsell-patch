@@ -1316,3 +1316,5 @@ var renderUsageCharts = (function () {
 {include file='user/dashboard/wallet.tpl'}
 {include file='user/dashboard/giftpopup.tpl'}
 {include file='user/dashboard/tgpoll.tpl'}
+
+{include file='user/dashboard/channelinvite.tpl'}
