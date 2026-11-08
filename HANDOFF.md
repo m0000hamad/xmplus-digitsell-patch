@@ -17,7 +17,10 @@ settings are changed by deployment.
 Validation: PHP lint, standalone model/allowlist checks and actual picker behavior
 checks pass. Native installed Smarty rendered all 14 selections and editor/user
 style templates against staged source. Live baseline 1.38.22 and all 203 installed
-file hashes verified before publication. Publication/deployment verification pending.
+file hashes verified before publication. Published source commit 1bfe4db to the
+configured origin/main and verified its immutable manifest. Native updater installed
+1.38.23; authenticated installed/latest agree. All 203 runtime hashes, the live
+/admin/plan/4/edit options and login health passed. Promotion settings unchanged.
 
 ## 1.38.22 — Telegram channel invitation (2026-11-08)
 
