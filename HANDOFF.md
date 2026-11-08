@@ -19,7 +19,8 @@ Keyboard focus containment, scroll/focus restoration and Escape/close/later are
 retained; no client storage suppresses subsequent invitations. The preview's
 illustrative gift is represented by a decorative gift glyph in the actual UI.
 
-Publication target: configured main. Owner explicitly handles installation using
+Published 1.38.22 to configured main: 3916bece57f018b110c3309b55a411040478a4d2.
+Published branch, immutable manifest and all 203 file checksums verified. Owner explicitly handles installation using
 the website updater; no live deployment or authenticated version synchronization
 is claimed. Browser visual QA/native installed Smarty verification unavailable;
 JavaScript/DOM behavior and complete manifest byte checks are performed locally.
