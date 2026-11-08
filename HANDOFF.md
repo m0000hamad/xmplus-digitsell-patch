@@ -1,3 +1,9 @@
+## 1.38.26 - adjacent special promotion sticker (2026-11-08)
+
+Special now renders as its existing themed starburst alongside discount and prize stickers, rather than as an upper card badge when combined with a discount. Each active tag takes the next adjacent slot. Added desktop/mobile third-slot placement and extended selected seasonal/occasion palettes to the third slot. Card sticker counts include independent special flags and legacy special-only entries. Details-page badges and independent admin checkbox retained.
+
+Validation: native installed Smarty verifies contiguous slot numbers, exact sticker counts and absence of duplicate upper special badge across 24 combinations/themes. Local headless Chrome mobile visual QA confirms three touching stickers with selected seasonal styling. Publication/deployment pending.
+
 ## 1.38.25 - independent special promotion label (2026-11-08)
 
 Special is a separate checkbox alongside the none/discount selector. Discount plus special persists both and shows the special badge alongside the existing discount sticker on plan cards, and both badges/lines on details. Prize stickers retain their existing slots. Special-only entries retain kind=special for existing promotion lifecycle compatibility; older special entries restore as a checked special checkbox. Existing callers posting kind=special remain supported. Discount pricing, original-price restoration and promotion start counters are preserved when toggling special. PromoJob channel/customer/admin descriptions include both tags.

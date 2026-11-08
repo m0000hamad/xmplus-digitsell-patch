@@ -10,7 +10,7 @@
 {elseif $promo.kind == 'discount'}
 	<span class="promo-badge promo-badge-discount promo-only"><i class="promo-star">✦</i><i class="promo-star">✦</i><i class="promo-star">✦</i>🔥 {$translate->get('PromoOffLabel')|replace:'%n%':$promo.percent}</span>
 {/if}
-{if (!(isset($nokind) && $nokind) || $promo.kind == 'discount') && !empty($promo.special)}
+{if !(isset($nokind) && $nokind) && (!empty($promo.special) || $promo.kind == 'special')}
 	<span class="promo-badge promo-badge-special promo-only"><i class="promo-star">✦</i><i class="promo-star">✦</i><i class="promo-star">✦</i>⭐ {$translate->get('PromoSpecialLabel')}</span>
 {/if}
 {if $promo.prize != '' && !(isset($noprize) && $noprize)}
