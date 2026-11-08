@@ -1,7 +1,7 @@
 {
-    "version": "1.38.29",
+    "version": "1.38.30",
     "released": "2026-11-08",
-    "notes": "Ticket retry protection; administrator single and batch deletion and batch close.",
+    "notes": "Admin ticket Delete visibility toggle with saved preference.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -168,7 +168,7 @@
         "view/common/ovpnsvg.tpl": "ec9bcd9973e062fd2709f6605b64218f756043061848ab911578a54648259959",
         "view/common/ticketattachment.tpl": "72e2f201dc8bbece3521d1622f282651c20f1dc700d4984fd36239edc7f21a80",
         "view/common/ticketchat.tpl": "2a5bc60d201c34ed52e577a5ad90114befb54fddace23d4345483e5ec5de19ca",
-        "view/common/ticketmanage.tpl": "cd8056b7320150bcf1db4e9730f972053660fbb85411e0d518c8fcbed048f311",
+        "view/common/ticketmanage.tpl": "e7ad00f94f144d88f59a30ece265a575594015fe471ebb536ac77d03e13a3ad8",
         "view/common/ticketrowlink.tpl": "6f1e8a4dc6c1c5acc82646657844e948abf5a2aea00e05daaab52589b58e0af1",
         "view/common/ticketupload.tpl": "f8bbdc3d62a92516271c2d483a7425be0afc5751c4d0107b5b63d11f4a177b7f",
         "view/common/wgicon.tpl": "c191982788cbd31967956e5e631d53765f8ce25762d7b5583dce1d69167b7ce5",

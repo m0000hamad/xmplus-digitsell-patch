@@ -8,6 +8,28 @@
     var table = document.getElementById('pagination');
     if (!table) return;
     table.parentNode.insertBefore(bar, table);
+    // Match the native column picker and retain this browser's preference.
+    var deleteKey = window.location.href + '-haschecked-ticket-delete';
+    var showDelete = true;
+    try { showDelete = localStorage.getItem(deleteKey) !== 'false'; } catch (e) {}
+    var nativeColumn = document.querySelector('input[id^="checkbox_"]');
+    if (nativeColumn) {
+        var option = document.createElement('div');
+        option.className = 'form-check form-check-inline form-check-dark';
+        var toggle = document.createElement('input');
+        toggle.type = 'checkbox'; toggle.id = 'tkDeleteVisible';
+        toggle.className = 'form-check-input indeterminate-checkbox';
+        toggle.checked = showDelete;
+        var label = document.createElement('label');
+        label.className = 'form-check-label'; label.htmlFor = toggle.id; label.textContent = 'حذف';
+        option.append(toggle, label);
+        nativeColumn.closest('.form-check').parentNode.appendChild(option);
+        toggle.addEventListener('change', function () {
+            showDelete = toggle.checked;
+            try { localStorage.setItem(deleteKey, String(showDelete)); } catch (e) {}
+            table.querySelectorAll('.tk-delete').forEach(function (button) { button.hidden = !showDelete; });
+        });
+    }
     function update() {
         bar.querySelector('#tkSelectedCount').textContent = selected.size + ' انتخاب';
         bar.querySelectorAll('button').forEach(function (b) { b.disabled = busy || !selected.size; });
@@ -27,7 +49,8 @@
             box.addEventListener('change', function () { box.checked ? selected.add(id) : selected.delete(id); update(); });
             row.cells[0].prepend(box);
             var del = document.createElement('button'); del.type = 'button';
-            del.className = 'btn btn-sm btn-outline-danger ms-2'; del.textContent = 'حذف';
+            del.className = 'tk-delete btn btn-sm btn-outline-danger ms-2'; del.textContent = 'حذف';
+            del.hidden = !showDelete;
             del.addEventListener('click', function () { manage('delete', [id]); });
             row.cells[0].appendChild(del);
         });

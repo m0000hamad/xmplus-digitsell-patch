@@ -1,3 +1,7 @@
+## 1.38.30 - ticket delete visibility preference (2026-11-08)
+
+The admin ticket list's native column picker gains a Delete checkbox, controlling per-row delete buttons independently of the original actions column. Default visible; preference persists per URL/browser and applies to newly drawn/paginated rows. Batch deletion remains available in the management toolbar. No ticket data or endpoint changes. Publication and deployment verification pending.
+
 ## 1.38.29 - ticket retry protection and administrator batch actions (2026-11-08)
 
 Customer create button locks synchronously before awaiting attachment upload and remains disabled until the HTTP request completes. The Ticket model serializes inserts using the author row lock and reuses an exact same-author/thread/title/department/body/attachment message from the last five minutes, preserving the original model ID. Different content and expired retry windows remain valid new submissions. Existing tickets are not automatically removed.
