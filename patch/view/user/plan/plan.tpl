@@ -40,6 +40,10 @@
 
 /* coloured cap so each plan is instantly distinguishable */
 .plan-top {
+	display: flex;
+	flex-direction: column;
+	min-height: 168px;
+	box-sizing: border-box;
 	position: relative;
 	padding: 20px 20px 18px;
 	background: linear-gradient(135deg, var(--plan, #6366f1), var(--plan2, #8b5cf6));
@@ -56,6 +60,7 @@
 	background: rgba(255, 255, 255, .13);
 }
 .plan-name {
+	flex: 1 0 50px;
 	position: relative;
 	font-size: 13.5px;
 	font-weight: 700;
@@ -74,6 +79,8 @@
 	flex-wrap: wrap;
 	gap: 6px;
 }
+.plan-price-was { min-height: 24px; }
+.plan-price-placeholder { visibility: hidden; }
 .plan-price b {
 	font-size: 26px;
 	font-weight: 800;
@@ -283,6 +290,8 @@ html[data-hs-theme="dark"] .plan-btn-out { background: rgba(255, 255, 255, .09) 
 							<span class="promo-was">{$currency->symbol_left} {number_format((float)$was, (int){$currency->decimals})} {$currency->symbol_right}</span>
 							<span class="promo-off promo-only">{$translate->get('PromoOffLabel')|replace:'%n%':$promo.percent}</span>
 						</div>
+					{else}
+						<div class="plan-price plan-price-was plan-price-placeholder" aria-hidden="true"></div>
 					{/if}
 					{$free = $promo && $promo.percent == 100}
 					<div class="plan-price{if $was} promo-only{/if}">

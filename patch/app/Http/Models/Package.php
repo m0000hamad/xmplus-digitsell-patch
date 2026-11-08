@@ -469,10 +469,14 @@ final class Package extends Model
 
 		$kind = in_array($entry['kind'] ?? 'none', ['discount', 'special'], true) ? $entry['kind'] : 'none';
 		$max = (int) ($entry['max_sales'] ?? 0);
+		$specialTheme = (string) ($entry['special_theme'] ?? 'inherit');
+		$specialTheme = $specialTheme === 'inherit' ? '' : self::promoTheme(['theme' => $specialTheme]);
 
 		$view = [
 			'kind'     => $kind,
 			'special'  => !empty($entry['special']) || $kind === 'special',
+			'special_theme' => $specialTheme,
+			'special_icon' => self::PROMO_THEMES[$specialTheme !== '' ? $specialTheme : self::promoTheme($entry)],
 			'percent'  => $kind === 'discount' ? (int) ($entry['percent'] ?? 0) : 0,
 			'original' => [],
 			'prize'    => !empty($entry['prize']['on']) ? $this->promoPrizeRange($entry['prize']) : '',

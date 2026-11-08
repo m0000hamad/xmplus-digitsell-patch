@@ -24,9 +24,9 @@
 {/if}
 {if !empty($promo.special) || $promo.kind == 'special'}
 	{$slot = $slot + 1}
-	<div class="promo-sticker promo-sticker-special promo-sticker-slot{$slot} promo-only" aria-hidden="true">
+	<div class="promo-sticker promo-sticker-special{if !empty($promo.special_theme)} promo-special-theme-{$promo.special_theme}{/if} promo-sticker-slot{$slot} promo-only" aria-hidden="true">
 		<div class="promo-sticker-burst">
-			<span class="promo-sticker-icon">{$promo.theme_icon}</span>
+			<span class="promo-sticker-icon">{if isset($promo.special_icon)}{$promo.special_icon}{else}{$promo.theme_icon}{/if}</span>
 			<b class="promo-sticker-big">{$translate->get('PromoSpecialLabel')}</b>
 		</div>
 		<i class="promo-sticker-spark"></i><i class="promo-sticker-spark"></i><i class="promo-sticker-spark"></i>

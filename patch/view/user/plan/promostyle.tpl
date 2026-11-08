@@ -195,122 +195,126 @@
 
 /* ---------- themes: seasons and occasions (Package::PROMO_THEMES) ---------- */
 /* Adjacent sticker slots inherit the selected seasonal or occasion palette. */
-.promo-theme-spring .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #fff1f7, #f9a8d4 40%, #ec4899 78%, #be185d); --st-ink: #fff; --st-glow: rgba(236, 72, 153, .65); }
+.promo-theme-spring .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-spring { --st-bg: radial-gradient(circle at 35% 30%, #fff1f7, #f9a8d4 40%, #ec4899 78%, #be185d); --st-ink: #fff; --st-glow: rgba(236, 72, 153, .65); }
 .promo-theme-spring .promo-sticker-slot2, .promo-theme-spring .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #f0fdf4, #86efac 40%, #22c55e 78%, #15803d); --st-ink: #fff; --st-glow: rgba(34, 197, 94, .6); }
-.promo-theme-spring { --st-orn: "🌸"; --st-part: "🌸"; }
+.promo-theme-spring, .promo-sticker-special.promo-special-theme-spring { --st-orn: "🌸"; --st-part: "🌸"; }
 
-.promo-theme-summer .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #fffbe6, #fde047 38%, #f59e0b 72%, #ea580c); --st-ink: #5a2d00; --st-glow: rgba(250, 204, 21, .75); }
+.promo-theme-summer .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-summer { --st-bg: radial-gradient(circle at 35% 30%, #fffbe6, #fde047 38%, #f59e0b 72%, #ea580c); --st-ink: #5a2d00; --st-glow: rgba(250, 204, 21, .75); }
 .promo-theme-summer .promo-sticker-slot2, .promo-theme-summer .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #f0fdfa, #5eead4 40%, #14b8a6 76%, #0f766e); --st-ink: #fff; --st-glow: rgba(20, 184, 166, .6); }
-.promo-theme-summer { --st-orn: "☀️"; --st-part: "✦"; }
+.promo-theme-summer, .promo-sticker-special.promo-special-theme-summer { --st-orn: "☀️"; --st-part: "✦"; }
 
-.promo-theme-autumn .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #fff7ed, #fdba74 38%, #ea580c 72%, #9a3412); --st-ink: #fff; --st-glow: rgba(234, 88, 12, .65); }
+.promo-theme-autumn .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-autumn { --st-bg: radial-gradient(circle at 35% 30%, #fff7ed, #fdba74 38%, #ea580c 72%, #9a3412); --st-ink: #fff; --st-glow: rgba(234, 88, 12, .65); }
 .promo-theme-autumn .promo-sticker-slot2, .promo-theme-autumn .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fef2f2, #f87171 40%, #b91c1c 76%, #7f1d1d); --st-ink: #fff; --st-glow: rgba(185, 28, 28, .6); }
-.promo-theme-autumn { --st-orn: "🍁"; --st-part: "🍂"; }
+.promo-theme-autumn, .promo-sticker-special.promo-special-theme-autumn { --st-orn: "🍁"; --st-part: "🍂"; }
 
-.promo-theme-winter .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #ffffff, #bae6fd 36%, #38bdf8 70%, #0369a1); --st-ink: #0c2a4a; --st-glow: rgba(125, 211, 252, .8); }
+.promo-theme-winter .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-winter { --st-bg: radial-gradient(circle at 35% 30%, #ffffff, #bae6fd 36%, #38bdf8 70%, #0369a1); --st-ink: #0c2a4a; --st-glow: rgba(125, 211, 252, .8); }
 .promo-theme-winter .promo-sticker-slot2, .promo-theme-winter .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #faf5ff, #c7d2fe 38%, #818cf8 72%, #4338ca); --st-ink: #fff; --st-glow: rgba(165, 180, 252, .75); }
-.promo-theme-winter { --st-orn: "❄️"; --st-part: "❄"; }
+.promo-theme-winter, .promo-sticker-special.promo-special-theme-winter { --st-orn: "❄️"; --st-part: "❄"; }
 
-.promo-theme-nowruz .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #f0fdf4, #86efac 38%, #16a34a 72%, #14532d); --st-ink: #fff; --st-glow: rgba(34, 197, 94, .65); }
+.promo-theme-nowruz .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-nowruz { --st-bg: radial-gradient(circle at 35% 30%, #f0fdf4, #86efac 38%, #16a34a 72%, #14532d); --st-ink: #fff; --st-glow: rgba(34, 197, 94, .65); }
 .promo-theme-nowruz .promo-sticker-slot2, .promo-theme-nowruz .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fffbeb, #fcd34d 38%, #f59e0b 72%, #b45309); --st-ink: #4a2a00; --st-glow: rgba(245, 158, 11, .7); }
-.promo-theme-nowruz { --st-orn: "🌱"; --st-part: "🌸"; }
+.promo-theme-nowruz, .promo-sticker-special.promo-special-theme-nowruz { --st-orn: "🌱"; --st-part: "🌸"; }
 
-.promo-theme-yalda .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #fff1f2, #fb7185 36%, #dc2626 70%, #7f1d1d); --st-ink: #fff; --st-glow: rgba(220, 38, 38, .7); }
+.promo-theme-yalda .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-yalda { --st-bg: radial-gradient(circle at 35% 30%, #fff1f2, #fb7185 36%, #dc2626 70%, #7f1d1d); --st-ink: #fff; --st-glow: rgba(220, 38, 38, .7); }
 .promo-theme-yalda .promo-sticker-slot2, .promo-theme-yalda .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #f5f3ff, #a78bfa 36%, #6d28d9 72%, #2e1065); --st-ink: #fff; --st-glow: rgba(139, 92, 246, .7); }
-.promo-theme-yalda { --st-orn: "🍉"; --st-part: "✦"; }
+.promo-theme-yalda, .promo-sticker-special.promo-special-theme-yalda { --st-orn: "🍉"; --st-part: "✦"; }
 
-.promo-theme-christmas .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #fff5f5, #fca5a5 36%, #dc2626 72%, #7f1d1d); --st-ink: #fff; --st-glow: rgba(239, 68, 68, .7); }
+.promo-theme-christmas .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-christmas { --st-bg: radial-gradient(circle at 35% 30%, #fff5f5, #fca5a5 36%, #dc2626 72%, #7f1d1d); --st-ink: #fff; --st-glow: rgba(239, 68, 68, .7); }
 .promo-theme-christmas .promo-sticker-slot2, .promo-theme-christmas .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #f0fdf4, #4ade80 36%, #15803d 72%, #14532d); --st-ink: #fff; --st-glow: rgba(22, 163, 74, .65); }
-.promo-theme-christmas { --st-orn: "🎄"; --st-part: "❄"; }
+.promo-theme-christmas, .promo-sticker-special.promo-special-theme-christmas { --st-orn: "🎄"; --st-part: "❄"; }
 
-.promo-theme-mother .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #fff1f2, #fda4af 38%, #f43f5e 72%, #9f1239); --st-ink: #fff; --st-glow: rgba(244, 63, 94, .65); }
+.promo-theme-mother .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-mother { --st-bg: radial-gradient(circle at 35% 30%, #fff1f2, #fda4af 38%, #f43f5e 72%, #9f1239); --st-ink: #fff; --st-glow: rgba(244, 63, 94, .65); }
 .promo-theme-mother .promo-sticker-slot2, .promo-theme-mother .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fdf4ff, #f0abfc 38%, #c026d3 74%, #701a75); --st-ink: #fff; --st-glow: rgba(217, 70, 239, .6); }
-.promo-theme-mother { --st-orn: "💐"; --st-part: "❤"; }
+.promo-theme-mother, .promo-sticker-special.promo-special-theme-mother { --st-orn: "💐"; --st-part: "❤"; }
 
-.promo-theme-father .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #eff6ff, #93c5fd 36%, #2563eb 72%, #1e3a8a); --st-ink: #fff; --st-glow: rgba(59, 130, 246, .65); }
+.promo-theme-father .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-father { --st-bg: radial-gradient(circle at 35% 30%, #eff6ff, #93c5fd 36%, #2563eb 72%, #1e3a8a); --st-ink: #fff; --st-glow: rgba(59, 130, 246, .65); }
 .promo-theme-father .promo-sticker-slot2, .promo-theme-father .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fffbeb, #fcd34d 38%, #b45309 76%, #451a03); --st-ink: #fff; --st-glow: rgba(217, 119, 6, .6); }
-.promo-theme-father { --st-orn: "👔"; --st-part: "✦"; }
+.promo-theme-father, .promo-sticker-special.promo-special-theme-father { --st-orn: "👔"; --st-part: "✦"; }
 
-.promo-theme-girl .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #fdf4ff, #f5d0fe 34%, #e879f9 66%, #a21caf); --st-ink: #fff; --st-glow: rgba(232, 121, 249, .7); }
+.promo-theme-girl .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-girl { --st-bg: radial-gradient(circle at 35% 30%, #fdf4ff, #f5d0fe 34%, #e879f9 66%, #a21caf); --st-ink: #fff; --st-glow: rgba(232, 121, 249, .7); }
 .promo-theme-girl .promo-sticker-slot2, .promo-theme-girl .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fff1f2, #fbcfe8 34%, #f472b6 66%, #be185d); --st-ink: #fff; --st-glow: rgba(244, 114, 182, .65); }
-.promo-theme-girl { --st-orn: "🎀"; --st-part: "❤"; }
+.promo-theme-girl, .promo-sticker-special.promo-special-theme-girl { --st-orn: "🎀"; --st-part: "❤"; }
 
-.promo-theme-boy .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #ecfeff, #a5f3fc 34%, #06b6d4 68%, #0e7490); --st-ink: #fff; --st-glow: rgba(6, 182, 212, .65); }
+.promo-theme-boy .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-boy { --st-bg: radial-gradient(circle at 35% 30%, #ecfeff, #a5f3fc 34%, #06b6d4 68%, #0e7490); --st-ink: #fff; --st-glow: rgba(6, 182, 212, .65); }
 .promo-theme-boy .promo-sticker-slot2, .promo-theme-boy .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #eef2ff, #a5b4fc 36%, #4f46e5 72%, #312e81); --st-ink: #fff; --st-glow: rgba(99, 102, 241, .65); }
-.promo-theme-boy { --st-orn: "🧢"; --st-part: "✦"; }
+.promo-theme-boy, .promo-sticker-special.promo-special-theme-boy { --st-orn: "🧢"; --st-part: "✦"; }
 
 /* Additional manually selected cultural and weather occasions. */
-.promo-theme-attar .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #fff1f2, #fb7185 36%, #dc2626 70%, #7f1d1d); --st-ink: #fff; --st-glow: rgba(220, 38, 38, .7); }
+.promo-theme-attar .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-attar { --st-bg: radial-gradient(circle at 35% 30%, #fff1f2, #fb7185 36%, #dc2626 70%, #7f1d1d); --st-ink: #fff; --st-glow: rgba(220, 38, 38, .7); }
 .promo-theme-attar .promo-sticker-slot2, .promo-theme-attar .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #f5f3ff, #a78bfa 36%, #6d28d9 72%, #2e1065); --st-ink: #fff; --st-glow: rgba(139, 92, 246, .7); }
-.promo-theme-attar { --st-orn: "🪶"; --st-part: "🪶"; }
+.promo-theme-attar, .promo-sticker-special.promo-special-theme-attar { --st-orn: "🪶"; --st-part: "🪶"; }
 .promo-banner.promo-theme-attar     { background: linear-gradient(135deg, #7f1d1d, #dc2626 45%, #4c1d95); }
 
-.promo-theme-saadi .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #fff1f2, #fda4af 38%, #f43f5e 72%, #9f1239); --st-ink: #fff; --st-glow: rgba(244, 63, 94, .65); }
+.promo-theme-saadi .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-saadi { --st-bg: radial-gradient(circle at 35% 30%, #fff1f2, #fda4af 38%, #f43f5e 72%, #9f1239); --st-ink: #fff; --st-glow: rgba(244, 63, 94, .65); }
 .promo-theme-saadi .promo-sticker-slot2, .promo-theme-saadi .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fdf4ff, #f0abfc 38%, #c026d3 74%, #701a75); --st-ink: #fff; --st-glow: rgba(217, 70, 239, .6); }
-.promo-theme-saadi { --st-orn: "🌹"; --st-part: "🌹"; }
+.promo-theme-saadi, .promo-sticker-special.promo-special-theme-saadi { --st-orn: "🌹"; --st-part: "🌹"; }
 .promo-banner.promo-theme-saadi    { background: linear-gradient(135deg, #be123c, #f43f5e 50%, #c026d3); }
 
-.promo-theme-ferdowsi .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #eff6ff, #93c5fd 36%, #2563eb 72%, #1e3a8a); --st-ink: #fff; --st-glow: rgba(59, 130, 246, .65); }
+.promo-theme-ferdowsi .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-ferdowsi { --st-bg: radial-gradient(circle at 35% 30%, #eff6ff, #93c5fd 36%, #2563eb 72%, #1e3a8a); --st-ink: #fff; --st-glow: rgba(59, 130, 246, .65); }
 .promo-theme-ferdowsi .promo-sticker-slot2, .promo-theme-ferdowsi .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fffbeb, #fcd34d 38%, #b45309 76%, #451a03); --st-ink: #fff; --st-glow: rgba(217, 119, 6, .6); }
-.promo-theme-ferdowsi { --st-orn: "📜"; --st-part: "📜"; }
+.promo-theme-ferdowsi, .promo-sticker-special.promo-special-theme-ferdowsi { --st-orn: "📜"; --st-part: "📜"; }
 .promo-banner.promo-theme-ferdowsi    { background: linear-gradient(135deg, #1e3a8a, #2563eb 55%, #b45309); }
 
-.promo-theme-khayyam .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #fff1f2, #fb7185 36%, #dc2626 70%, #7f1d1d); --st-ink: #fff; --st-glow: rgba(220, 38, 38, .7); }
+.promo-theme-khayyam .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-khayyam { --st-bg: radial-gradient(circle at 35% 30%, #fff1f2, #fb7185 36%, #dc2626 70%, #7f1d1d); --st-ink: #fff; --st-glow: rgba(220, 38, 38, .7); }
 .promo-theme-khayyam .promo-sticker-slot2, .promo-theme-khayyam .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #f5f3ff, #a78bfa 36%, #6d28d9 72%, #2e1065); --st-ink: #fff; --st-glow: rgba(139, 92, 246, .7); }
-.promo-theme-khayyam { --st-orn: "🌌"; --st-part: "🌌"; }
+.promo-theme-khayyam, .promo-sticker-special.promo-special-theme-khayyam { --st-orn: "🌌"; --st-part: "🌌"; }
 .promo-banner.promo-theme-khayyam     { background: linear-gradient(135deg, #7f1d1d, #dc2626 45%, #4c1d95); }
 
-.promo-theme-avicenna .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #ecfeff, #a5f3fc 34%, #06b6d4 68%, #0e7490); --st-ink: #fff; --st-glow: rgba(6, 182, 212, .65); }
+.promo-theme-avicenna .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-avicenna { --st-bg: radial-gradient(circle at 35% 30%, #ecfeff, #a5f3fc 34%, #06b6d4 68%, #0e7490); --st-ink: #fff; --st-glow: rgba(6, 182, 212, .65); }
 .promo-theme-avicenna .promo-sticker-slot2, .promo-theme-avicenna .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #eef2ff, #a5b4fc 36%, #4f46e5 72%, #312e81); --st-ink: #fff; --st-glow: rgba(99, 102, 241, .65); }
-.promo-theme-avicenna { --st-orn: "🩺"; --st-part: "🩺"; }
+.promo-theme-avicenna, .promo-sticker-special.promo-special-theme-avicenna { --st-orn: "🩺"; --st-part: "🩺"; }
 .promo-banner.promo-theme-avicenna       { background: linear-gradient(135deg, #0e7490, #06b6d4 50%, #4f46e5); }
 
-.promo-theme-razi .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #f0fdf4, #86efac 38%, #16a34a 72%, #14532d); --st-ink: #fff; --st-glow: rgba(34, 197, 94, .65); }
+.promo-theme-razi .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-razi { --st-bg: radial-gradient(circle at 35% 30%, #f0fdf4, #86efac 38%, #16a34a 72%, #14532d); --st-ink: #fff; --st-glow: rgba(34, 197, 94, .65); }
 .promo-theme-razi .promo-sticker-slot2, .promo-theme-razi .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fffbeb, #fcd34d 38%, #f59e0b 72%, #b45309); --st-ink: #4a2a00; --st-glow: rgba(245, 158, 11, .7); }
-.promo-theme-razi { --st-orn: "⚗️"; --st-part: "⚗️"; }
+.promo-theme-razi, .promo-sticker-special.promo-special-theme-razi { --st-orn: "⚗️"; --st-part: "⚗️"; }
 .promo-banner.promo-theme-razi    { background: linear-gradient(135deg, #15803d, #22c55e 50%, #f59e0b); }
 
-.promo-theme-rumi .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #fff7ed, #fdba74 38%, #ea580c 72%, #9a3412); --st-ink: #fff; --st-glow: rgba(234, 88, 12, .65); }
+.promo-theme-rumi .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-rumi { --st-bg: radial-gradient(circle at 35% 30%, #fff7ed, #fdba74 38%, #ea580c 72%, #9a3412); --st-ink: #fff; --st-glow: rgba(234, 88, 12, .65); }
 .promo-theme-rumi .promo-sticker-slot2, .promo-theme-rumi .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fef2f2, #f87171 40%, #b91c1c 76%, #7f1d1d); --st-ink: #fff; --st-glow: rgba(185, 28, 28, .6); }
-.promo-theme-rumi { --st-orn: "🌀"; --st-part: "🌀"; }
+.promo-theme-rumi, .promo-sticker-special.promo-special-theme-rumi { --st-orn: "🌀"; --st-part: "🌀"; }
 .promo-banner.promo-theme-rumi    { background: linear-gradient(135deg, #9a3412, #ea580c 50%, #b91c1c); }
 
-.promo-theme-hafez .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #f0fdf4, #86efac 38%, #16a34a 72%, #14532d); --st-ink: #fff; --st-glow: rgba(34, 197, 94, .65); }
+.promo-theme-hafez .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-hafez { --st-bg: radial-gradient(circle at 35% 30%, #f0fdf4, #86efac 38%, #16a34a 72%, #14532d); --st-ink: #fff; --st-glow: rgba(34, 197, 94, .65); }
 .promo-theme-hafez .promo-sticker-slot2, .promo-theme-hafez .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fffbeb, #fcd34d 38%, #f59e0b 72%, #b45309); --st-ink: #4a2a00; --st-glow: rgba(245, 158, 11, .7); }
-.promo-theme-hafez { --st-orn: "📖"; --st-part: "📖"; }
+.promo-theme-hafez, .promo-sticker-special.promo-special-theme-hafez { --st-orn: "📖"; --st-part: "📖"; }
 .promo-banner.promo-theme-hafez    { background: linear-gradient(135deg, #15803d, #22c55e 50%, #f59e0b); }
 
-.promo-theme-cyrus .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #eff6ff, #93c5fd 36%, #2563eb 72%, #1e3a8a); --st-ink: #fff; --st-glow: rgba(59, 130, 246, .65); }
+.promo-theme-cyrus .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-cyrus { --st-bg: radial-gradient(circle at 35% 30%, #eff6ff, #93c5fd 36%, #2563eb 72%, #1e3a8a); --st-ink: #fff; --st-glow: rgba(59, 130, 246, .65); }
 .promo-theme-cyrus .promo-sticker-slot2, .promo-theme-cyrus .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fffbeb, #fcd34d 38%, #b45309 76%, #451a03); --st-ink: #fff; --st-glow: rgba(217, 119, 6, .6); }
-.promo-theme-cyrus { --st-orn: "🏛️"; --st-part: "🏛️"; }
+.promo-theme-cyrus, .promo-sticker-special.promo-special-theme-cyrus { --st-orn: "🏛️"; --st-part: "🏛️"; }
 .promo-banner.promo-theme-cyrus    { background: linear-gradient(135deg, #1e3a8a, #2563eb 55%, #b45309); }
 
-.promo-theme-rainy .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #ffffff, #bae6fd 36%, #38bdf8 70%, #0369a1); --st-ink: #0c2a4a; --st-glow: rgba(125, 211, 252, .8); }
+.promo-theme-rainy .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-rainy { --st-bg: radial-gradient(circle at 35% 30%, #ffffff, #bae6fd 36%, #38bdf8 70%, #0369a1); --st-ink: #0c2a4a; --st-glow: rgba(125, 211, 252, .8); }
 .promo-theme-rainy .promo-sticker-slot2, .promo-theme-rainy .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #faf5ff, #c7d2fe 38%, #818cf8 72%, #4338ca); --st-ink: #fff; --st-glow: rgba(165, 180, 252, .75); }
-.promo-theme-rainy { --st-orn: "🌧️"; --st-part: "🌧️"; }
+.promo-theme-rainy, .promo-sticker-special.promo-special-theme-rainy { --st-orn: "🌧️"; --st-part: "🌧️"; }
 .promo-banner.promo-theme-rainy    { background: linear-gradient(135deg, #0369a1, #38bdf8 50%, #6366f1); }
 
-.promo-theme-autumn_rain .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #fff7ed, #fdba74 38%, #ea580c 72%, #9a3412); --st-ink: #fff; --st-glow: rgba(234, 88, 12, .65); }
+.promo-theme-autumn_rain .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-autumn_rain { --st-bg: radial-gradient(circle at 35% 30%, #fff7ed, #fdba74 38%, #ea580c 72%, #9a3412); --st-ink: #fff; --st-glow: rgba(234, 88, 12, .65); }
 .promo-theme-autumn_rain .promo-sticker-slot2, .promo-theme-autumn_rain .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fef2f2, #f87171 40%, #b91c1c 76%, #7f1d1d); --st-ink: #fff; --st-glow: rgba(185, 28, 28, .6); }
-.promo-theme-autumn_rain { --st-orn: "🍂"; --st-part: "🍂"; }
+.promo-theme-autumn_rain, .promo-sticker-special.promo-special-theme-autumn_rain { --st-orn: "🍂"; --st-part: "🍂"; }
 .promo-banner.promo-theme-autumn_rain    { background: linear-gradient(135deg, #9a3412, #ea580c 50%, #b91c1c); }
 
-.promo-theme-walking .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #f0fdf4, #86efac 38%, #16a34a 72%, #14532d); --st-ink: #fff; --st-glow: rgba(34, 197, 94, .65); }
+.promo-theme-walking .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-walking { --st-bg: radial-gradient(circle at 35% 30%, #f0fdf4, #86efac 38%, #16a34a 72%, #14532d); --st-ink: #fff; --st-glow: rgba(34, 197, 94, .65); }
 .promo-theme-walking .promo-sticker-slot2, .promo-theme-walking .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fffbeb, #fcd34d 38%, #f59e0b 72%, #b45309); --st-ink: #4a2a00; --st-glow: rgba(245, 158, 11, .7); }
-.promo-theme-walking { --st-orn: "🚶"; --st-part: "🚶"; }
+.promo-theme-walking, .promo-sticker-special.promo-special-theme-walking { --st-orn: "🚶"; --st-part: "🚶"; }
 .promo-banner.promo-theme-walking    { background: linear-gradient(135deg, #15803d, #22c55e 50%, #f59e0b); }
 
-.promo-theme-winter_snow .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #ffffff, #bae6fd 36%, #38bdf8 70%, #0369a1); --st-ink: #0c2a4a; --st-glow: rgba(125, 211, 252, .8); }
+.promo-theme-winter_snow .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-winter_snow { --st-bg: radial-gradient(circle at 35% 30%, #ffffff, #bae6fd 36%, #38bdf8 70%, #0369a1); --st-ink: #0c2a4a; --st-glow: rgba(125, 211, 252, .8); }
 .promo-theme-winter_snow .promo-sticker-slot2, .promo-theme-winter_snow .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #faf5ff, #c7d2fe 38%, #818cf8 72%, #4338ca); --st-ink: #fff; --st-glow: rgba(165, 180, 252, .75); }
-.promo-theme-winter_snow { --st-orn: "🌨️"; --st-part: "🌨️"; }
+.promo-theme-winter_snow, .promo-sticker-special.promo-special-theme-winter_snow { --st-orn: "🌨️"; --st-part: "🌨️"; }
 .promo-banner.promo-theme-winter_snow    { background: linear-gradient(135deg, #0369a1, #38bdf8 50%, #6366f1); }
 
-.promo-theme-rainbow .promo-sticker-slot1 { --st-bg: radial-gradient(circle at 35% 30%, #fdf4ff, #f5d0fe 34%, #e879f9 66%, #a21caf); --st-ink: #fff; --st-glow: rgba(232, 121, 249, .7); }
+.promo-theme-rainbow .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-rainbow { --st-bg: radial-gradient(circle at 35% 30%, #fdf4ff, #f5d0fe 34%, #e879f9 66%, #a21caf); --st-ink: #fff; --st-glow: rgba(232, 121, 249, .7); }
 .promo-theme-rainbow .promo-sticker-slot2, .promo-theme-rainbow .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fff1f2, #fbcfe8 34%, #f472b6 66%, #be185d); --st-ink: #fff; --st-glow: rgba(244, 114, 182, .65); }
-.promo-theme-rainbow { --st-orn: "🌈"; --st-part: "🌈"; }
+.promo-theme-rainbow, .promo-sticker-special.promo-special-theme-rainbow { --st-orn: "🌈"; --st-part: "🌈"; }
 .promo-banner.promo-theme-rainbow      { background: linear-gradient(135deg, #a21caf, #e879f9 50%, #f472b6); }
 
 :is(.promo-theme-rainy, .promo-theme-autumn_rain, .promo-theme-winter_snow) .promo-sticker-spark { animation: promoFall 3.4s linear infinite; }
+
+.plan-card .promo-sticker-special.promo-special-theme-classic { --st-bg: radial-gradient(circle at 35% 30%, #fff7cc, #fcd34d 38%, #f59e0b 75%, #d97706); --st-ink: #5a2d00; --st-glow: rgba(252, 211, 77, .75); --st-orn: "⭐"; --st-part: "✦"; }
+.plan-card [class*="promo-special-theme-"] .promo-sticker-spark { animation: promoTwinkle 2.5s ease-in-out infinite; text-shadow: none; }
+.plan-card :is(.promo-special-theme-spring, .promo-special-theme-autumn, .promo-special-theme-winter, .promo-special-theme-nowruz, .promo-special-theme-christmas, .promo-special-theme-rainy, .promo-special-theme-autumn_rain, .promo-special-theme-winter_snow) .promo-sticker-spark { animation: promoFall 3.4s linear infinite; }
 
 /* leaves, snow and petals drift down past the sticker instead of twinkling */
 .promo-theme-autumn .promo-sticker-spark,
@@ -345,10 +349,8 @@
 
 .plan-card.is-promo .plan-body { position: relative; z-index: 1; }
 /* room for the part of a sticker that hangs over onto the card */
-.plan-card.has-sticker .plan-body { padding-top: 20px; }
-/* two stickers: the price moves up so the second one does not cover it */
-.plan-card.has-two-stickers .plan-top { padding-bottom: 44px; }
-.plan-card.has-two-stickers .plan-body { padding-top: 26px; }
+.plan-card .plan-body { padding-top: 26px; }
+/* Sticker count does not change the cap or feature-row alignment. */
 .promo-over .promo-sticker { display: none; }
 
 /* ---------- prices ---------- */

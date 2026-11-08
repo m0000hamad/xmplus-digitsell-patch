@@ -9,7 +9,7 @@
 *}
 {$pspecial = 0}{$pk = 'none'}{$ppct = 20}{$pprize = 0}{$pmode = 'either'}
 {$pgbmin = 1}{$pgbmax = 5}{$pdmin = 1}{$pdmax = 7}
-{$pocc = ''}{$pends = ''}{$pmax = ''}{$pleft = 0}{$pannounce_tg = 1}{$pannounce_mail = 1}{$pchannel = 1}{$ptheme = 'auto'}
+{$pocc = ''}{$pends = ''}{$pmax = ''}{$pleft = 0}{$pannounce_tg = 1}{$pannounce_mail = 1}{$pchannel = 1}{$ptheme = 'auto'}{$pspecialtheme = 'inherit'}
 {if isset($promoedit) && $promoedit && empty($promoedit.closed_at)}
 	{$pk = $promoedit.kind}
 	{$pspecial = !empty($promoedit.special) || $pk == 'special'}
@@ -32,6 +32,7 @@
 	{if isset($promoedit.announce_telegram)}{$pannounce_tg = !empty($promoedit.announce_telegram)}{else}{$pannounce_tg = !empty($promoedit.announce)}{/if}
 	{if isset($promoedit.announce_email)}{$pannounce_mail = !empty($promoedit.announce_email)}{else}{$pannounce_mail = !empty($promoedit.announce)}{/if}
 	{$pchannel = !empty($promoedit.channel)}
+	{if !empty($promoedit.special_theme)}{$pspecialtheme = $promoedit.special_theme}{/if}
 	{if !empty($promoedit.theme)}{$ptheme = $promoedit.theme}{/if}
 {/if}
 <span id="promobox" hidden>
@@ -71,6 +72,17 @@
 				<input class="form-check-input" type="checkbox" id="promo_special" {if $pspecial}checked{/if} onchange="promoApply()">
 				<label class="form-check-label" for="promo_special">{$translate->get('PromoSpecialLabel')}</label>
 			</div>
+		</div>
+	</div>
+
+
+	<div class="row mb-2" id="promo_special_theme_fields">
+		<label class="col-sm-3 col-form-label form-label" for="promo_special_theme">🎨 {$translate->get('PromoSpecialTheme')}</label>
+		<div class="col-sm-9" style="max-width: 60rem">
+			<select class="form-control form-select shadow-lg" id="promo_special_theme">
+				<option value="inherit" {if $pspecialtheme == 'inherit'}selected{/if}>{$translate->get('PromoThemeInherit')}</option>
+				{include file='admin/plans/promothemeoptions.tpl' selectedtheme=$pspecialtheme}
+			</select>
 		</div>
 	</div>
 
@@ -143,41 +155,7 @@
 			<label class="col-sm-3 col-form-label form-label" for="promo_theme">🎨 {$translate->get('PromoTheme')}</label>
 			<div class="col-sm-9" style="max-width: 60rem">
 				<select class="form-control form-select shadow-lg" id="promo_theme" onchange="promoThemePicked()">
-					<option value="auto" {if $ptheme == 'auto'}selected{/if}>🗓️ {$translate->get('PromoThemeAuto')}</option>
-					<optgroup label="{$translate->get('PromoThemeSeasons')}">
-						<option value="spring" {if $ptheme == 'spring'}selected{/if}>🌸 {$translate->get('PromoThemeSpring')}</option>
-						<option value="summer" {if $ptheme == 'summer'}selected{/if}>☀️ {$translate->get('PromoThemeSummer')}</option>
-						<option value="autumn" {if $ptheme == 'autumn'}selected{/if}>🍁 {$translate->get('PromoThemeAutumn')}</option>
-						<option value="winter" {if $ptheme == 'winter'}selected{/if}>❄️ {$translate->get('PromoThemeWinter')}</option>
-					</optgroup>
-					<optgroup label="{$translate->get('PromoThemeOccasions')}">
-						<option value="nowruz" {if $ptheme == 'nowruz'}selected{/if}>🌱 {$translate->get('PromoThemeNowruz')}</option>
-						<option value="yalda" {if $ptheme == 'yalda'}selected{/if}>🍉 {$translate->get('PromoThemeYalda')}</option>
-						<option value="christmas" {if $ptheme == 'christmas'}selected{/if}>🎄 {$translate->get('PromoThemeChristmas')}</option>
-						<option value="mother" {if $ptheme == 'mother'}selected{/if}>💐 {$translate->get('PromoThemeMother')}</option>
-						<option value="father" {if $ptheme == 'father'}selected{/if}>👔 {$translate->get('PromoThemeFather')}</option>
-						<option value="girl" {if $ptheme == 'girl'}selected{/if}>🎀 {$translate->get('PromoThemeGirl')}</option>
-						<option value="boy" {if $ptheme == 'boy'}selected{/if}>🧢 {$translate->get('PromoThemeBoy')}</option>
-					</optgroup>
-					<optgroup label="{$translate->get('PromoThemeCultural')|escape:'html'}">
-						<option value="attar" {if $ptheme == 'attar'}selected{/if}>🪶 {$translate->get('PromoThemeAttar')}</option>
-						<option value="saadi" {if $ptheme == 'saadi'}selected{/if}>🌹 {$translate->get('PromoThemeSaadi')}</option>
-						<option value="ferdowsi" {if $ptheme == 'ferdowsi'}selected{/if}>📜 {$translate->get('PromoThemeFerdowsi')}</option>
-						<option value="khayyam" {if $ptheme == 'khayyam'}selected{/if}>🌌 {$translate->get('PromoThemeKhayyam')}</option>
-						<option value="avicenna" {if $ptheme == 'avicenna'}selected{/if}>🩺 {$translate->get('PromoThemeAvicenna')}</option>
-						<option value="razi" {if $ptheme == 'razi'}selected{/if}>⚗️ {$translate->get('PromoThemeRazi')}</option>
-						<option value="rumi" {if $ptheme == 'rumi'}selected{/if}>🌀 {$translate->get('PromoThemeRumi')}</option>
-						<option value="hafez" {if $ptheme == 'hafez'}selected{/if}>📖 {$translate->get('PromoThemeHafez')}</option>
-						<option value="cyrus" {if $ptheme == 'cyrus'}selected{/if}>🏛️ {$translate->get('PromoThemeCyrus')}</option>
-					</optgroup>
-					<optgroup label="{$translate->get('PromoThemeWeather')|escape:'html'}">
-						<option value="rainy" {if $ptheme == 'rainy'}selected{/if}>🌧️ {$translate->get('PromoThemeRainy')}</option>
-						<option value="autumn_rain" {if $ptheme == 'autumn_rain'}selected{/if}>🍂 {$translate->get('PromoThemeAutumnRain')}</option>
-						<option value="walking" {if $ptheme == 'walking'}selected{/if}>🚶 {$translate->get('PromoThemeWalking')}</option>
-						<option value="winter_snow" {if $ptheme == 'winter_snow'}selected{/if}>🌨️ {$translate->get('PromoThemeWinterSnow')}</option>
-						<option value="rainbow" {if $ptheme == 'rainbow'}selected{/if}>🌈 {$translate->get('PromoThemeRainbow')}</option>
-					</optgroup>
-					<option value="classic" {if $ptheme == 'classic'}selected{/if}>⭐ {$translate->get('PromoThemeClassic')}</option>
+				{include file='admin/plans/promothemeoptions.tpl' selectedtheme=$ptheme}
 				</select>
 				<small class="text-muted">{$translate->get('PromoThemeHint')}</small>
 			</div>

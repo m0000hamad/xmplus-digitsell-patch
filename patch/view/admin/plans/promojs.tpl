@@ -98,6 +98,7 @@
 		var mode = $("#promo_prize_mode").val();
 
 		box.hidden = !isPlan;
+		document.getElementById("promo_special_theme_fields").hidden = !$("#promo_special").is(":checked");
 		document.getElementById("promo_discount_fields").hidden = kind !== "discount";
 		document.getElementById("promo_prize_fields").hidden = !prize;
 		document.getElementById("promo_gb_row").hidden = mode === "days";
@@ -505,7 +506,8 @@
 				announce_telegram: $("#promo_announce_telegram").is(":checked") ? 1 : 0,
 				announce_email: $("#promo_announce_email").is(":checked") ? 1 : 0,
 				channel: $("#promo_channel").is(":checked") ? 1 : 0,
-				theme: $("#promo_theme").val()
+				theme: $("#promo_theme").val(),
+				special_theme: $("#promo_special_theme").val()
 			},
 			success: function (data) {
 				if (!data.ok) {

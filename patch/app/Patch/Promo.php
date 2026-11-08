@@ -301,6 +301,8 @@ function promoSave(): void
     $entry = [
         'kind'       => $kind,
         'special'    => $special ? 1 : 0,
+        'special_theme' => in_array((string) ($_POST['special_theme'] ?? 'inherit'), array_merge(['inherit'], PROMO_THEMES), true)
+            ? (string) ($_POST['special_theme'] ?? 'inherit') : 'inherit',
         'percent'    => $kind === 'discount' ? $percent : 0,
         'original'   => $original,
         'prize'      => $prize,

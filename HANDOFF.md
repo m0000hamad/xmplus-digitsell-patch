@@ -1,3 +1,9 @@
+## 1.38.27 - aligned plan caps and independent special theme (2026-11-08)
+
+Plan caps share a 168px minimum, flex title space and reserved 24px list-price row. Removed sticker-count-dependent cap padding and unified feature-row top padding, aligning discounted and regular cards. Added a separate special-theme selector using shared theme options, including inherit (legacy default), automatic season, classic and all existing occasion/weather themes. Save validates the separate allowlist; Package resolves its icon and season independently. Higher-specificity per-sticker palette/ornament selectors isolate special styling from main discount/prize theme, with matching particle animation. No live promotion settings changed by deployment.
+
+Validation: four PHP lints; actual promoSave with stub persistence tests independent theme round-trip, invalid fallback and unchanged discount/repeat-save/restore behavior. Native installed Smarty verifies six independent theme selections, main theme restoration and real mixed-card rendering. Headless Chrome desktop/mobile visual checks passed. Browser mobile metrics width=390, scrollWidth=390 and all three cap heights=168, with winter/Nowruz special palettes independent of autumn main theme. Publication/deployment pending.
+
 ## 1.38.26 - adjacent special promotion sticker (2026-11-08)
 
 Special now renders as its existing themed starburst alongside discount and prize stickers, rather than as an upper card badge when combined with a discount. Each active tag takes the next adjacent slot. Added desktop/mobile third-slot placement and extended selected seasonal/occasion palettes to the third slot. Card sticker counts include independent special flags and legacy special-only entries. Details-page badges and independent admin checkbox retained.
