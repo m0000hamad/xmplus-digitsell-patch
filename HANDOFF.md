@@ -2,7 +2,7 @@
 
 Special now renders as its existing themed starburst alongside discount and prize stickers, rather than as an upper card badge when combined with a discount. Each active tag takes the next adjacent slot. Added desktop/mobile third-slot placement and extended selected seasonal/occasion palettes to the third slot. Card sticker counts include independent special flags and legacy special-only entries. Details-page badges and independent admin checkbox retained.
 
-Validation: native installed Smarty verifies contiguous slot numbers, exact sticker counts and absence of duplicate upper special badge across 24 combinations/themes. Local headless Chrome mobile visual QA confirms three touching stickers with selected seasonal styling. Publication/deployment pending.
+Validation: native installed Smarty verifies contiguous slot numbers, exact sticker counts and absence of duplicate upper special badge across 24 combinations/themes. Local headless Chrome mobile visual QA confirms three touching stickers with selected seasonal styling. Published ea7d9f3 to origin/main and verified immutable manifest from the server after local raw-GitHub transport failures. Native updater installed 1.38.26; authenticated installed/latest agree and all 203 runtime checksums match. Authenticated /portal/plans and ticket/login health passed. Initial health URLs /user/plan and /portal/plan were invalid and returned the native Whoops 404 page with HTTP 500; the actual menu route /portal/plans passed.
 
 ## 1.38.25 - independent special promotion label (2026-11-08)
 
