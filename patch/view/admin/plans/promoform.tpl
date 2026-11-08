@@ -35,6 +35,8 @@
 	{if !empty($promoedit.special_theme)}{$pspecialtheme = $promoedit.special_theme}{/if}
 	{if !empty($promoedit.theme)}{$ptheme = $promoedit.theme}{/if}
 {/if}
+{if $ptheme == 'rainy'}{$ptheme = 'spring_rain'}{/if}
+{if $pspecialtheme == 'rainy'}{$pspecialtheme = 'spring_rain'}{/if}
 <span id="promobox" hidden>
 
 	<h4 class="mt-4">🏷️ {$translate->get('PromoSection')}</h4>

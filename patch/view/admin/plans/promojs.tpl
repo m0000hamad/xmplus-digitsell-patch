@@ -35,6 +35,8 @@
 	promoThemeText.rumi = "{$translate->get('PromoOccasionRumi')|escape:'javascript'}";
 	promoThemeText.hafez = "{$translate->get('PromoOccasionHafez')|escape:'javascript'}";
 	promoThemeText.cyrus = "{$translate->get('PromoOccasionCyrus')|escape:'javascript'}";
+	promoThemeText.spring_rain = "{$translate->get('PromoOccasionSpringRain')|escape:'javascript'}";
+	promoThemeText.winter_rain = "{$translate->get('PromoOccasionWinterRain')|escape:'javascript'}";
 	promoThemeText.rainy = "{$translate->get('PromoOccasionRainy')|escape:'javascript'}";
 	promoThemeText.autumn_rain = "{$translate->get('PromoOccasionAutumnRain')|escape:'javascript'}";
 	promoThemeText.walking = "{$translate->get('PromoOccasionWalking')|escape:'javascript'}";

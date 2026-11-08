@@ -26,8 +26,9 @@
 						<option value="cyrus" {if $selectedtheme == 'cyrus'}selected{/if}>🏛️ {$translate->get('PromoThemeCyrus')}</option>
 					</optgroup>
 					<optgroup label="{$translate->get('PromoThemeWeather')|escape:'html'}">
-						<option value="rainy" {if $selectedtheme == 'rainy'}selected{/if}>🌧️ {$translate->get('PromoThemeRainy')}</option>
+						<option value="spring_rain" {if $selectedtheme == 'spring_rain'}selected{/if}>🌧️ {$translate->get('PromoThemeSpringRain')}</option>
 						<option value="autumn_rain" {if $selectedtheme == 'autumn_rain'}selected{/if}>🍂 {$translate->get('PromoThemeAutumnRain')}</option>
+						<option value="winter_rain" {if $selectedtheme == 'winter_rain'}selected{/if}>🌧️ {$translate->get('PromoThemeWinterRain')}</option>
 						<option value="walking" {if $selectedtheme == 'walking'}selected{/if}>🚶 {$translate->get('PromoThemeWalking')}</option>
 						<option value="winter_snow" {if $selectedtheme == 'winter_snow'}selected{/if}>🌨️ {$translate->get('PromoThemeWinterSnow')}</option>
 						<option value="rainbow" {if $selectedtheme == 'rainbow'}selected{/if}>🌈 {$translate->get('PromoThemeRainbow')}</option>

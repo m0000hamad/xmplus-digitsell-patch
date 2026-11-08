@@ -285,14 +285,19 @@
 .promo-theme-cyrus, .promo-sticker-special.promo-special-theme-cyrus { --st-orn: "🏛️"; --st-part: "🏛️"; }
 .promo-banner.promo-theme-cyrus    { background: linear-gradient(135deg, #1e3a8a, #2563eb 55%, #b45309); }
 
-.promo-theme-rainy .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-rainy { --st-bg: radial-gradient(circle at 35% 30%, #ffffff, #bae6fd 36%, #38bdf8 70%, #0369a1); --st-ink: #0c2a4a; --st-glow: rgba(125, 211, 252, .8); }
-.promo-theme-rainy .promo-sticker-slot2, .promo-theme-rainy .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #faf5ff, #c7d2fe 38%, #818cf8 72%, #4338ca); --st-ink: #fff; --st-glow: rgba(165, 180, 252, .75); }
-.promo-theme-rainy, .promo-sticker-special.promo-special-theme-rainy { --st-orn: "🌧️"; --st-part: "🌧️"; }
-.promo-banner.promo-theme-rainy    { background: linear-gradient(135deg, #0369a1, #38bdf8 50%, #6366f1); }
+.promo-theme-spring_rain .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-spring_rain { --st-bg: radial-gradient(circle at 35% 30%, #f0fdf4, #a7f3d0 36%, #34d399 70%, #047857); --st-ink: #064e3b; --st-glow: rgba(52, 211, 153, .7); }
+.promo-theme-spring_rain .promo-sticker-slot2, .promo-theme-spring_rain .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fff1f7, #f9a8d4 40%, #ec4899 78%, #be185d); --st-ink: #fff; --st-glow: rgba(236, 72, 153, .65); }
+.promo-theme-spring_rain, .promo-sticker-special.promo-special-theme-spring_rain { --st-orn: "🌸"; --st-part: "💧"; }
+.promo-banner.promo-theme-spring_rain { background: linear-gradient(135deg, #047857, #34d399 50%, #ec4899); }
+
+.promo-theme-winter_rain .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-winter_rain { --st-bg: radial-gradient(circle at 35% 30%, #f1f5f9, #cbd5e1 36%, #64748b 70%, #334155); --st-ink: #fff; --st-glow: rgba(148, 163, 184, .75); }
+.promo-theme-winter_rain .promo-sticker-slot2, .promo-theme-winter_rain .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #eff6ff, #93c5fd 38%, #3b82f6 72%, #1e40af); --st-ink: #fff; --st-glow: rgba(59, 130, 246, .65); }
+.promo-theme-winter_rain, .promo-sticker-special.promo-special-theme-winter_rain { --st-orn: "🌧️"; --st-part: "💧"; }
+.promo-banner.promo-theme-winter_rain { background: linear-gradient(135deg, #334155, #64748b 50%, #1e40af); }
 
 .promo-theme-autumn_rain .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-autumn_rain { --st-bg: radial-gradient(circle at 35% 30%, #fff7ed, #fdba74 38%, #ea580c 72%, #9a3412); --st-ink: #fff; --st-glow: rgba(234, 88, 12, .65); }
 .promo-theme-autumn_rain .promo-sticker-slot2, .promo-theme-autumn_rain .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fef2f2, #f87171 40%, #b91c1c 76%, #7f1d1d); --st-ink: #fff; --st-glow: rgba(185, 28, 28, .6); }
-.promo-theme-autumn_rain, .promo-sticker-special.promo-special-theme-autumn_rain { --st-orn: "🍂"; --st-part: "🍂"; }
+.promo-theme-autumn_rain, .promo-sticker-special.promo-special-theme-autumn_rain { --st-orn: "🍂"; --st-part: "💧"; }
 .promo-banner.promo-theme-autumn_rain    { background: linear-gradient(135deg, #9a3412, #ea580c 50%, #b91c1c); }
 
 .promo-theme-walking .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-walking { --st-bg: radial-gradient(circle at 35% 30%, #f0fdf4, #86efac 38%, #16a34a 72%, #14532d); --st-ink: #fff; --st-glow: rgba(34, 197, 94, .65); }
@@ -310,11 +315,11 @@
 .promo-theme-rainbow, .promo-sticker-special.promo-special-theme-rainbow { --st-orn: "🌈"; --st-part: "🌈"; }
 .promo-banner.promo-theme-rainbow      { background: linear-gradient(135deg, #a21caf, #e879f9 50%, #f472b6); }
 
-:is(.promo-theme-rainy, .promo-theme-autumn_rain, .promo-theme-winter_snow) .promo-sticker-spark { animation: promoFall 3.4s linear infinite; }
+:is(.promo-theme-spring_rain, .promo-theme-autumn_rain, .promo-theme-winter_rain, .promo-theme-winter_snow) .promo-sticker-spark { animation: promoFall 3.4s linear infinite; }
 
 .plan-card .promo-sticker-special.promo-special-theme-classic { --st-bg: radial-gradient(circle at 35% 30%, #fff7cc, #fcd34d 38%, #f59e0b 75%, #d97706); --st-ink: #5a2d00; --st-glow: rgba(252, 211, 77, .75); --st-orn: "⭐"; --st-part: "✦"; }
 .plan-card [class*="promo-special-theme-"] .promo-sticker-spark { animation: promoTwinkle 2.5s ease-in-out infinite; text-shadow: none; }
-.plan-card :is(.promo-special-theme-spring, .promo-special-theme-autumn, .promo-special-theme-winter, .promo-special-theme-nowruz, .promo-special-theme-christmas, .promo-special-theme-rainy, .promo-special-theme-autumn_rain, .promo-special-theme-winter_snow) .promo-sticker-spark { animation: promoFall 3.4s linear infinite; }
+.plan-card :is(.promo-special-theme-spring, .promo-special-theme-autumn, .promo-special-theme-winter, .promo-special-theme-nowruz, .promo-special-theme-christmas, .promo-special-theme-spring_rain, .promo-special-theme-winter_rain, .promo-special-theme-autumn_rain, .promo-special-theme-winter_snow) .promo-sticker-spark { animation: promoFall 3.4s linear infinite; }
 
 /* leaves, snow and petals drift down past the sticker instead of twinkling */
 .promo-theme-autumn .promo-sticker-spark,

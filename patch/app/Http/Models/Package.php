@@ -293,7 +293,9 @@ final class Package extends Model
 		'hafez' => '📖',
 		'cyrus' => '🏛️',
 		'rainy' => '🌧️',
-		'autumn_rain' => '🍂',
+		'spring_rain' => '🌧️',
+		'winter_rain' => '🌧️',
+		'autumn_rain' => '🌧️',
 		'walking' => '🚶',
 		'winter_snow' => '🌨️',
 		'rainbow' => '🌈',
@@ -374,6 +376,10 @@ final class Package extends Model
 	public static function promoTheme($entry)
 	{
 		$theme = is_array($entry) ? (string) ($entry['theme'] ?? 'auto') : 'auto';
+
+		if ($theme === 'rainy') {
+			return 'spring_rain';
+		}
 
 		if ($theme === 'auto' || !isset(self::PROMO_THEMES[$theme])) {
 			return self::promoSeason();
