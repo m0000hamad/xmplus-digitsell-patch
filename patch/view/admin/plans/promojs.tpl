@@ -26,6 +26,20 @@
 	};
 	/* the occasion line an occasion theme fills in when the field is still empty */
 	var promoThemeText = new Object();
+	promoThemeText.attar = "{$translate->get('PromoOccasionAttar')|escape:'javascript'}";
+	promoThemeText.saadi = "{$translate->get('PromoOccasionSaadi')|escape:'javascript'}";
+	promoThemeText.ferdowsi = "{$translate->get('PromoOccasionFerdowsi')|escape:'javascript'}";
+	promoThemeText.khayyam = "{$translate->get('PromoOccasionKhayyam')|escape:'javascript'}";
+	promoThemeText.avicenna = "{$translate->get('PromoOccasionAvicenna')|escape:'javascript'}";
+	promoThemeText.razi = "{$translate->get('PromoOccasionRazi')|escape:'javascript'}";
+	promoThemeText.rumi = "{$translate->get('PromoOccasionRumi')|escape:'javascript'}";
+	promoThemeText.hafez = "{$translate->get('PromoOccasionHafez')|escape:'javascript'}";
+	promoThemeText.cyrus = "{$translate->get('PromoOccasionCyrus')|escape:'javascript'}";
+	promoThemeText.rainy = "{$translate->get('PromoOccasionRainy')|escape:'javascript'}";
+	promoThemeText.autumn_rain = "{$translate->get('PromoOccasionAutumnRain')|escape:'javascript'}";
+	promoThemeText.walking = "{$translate->get('PromoOccasionWalking')|escape:'javascript'}";
+	promoThemeText.winter_snow = "{$translate->get('PromoOccasionWinterSnow')|escape:'javascript'}";
+	promoThemeText.rainbow = "{$translate->get('PromoOccasionRainbow')|escape:'javascript'}";
 	promoThemeText.nowruz    = "{$translate->get('PromoOccasionNowruz')|escape:'javascript'}";
 	promoThemeText.yalda     = "{$translate->get('PromoOccasionYalda')|escape:'javascript'}";
 	promoThemeText.christmas = "{$translate->get('PromoOccasionChristmas')|escape:'javascript'}";

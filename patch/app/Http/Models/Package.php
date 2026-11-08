@@ -283,6 +283,20 @@ final class Package extends Model
 		'father'    => '👔',
 		'girl'      => '🎀',
 		'boy'       => '🧢',
+		'attar' => '🪶',
+		'saadi' => '🌹',
+		'ferdowsi' => '📜',
+		'khayyam' => '🌌',
+		'avicenna' => '🩺',
+		'razi' => '⚗️',
+		'rumi' => '🌀',
+		'hafez' => '📖',
+		'cyrus' => '🏛️',
+		'rainy' => '🌧️',
+		'autumn_rain' => '🍂',
+		'walking' => '🚶',
+		'winter_snow' => '🌨️',
+		'rainbow' => '🌈',
 	];
 
 	/** Promotion dates are written in the Solar Hijri calendar, on Tehran time. */

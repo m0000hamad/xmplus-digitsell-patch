@@ -20,7 +20,8 @@ const PROMO_SETTING = 'promo_plans';
 const PROMO_CYCLES = ['onetime', 'month', 'quater', 'semiannual', 'annual', 'custom'];
 const PROMO_MAX_PERCENT = 100; // 100 = free for the promotion's time
 const PROMO_THEMES = ['auto', 'classic', 'spring', 'summer', 'autumn', 'winter',
-    'nowruz', 'yalda', 'christmas', 'mother', 'father', 'girl', 'boy'];
+    'nowruz', 'yalda', 'christmas', 'mother', 'father', 'girl', 'boy',
+    'attar', 'saadi', 'ferdowsi', 'khayyam', 'avicenna', 'razi', 'rumi', 'hafez', 'cyrus', 'rainy', 'autumn_rain', 'walking', 'winter_snow', 'rainbow'];
 const PROMO_MAX_GB = 1000;
 const PROMO_MAX_DAYS = 365;
 

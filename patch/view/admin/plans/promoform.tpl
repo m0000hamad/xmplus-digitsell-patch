@@ -148,6 +148,24 @@
 						<option value="girl" {if $ptheme == 'girl'}selected{/if}>🎀 {$translate->get('PromoThemeGirl')}</option>
 						<option value="boy" {if $ptheme == 'boy'}selected{/if}>🧢 {$translate->get('PromoThemeBoy')}</option>
 					</optgroup>
+					<optgroup label="{$translate->get('PromoThemeCultural')|escape:'html'}">
+						<option value="attar" {if $ptheme == 'attar'}selected{/if}>🪶 {$translate->get('PromoThemeAttar')}</option>
+						<option value="saadi" {if $ptheme == 'saadi'}selected{/if}>🌹 {$translate->get('PromoThemeSaadi')}</option>
+						<option value="ferdowsi" {if $ptheme == 'ferdowsi'}selected{/if}>📜 {$translate->get('PromoThemeFerdowsi')}</option>
+						<option value="khayyam" {if $ptheme == 'khayyam'}selected{/if}>🌌 {$translate->get('PromoThemeKhayyam')}</option>
+						<option value="avicenna" {if $ptheme == 'avicenna'}selected{/if}>🩺 {$translate->get('PromoThemeAvicenna')}</option>
+						<option value="razi" {if $ptheme == 'razi'}selected{/if}>⚗️ {$translate->get('PromoThemeRazi')}</option>
+						<option value="rumi" {if $ptheme == 'rumi'}selected{/if}>🌀 {$translate->get('PromoThemeRumi')}</option>
+						<option value="hafez" {if $ptheme == 'hafez'}selected{/if}>📖 {$translate->get('PromoThemeHafez')}</option>
+						<option value="cyrus" {if $ptheme == 'cyrus'}selected{/if}>🏛️ {$translate->get('PromoThemeCyrus')}</option>
+					</optgroup>
+					<optgroup label="{$translate->get('PromoThemeWeather')|escape:'html'}">
+						<option value="rainy" {if $ptheme == 'rainy'}selected{/if}>🌧️ {$translate->get('PromoThemeRainy')}</option>
+						<option value="autumn_rain" {if $ptheme == 'autumn_rain'}selected{/if}>🍂 {$translate->get('PromoThemeAutumnRain')}</option>
+						<option value="walking" {if $ptheme == 'walking'}selected{/if}>🚶 {$translate->get('PromoThemeWalking')}</option>
+						<option value="winter_snow" {if $ptheme == 'winter_snow'}selected{/if}>🌨️ {$translate->get('PromoThemeWinterSnow')}</option>
+						<option value="rainbow" {if $ptheme == 'rainbow'}selected{/if}>🌈 {$translate->get('PromoThemeRainbow')}</option>
+					</optgroup>
 					<option value="classic" {if $ptheme == 'classic'}selected{/if}>⭐ {$translate->get('PromoThemeClassic')}</option>
 				</select>
 				<small class="text-muted">{$translate->get('PromoThemeHint')}</small>

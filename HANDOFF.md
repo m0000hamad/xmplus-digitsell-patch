@@ -1,3 +1,24 @@
+## 1.38.23 — manual cultural and weather promotion themes (2026-11-08)
+
+Adds the owner-provided nine cultural commemorations (Attar, Saadi, Ferdowsi,
+Khayyam, Avicenna/Doctors Day, Razi/Pharmacists Day, Rumi, Hafez and the
+unofficial Cyrus Day) and five weather occasions (rainy day, first autumn rain,
+walking day, first winter snow and rainbow) to the existing plan promotion
+sticker-theme selector. Cultural labels retain the supplied Solar Hijri dates.
+The owner explicitly chose manual weather selection. Dates/weather/location do
+not trigger promotions; auto continues to follow the current season.
+
+Every added key is accepted by promo.save and Package, restored on edit, and
+has Persian/English labels and suggested text, sticker palettes/ornaments and
+banner colours. Existing picker logic preserves custom occasion text and replaces
+previous suggestions. No promotion, discount, prize, announcement or channel
+settings are changed by deployment.
+
+Validation: PHP lint, standalone model/allowlist checks and actual picker behavior
+checks pass. Native installed Smarty rendered all 14 selections and editor/user
+style templates against staged source. Live baseline 1.38.22 and all 203 installed
+file hashes verified before publication. Publication/deployment verification pending.
+
 ## 1.38.22 — Telegram channel invitation (2026-11-08)
 
 Adds the owner-approved red/cream channel invitation with a large central Telegram
