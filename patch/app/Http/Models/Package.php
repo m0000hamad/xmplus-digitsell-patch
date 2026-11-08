@@ -472,6 +472,7 @@ final class Package extends Model
 
 		$view = [
 			'kind'     => $kind,
+			'special'  => !empty($entry['special']) || $kind === 'special',
 			'percent'  => $kind === 'discount' ? (int) ($entry['percent'] ?? 0) : 0,
 			'original' => [],
 			'prize'    => !empty($entry['prize']['on']) ? $this->promoPrizeRange($entry['prize']) : '',

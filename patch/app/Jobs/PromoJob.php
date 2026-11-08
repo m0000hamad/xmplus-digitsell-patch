@@ -533,7 +533,8 @@ class PromoJob
 		$tags = [];
 		if (($entry['kind'] ?? '') === 'discount') {
 			$tags[] = '🔥 <b>' . $this->offText($entry) . '</b>';
-		} elseif (($entry['kind'] ?? '') === 'special') {
+		}
+		if (!empty($entry['special']) || ($entry['kind'] ?? '') === 'special') {
 			$tags[] = '⭐ <b>ویژه</b>';
 		}
 		if (!empty($entry['prize']['on'])) {
@@ -722,7 +723,8 @@ class PromoJob
 
 		if (($entry['kind'] ?? '') === 'discount') {
 			$lines[] = '🏷 ' . $this->offText($entry);
-		} elseif (($entry['kind'] ?? '') === 'special') {
+		}
+		if (!empty($entry['special']) || ($entry['kind'] ?? '') === 'special') {
 			$lines[] = '⭐ پکیج ویژه';
 		}
 
@@ -797,7 +799,8 @@ class PromoJob
 			$text .= (int) $entry['percent'] >= 100
 				? "🎁 این پکیج را رایگان (۱۰۰٪ تخفیف پروموشن) گرفتی.\n"
 				: '🏷 با ' . (int) $entry['percent'] . "٪ تخفیف پروموشن خریدی.\n";
-		} elseif (($entry['kind'] ?? '') === 'special') {
+		}
+		if (!empty($entry['special']) || ($entry['kind'] ?? '') === 'special') {
 			$text .= "⭐ این یکی از پکیج‌های ویژه بود.\n";
 		}
 
@@ -836,7 +839,8 @@ class PromoJob
 
 		if (($entry['kind'] ?? '') === 'discount') {
 			$text .= "\n🏷 " . $this->offText($entry);
-		} elseif (($entry['kind'] ?? '') === 'special') {
+		}
+		if (!empty($entry['special']) || ($entry['kind'] ?? '') === 'special') {
 			$text .= "\n⭐ ویژه";
 		}
 

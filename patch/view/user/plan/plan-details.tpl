@@ -356,7 +356,8 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 					<div class="promo-banner-badges">{include file='user/plan/promobadges.tpl'}</div>
 					{if $promo.kind == 'discount'}
 						<div class="promo-banner-line">🏷️ {$translate->get('PromoBannerDiscount')|replace:'%n%':"<b>{$promo.percent}</b>"}</div>
-					{elseif $promo.kind == 'special'}
+					{/if}
+					{if !empty($promo.special)}
 						<div class="promo-banner-line">⭐ {$translate->get('PromoBannerSpecial')}</div>
 					{/if}
 					{include file='user/plan/promostrip.tpl'}

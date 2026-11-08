@@ -1,3 +1,9 @@
+## 1.38.25 - independent special promotion label (2026-11-08)
+
+Special is a separate checkbox alongside the none/discount selector. Discount plus special persists both and shows the special badge alongside the existing discount sticker on plan cards, and both badges/lines on details. Prize stickers retain their existing slots. Special-only entries retain kind=special for existing promotion lifecycle compatibility; older special entries restore as a checked special checkbox. Existing callers posting kind=special remain supported. Discount pricing, original-price restoration and promotion start counters are preserved when toggling special. PromoJob channel/customer/admin descriptions include both tags.
+
+Validation: PHP lint for all three changed PHP files; real promoSave with stub persistence verifies combined saving, repeated discount without double-discount, clearing special, legacy special and closing/restoring list prices. Native installed Smarty verifies restored forms and combined card/detail badges across discount/special combinations. No live plan or promotion settings are edited by release. Publication/deployment pending.
+
 ## 1.38.24 - conditional channel and bot invitations (2026-11-08)
 
 Channel invitation is shown only for known nonmembers, followed by a separate bot invitation for accounts without linked telegram_id. Linked members see neither. Membership uses bounded getChatMember (2s connect/3s total), correctly treating restricted is_member, with unknown API results suppressing the channel invitation. No reward mutation. Existing gift history is not membership proof. Without linked Telegram identity, channel membership cannot be checked and both invitations appear; linking enables verification on the next dashboard entry. Bot CTA uses the existing account start token. Sequential pending queue preserves modal focus/scroll handling.

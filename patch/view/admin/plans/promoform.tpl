@@ -7,11 +7,13 @@
   $promoedit is the stored entry (Package::promoAdmin) or null. A closed entry
   is not loaded back into the fields: saving again would restart it.
 *}
-{$pk = 'none'}{$ppct = 20}{$pprize = 0}{$pmode = 'either'}
+{$pspecial = 0}{$pk = 'none'}{$ppct = 20}{$pprize = 0}{$pmode = 'either'}
 {$pgbmin = 1}{$pgbmax = 5}{$pdmin = 1}{$pdmax = 7}
 {$pocc = ''}{$pends = ''}{$pmax = ''}{$pleft = 0}{$pannounce_tg = 1}{$pannounce_mail = 1}{$pchannel = 1}{$ptheme = 'auto'}
 {if isset($promoedit) && $promoedit && empty($promoedit.closed_at)}
 	{$pk = $promoedit.kind}
+	{$pspecial = !empty($promoedit.special) || $pk == 'special'}
+	{if $pk == 'special'}{$pk = 'none'}{/if}
 	{if $promoedit.percent > 0}{$ppct = $promoedit.percent}{/if}
 	{if !empty($promoedit.prize.on)}
 		{$pprize = 1}
@@ -58,8 +60,17 @@
 			<select class="form-control form-select shadow-lg" id="promo_kind" onchange="promoApply()">
 				<option value="none" {if $pk == 'none'}selected{/if}>{$translate->get('PromoKindNone')}</option>
 				<option value="discount" {if $pk == 'discount'}selected{/if}>🏷️ {$translate->get('PromoKindDiscount')}</option>
-				<option value="special" {if $pk == 'special'}selected{/if}>⭐ {$translate->get('PromoKindSpecial')}</option>
 			</select>
+		</div>
+	</div>
+
+	<div class="row mb-2">
+		<label class="col-sm-3 col-form-label form-label" for="promo_special">⭐ {$translate->get('PromoKindSpecial')}</label>
+		<div class="col-sm-9" style="max-width: 60rem">
+			<div class="form-check mt-2">
+				<input class="form-check-input" type="checkbox" id="promo_special" {if $pspecial}checked{/if} onchange="promoApply()">
+				<label class="form-check-label" for="promo_special">{$translate->get('PromoSpecialLabel')}</label>
+			</div>
 		</div>
 	</div>
 

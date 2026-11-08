@@ -9,7 +9,8 @@
 	{* the sticker on the card says it instead *}
 {elseif $promo.kind == 'discount'}
 	<span class="promo-badge promo-badge-discount promo-only"><i class="promo-star">✦</i><i class="promo-star">✦</i><i class="promo-star">✦</i>🔥 {$translate->get('PromoOffLabel')|replace:'%n%':$promo.percent}</span>
-{elseif $promo.kind == 'special'}
+{/if}
+{if (!(isset($nokind) && $nokind) || $promo.kind == 'discount') && !empty($promo.special)}
 	<span class="promo-badge promo-badge-special promo-only"><i class="promo-star">✦</i><i class="promo-star">✦</i><i class="promo-star">✦</i>⭐ {$translate->get('PromoSpecialLabel')}</span>
 {/if}
 {if $promo.prize != '' && !(isset($noprize) && $noprize)}

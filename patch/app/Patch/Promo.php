@@ -216,6 +216,11 @@ function promoSave(): void
         $kind = 'none';
     }
 
+    $special = !empty($_POST['special']) || $kind === 'special';
+    if ($kind === 'none' && $special) {
+        $kind = 'special';
+    }
+
     $prizeOn = !empty($_POST['prize_on']) && $_POST['prize_on'] !== '0';
 
     // nothing chosen: close a running promotion and make sure the list prices stand
@@ -295,6 +300,7 @@ function promoSave(): void
 
     $entry = [
         'kind'       => $kind,
+        'special'    => $special ? 1 : 0,
         'percent'    => $kind === 'discount' ? $percent : 0,
         'original'   => $original,
         'prize'      => $prize,

@@ -102,7 +102,7 @@
 		document.getElementById("promo_prize_fields").hidden = !prize;
 		document.getElementById("promo_gb_row").hidden = mode === "days";
 		document.getElementById("promo_days_row").hidden = mode === "gb";
-		document.getElementById("promo_extra_fields").hidden = kind === "none" && !prize;
+		document.getElementById("promo_extra_fields").hidden = kind === "none" && !$("#promo_special").is(":checked") && !prize;
 
 		promoPreview();
 	}
@@ -474,7 +474,7 @@
 			return;
 		}
 
-		if (($("#promo_kind").val() !== "none" || $("#promo_prize_on").is(":checked")) && !promoEndsCheck()) {
+		if (($("#promo_kind").val() !== "none" || $("#promo_special").is(":checked") || $("#promo_prize_on").is(":checked")) && !promoEndsCheck()) {
 			// the plan itself is already saved; only the promotion waits for a later end date
 			layer.msg($("#promo_ends_note").text(), { time: 7000, offset: "100px" });
 			$("#promo_ends_at").trigger("focus");
@@ -490,6 +490,7 @@
 				id: id,
 				name: $("#name").val(),
 				kind: $("#promo_kind").val(),
+				special: $("#promo_special").is(":checked") ? 1 : 0,
 				percent: $("#promo_percent").val(),
 				prize_on: $("#promo_prize_on").is(":checked") ? 1 : 0,
 				prize_mode: $("#promo_prize_mode").val(),
