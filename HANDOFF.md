@@ -1,6 +1,6 @@
 ## 1.38.30 - ticket delete visibility preference (2026-11-08)
 
-The admin ticket list's native column picker gains a Delete checkbox, controlling per-row delete buttons independently of the original actions column. Default visible; preference persists per URL/browser and applies to newly drawn/paginated rows. Batch deletion remains available in the management toolbar. No ticket data or endpoint changes. Publication and deployment verification pending.
+The admin ticket list's native column picker gains a Delete checkbox, controlling per-row delete buttons independently of the original actions column. Default visible; preference persists per URL/browser and applies to newly drawn/paginated rows. Batch deletion remains available in the management toolbar. No ticket data or endpoint changes. JavaScript syntax and existing send-lock regression passed. Published 75d6cc8 to configured origin/main and verified branch and immutable manifest. Native updater installed 1.38.30; authenticated installed/latest agree and all 205 runtime checksums match. Live admin list includes tkDeleteVisible; ticket authorization/CSRF/image/bootstrap and login health passed.
 
 ## 1.38.29 - ticket retry protection and administrator batch actions (2026-11-08)
 
