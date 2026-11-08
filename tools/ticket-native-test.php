@@ -40,6 +40,15 @@ denied(function(){App\Tickets\Lifecycle::validateAttachment('tk_900002_'.str_rep
 // Exercise notification enqueue without sending anything to external services.
 $pdo->exec('CREATE TEMPORARY TABLE user(id BIGINT PRIMARY KEY,username TEXT,email TEXT,telegram_id TEXT)');
 $pdo->exec("INSERT INTO user VALUES(900001,'fixture','fixture@example.invalid','')");
+$fields=['title'=>'Retry fixture','content'=>'same submission','department'=>'other','files'=>'', 'main_id'=>0,'rootid'=>0,'userid'=>900001,'username'=>'fixture','datetime'=>time(),'status'=>1,'state'=>0,'user_message_id'=>'','admin_message_id'=>'','telegram_id'=>''];
+$a=new Ticket($fields);$a->save();$first=$a->id;
+$b=new Ticket($fields);$b->save();
+check($b->id===$first && Ticket::where('title','Retry fixture')->count()===1,'retry returns original ticket');
+$fields['content']='different submission';$c=new Ticket($fields);$c->save();
+check($c->id!==$first,'different message is preserved');
+$fields['content']='same submission';$fields['datetime']=time()-301;
+DB::table('tickets')->where('id',$first)->update(['datetime'=>time()-301]);
+$d=new Ticket($fields);$d->save();check($d->id!==$first,'identical submission allowed after retry window');
 $pdo->exec('CREATE TEMPORARY TABLE settings(name VARCHAR(100),value TEXT)');
 $pdo->exec("INSERT INTO settings VALUES('maildriver','1'),('telegram','0')");
 $pdo->exec('CREATE TEMPORARY TABLE queue_messages(to_email TEXT,subject TEXT,telegramid TEXT,template TEXT,`array` TEXT,time BIGINT)');
@@ -52,7 +61,7 @@ check((int)DB::table('ticket_close_notice')->value('telegram_sent')===1,'unconne
 $smarty = new Smarty();
 $smarty->setTemplateDir($source . '/view');
 $compile=sys_get_temp_dir().'/ticket-smarty-'.getmypid();mkdir($compile);$smarty->setCompileDir($compile);
-foreach (['user/ticket/view.tpl','admin/tickets/view.tpl','user/ticket/open.tpl','user/ticket/ticket.tpl','common/ticketchat.tpl','common/ticketattachment.tpl','common/ticketupload.tpl'] as $path) {
+foreach (['user/ticket/view.tpl','admin/tickets/view.tpl','user/ticket/open.tpl','user/ticket/ticket.tpl','common/ticketchat.tpl','common/ticketattachment.tpl','common/ticketupload.tpl','admin/tickets/index.tpl','common/ticketmanage.tpl'] as $path) {
  $t=$smarty->createTemplate($path);$t->compileTemplateSource();check(true,'Smarty '.$path);
 }
 foreach(glob($compile.'/*') as $f)unlink($f);rmdir($compile);

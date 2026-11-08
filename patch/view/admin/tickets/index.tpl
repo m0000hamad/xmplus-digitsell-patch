@@ -79,3 +79,5 @@
     }
 </script>
 {include file='common/ticketrowlink.tpl'}
+
+{include file='common/ticketmanage.tpl'}

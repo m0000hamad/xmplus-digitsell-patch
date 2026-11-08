@@ -11,6 +11,41 @@ if (empty($_SESSION['ticket_csrf'])) $_SESSION['ticket_csrf'] = bin2hex(random_b
 
 if ($action === 'ticket.token') done(['token' => $_SESSION['ticket_csrf']]);
 
+if ($action === 'ticket.manage') {
+    if ((int) $viewer['role'] <= 0) fail('access denied', 403);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST required', 405);
+    if (!is_string($_POST['token'] ?? null) || !hash_equals($_SESSION['ticket_csrf'], $_POST['token'])) fail('bad token', 403);
+    $operation = $_POST['operation'] ?? '';
+    $ids = $_POST['ids'] ?? [];
+    if (!in_array($operation, ['close', 'delete'], true) || !is_array($ids) || !$ids || count($ids) > 100) fail('invalid selection');
+    foreach ($ids as $id) if (!is_scalar($id) || !preg_match('/^[1-9][0-9]*$/D', (string) $id)) fail('invalid selection');
+    $ids = array_values(array_unique(array_map('intval', $ids)));
+    sort($ids, SORT_NUMERIC);
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        $marks = implode(',', array_fill(0, count($ids), '?'));
+        $q = $pdo->prepare('SELECT id FROM tickets WHERE rootid=0 AND id IN ('.$marks.') ORDER BY id FOR UPDATE');
+        $q->execute($ids);
+        $roots = $q->fetchAll(PDO::FETCH_COLUMN);
+        if (count($roots) !== count($ids)) throw new RuntimeException('انتخاب تغییر کرده است؛ فهرست را تازه کنید.');
+        if ($operation === 'close') {
+            $q = $pdo->prepare('UPDATE tickets SET status=0 WHERE rootid=0 AND id IN ('.$marks.')');
+            $q->execute($ids);
+        } else {
+            $q = $pdo->prepare('DELETE FROM ticket_close_notice WHERE ticketid IN ('.$marks.')');
+            $q->execute($ids);
+            $q = $pdo->prepare('DELETE FROM tickets WHERE id IN ('.$marks.') OR main_id IN ('.$marks.') OR rootid IN ('.$marks.')');
+            $q->execute(array_merge($ids, $ids, $ids));
+        }
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        fail('عملیات انجام نشد؛ فهرست را تازه کنید و دوباره تلاش کنید.');
+    }
+    done(['count' => count($ids)]);
+}
+
 if ($action === 'ticket.upload') {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST required', 405);
     if (!is_string($_POST['token'] ?? null) || !hash_equals($_SESSION['ticket_csrf'], $_POST['token'])) fail('bad token', 403);

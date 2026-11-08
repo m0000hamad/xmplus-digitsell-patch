@@ -1,7 +1,7 @@
 {
-    "version": "1.38.28",
+    "version": "1.38.29",
     "released": "2026-11-08",
-    "notes": "Separate spring, autumn and winter rain themes for main and special stickers.",
+    "notes": "Ticket retry protection; administrator single and batch deletion and batch close.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -47,7 +47,7 @@
         "app/Http/Models/Order.php": "a560d42000ecf0ded7906972a5de4ca548b29063135e9b0ff4afe35d74fb0849",
         "app/Http/Models/Package.php": "9f4cab4e3662236cfa73d7b97003a8c962aa197b42c7985b2634349dbe1af515",
         "app/Http/Models/Server.php": "a5b1c516b65e700e0b6937ff177d699dd86f3285e6f33c9745fa556ac0ff26d6",
-        "app/Http/Models/Ticket.php": "4f4323744af8db79086a8258333788edd3c577c99697225de1f017a84bf83374",
+        "app/Http/Models/Ticket.php": "e9d5975ea4ffa0817687c73b3988170522c89942e418fde318ae20fb2228ce58",
         "app/Http/Models/TrafficDaily.php": "f67b2efe0fb0a261f17ef7aae4aebe133db2e9b5608288112890d8a28bf75906",
         "app/Http/Models/User.php": "91005e9109c95acecba4f26c7920fb8f467ec9bf601acfe176c99860d233f05f",
         "app/Jobs/Card2CardJob.php": "8c87796ca70a0ebcfd6044c81d4ae6751659c3c159592bdf71002089b8643267",
@@ -90,7 +90,7 @@
         "app/Patch/SubscriptionProfiles.php": "2dc8a97edbd6bcd6b54f0acd281f5a52046e70fe8f8cda395761380e806f8645",
         "app/Patch/SubscriptionProfilesEndpoint.php": "f11695dce9c2030528f3bd7e19bf1051d136347834d9df43b089e27301ac4c5a",
         "app/Patch/TgGift.php": "bc691f338913bf46bb88f0d91c360bf864c2d54c7839d2bac62ea54d0afacb77",
-        "app/Patch/Tickets.php": "23381ecba153c6a7f723851e103c829434052ad18c8390f766b55639d1ecf17a",
+        "app/Patch/Tickets.php": "5cec94a704174d29148029f9925d89eed9e99e71e6e271c94deb7c12ebdb7ce1",
         "app/Patch/TimePlan.php": "38fd91b67c8c189aa1af3f58b1c671371129a3d123af740655a1be90990cb65a",
         "app/Patch/TorExit.php": "babe54d18e8c088bfa484fac85aadbf16f84aee9f4ae9c8c52c3c76f3fbe74b9",
         "app/Patch/Vpn.php": "9bf38bc49fd337295c785b2f6ee8577c8ab07add4c25983fdb3cf5ef79193ba1",
@@ -151,7 +151,7 @@
         "view/admin/settings/subprofiles.tpl": "6b594e67848e236f4cba4a4021fa293f5cdffa4b5e285a2e2af26192f09239b2",
         "view/admin/settings/torexitsettings.tpl": "ac393e0f52c95d8663128eab616e01467ceb7d6c41c6ac1812019babb291bf5f",
         "view/admin/settings/wgsettings.tpl": "7e8129873f5ae704d85da6eeac43e418e774dd31cf93f1edb5243c35e52f0bc8",
-        "view/admin/tickets/index.tpl": "18c9d5d95b50eee05d4640bca49893cebcd3a77e695800fee331bbf4c7a7445b",
+        "view/admin/tickets/index.tpl": "f77d6e6e1ee3d98a053663b64b512d41df647ccedba7ee720fd3229232a28058",
         "view/admin/tickets/view.tpl": "486e949d5f3f87ec2fc43eff9756c19e74961878c5c186789f75fe23e9c2a28a",
         "view/admin/users/balances.tpl": "7cf21eaf98289177e720ab3fa4d6bfaa1e028fed8bc0b6bcbb9f5b3acdd637b3",
         "view/admin/users/edit.tpl": "25bd6e1f22eee4c194478eeffeaa8f168e4d846560b899e14cdc0e22b34ae111",
@@ -168,6 +168,7 @@
         "view/common/ovpnsvg.tpl": "ec9bcd9973e062fd2709f6605b64218f756043061848ab911578a54648259959",
         "view/common/ticketattachment.tpl": "72e2f201dc8bbece3521d1622f282651c20f1dc700d4984fd36239edc7f21a80",
         "view/common/ticketchat.tpl": "2a5bc60d201c34ed52e577a5ad90114befb54fddace23d4345483e5ec5de19ca",
+        "view/common/ticketmanage.tpl": "cd8056b7320150bcf1db4e9730f972053660fbb85411e0d518c8fcbed048f311",
         "view/common/ticketrowlink.tpl": "6f1e8a4dc6c1c5acc82646657844e948abf5a2aea00e05daaab52589b58e0af1",
         "view/common/ticketupload.tpl": "f8bbdc3d62a92516271c2d483a7425be0afc5751c4d0107b5b63d11f4a177b7f",
         "view/common/wgicon.tpl": "c191982788cbd31967956e5e631d53765f8ce25762d7b5583dce1d69167b7ce5",
@@ -242,7 +243,7 @@
         "view/user/settings/telegram.tpl": "655e3f3a61916849af41d57d916c41d459c232ca9c95b6185d5bc67e7feadd3b",
         "view/user/settings/verification.tpl": "da94e60de64bc67fb94eec4135b9984aeda24f265248da8979b5103f563d0918",
         "view/user/ticket/open.tpl": "d4e59792f5728f90a1c04cecde39b08e459bebd71fc697cbb5f46fa19bb26f5f",
-        "view/user/ticket/ticket.tpl": "3eea4689534955afd6f5b5460dc7fc4bd929e811a691567bc1abb55b0992e6ff",
+        "view/user/ticket/ticket.tpl": "a221e1799f7280816172481efeab9ff4ddbd1c654cfac3a4e7860e5cd66c2b8a",
         "view/user/ticket/view.tpl": "7bfb0f83f5a650c6884639963d8b77c02a0c657a5c8c45a56c300d90e5175a3b"
     }
 }

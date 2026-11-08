@@ -78,7 +78,9 @@
 	$('.sendTicket').click(async function(e) {
 		var me = $(this);
 		e.preventDefault();
-        try { await TicketChat.upload(); } catch (error) { layer.msg(error.message); return; }
+        if (me.data('requestRunning')) return;
+        me.data('requestRunning', true).prop('disabled', true).attr('aria-busy', 'true');
+        try { await TicketChat.upload(); } catch (error) { me.data('requestRunning', false).prop('disabled', false).removeAttr('aria-busy'); layer.msg(error.message); return; }
 
         $.ajax({
             type: "POST",
@@ -114,7 +116,7 @@
 				});
             },
 			complete: () => {
-				me.data('requestRunning', false);
+				me.data('requestRunning', false).prop('disabled', false).removeAttr('aria-busy');
 				return;
 			}
         });

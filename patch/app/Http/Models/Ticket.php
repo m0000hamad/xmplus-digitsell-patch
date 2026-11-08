@@ -30,6 +30,25 @@ final class Ticket extends Model
             if ($this->isDirty('files')) {
                 \App\Tickets\Lifecycle::validateAttachment((string) $this->files, (int) $this->userid);
             }
+            if (!$this->exists) {
+                // Serialize all submissions by this author, including concurrent HTTP retries.
+                $this->getConnection()->table('user')->where('id', (int) $this->userid)->lockForUpdate()->first();
+                $duplicate = $this->getConnection()->table('tickets')
+                    ->where('userid', (int) $this->userid)
+                    ->where('rootid', (int) $this->rootid)
+                    ->where('datetime', '>=', time() - 300)
+                    ->whereRaw('BINARY title = ?', [(string) $this->title])
+                    ->where('department', (string) $this->department)
+                    ->whereRaw('BINARY content = ?', [(string) $this->content])
+                    ->whereRaw("COALESCE(files, '') = ?", [(string) $this->files])
+                    ->orderBy('id', 'desc')->lockForUpdate()->first();
+                if ($duplicate) {
+                    $this->setRawAttributes((array) $duplicate, true);
+                    $this->exists = true;
+                    $this->wasRecentlyCreated = false;
+                    return true;
+                }
+            }
             return parent::save($options);
         });
     }
