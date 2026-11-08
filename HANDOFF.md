@@ -2,7 +2,7 @@
 
 Separate Spring rain, Autumn rain and Winter rain choices are available in both main and independent special-theme selectors. Spring uses mint/green and blossom ornaments, autumn warm orange/red and leaves, winter slate/blue and rain clouds; all use rain icons/drop particles. Winter snow retains its separate option. Legacy rainy entries resolve to spring_rain and restore as Spring rain in the form; no database settings are rewritten. Added allowlist/model keys, Persian/English labels and occasion suggestions.
 
-Validation: four PHP lints; actual promoSave stub tests all three main/special theme values; model resolver test includes legacy alias. Native installed Smarty restores all selections and renders actual plan cards. Chrome visual QA confirms three distinct palettes/rain icons and equal 168px headers at 1200px without horizontal overflow. Publication/deployment pending.
+Validation: four PHP lints; actual promoSave stub tests all three main/special theme values; model resolver test includes legacy alias. Native installed Smarty restores all selections and renders actual plan cards. Chrome visual QA confirms three distinct palettes/rain icons and equal 168px headers at 1200px without horizontal overflow. Published 4aec4ce to origin/main and verified immutable manifest from the server. Native updater installed 1.38.28; authenticated installed/latest agree and all 204 runtime hashes match. Authenticated /portal/plans, all three rain choices in both live editor selectors, and ticket/login health passed.
 
 ## 1.38.27 - aligned plan caps and independent special theme (2026-11-08)
 
