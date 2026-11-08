@@ -1,7 +1,7 @@
 {
-    "version": "1.38.23",
+    "version": "1.38.24",
     "released": "2026-11-08",
-    "notes": "افزودن ۹ بزرگداشت فرهنگی و ۵ مناسبت آب‌وهوایی به منوی طرح برچسب پروموشن؛ انتخاب دستی مدیر، متن پیشنهادی و ظاهر متناسب.",
+    "notes": "Show channel and bot invitations according to Telegram membership, in sequence.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -49,7 +49,7 @@
         "app/Http/Models/Server.php": "a5b1c516b65e700e0b6937ff177d699dd86f3285e6f33c9745fa556ac0ff26d6",
         "app/Http/Models/Ticket.php": "4f4323744af8db79086a8258333788edd3c577c99697225de1f017a84bf83374",
         "app/Http/Models/TrafficDaily.php": "f67b2efe0fb0a261f17ef7aae4aebe133db2e9b5608288112890d8a28bf75906",
-        "app/Http/Models/User.php": "1512eac60b6c46bf0a36431a57fee0a69c163b2e7c279a249969ea3be0486f66",
+        "app/Http/Models/User.php": "91005e9109c95acecba4f26c7920fb8f467ec9bf601acfe176c99860d233f05f",
         "app/Jobs/Card2CardJob.php": "8c87796ca70a0ebcfd6044c81d4ae6751659c3c159592bdf71002089b8643267",
         "app/Jobs/CommissionJob.php": "6c25745edcfd86c400870855a563c4bbc371d66c25016e43fbb446b7ef12db27",
         "app/Jobs/GiftCardNotifyJob.php": "8b9d1d517e33c2e5ac515649fc26b1910879c69f5eb202f454f71296a0ea45b0",
@@ -183,7 +183,7 @@
         "view/user/affiliate/stats.tpl": "29b9ba28c071ea963e83f4b0f1b57b26e2909c56f8998fb4be823ae335ea6410",
         "view/user/affiliate/widthdraw.tpl": "186900dc998b81478bf96ce093a9abc7f807f6b0425378cddc93fe7ee1e219ec",
         "view/user/dashboard/application.tpl": "0b44bfe7c0600b4beaf77874ac75e997ccf98acffb023f5805a0a7e8da6a40af",
-        "view/user/dashboard/channelinvite.tpl": "7668b3bd7fef89ab9efc16d8b0bdd6ce7791b6fc2ec1a50a67d4a15970601bfb",
+        "view/user/dashboard/channelinvite.tpl": "f2c48be195c8f7798802466eb4b49f06d0e577f82efcdfa476f8bb6c630b2fbc",
         "view/user/dashboard/chart.tpl": "2be509daa4994c092acc3ab4d1ee2c5aff35a96c328f3acee9e4604f820a60cb",
         "view/user/dashboard/connectionnotice.tpl": "781e6190666dc7831c4d3c9ecb8b014abe783cfb78d05397d4892e807b8b9c28",
         "view/user/dashboard/dashboard.tpl": "a5bbe21525e4704d8c28fc7ef246ab7ae21ef9445d46d08613b5fe108c28a7d0",

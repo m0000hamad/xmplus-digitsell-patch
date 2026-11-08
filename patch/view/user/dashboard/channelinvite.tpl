@@ -1,6 +1,6 @@
 {* Owner-approved Telegram invitation; existing channel gift job remains authoritative. *}
-{$dci = $user->tgJoin()}
-{if $dci['state'] != 'off'}
+{$dci = $user->telegramInvitations()}
+{if $dci['channel'] || ($dci['bot'] && $Config['telegrambot'])}
 {literal}<style>
 
 .dci-back{position:fixed;inset:0;z-index:1070;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;background:rgba(13,14,20,.72);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
@@ -14,18 +14,19 @@
 @media(prefers-reduced-motion:reduce){.dci-join{transition:none}}
 </style>{/literal}
 
-<div class="dci-back" id="dsChannelInvite" hidden>
- <section class="dci-dialog" role="dialog" aria-modal="true" aria-labelledby="dciTitle" aria-describedby="dciCopy dciNote" tabindex="-1" lang="fa" dir="rtl">
-  <header class="dci-header"><div class="dci-brand"><img class="dci-logo" src="/uploads/digit.jpg" alt="لوگوی دیجیتسل" width="48" height="48"><span>دیجیتسل</span></div><button type="button" class="dci-close" data-dcn-close aria-label="بستن دعوت کانال">×</button></header>
-  <div class="dci-hero"><h2 id="dciTitle">عضو کانال شو، جایزه بگیر!</h2><span class="dci-gift" aria-hidden="true">🎁</span></div>
+{foreach ['channel', 'bot'] as $inviteKind}
+{if ($inviteKind == 'channel' && $dci['channel']) || ($inviteKind == 'bot' && $dci['bot'] && $Config['telegrambot'])}
+<div class="dci-back" id="dsTelegramInvite-{$inviteKind}" data-pending hidden>
+ <section class="dci-dialog" role="dialog" aria-modal="true" aria-labelledby="dciTitle-{$inviteKind}" aria-describedby="dciCopy-{$inviteKind} dciNote-{$inviteKind}" tabindex="-1" lang="fa" dir="rtl">
+  <header class="dci-header"><div class="dci-brand"><img class="dci-logo" src="/uploads/digit.jpg" alt="لوگوی دیجیتسل" width="48" height="48"><span>دیجیتسل</span></div><button type="button" class="dci-close" data-dcn-close aria-label="بستن دعوت تلگرام">×</button></header>
+  <div class="dci-hero"><h2 id="dciTitle-{$inviteKind}">{if $inviteKind == 'channel'}عضو کانال شو، جایزه بگیر!{else}ربات دیجیتسل را همراهت داشته باش{/if}</h2><span class="dci-gift" aria-hidden="true">🎁</span></div>
   <div class="dci-body">
-   <div class="dci-reward"><span>تا</span><strong>۵۰</strong><span>گیگابایت جایزه</span></div>
-   <a class="dci-join" href="{$dci['link']|escape:'html'}" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 3.2 18.5 20c-.3 1.2-1 1.5-2 .9l-5.2-3.8-2.5 2.4c-.3.3-.5.5-1 .5l.4-5.3 9.7-8.7c.4-.4-.1-.6-.6-.3L5.3 13.2.2 11.6c-1.1-.4-1.1-1.1.2-1.6L20.4 2.3c.9-.3 1.7.2 1.5.9Z"/></svg><span>عضویت در کانال تلگرام</span></a>
-   <p class="dci-copy" id="dciCopy">با عضویت در کانال تلگرام دیجیتسل، از خبرها و اطلاعیه‌های مهم باخبر شو و فرصت دریافت تا ۵۰ گیگابایت جایزه را داشته باش.</p>
-   <p class="dci-note" id="dciNote">برای دریافت جایزه، عضو کانال بمانید.</p>
-   {if $dci['state'] == 'link'}<p class="dci-link-help">برای شناسایی عضویت و دریافت جایزه، <a href="https://telegram.me/{$Config['telegrambot']|escape:'url'}?start={$user->tg_token|escape:'url'}" target="_blank" rel="noopener noreferrer">حساب تلگرام خود را هم متصل کنید</a>.</p>{/if}
+   {if $inviteKind == 'channel'}<div class="dci-reward"><span>تا</span><strong>۵۰</strong><span>گیگابایت جایزه</span></div>{/if}
+   <a class="dci-join" href="{if $inviteKind == 'channel'}{$dci['link']|escape:'html'}{else}https://telegram.me/{$Config['telegrambot']|escape:'url'}?start={$user->tg_token|escape:'url'}{/if}" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 3.2 18.5 20c-.3 1.2-1 1.5-2 .9l-5.2-3.8-2.5 2.4c-.3.3-.5.5-1 .5l.4-5.3 9.7-8.7c.4-.4-.1-.6-.6-.3L5.3 13.2.2 11.6c-1.1-.4-1.1-1.1.2-1.6L20.4 2.3c.9-.3 1.7.2 1.5.9Z"/></svg><span>{if $inviteKind == 'channel'}عضویت در کانال تلگرام{else}فعال‌سازی ربات تلگرام{/if}</span></a>
+   <p class="dci-copy" id="dciCopy-{$inviteKind}">{if $inviteKind == 'channel'}با عضویت در کانال تلگرام دیجیتسل، از خبرها و اطلاعیه‌های مهم باخبر شو و فرصت دریافت تا ۵۰ گیگابایت جایزه را داشته باش.{else}حساب تلگرام خود را به دیجیتسل متصل کن تا پیام‌های مربوط به حسابت را از طریق ربات دریافت کنی.{/if}</p>
+   <p class="dci-note" id="dciNote-{$inviteKind}">{if $inviteKind == 'channel'}برای دریافت جایزه، عضو کانال بمانید.{else}پس از ورود به ربات، دکمهٔ Start (شروع) را بزنید.{/if}</p>
   </div>
-  <footer class="dci-footer"><button type="button" class="dci-later" data-dcn-close>بعداً عضو می‌شوم</button></footer>
+  <footer class="dci-footer"><button type="button" class="dci-later" data-dcn-close>فعلاً بعداً</button></footer>
  </section>
 </div>
 
@@ -33,7 +34,7 @@
 <script>
 (function () {
  'use strict';
- var back = document.getElementById('dsChannelInvite');
+ var back = document.currentScript.previousElementSibling;
  if (!back) { return; }
  // Show on dashboard entry after other notifications; no reward is granted client-side.
  document.body.appendChild(back);
@@ -46,6 +47,7 @@
   if (!shown) { return; }
   shown = false;
   back.hidden = true;
+  back.removeAttribute('data-pending');
   document.body.style.overflow = previousOverflow;
   document.removeEventListener('keydown', onKey, true);
   document.removeEventListener('focusin', keepFocus);
@@ -73,7 +75,7 @@
  var readyAt = Date.now() + 1800;
  var timer = window.setInterval(function () {
   if (!back.isConnected) { window.clearInterval(timer); return; }
-  if (Date.now() < readyAt || document.hidden || busy()) { quietSince = 0; return; }
+  if (document.querySelector('.dci-back[data-pending]') !== back || Date.now() < readyAt || document.hidden || busy()) { quietSince = 0; return; }
   if (!quietSince) { quietSince = Date.now(); return; }
   if (Date.now() - quietSince < 800) { return; }
   window.clearInterval(timer);
@@ -89,4 +91,6 @@
 })();
 </script>
 {/literal}
+{/if}
+{/foreach}
 {/if}

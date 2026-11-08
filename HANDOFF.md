@@ -1,3 +1,9 @@
+## 1.38.24 - conditional channel and bot invitations (2026-11-08)
+
+Channel invitation is shown only for known nonmembers, followed by a separate bot invitation for accounts without linked telegram_id. Linked members see neither. Membership uses bounded getChatMember (2s connect/3s total), correctly treating restricted is_member, with unknown API results suppressing the channel invitation. No reward mutation. Existing gift history is not membership proof. Without linked Telegram identity, channel membership cannot be checked and both invitations appear; linking enables verification on the next dashboard entry. Bot CTA uses the existing account start token. Sequential pending queue preserves modal focus/scroll handling.
+
+Validation: PHP lint, isolated membership decisions including failure and restricted states, native installed Smarty rendering of all four combinations and channel/bot order passed. Publication/deployment pending.
+
 ## 1.38.23 — manual cultural and weather promotion themes (2026-11-08)
 
 Adds the owner-provided nine cultural commemorations (Attar, Saadi, Ferdowsi,

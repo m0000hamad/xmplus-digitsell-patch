@@ -1700,6 +1700,48 @@ final class User extends Model
 		}
 	}
 
+	public function telegramInvitations()
+	{
+		$result = ['channel' => false, 'bot' => (int) $this->telegram_id <= 0, 'link' => ''];
+		try {
+			$settings = Settings::whereIn('name', ['tgjoin_channel_id', 'tgjoin_link', 'telegramtoken'])
+				->pluck('value', 'name');
+			$result['link'] = trim((string) ($settings['tgjoin_link'] ?? ''));
+			$channel = trim((string) ($settings['tgjoin_channel_id'] ?? ''));
+			if ($channel === '' || $result['link'] === '') {
+				return $result;
+			}
+			if ($result['bot']) {
+				$result['channel'] = true;
+				return $result;
+			}
+			$token = trim((string) ($settings['telegramtoken'] ?? ''));
+			if ($token === '') {
+				return $result;
+			}
+			$curl = curl_init('https://api.telegram.org/bot' . $token . '/getChatMember');
+			curl_setopt_array($curl, [
+				CURLOPT_POST => true,
+				CURLOPT_POSTFIELDS => http_build_query(['chat_id' => $channel, 'user_id' => $this->telegram_id]),
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_CONNECTTIMEOUT => 2,
+				CURLOPT_TIMEOUT => 3,
+			]);
+			$reply = json_decode((string) curl_exec($curl), true);
+			curl_close($curl);
+			if (!empty($reply['ok'])) {
+				$member = $reply['result'];
+				$status = $member['status'] ?? '';
+				$result['channel'] = in_array($status, ['left', 'kicked'], true)
+					|| ($status === 'restricted' && empty($member['is_member']));
+			}
+		} catch (\Throwable $e) {
+			// Unknown channel membership must not invite a known member by mistake.
+		}
+		return $result;
+	}
+
+
 	/*
 	 * The Telegram channel gift as the dashboard shows it (see TgJoinJob).
 	 * state: off | done (gifted, or closed as an existing member) | link (no
