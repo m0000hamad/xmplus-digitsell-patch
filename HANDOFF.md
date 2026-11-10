@@ -1423,3 +1423,9 @@ the configured admin telegramchatid, using the panel bot/master switch.
 
 Validation: pure formatter tests cover gateway-only, mixed funding, full wallet,
 legacy commission and explicit adjustments; PHP syntax checks. Published to configured main and installed 1.38.11; authenticated updater status confirms installed/latest equality (uptodate=true). Live installation: 1.38.11; both panel hosts HTTP 200. Real PHP 7.4/MySQL integration passed with connection-local temporary tables and mocked Telegram: paid delivery, duplicate suppression, historical and pending exclusion.
+
+
+## 2026-11-10 - node agent 1.5.4 / installer release
+- Resolve latest Xray dynamically; fail rather than silently download a pinned fallback. Explicit version selection remains available.
+- Missing TLS file pairs offer per-node HTTP ACME issuance in install/add flows. Existing certificate paths remain intact. cert_issue_mode persists and is honored for issuance and renewal. DNS and public port 80 must permit HTTP validation.
+- Publication authorized to origin/main; node-only release, panel VERSION/manifest unchanged (node sources are outside the panel manifest). No server installation requested or performed.

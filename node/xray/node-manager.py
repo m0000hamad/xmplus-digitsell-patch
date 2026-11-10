@@ -208,6 +208,19 @@ def validate_additions(agent, path, conf, ids):
             crt = node.get('cert_file') or cert.get('file') or str(path.parent / 'certs' / (spec['cert_domain'] + '.crt'))
             key = node.get('key_file') or cert.get('key') or str(path.parent / 'certs' / (spec['cert_domain'] + '.key'))
             if not os.path.isfile(crt) or not os.path.isfile(key):
+                print('Node %s: certificate or private key is missing.' % node['id'])
+                issue = input("Obtain a Let's Encrypt certificate using HTTP (port 80)? [Y/n]: ").strip().lower()
+                if issue in ('', 'y', 'yes') and spec['cert_domain']:
+                    index = next(i for i, n in enumerate(conf['nodes']) if node_id(n) == node['id'])
+                    entry = conf['nodes'][index]
+                    entry = dict(entry) if isinstance(entry, dict) else {'id': entry}
+                    entry['cert_issue_mode'] = 'http'
+                    entry.pop('cert_file', None)
+                    entry.pop('key_file', None)
+                    conf['nodes'][index] = entry
+                    if not cert.get('email'):
+                        conf.setdefault('cert', {})['email'] = input("Let's Encrypt email: ").strip()
+                    continue
                 crt = input('Certificate file for node %s: ' % node['id']).strip()
                 key = input('Private key file: ').strip()
                 if not os.path.isfile(crt) or not os.path.isfile(key):

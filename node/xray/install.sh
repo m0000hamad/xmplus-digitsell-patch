@@ -184,7 +184,11 @@ latest_tag() {
         tag=$(curl -fsSL "https://api.github.com/repos/$1/releases/latest" 2>/dev/null \
               | sed -n 's|.*"tag_name": *"\(v[^"]*\)".*|\1|p' | head -1) || true
     fi
-    echo "${tag:-$2}"
+    if [ -z "$tag" ] && [ "$1" = "XTLS/Xray-core" ]; then
+        echo "Cannot determine latest Xray release; retry or explicitly use --xray-version." >&2
+        return 1
+    fi
+    echo "${tag:-${2:-}}"
 }
 
 TMP=$(mktemp -d)
@@ -600,6 +604,7 @@ for nid in chosen:
     if info["certmode"] == "file":
         known = cert_files.get(nid)
         if known and os.path.isfile(known[0]) and os.path.isfile(known[1]):
+            print("Node %d: using certificate %s" % (nid, known[0]))
             continue
         standard = os.path.join(etc, "certs", (info["domain"] or "-") + ".crt")
         if os.path.isfile(standard) and os.path.isfile(standard[:-4] + ".key"):
@@ -617,6 +622,11 @@ for nid in chosen:
         found = cert_candidates(info["domain"])
         print("Node %d (%s) uses certificate mode 'file' and no certificate for this domain was found.%s"
               % (nid, info["domain"] or "no domain", (" Files: " + ", ".join(found[:5])) if found else ""))
+        if info["domain"] and yes("  Obtain a Let's Encrypt certificate for this node?", default=True):
+            cert_files[nid] = ("", "", "http")
+            needs_email = True
+            print("  HTTP validation requires this domain to reach this server on port 80.")
+            continue
         while True:
             # no default: none of the files on disk is made out for this domain
             crt = ask("  certificate file (Enter to set it later)")
@@ -719,7 +729,7 @@ chmod 700 "$ETC" "$STATE"
 # -------------------------------------------------------------------- xray
 
 if [ "$XRAY_VERSION" = "latest" ]; then
-    XRAY_VERSION=$(latest_tag XTLS/Xray-core v26.9.30)
+    XRAY_VERSION=$(latest_tag XTLS/Xray-core)
 fi
 CURRENT=$("$LIB/xray" version 2>/dev/null | awk 'NR==1 {print "v" $2}') || true
 if [ "$CURRENT" = "$XRAY_VERSION" ]; then
@@ -901,7 +911,13 @@ if files:
         node = dict(n) if isinstance(n, dict) else {"id": n}
         pair = files.get(str(node["id"]))
         if pair:
-            node["cert_file"], node["key_file"] = pair[0], pair[1]
+            if len(pair) > 2:
+                node["cert_issue_mode"] = pair[2]
+                node.pop("cert_file", None)
+                node.pop("key_file", None)
+            else:
+                node["cert_file"], node["key_file"] = pair[0], pair[1]
+                node.pop("cert_issue_mode", None)
         nodes.append(node if len(node) > 1 else node["id"])
     conf["nodes"] = nodes
 cert = conf.setdefault("cert", {})

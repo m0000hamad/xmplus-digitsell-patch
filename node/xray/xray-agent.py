@@ -63,7 +63,7 @@ import urllib.parse
 import urllib.request
 import uuid as uuidlib
 
-VERSION = "1.5.3"
+VERSION = "1.5.4"
 
 # The installer ships this module beside the agent.
 import importlib.util
@@ -1479,8 +1479,8 @@ class Agent:
         if spec["security"] != "tls" or spec["certmode"] == "none":
             return None
         domain = spec["cert_domain"]
-        mode = spec["certmode"]
         node = self.node_conf.get(spec["id"], {})
+        mode = node.get("cert_issue_mode") or spec["certmode"]
         cert = self.conf["cert"]
 
         if mode == "file":
@@ -1572,12 +1572,13 @@ class Agent:
 
     def renew_certs(self):
         for spec in self.specs.values():
-            if spec["security"] == "tls" and spec["certmode"] in ("http", "tls", "dns"):
+            mode = self.node_conf.get(spec["id"], {}).get("cert_issue_mode") or spec["certmode"]
+            if spec["security"] == "tls" and mode in ("http", "tls", "dns"):
                 crt, _ = self.lego_paths(spec["cert_domain"])
                 days = cert_days_left(crt)
                 if days is not None and days <= as_int(self.conf["cert"].get("renew_days"), 30):
                     # Xray re-reads certificate files every hour by itself
-                    self.lego_run(spec["cert_domain"], spec["certmode"], spec)
+                    self.lego_run(spec["cert_domain"], mode, spec)
 
     def self_signed(self, domain):
         folder = self.conf["cert"]["self_dir"]
