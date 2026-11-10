@@ -76,7 +76,7 @@ class MembershipTests(unittest.TestCase):
         self.assertEqual(candidate['nodes'], conf['nodes'] + [75])
         self.assertEqual(manager.add_selection(conf, [], [''])[1], conf)
 
-    def test_yaml_certificate_paths_resolve_next_to_config_and_missing_fails(self):
+    def test_yaml_certificate_paths_resolve_next_to_config_and_missing_warns(self):
         source = Path(__file__).with_name('install.sh').read_text()
         code = source.split('def from_xmplus(file):', 1)[1].split('\nif os.environ.get("FROM"):', 1)[0]
         namespace = {'os': os, 'sys': sys, 'json': json}
@@ -96,8 +96,9 @@ class MembershipTests(unittest.TestCase):
                 self.assertEqual(conf['nodes'][0]['cert_file'], str(root / 'certs' / 'server.crt'))
                 self.assertEqual(conf['nodes'][0]['key_file'], str(root / 'certs' / 'server.key'))
                 (root / 'certs' / 'server.key').unlink()
-                with self.assertRaisesRegex(SystemExit, 'KeyFile does not exist'):
-                    namespace['from_xmplus'](str(file))
+                conf = namespace['from_xmplus'](str(file))
+                self.assertNotIn('key_file', conf['nodes'][0])
+                self.assertIn('cert_file', conf['nodes'][0])
 
     def setUp(self):
         self.conf = {'panel': 'https://panel.example', 'key': 'test-key',

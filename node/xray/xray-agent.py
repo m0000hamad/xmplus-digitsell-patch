@@ -63,7 +63,7 @@ import urllib.parse
 import urllib.request
 import uuid as uuidlib
 
-VERSION = "1.5.4"
+VERSION = "1.5.5"
 
 # The installer ships this module beside the agent.
 import importlib.util

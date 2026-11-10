@@ -1429,3 +1429,8 @@ legacy commission and explicit adjustments; PHP syntax checks. Published to conf
 - Resolve latest Xray dynamically; fail rather than silently download a pinned fallback. Explicit version selection remains available.
 - Missing TLS file pairs offer per-node HTTP ACME issuance in install/add flows. Existing certificate paths remain intact. cert_issue_mode persists and is honored for issuance and renewal. DNS and public port 80 must permit HTTP validation.
 - Publication authorized to origin/main; node-only release, panel VERSION/manifest unchanged (node sources are outside the panel manifest). No server installation requested or performed.
+
+
+## 2026-11-10 - node 1.5.5 certificate reuse repair
+- Reuse-config now enters certificate repair when a YAML file-mode certificate/key is missing. Import no longer aborts on stale file references before wizard overrides can be merged. Existing valid paths are preserved; unattended import warns and lets the agent use its documented fallback.
+- Regression: menu choice 1 with a second node referencing a nonexistent certificate. Node-only publication authorized; no live server deployment.

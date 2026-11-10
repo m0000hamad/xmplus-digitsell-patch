@@ -195,6 +195,32 @@ TMP=$(mktemp -d)
 cleanup() { rm -rf "$TMP"; }
 trap cleanup EXIT
 
+# Reuse valid settings, but do not bypass certificate repair for partial YAML.
+if [ -n "$FROM" ] && [ "$ASSUME_YES" -eq 0 ] && has_tty; then
+    if python3 - "$FROM" <<'PY_CERT_CHECK'
+import os, sys
+try:
+    import yaml
+except ImportError:
+    sys.exit(0)  # dependencies are installed below; defer the check
+with open(sys.argv[1]) as handle:
+    conf = yaml.safe_load(handle) or {}
+for node in conf.get("Nodes") or []:
+    cert = ((node or {}).get("ControllerConfig") or {}).get("CertConfig") or {}
+    if str(cert.get("CertMode", "file")).lower() != "file":
+        continue
+    for name in ("CertFile", "KeyFile"):
+        path = os.path.expanduser(str(cert.get(name) or ""))
+        if path and not os.path.isabs(path):
+            path = os.path.join(os.path.dirname(os.path.abspath(sys.argv[1])), path)
+        if not path or not os.path.isfile(path):
+            sys.exit(1)
+PY_CERT_CHECK
+    then :; else
+        WIZARD=1
+    fi
+fi
+
 # ------------------------------------------------------------------ wizard
 
 if [ "$WIZARD" -eq 1 ]; then
@@ -418,7 +444,10 @@ if os.environ.get("FROM"):
             panel = panel or normalize(str(api.get("ApiHost") or ""))
             key = key or str(api.get("ApiKey") or "")
             if cert.get("CertFile") and cert.get("KeyFile"):
-                cert_files[nid] = (str(cert["CertFile"]), str(cert["KeyFile"]))
+                def resolve_cert_path(value):
+                    value = os.path.expanduser(str(value))
+                    return value if os.path.isabs(value) else os.path.join(os.path.dirname(os.path.abspath(os.environ["FROM"])), value)
+                cert_files[nid] = (resolve_cert_path(cert["CertFile"]), resolve_cert_path(cert["KeyFile"]))
         print("Found XMPlus settings in %s: node(s) %s" % (os.environ["FROM"], ", ".join(map(str, from_ids)) or "none"))
     except Exception as error:  # an unreadable config.yml only loses the defaults
         print("note: could not read %s (%s); answer the questions instead" % (os.environ["FROM"], error))
@@ -845,7 +874,8 @@ def from_xmplus(file):
                 if not os.path.isabs(cert_path):
                     cert_path = os.path.join(os.path.dirname(os.path.abspath(file)), cert_path)
                 if not os.path.isfile(cert_path):
-                    sys.exit("error: node %d: %s does not exist: %s" % (node["id"], src, cert_path))
+                    print("warning: node %d: %s is missing: %s; using selected certificate settings or agent fallback" % (node["id"], src, cert_path))
+                    continue
                 node[dst] = cert_path
         if ctl.get("EnableFallback"):
             fbs = []

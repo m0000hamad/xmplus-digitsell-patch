@@ -31,3 +31,20 @@ class CertificateIssueTests(unittest.TestCase):
         with patch.object(module, 'cert_days_left', return_value=5):
             agent.renew_certs()
         agent.lego_run.assert_called_once_with('example.test', 'http', spec)
+
+class ImportCertificatesTests(unittest.TestCase):
+    def test_missing_second_node_certificate_does_not_abort_import(self):
+        import tempfile
+        import os
+        script = Path(__file__).with_name('install.sh').read_text()
+        source = script.split('def from_xmplus(file):', 1)[1].split('\nif os.environ.get("FROM"):', 1)[0]
+        namespace = {'os': os, 'sys': __import__('sys'), 'json': __import__('json')}
+        exec('def from_xmplus(file):' + source, namespace)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'existing.crt').write_text('fixture')
+            config = root / 'config.yml'
+            config.write_text("Nodes:\n  - ApiConfig: {NodeID: 59, ApiHost: 'https://example.test', ApiKey: fixture}\n    ControllerConfig:\n      CertConfig: {CertFile: existing.crt}\n  - ApiConfig: {NodeID: 73, ApiHost: 'https://example.test', ApiKey: fixture}\n    ControllerConfig:\n      CertConfig: {CertFile: missing.crt}\n")
+            result = namespace['from_xmplus'](str(config))
+            self.assertEqual(result['nodes'][0]['cert_file'], str(root / 'existing.crt'))
+            self.assertEqual(result['nodes'][1], 73)
