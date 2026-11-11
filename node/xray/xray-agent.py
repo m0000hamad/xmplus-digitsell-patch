@@ -63,7 +63,7 @@ import urllib.parse
 import urllib.request
 import uuid as uuidlib
 
-VERSION = "1.5.5"
+VERSION = "1.5.6"
 
 # The installer ships this module beside the agent.
 import importlib.util
@@ -1347,6 +1347,9 @@ class Agent:
         self.ipstate = {}       # email -> {ip: {"first": t, "seen": t, "ok": bool}}
         self.blocked = {}       # email -> [ip] refused for the device limit
         self.online = {}        # email -> [ip] let in, from the last look
+        self.online_traffic = {}  # profile email -> unreset bytes from the online snapshot
+        self.profile_counters = {}  # previous online traffic sample per profile email
+        self.profile_assignment = {}  # (node, uid) -> profile slots proven by traffic
         self.pushed_rules = None
         self.certs = {}         # node id -> (certificate, key)
         self.cert_failed = {}   # domain -> time of the last failed issue
@@ -2430,8 +2433,9 @@ class Agent:
     def read_online(self):
         """{email: {ip: last_seen}} of the accounts with live connections."""
         online = {}
+        self.online_traffic = {}
         try:
-            data = json.loads(self.api("statsonlineiplist", "-all", timeout=30) or "{}")
+            data = json.loads(self.api("statsonlineiplist", "-all", "-include-traffic", timeout=30) or "{}")
             for user in data.get("users") or []:
                 email = as_str(user.get("email"))
                 ips = {}
@@ -2441,6 +2445,8 @@ class Agent:
                         ips[ip] = as_int(entry.get("lastSeen", entry.get("last_seen")))
                 if email and ips:
                     online[email] = ips
+                    traffic = user.get("traffic") if isinstance(user.get("traffic"), dict) else {}
+                    self.online_traffic[email] = as_int(traffic.get("uplink")) + as_int(traffic.get("downlink"))
             return online
         except (XrayError, ValueError, AttributeError):
             pass
@@ -2521,16 +2527,43 @@ class Agent:
             log("device limit: %s is over its limit of %d, refusing %s" % (email, self.limits.get(email, 0), ", ".join(ips)))
         self.blocked = blocked
         self.online = allowed_now
-        # Preserve actual inbound/profile membership separately from merged IP limits.
-        self.profile_online = {}
+        # Xray's online map is per credential/email and can mirror the same UUID
+        # onto both inbounds. Attribute ambiguous membership only to profile
+        # counters that actually moved; retain that choice while the account is
+        # online so an idle tunnel does not jump back onto both links.
+        traffic = getattr(self, 'online_traffic', {})
+        counters = getattr(self, 'profile_counters', {})
+        assignments = getattr(self, 'profile_assignment', {})
+        candidates, active, canonicals = {}, {}, {}
         for email, ips in observed.items():
             canonical, slot, _ = profile_identity(email)
             node, uid = email_node_uid(email)
             if not slot or not node or not uid:
                 continue
-            allowed = set(allowed_now.get(canonical, []))
-            self.profile_online.setdefault(node, []).extend(
-                {'subscription_id': uid, 'ip': ip, 'profile': slot} for ip in ips if ip in allowed)
+            key = (node, uid)
+            canonicals[key] = canonical
+            candidates.setdefault(key, {}).setdefault(slot, {}).update(ips)
+            if email in traffic:
+                current, previous = traffic[email], counters.get(email)
+                if current > 0 and (previous is None or current > previous):
+                    active.setdefault(key, set()).add(slot)
+                counters[email] = current
+        for key, slots in candidates.items():
+            if len(slots) == 1:
+                assignments[key] = set(slots)
+            elif active.get(key):
+                assignments[key] = active[key]
+        assignments = {key: slots for key, slots in assignments.items() if key in candidates}
+        self.profile_counters, self.profile_assignment = counters, assignments
+
+        # Preserve traffic-proven inbound/profile membership separately from merged IP limits.
+        self.profile_online = {}
+        for (node, uid), slots in candidates.items():
+            allowed = set(allowed_now.get(canonicals[(node, uid)], []))
+            for slot in assignments.get((node, uid), set()):
+                self.profile_online.setdefault(node, []).extend(
+                    {'subscription_id': uid, 'ip': ip, 'profile': slot}
+                    for ip in candidates[(node, uid)].get(slot, {}) if ip in allowed)
         self.push_rules()
         return True
 

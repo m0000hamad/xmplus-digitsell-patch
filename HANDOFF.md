@@ -1,3 +1,7 @@
+## Xray agent 1.5.6 - traffic-proven profile presence (2026-11-12)
+
+Xray can mirror one shared credential's online IP onto both profile inbounds, so the two online counters could both include an account connected only through one port. Agent 1.5.6 requests per-profile traffic in the same online snapshot and uses counter movement to resolve ambiguous shared-UUID presence. The selected profile remains attributed while idle, changes when traffic moves on the other port, and can include both only when both counters actually move. Device-limit accounting remains merged across the shared account. Profile tests pass; the remaining Windows full-suite failures are unchanged Linux-only `fcntl` tests and a sandbox temp-directory permission error. S3 must update to agent 1.5.6 before its live counters gain this correction.
+
 ## 1.38.33 - hide legacy third row for split usage (2026-11-12)
 
 For a server with profile-port billing enabled, the customer usage chart now folds any unsuffixed legacy traffic row into link 1 instead of rendering a third copy of the physical server. Link 1 and link 2 remain separate and the total bytes are preserved.
