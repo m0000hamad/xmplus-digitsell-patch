@@ -1,3 +1,11 @@
+## 1.38.31 - separate per-port user server cards (2026-11-11)
+
+The user Servers page expands its already-authorized native cards into the enabled subscription-profile endpoints for the current subscriber group. Each endpoint has its configured hostname, name and billing port, with the port in the visible/import label and its own copy/QR payload. Native online/country/protocol metadata is retained. No additional server IDs are queried or granted; disabled profiles and other subscriber groups cannot supply overrides. Unmapped nodes and disabled per-profile billing retain their native card.
+
+ServerProfileCards preserves native TLS/SNI, transport paths, credentials and plugin options while rewriting only endpoint and label for VLESS, Trojan, VMess JSON, SIP002 and legacy Shadowsocks. Unsupported links fall back to the original native card. This is scoped to the user template; subscription serializers, node configuration, billing and administrator queries are unchanged.
+
+Validation: PHP lint; 19 regression assertions including actual Smarty 4 page compilation/render, independent QR/copy payloads, HTML escaping, IPv6, both Shadowsocks formats and profile/group restrictions. Existing subscription-profile and combined-model regression suites passed. Manifest rebuilt and every shipped checksum verified. Publication pending. Live installation and authenticated installed/latest/health checks have not been performed: this session has no panel authentication or deployment connection. The owner can install from Settings → Patch updates after publication.
+
 ## 1.38.30 - ticket delete visibility preference (2026-11-08)
 
 The admin ticket list's native column picker gains a Delete checkbox, controlling per-row delete buttons independently of the original actions column. Default visible; preference persists per URL/browser and applies to newly drawn/paginated rows. Batch deletion remains available in the management toolbar. No ticket data or endpoint changes. JavaScript syntax and existing send-lock regression passed. Published 75d6cc8 to configured origin/main and verified branch and immutable manifest. Native updater installed 1.38.30; authenticated installed/latest agree and all 205 runtime checksums match. Live admin list includes tkDeleteVisible; ticket authorization/CSRF/image/bootstrap and login health passed.

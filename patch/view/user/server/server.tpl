@@ -339,7 +339,7 @@ html[data-hs-theme="dark"] .srv-link-field {
 	</div>
 
 	<div class="row" id="srvGrid">
-		{foreach $servers as $server}
+		{foreach $user->serverProfileCards($servers) as $server}
 			{if $server['server'] == "Trojan"}
 				{assign var="srvTag" value="TJ"}{assign var="srvHue" value="srv-tj"}
 			{elseif $server['server'] == "Vmess"}

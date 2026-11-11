@@ -22,6 +22,13 @@ final class User extends Model
     /* the account whose sold-but-unlinked reservations were pulled in already */
     private static $reserveLinkedFor = 0;
 
+    public function serverProfileCards($servers): array
+    {
+        require_once dirname(__DIR__, 2) . '/Patch/ServerProfileCards.php';
+        $config = new \App\Provider\ConfigProvider;
+        return \ServerProfileCards::expand($servers, $config->get(), ['server_group' => $this->server_group]);
+    }
+
     public function subscriptionProfiles(): array
     {
         require_once dirname(__DIR__, 2) . '/Patch/SubscriptionProfiles.php';
