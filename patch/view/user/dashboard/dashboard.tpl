@@ -431,6 +431,7 @@ var renderUsageCharts = (function () {
 		donutChart.render();
 
 		var live = stats().live || [];
+		var liveProfiles = stats().live_profiles || [];
 		var colors = palette();
 		var html = '';
 		for (var j = 0; j < servers.length; j++) {
@@ -438,7 +439,9 @@ var renderUsageCharts = (function () {
 			var color = colors[j % colors.length];
 			var width = grand > 0 ? Math.max((server.total / grand) * 100, 1.5) : 0;
 			// the server this user is on right now gets the halogen bar
-			var isLive = live.indexOf(server.id) !== -1;
+			var isLive = server.profile
+				? liveProfiles.indexOf(server.id + ':' + server.profile) !== -1
+				: live.indexOf(server.id) !== -1;
 
 			html += '<div class="usage-server' + (isLive ? ' is-live' : '') + '" style="--srv:' + color + '">'
 				+ '<span class="usage-server-rank" style="background:' + color + '">' + (j + 1) + '</span>'

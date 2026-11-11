@@ -1,3 +1,7 @@
+## 1.38.34 - profile-specific live badge in usage chart (2026-11-12)
+
+Split profile rows no longer inherit the physical node's shared online flag. While that node is online for the customer, the dashboard assigns the “connected” badge to the profile name in the newest traffic observation; both profiles are marked only when both have traffic in the same latest second. Ordinary unsplit servers retain the physical-server online flag.
+
 ## Xray agent 1.5.6 - traffic-proven profile presence (2026-11-12)
 
 Xray can mirror one shared credential's online IP onto both profile inbounds, so the two online counters could both include an account connected only through one port. Agent 1.5.6 requests per-profile traffic in the same online snapshot and uses counter movement to resolve ambiguous shared-UUID presence. The selected profile remains attributed while idle, changes when traffic moves on the other port, and can include both only when both counters actually move. Device-limit accounting remains merged across the shared account. Profile tests pass; the remaining Windows full-suite failures are unchanged Linux-only `fcntl` tests and a sandbox temp-directory permission error. S3 must update to agent 1.5.6 before its live counters gain this correction.

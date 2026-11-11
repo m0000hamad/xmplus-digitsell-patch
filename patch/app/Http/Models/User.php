@@ -349,7 +349,7 @@ final class User extends Model
 		foreach ($map as $server) $grouped[(int) $server['id']][] = $server;
 		$map = [];
 		foreach ($grouped as $id => $rows) {
-			if (!isset($split[$id]) || count($rows) < 2) {
+			if (!isset($split[$id])) {
 				foreach ($rows as $row) $map[] = $row;
 				continue;
 			}
@@ -364,6 +364,7 @@ final class User extends Model
 				if ($slot === null) {
 					$legacy['u'] += $row['u']; $legacy['d'] += $row['d'];
 				} elseif ($slots[$slot] === null) {
+					$row['profile'] = $slot;
 					$slots[$slot] = $row;
 				} else {
 					$slots[$slot]['u'] += $row['u']; $slots[$slot]['d'] += $row['d'];
@@ -372,7 +373,7 @@ final class User extends Model
 			if ($legacy['u'] || $legacy['d']) {
 				if ($slots[1] === null) {
 					$name = trim((string) ($split[$id]['names'][1] ?? ''));
-					$slots[1] = ['id' => $id, 'name' => $name ?: ('#' . $id . ' [link 1]'), 'u' => 0, 'd' => 0];
+					$slots[1] = ['id' => $id, 'profile' => 1, 'name' => $name ?: ('#' . $id . ' [link 1]'), 'u' => 0, 'd' => 0];
 				}
 				$slots[1]['u'] += $legacy['u']; $slots[1]['d'] += $legacy['d'];
 			}
@@ -387,6 +388,7 @@ final class User extends Model
 			}
 			$list[] = [
 				'id'    => (int) $server['id'],
+				'profile' => (int) ($server['profile'] ?? 0),
 				'name'  => $server['name'] != '' ? $server['name'] : ('#' . $server['id']),
 				'up'    => $mb['up'],
 				'down'  => $mb['down'],
@@ -503,6 +505,7 @@ final class User extends Model
 
 		/* ---- servers this user is connected to right now ---- */
 		$stats['live'] = [];
+		$stats['live_profiles'] = [];
 		try {
 			// nodes report online IPs about once a minute; five minutes of
 			// silence means the connection is gone
@@ -514,8 +517,31 @@ final class User extends Model
 				->map(function ($id) { return (int) $id; })
 				->values()
 				->all();
+
+			/* Split rows share one physical server id. Use the newest traffic
+			 * observation for that connected node to decide which profile row gets
+			 * the live badge; rows from the same second can legitimately mark both. */
+			if ($stats['live']) {
+				$latest = []; $recent = [];
+				$rows = TrafficLog::where('userid', $this->id)
+					->whereIn('serverid', $stats['live'])
+					->where('datetime', '>=', strtotime('today 00:00:00'))
+					->orderBy('datetime', 'desc')->get();
+				foreach ($rows as $row) {
+					$id = (int) $row->serverid; $at = (int) $row->datetime;
+					if (!isset($latest[$id])) $latest[$id] = $at;
+					if ($latest[$id] !== $at) continue;
+					$name = (string) $row->servername; $key = $id . ':' . $name;
+					if (!isset($recent[$key])) $recent[$key] = ['id' => $id, 'name' => $name, 'u' => 0, 'd' => 0];
+					$recent[$key]['u'] += (float) $row->u; $recent[$key]['d'] += (float) $row->d;
+				}
+				foreach ($this->serverList($recent) as $server) {
+					if (!empty($server['profile'])) $stats['live_profiles'][] = $server['id'] . ':' . $server['profile'];
+				}
+			}
 		} catch (\Throwable $e) {
 			$stats['live'] = [];
+			$stats['live_profiles'] = [];
 		}
 
 		return $stats;
