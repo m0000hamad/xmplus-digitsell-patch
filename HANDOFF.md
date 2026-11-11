@@ -1,3 +1,7 @@
+## 1.38.33 - hide legacy third row for split usage (2026-11-12)
+
+For a server with profile-port billing enabled, the customer usage chart now folds any unsuffixed legacy traffic row into link 1 instead of rendering a third copy of the physical server. Link 1 and link 2 remain separate and the total bytes are preserved.
+
 ## 1.38.32 - profile-port names in customer usage (2026-11-12)
 
 Customer dashboard usage now keeps traffic from the two configured profile ports separate and labels each row with that port's configured server name. New profile traffic logs store the configured per-port name, falling back to the former node/link label only when no custom name exists. Daily rollups now key rows by node and displayed name; migration 033 updates the unique key, and each raw user/day is rebuilt before rollup so a former combined row cannot double-count traffic. Existing already-pruned historical combined rows remain combined; newly reported and still-raw usage is split. Profile billing regression and PHP syntax checks passed.

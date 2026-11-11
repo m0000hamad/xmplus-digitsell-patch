@@ -319,6 +319,66 @@ final class User extends Model
 
 	private function serverList($map)
 	{
+		/* A split node can still have a small unsuffixed row from before profile
+		 * accounting was enabled. Keep its bytes, but fold it into link 1 so the
+		 * customer sees exactly the two configured ports. */
+		$split = [];
+		try {
+			$settings = DB::table('settings')
+				->where('name', 'like', 'server_profile_billing_%')
+				->orWhere('name', 'like', 'server_profile_names_%')
+				->get();
+			foreach ($settings as $setting) {
+				if (preg_match('/^server_profile_billing_([1-9][0-9]*)$/D', (string) $setting->name, $match)) {
+					$value = json_decode((string) $setting->value, true);
+					if (!empty($value['enabled'])) $split[(int) $match[1]] = ['names' => []];
+				}
+			}
+			foreach ($settings as $setting) {
+				if (preg_match('/^server_profile_names_([1-9][0-9]*)$/D', (string) $setting->name, $match)
+					&& isset($split[(int) $match[1]])) {
+					$value = json_decode((string) $setting->value, true);
+					$split[(int) $match[1]]['names'] = is_array($value) ? $value : [];
+				}
+			}
+		} catch (\Throwable $e) {
+			$split = [];
+		}
+
+		$grouped = [];
+		foreach ($map as $server) $grouped[(int) $server['id']][] = $server;
+		$map = [];
+		foreach ($grouped as $id => $rows) {
+			if (!isset($split[$id]) || count($rows) < 2) {
+				foreach ($rows as $row) $map[] = $row;
+				continue;
+			}
+			$slots = [1 => null, 2 => null]; $legacy = ['u' => 0.0, 'd' => 0.0];
+			foreach ($rows as $row) {
+				$slot = null;
+				foreach ([1, 2] as $candidate) {
+					$custom = trim((string) ($split[$id]['names'][$candidate] ?? ''));
+					if (($custom !== '' && $row['name'] === $custom)
+						|| preg_match('/\[link ' . $candidate . '\]$/i', (string) $row['name'])) $slot = $candidate;
+				}
+				if ($slot === null) {
+					$legacy['u'] += $row['u']; $legacy['d'] += $row['d'];
+				} elseif ($slots[$slot] === null) {
+					$slots[$slot] = $row;
+				} else {
+					$slots[$slot]['u'] += $row['u']; $slots[$slot]['d'] += $row['d'];
+				}
+			}
+			if ($legacy['u'] || $legacy['d']) {
+				if ($slots[1] === null) {
+					$name = trim((string) ($split[$id]['names'][1] ?? ''));
+					$slots[1] = ['id' => $id, 'name' => $name ?: ('#' . $id . ' [link 1]'), 'u' => 0, 'd' => 0];
+				}
+				$slots[1]['u'] += $legacy['u']; $slots[1]['d'] += $legacy['d'];
+			}
+			foreach ($slots as $row) if ($row !== null) $map[] = $row;
+		}
+
 		$list = [];
 		foreach ($map as $server) {
 			$mb = $this->toMB($server['u'], $server['d']);
