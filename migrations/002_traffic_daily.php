@@ -17,7 +17,7 @@ return static function (PDO $db): void {
           `d` bigint(20) NOT NULL DEFAULT '0',
           `total` bigint(20) NOT NULL DEFAULT '0',
           PRIMARY KEY (`id`),
-          UNIQUE KEY `uniq_user_day_server` (`userid`,`day`,`serverid`),
+          UNIQUE KEY `uniq_user_day_server` (`userid`,`day`,`serverid`,`servername`),
           KEY `idx_user_day` (`userid`,`day`),
           KEY `idx_day` (`day`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4

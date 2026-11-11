@@ -20,6 +20,16 @@ class TrafficStatsJob
 
 		$this->createTable();
 
+		// Rebuild every user/day still represented by raw rows. This also removes
+		// the former one-row-per-node aggregate when profile names are split.
+		DB::connection('default')->statement("
+			DELETE td FROM `traffic_daily` td
+			INNER JOIN (
+				SELECT DISTINCT `userid`, DATE(FROM_UNIXTIME(`datetime`)) AS `day`
+				FROM `trafficlog`
+			) raw ON raw.`userid` = td.`userid` AND raw.`day` = td.`day`
+		");
+
 		DB::connection('default')->statement("
 			INSERT INTO `traffic_daily` (`userid`,`day`,`serverid`,`servername`,`u`,`d`,`total`)
 			SELECT `userid`,
@@ -28,7 +38,7 @@ class TrafficStatsJob
 			       SUBSTRING(MAX(`servername`),1,191),
 			       SUM(`u`), SUM(`d`), SUM(`total`)
 			FROM `trafficlog`
-			GROUP BY `userid`, `day`, `serverid`
+			GROUP BY `userid`, `day`, `serverid`, `servername`
 			ON DUPLICATE KEY UPDATE
 			  `servername` = VALUES(`servername`),
 			  `u` = VALUES(`u`),
@@ -55,7 +65,7 @@ class TrafficStatsJob
 			  `d` BIGINT(20) NOT NULL DEFAULT 0,
 			  `total` BIGINT(20) NOT NULL DEFAULT 0,
 			  PRIMARY KEY (`id`),
-			  UNIQUE KEY `uniq_user_day_server` (`userid`,`day`,`serverid`),
+			  UNIQUE KEY `uniq_user_day_server` (`userid`,`day`,`serverid`,`servername`),
 			  KEY `idx_user_day` (`userid`,`day`),
 			  KEY `idx_day` (`day`)
 			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4

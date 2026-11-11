@@ -19,6 +19,7 @@ function rejected(callable $work): bool { try { $work(); } catch (Throwable $e) 
 $config = ProfileBilling::normalize(['enabled' => true, 'ports' => [1 => 443, 2 => 8443], 'rates' => [1 => 1, 2 => 4]]);
 $key = 'server_profile_billing_history_25_' . $config['revision'];
 $db->prepare('INSERT INTO settings VALUES(?,?)')->execute([$key, json_encode($config)]);
+$db->prepare('INSERT INTO settings VALUES(?,?)')->execute(['server_profile_names_25', json_encode([1 => 'Port One', 2 => 'Port Two'])]);
 $rows = [];
 foreach ([1,2] as $slot) $rows[] = ['subscription_id'=>7,'profile'=>$slot,'revision'=>$config['revision'],'u'=>100,'d'=>150];
 $body = ['node_id'=>25,'batch_id'=>str_repeat('a',32),'data'=>$rows];
@@ -27,6 +28,7 @@ $user = $db->query('SELECT u,d,total_data_used FROM user WHERE id=7')->fetch(PDO
 check(array_map('intval',$user)===[500,750,1250], 'profile 1 at 1x and profile 2 at 4x debit the same quota exactly');
 check((int)$db->query('SELECT bandwidth FROM servers WHERE id=25')->fetchColumn()===500, 'node bandwidth keeps unweighted bytes');
 check($db->query('SELECT rate FROM trafficlog ORDER BY rate')->fetchAll(PDO::FETCH_COLUMN)==[1,4], 'native traffic logs preserve the applied rates');
+check($db->query('SELECT servername FROM trafficlog ORDER BY rate')->fetchAll(PDO::FETCH_COLUMN)===['Port One','Port Two'], 'traffic logs preserve each profile port name');
 check(ProfileBilling::charge($db,$body)['duplicate'] && (int)$db->query('SELECT total_data_used FROM user')->fetchColumn()===1250, 'retry after lost HTTP acknowledgement never charges twice');
 $changed=$body;$changed['data'][0]['u']=101;
 check(rejected(function()use($db,$changed){ProfileBilling::charge($db,$changed);}), 'same batch ID cannot be reused with different counters');

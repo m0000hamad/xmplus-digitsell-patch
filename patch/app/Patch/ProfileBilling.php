@@ -50,6 +50,7 @@ final class ProfileBilling
         $q = $db->prepare('SELECT id,name FROM servers WHERE id=?'); $q->execute([$node]);
         $server = $q->fetch(PDO::FETCH_ASSOC);
         if (!$server) throw new InvalidArgumentException('Unknown node');
+        $profileNames = self::read(self::setting($db, 'server_profile_names_' . $node));
         $prepared = []; $rawTotal = 0;
         foreach ($rows as $row) {
             if (!is_array($row)) throw new InvalidArgumentException('Invalid traffic row');
@@ -92,7 +93,8 @@ final class ProfileBilling
                     ->execute([$row['u'], $row['d'], $row['u'] + $row['d'], time(), $row['uid']]);
                 if ($logging) $db->prepare('INSERT INTO trafficlog(userid,username,serverid,email,u,d,servername,rate,total,datetime) VALUES(?,?,?,?,?,?,?,?,?,?)')
                     ->execute([$row['uid'], $user['username'], $node, $user['email'], $row['u'], $row['d'],
-                        $server['name'] . ' [link ' . $row['slot'] . ']', $row['rate'], $row['u'] + $row['d'], time()]);
+                        trim((string) ($profileNames[$row['slot']] ?? '')) ?: ($server['name'] . ' [link ' . $row['slot'] . ']'),
+                        $row['rate'], $row['u'] + $row['d'], time()]);
             }
             $db->prepare('UPDATE servers SET bandwidth=bandwidth+? WHERE id=?')->execute([$rawTotal, $node]);
             $db->commit();

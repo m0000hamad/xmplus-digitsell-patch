@@ -242,12 +242,13 @@ final class User extends Model
 		$out = [];
 		$rows = TrafficLog::where('userid', $this->id)
 			->where('datetime', '>=', strtotime('today 00:00:00'))
-			->selectRaw('serverid, MAX(servername) AS sname, COALESCE(SUM(u),0) AS su, COALESCE(SUM(d),0) AS sd')
-			->groupBy('serverid')
+			->selectRaw('serverid, servername AS sname, COALESCE(SUM(u),0) AS su, COALESCE(SUM(d),0) AS sd')
+			->groupBy('serverid', 'servername')
 			->get();
 
 		foreach ($rows as $row) {
-			$out[(int) $row->serverid] = [
+			$out[(int) $row->serverid . ':' . (string) $row->sname] = [
+				'id'   => (int) $row->serverid,
 				'name' => (string) $row->sname,
 				'u'    => (float) $row->su,
 				'd'    => (float) $row->sd,
@@ -285,12 +286,13 @@ final class User extends Model
 			$rows = TrafficDaily::where('userid', $this->id)
 				->where('day', '>=', $fromDate)
 				->where('day', '<', date('Y-m-d'))
-				->selectRaw('serverid, MAX(servername) AS sname, COALESCE(SUM(u),0) AS su, COALESCE(SUM(d),0) AS sd')
-				->groupBy('serverid')
+				->selectRaw('serverid, servername AS sname, COALESCE(SUM(u),0) AS su, COALESCE(SUM(d),0) AS sd')
+				->groupBy('serverid', 'servername')
 				->get();
 
 			foreach ($rows as $row) {
-				$map[(int) $row->serverid] = [
+				$map[(int) $row->serverid . ':' . (string) $row->sname] = [
+					'id'   => (int) $row->serverid,
 					'name' => (string) $row->sname,
 					'u'    => (float) $row->su,
 					'd'    => (float) $row->sd,
@@ -300,15 +302,15 @@ final class User extends Model
 			$map = [];
 		}
 
-		foreach ($this->liveTodayServers() as $id => $server) {
-			if (isset($map[$id])) {
-				$map[$id]['u'] += $server['u'];
-				$map[$id]['d'] += $server['d'];
+		foreach ($this->liveTodayServers() as $key => $server) {
+			if (isset($map[$key])) {
+				$map[$key]['u'] += $server['u'];
+				$map[$key]['d'] += $server['d'];
 				if ($server['name'] != '') {
-					$map[$id]['name'] = $server['name'];
+					$map[$key]['name'] = $server['name'];
 				}
 			} else {
-				$map[$id] = $server;
+				$map[$key] = $server;
 			}
 		}
 
@@ -318,14 +320,14 @@ final class User extends Model
 	private function serverList($map)
 	{
 		$list = [];
-		foreach ($map as $id => $server) {
+		foreach ($map as $server) {
 			$mb = $this->toMB($server['u'], $server['d']);
 			if ($mb['total'] <= 0) {
 				continue;
 			}
 			$list[] = [
-				'id'    => (int) $id,
-				'name'  => $server['name'] != '' ? $server['name'] : ('#' . $id),
+				'id'    => (int) $server['id'],
+				'name'  => $server['name'] != '' ? $server['name'] : ('#' . $server['id']),
 				'up'    => $mb['up'],
 				'down'  => $mb['down'],
 				'total' => $mb['total'],
