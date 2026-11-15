@@ -2,6 +2,8 @@
 
 The dashboard connection guide keeps operating systems as the only large cards. Each selected operating system now exposes its applications in one compact native dropdown, right-aligned and sized by its longest application name, instead of rendering every application as a second card grid. Changing the dropdown switches the existing install/connect pane without changing application data, download links, subscription profiles, OpenVPN or WireGuard behavior. The light/dark styles and mobile maximum width are retained.
 
+Validation: JavaScript syntax and static picker structure passed; the changed template compiled with the panel's installed Smarty engine before release. Manifest 1.38.35 contains 206 files and every source checksum was verified. Published release commit `43ae9242d3a05becdd959e0497c04d1fa3c1da0f` to `origin/main`; the remote branch, immutable commit manifest and all 206 published checksums were verified. The owner applied the update through the authenticated panel updater. Live settings report installed/latest `1.38.35`, all 206 runtime hashes match the published manifest, and both panel login hosts return HTTP 200.
+
 ## 1.38.34 - profile-specific live badge in usage chart (2026-11-12)
 
 Split profile rows no longer inherit the physical node's shared online flag. While that node is online for the customer, the dashboard assigns the “connected” badge to the profile name in the newest traffic observation; both profiles are marked only when both have traffic in the same latest second. Ordinary unsplit servers retain the physical-server online flag.
