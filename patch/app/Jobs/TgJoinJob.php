@@ -286,7 +286,7 @@ class TgJoinJob
 				&& !DB::table('tgjoin_log')->where('userid', $user->id)
 					->orWhere('telegram_id', $user->telegram_id)->exists();
 			if ($channelOpen) {
-				$text .= "\n\n📢 حالا اگر عضو کانال «دوستان دیجیتسل» هم بشی، ممکن است تا ۵۰ گیگ دیگر هم ببری:\n{$link}";
+				$text .= "\n\n🎁 برای دریافت تا ۵۰ گیگ ترافیک هدیهٔ بیشتر، عضو کانال «دوستان دیجیتسل» شو و از خبرها، کدهای تخفیف و روش‌های نصب باخبر باش:\n{$link}";
 			}
 
 			$this->api($token, 'sendMessage', ['chat_id' => $user->telegram_id, 'text' => $text]);

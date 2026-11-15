@@ -1797,7 +1797,7 @@ final class User extends Model
 
 	public function telegramInvitations()
 	{
-		$result = ['channel' => false, 'bot' => (int) $this->telegram_id <= 0, 'link' => ''];
+		$result = ['channel' => false, 'bot' => $this->tgBindGiftOpen(), 'link' => ''];
 		try {
 			$settings = Settings::whereIn('name', ['tgjoin_channel_id', 'tgjoin_link', 'telegramtoken'])
 				->pluck('value', 'name');
@@ -1806,8 +1806,7 @@ final class User extends Model
 			if ($channel === '' || $result['link'] === '') {
 				return $result;
 			}
-			if ($result['bot']) {
-				$result['channel'] = true;
+			if ((int) $this->telegram_id <= 0) {
 				return $result;
 			}
 			$token = trim((string) ($settings['telegramtoken'] ?? ''));

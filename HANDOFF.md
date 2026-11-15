@@ -1,3 +1,7 @@
+## 1.38.43 - staged Telegram gift invitations (2026-11-15)
+
+The dashboard Telegram invitations are now a sequential reward funnel. An eligible paying customer without a linked Telegram account sees only the bot invitation, explicitly offering the existing one-time 1–10 GB gift. After linking, `TgJoinJob` confirms the awarded amount inside the bot and offers the channel as the next step. A linked user who is not a channel member sees the channel invitation with the existing up-to-50-GB reward plus news, discount-code and installation-guide benefits. Known channel members continue to see no channel invitation; users who are ineligible for the bot-link gift are not promised one.
+
 ## 1.38.42 - passwordless OpenVPN profile imports (2026-11-15)
 
 Newly downloaded OpenVPN profiles embed the account's derived username and password in the standard inline `auth-user-pass` block, so OpenVPN Connect imports and connects without prompting. `auth-retry nointeract` prevents a stale profile from falling back to a password prompt. Resetting the subscription link still rotates the UUID-derived password, so previously downloaded profiles stop authenticating and the customer must download a new one. Installing this release does not rotate `ovpn_secret`, UUIDs or any stored credential, so profiles downloaded before the release continue to work until that customer resets the subscription link. The dashboard no longer exposes separate OpenVPN credentials and explains the new download/reset flow.
