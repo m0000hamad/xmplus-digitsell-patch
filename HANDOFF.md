@@ -2,7 +2,7 @@
 
 The radial quota legend now places remaining gift traffic on its own centered row directly below remaining plan traffic instead of presenting both labels inline. The single-label no-gift state remains centered.
 
-Validation: pending publication and live installation.
+Validation: the changed template compiles with the installed Smarty engine and its legend is structurally column-stacked. Manifest 1.38.40 contains 209 files and all source checksums were verified. Published release commit `d81cf277c7dc1bc060364fbb3856c5407f32f97f` to `origin/main`; remote branch, immutable manifest and all published hashes were verified. Installed live with backup `storage/patch/backup-20261115-161417`; installed/latest are 1.38.40, all 209 runtime hashes match, the installed template compiles, and both panel roots and `/login` routes return HTTP 200.
 
 ## 1.38.39 - restore visual quota and sparkler countdown (2026-11-15)
 
