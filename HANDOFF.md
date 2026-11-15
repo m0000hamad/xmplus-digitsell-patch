@@ -2,7 +2,7 @@
 
 The Active subscription card again contains the radial remaining-traffic chart, separating the plan remainder from purchase-gift traffic in its legend. The animated sparkler countdown and exact expiry return below it. The fixed remaining-traffic and remaining-days metric tiles are removed, as are the duplicate fixed traffic balances above the detailed range chart; today's use and wallet remain as the only compact metrics.
 
-Validation: pending publication and live installation.
+Validation: the changed subscription, chart and dashboard templates compile with the installed Smarty engine; structural assertions confirm one radial-chart host, the sparkler countdown, no fixed remaining-days metric and no duplicate fixed balances above the range chart. Manifest 1.38.39 contains 209 files and all source checksums were verified. Published release commit `6ee1c84ca3cd811894240ae8792db4153a2dd0a1` to `origin/main`; remote branch, immutable manifest and all published hashes were verified. Installed live with backup `storage/patch/backup-20261115-160342`; installed/latest are 1.38.39, all 209 runtime hashes match, installed templates compile, and both panel roots and `/login` routes return HTTP 200.
 
 ## 1.38.38 - grouped dashboard usage and connection details (2026-11-15)
 
