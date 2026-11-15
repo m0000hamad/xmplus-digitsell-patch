@@ -1,7 +1,7 @@
 {
-    "version": "1.38.34",
-    "released": "2026-11-12",
-    "notes": "Show the connected badge only on the active profile-port row in customer usage.",
+    "version": "1.38.35",
+    "released": "2026-11-15",
+    "notes": "Compact application selector: operating systems remain cards; apps move into one right-aligned dropdown sized to its longest name.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -186,7 +186,7 @@
         "view/user/affiliate/sharebar.tpl": "2cb65c4fbddc59c8e713f65fbf979c8e640efe1232f759d85e43bc137b183bbc",
         "view/user/affiliate/stats.tpl": "29b9ba28c071ea963e83f4b0f1b57b26e2909c56f8998fb4be823ae335ea6410",
         "view/user/affiliate/widthdraw.tpl": "186900dc998b81478bf96ce093a9abc7f807f6b0425378cddc93fe7ee1e219ec",
-        "view/user/dashboard/application.tpl": "0b44bfe7c0600b4beaf77874ac75e997ccf98acffb023f5805a0a7e8da6a40af",
+        "view/user/dashboard/application.tpl": "f6e71f2d5da3e0eb2c6fbb7e0c82b8025d5759827262fc6f6bf24c03ff75eea2",
         "view/user/dashboard/channelinvite.tpl": "f2c48be195c8f7798802466eb4b49f06d0e577f82efcdfa476f8bb6c630b2fbc",
         "view/user/dashboard/chart.tpl": "2be509daa4994c092acc3ab4d1ee2c5aff35a96c328f3acee9e4604f820a60cb",
         "view/user/dashboard/connectionnotice.tpl": "781e6190666dc7831c4d3c9ecb8b014abe783cfb78d05397d4892e807b8b9c28",

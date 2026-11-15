@@ -1,3 +1,7 @@
+## 1.38.35 - compact application selector (2026-11-15)
+
+The dashboard connection guide keeps operating systems as the only large cards. Each selected operating system now exposes its applications in one compact native dropdown, right-aligned and sized by its longest application name, instead of rendering every application as a second card grid. Changing the dropdown switches the existing install/connect pane without changing application data, download links, subscription profiles, OpenVPN or WireGuard behavior. The light/dark styles and mobile maximum width are retained.
+
 ## 1.38.34 - profile-specific live badge in usage chart (2026-11-12)
 
 Split profile rows no longer inherit the physical node's shared online flag. While that node is online for the customer, the dashboard assigns the “connected” badge to the profile name in the newest traffic observation; both profiles are marked only when both have traffic in the same latest second. Ordinary unsplit servers retain the physical-server online flag.

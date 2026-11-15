@@ -109,6 +109,35 @@
 	box-shadow: 0 3px 8px rgba(16, 185, 129, .4);
 }
 
+/* ---- compact app selector ---- */
+.app-select-wrap {
+	position: relative;
+	width: max-content;
+	max-width: 100%;
+	margin-left: auto;
+	margin-right: 0;
+}
+.app-select {
+	width: auto;
+	max-width: 100%;
+	min-height: 42px;
+	padding: 9px 9px;
+	border: 1.5px solid #6366f1;
+	border-radius: 12px;
+	background: rgba(99, 102, 241, .06);
+	color: #16203d;
+	font-size: 13px;
+	font-weight: 700;
+	direction: ltr;
+	cursor: pointer;
+	box-shadow: 0 5px 14px rgba(99, 102, 241, .12);
+}
+.app-select:focus {
+	outline: 0;
+	border-color: #4f46e5;
+	box-shadow: 0 0 0 3px rgba(99, 102, 241, .16);
+}
+
 /* ---- the connect box ---- */
 .app-connect {
 	border-radius: 16px;
@@ -223,6 +252,11 @@ html[data-hs-theme="dark"] .app-pick {
 	color: #e7eaf3 !important;
 }
 html[data-hs-theme="dark"] .app-pick.active { color: #fff !important; }
+html[data-hs-theme="dark"] .app-select {
+	background: rgba(99, 102, 241, .14);
+	border-color: #818cf8;
+	color: #f3f4ff;
+}
 html[data-hs-theme="dark"] .app-connect {
 	background: linear-gradient(135deg, rgba(99, 102, 241, .16), rgba(139, 92, 246, .16));
 	border-color: rgba(139, 92, 246, .4);
@@ -324,27 +358,21 @@ html[data-hs-theme="dark"] .app-howto-item {
 							</div>
 						</div>
 
-						<ul class="nav app-grid">
+						<div class="app-select-wrap">
+							<select class="app-select" aria-label="{$translate->get('PickApp')}" onchange="appSelect(this)">
 							{$a = 0}
 							{foreach $clients as $app}
 								{if $app->type == $client->type}
 								{$a = $a + 1}
 								{$appid = $app->type|cat:"-"|cat:$app->client|replace:" ":"-"|replace:".":"-"}
-									<li class="nav-item">
-										<a class="nav-link app-pick {if $a == 1}active{/if}" href="#app-{$appid}" data-bs-toggle="pill" data-bs-target="#app-{$appid}" role="presentation" aria-controls="app-{$appid}" aria-selected="false" style="--pick:#6366f1;--pick-soft:rgba(99,102,241,.11)">
-											{* OpenVPN draws its own icon: the panel's icon font has none *}
-											{$pickName = $app->client|lower}
-											<span class="app-pick-icon">{if strpos($pickName, 'openvpn') !== false}{include file='common/ovpnsvg.tpl'}{elseif strpos($pickName, 'amneziavpn') !== false}{include file='common/amneziavpnsvg.tpl'}{elseif strpos($pickName, 'amnezia') !== false}{include file='common/amneziasvg.tpl'}{elseif strpos($pickName, 'happ') !== false}{include file='common/happsvg.tpl'}{else}{$app->icon}{/if}</span>
-											<span class="app-pick-name">{$app->client}</span>
-											{if $a == 1}<span class="app-here">⭐ {$translate->get('Recommended')}</span>{/if}
-										</a>
-									</li>
+									<option value="app-{$appid}" {if $a == 1}selected{/if}>{$app->client}</option>
 								{/if}
 							{/foreach}
-						</ul>
+							</select>
+						</div>
 					</div>
 
-					<div class="tab-content">
+					<div class="tab-content app-app-content">
 						{$t = 0}
 						{$content = ""}
 						{foreach $clients as $contentTab}
@@ -453,6 +481,20 @@ html[data-hs-theme="dark"] .app-howto-item {
 {literal}
 <script>
 (function () {
+	window.appSelect = function (select) {
+		var platformPane = select.closest ? select.closest('.tab-pane') : null;
+		var content = platformPane ? platformPane.querySelector('.app-app-content') : null;
+		var target = document.getElementById(select.value);
+		if (!content || !target) { return; }
+
+		for (var i = 0; i < content.children.length; i++) {
+			if (content.children[i].classList) {
+				content.children[i].classList.remove('show', 'active');
+			}
+		}
+		target.classList.add('show', 'active');
+	};
+
 	function detect() {
 		var ua = navigator.userAgent || '';
 		if (/android/i.test(ua)) { return 'android'; }
