@@ -284,7 +284,7 @@ html[data-hs-theme="dark"] .app-howto-item {
 </style>
 {/literal}
 
-<div class="col-lg-12 col-xl-8 col-md-12 col-sm-12 mb-4">
+<div class="col-12 mb-4">
 	<div class="card card-shadow shadow-lg rounded app-card">
 		<div class="card-header card-header-content-between border-bottom">
 			<h4 class="card-header-title mb-0">🚀 {$translate->get('HowTo')}</h4>

@@ -543,6 +543,31 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 	.sub-tg { padding: 11px 12px; }
 	.sub-tg-btn { width: 100%; justify-content: center; }
 }
+.sub-metrics {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
+	margin: 14px 0 4px;
+}
+.sub-metric {
+	min-width: 0;
+	padding: 11px 12px;
+	border-radius: 13px;
+	border: 1px solid rgba(23, 32, 61, .08);
+	background: rgba(247, 248, 252, .82);
+}
+.sub-metric-label { display: block; margin-bottom: 4px; font-size: 10.5px; font-weight: 700; color: #8c98ab; }
+.sub-metric-value { display: block; font-size: 15px; font-weight: 900; color: #16203d; direction: ltr; unicode-bidi: isolate; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sub-secondary { margin-top: 12px; border-top: 1px solid rgba(23, 32, 61, .07); }
+.sub-secondary > summary { padding: 11px 2px 2px; color: #68758e; font-size: 11.5px; font-weight: 800; cursor: pointer; list-style: none; }
+.sub-secondary > summary::-webkit-details-marker { display: none; }
+.sub-secondary > summary::before { content: "＋"; margin-inline-end: 6px; color: #6366f1; }
+.sub-secondary[open] > summary::before { content: "−"; }
+html[data-hs-theme="dark"] .sub-metric { background: rgba(255, 255, 255, .045); border-color: rgba(255, 255, 255, .08); }
+html[data-hs-theme="dark"] .sub-metric-label { color: #9fb0cc; }
+html[data-hs-theme="dark"] .sub-metric-value { color: #e7eaf3; }
+html[data-hs-theme="dark"] .sub-secondary { border-top-color: rgba(255, 255, 255, .08); }
+html[data-hs-theme="dark"] .sub-secondary > summary { color: #b6c4dc; }
 </style>
 {/literal}
 
@@ -565,7 +590,7 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 	{$moodText = $translate->get('MoodExpired')}
 {/if}
 
-<div class="col-lg-12 col-xl-4 col-md-12 col-sm-12 mb-3">
+<div class="col-lg-12 {if $user->planIsActive()}col-xl-6{else}col-xl-12{/if} col-md-12 col-sm-12 mb-3">
 
 	<div class="card card-shadow shadow-lg rounded mb-3 sub-card" style="{$palette}">
 		<div class="card-header card-header-content-between border-bottom">
@@ -590,29 +615,11 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 			<h4 class="sub-name">{if $user->planIsActive() && $Order->getPackage($user->id)}{$Order->getPackage($user->id)->name}{else}{$translate->get('NoActivePlan')}{/if}</h4>
 
 			{if $user->planIsActive()}
-				<div class="sub-chips">
-					<span class="sub-chip">⚡ {$helpers->PortSpd($user->speedlimit)}</span>
-					<span class="sub-chip">🌍 {str_replace([' | '],[' '],$helpers->serveGroup($user->server_group))}</span>
-					<span class="sub-chip">📶 {$user->enableTraffic()}</span>
-					{$uPrize = $user->promoPrize()}
-					{if $uPrize.gb > 0}<span class="sub-chip sub-chip-prize">🎁 {$translate->get('PromoPrizeChipGb')|replace:'%n%':$uPrize.gb}</span>{/if}
-					{if $uPrize.days > 0}<span class="sub-chip sub-chip-prize">🎁 {$translate->get('PromoPrizeChipDays')|replace:'%n%':$uPrize.days}</span>{/if}
-				</div>
-			{/if}
-
-			{if $user->planIsActive() && !$user->planNeverExpires()}
-				<div class="sub-clock">
-					<div class="sub-clock-top">
-						<span class="sub-days"><b>{$user->daysLeft()}</b> {$translate->get('DaysLeft')}</span>
-						<span class="sub-until">{$translate->get('Until')} <time>{date("Y-m-d H:i",strtotime($user->expire_in))}</time></span>
-					</div>
-					<div class="sub-bar sub-bar-fuse"><span style="width:{$user->planTimePercent()}%"><i class="sub-fuse" aria-hidden="true"></i></span></div>
-					<div class="sub-mood"><span>{$moodEmoji}</span> {$moodText}</div>
-				</div>
-			{elseif $user->planNeverExpires()}
-				<div class="sub-clock">
-					<div class="sub-days">♾️ {$translate->get('PlanDontExpire')}</div>
-					<div class="sub-mood"><span>{$moodEmoji}</span> {$moodText}</div>
+				<div class="sub-metrics">
+					<div class="sub-metric"><span class="sub-metric-label">{$translate->get('DashRemainingTraffic')}</span><b class="sub-metric-value">{$user->unusedTraffic()}</b></div>
+					<div class="sub-metric"><span class="sub-metric-label">{$translate->get('DashRemainingDays')}</span><b class="sub-metric-value">{if $user->planNeverExpires()}∞{else}{$user->daysLeft()} {$translate->get('DashDayUnit')}{/if}</b></div>
+					<div class="sub-metric"><span class="sub-metric-label">{$translate->get('TodayData')}</span><b class="sub-metric-value">{$user->TodayTraffic()}</b></div>
+					<div class="sub-metric"><span class="sub-metric-label">{$translate->get('DashWalletBalance')}</span><b class="sub-metric-value">{if $user->paygEnabled()}{$user->paygBalanceShown()} {if $user->paygToman()}{$translate->get('PaygToman')}{else}{$translate->get('PaygRial')}{/if}{else}{number_format((float)$user->money, (int){$currency->decimals})} {$translate->get('PaygRial')}{/if}</b></div>
 				</div>
 			{else}
 				<div class="sub-clock">
@@ -643,6 +650,8 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 				{/if}
 			</div>
 
+			<details class="sub-secondary">
+				<summary>{$translate->get('More')}</summary>
 			{if isset($Config['telegram']) && $Config['telegram'] == 1
 				&& isset($Config['telegrambind']) && $Config['telegrambind'] == 1
 				&& isset($Config['telegrambot']) && $Config['telegrambot'] != ""}
@@ -675,39 +684,8 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 			{include file='user/dashboard/tgjoin.tpl'}
 
 			{include file='user/dashboard/reservecard.tpl'}
+			</details>
 
-		</div>
-	</div>
-
-	<div class="sub-tiles mb-2">
-		{if $user->paygEnabled()}
-			{include file='user/dashboard/wallettile.tpl'}
-		{else}
-		<div class="sub-tile" style="--tile:#8b5cf6">
-			<div class="sub-tile-head"><span class="sub-tile-emoji">💰</span>{$translate->get('Money')}</div>
-			<div class="sub-tile-value"><span id="money">{number_format((float)$user->money, (int){$currency->decimals})} {$translate->get('PaygRial')}</span></div>
-			<div class="sub-tile-note sub-tile-note-money">
-				{if $user->commissionWalletBalance() > 0}
-					🤝 {$translate->get('PaygCommission')}: {number_format((float)$user->commissionWalletBalance(), (int){$currency->decimals})}
-					<br>💳 {$translate->get('PaygCommissionNote')}
-				{elseif $user->commissionCredited() > 0}
-					🤝 {$translate->get('FromCommission')}: {number_format((float)$user->commissionCredited(), (int){$currency->decimals})}
-					{if $user->walletTopUp() > 0}<br>💳 {$translate->get('FromTopUp')}: {number_format((float)$user->walletTopUp(), (int){$currency->decimals})}{/if}
-				{else}
-					💳 {$translate->get('FromTopUp')}
-				{/if}
-			</div>
-		</div>
-		{/if}
-
-		{$onlinePeople = $user->online_ip_count()}
-		<div class="sub-tile" style="--tile:#06b6d4">
-			<div class="sub-tile-head"><span class="sub-tile-emoji">👥</span>{$translate->get('OnlinePeople')}</div>
-			<div class="sub-tile-value">{$onlinePeople} / {$user->iplimit}</div>
-			<div class="sub-online-people" aria-label="{$translate->get('OnlinePeople')}: {$onlinePeople}">
-				{section name=onlinePerson loop=$user->iplimit}<span class="sub-online-person {if $smarty.section.onlinePerson.index < $onlinePeople}is-online{/if}" aria-hidden="true"></span>{sectionelse}<span class="sub-online-empty">{$translate->get('NobodyOnline')}</span>{/section}
-			</div>
-			<div class="sub-tile-note">{$translate->get('OnlinePeopleHint')}</div>
 		</div>
 	</div>
 

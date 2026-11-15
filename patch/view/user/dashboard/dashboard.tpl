@@ -8,14 +8,19 @@
     </div>
 
 	{if $user->planIsActive()}
-		{include file='user/dashboard/overview.tpl'}
-		{include file='user/dashboard/servers.tpl'}
+		<div class="row match-height dash-primary">
+			{include file='user/dashboard/subsciption.tpl'}
+			{include file='user/dashboard/servers.tpl'}
+		</div>
 	{else}
 		{include file='user/dashboard/noplan.tpl'}
+		<div class="row match-height">
+			{include file='user/dashboard/subsciption.tpl'}
+		</div>
 	{/if}
-	  
+	{include file='user/dashboard/onlinepeople.tpl'}
+
 	<div class="row match-height">
-		{include file='user/dashboard/subsciption.tpl'}
 		{include file='user/dashboard/application.tpl'}
 	</div>
 	{* the OpenVPN card, unless OpenVPN is already an app in the apps card above *}

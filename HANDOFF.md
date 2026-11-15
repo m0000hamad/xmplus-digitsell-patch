@@ -1,3 +1,7 @@
+## 1.38.37 - merged active dashboard cards (2026-11-15)
+
+The duplicate top overview is removed. Active-plan traffic left, days left, today's usage and wallet balance now live inside the existing Active subscription card, paired at equal desktop width with the compact current-style per-server usage list. The apps/setup card moves below at full width, Telegram/reward/reservation extras start collapsed, and the detailed time-range chart remains under its own collapsed section. The People online card is now an inline fit-content card: it keeps the online/limit count but renders only the currently online silhouettes, so one online person no longer stretches a row sized for all 30 allowed slots.
+
 ## 1.38.36 - responsive priority dashboard (2026-11-15)
 
 Active subscriptions now open with a compact four-card overview (remaining traffic, days, today's usage and wallet) followed immediately by a slim per-server usage list. The full time-range chart moves into a collapsed details section, reducing the initial card wall without removing it. Accounts without an active subscription instead get a full-width purchase callout before all other dashboard content. The responsive overview becomes two columns on tablets and phones. The former online-IP tile is now “People online”: it retains the current/limit count and draws one silhouette per allowed slot, lighting exactly the currently online count.
