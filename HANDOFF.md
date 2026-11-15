@@ -1,3 +1,9 @@
+## 1.38.39 - restore visual quota and sparkler countdown (2026-11-15)
+
+The Active subscription card again contains the radial remaining-traffic chart, separating the plan remainder from purchase-gift traffic in its legend. The animated sparkler countdown and exact expiry return below it. The fixed remaining-traffic and remaining-days metric tiles are removed, as are the duplicate fixed traffic balances above the detailed range chart; today's use and wallet remain as the only compact metrics.
+
+Validation: pending publication and live installation.
+
 ## 1.38.38 - grouped dashboard usage and connection details (2026-11-15)
 
 People online now sits inside the per-server usage card instead of occupying a separate dashboard row. The active subscription card no longer repeats Telegram bot/channel connection status; the existing popup remains the connection prompt when needed. The next responsive row pairs the applications/setup card on the right with the usage details and chart on the left. The usage card now surfaces remaining, used and conditional gift traffic above the existing range chart.

@@ -1,7 +1,7 @@
 {
-    "version": "1.38.38",
+    "version": "1.38.39",
     "released": "2026-11-15",
-    "notes": "Group online people with server usage and pair apps with detailed traffic chart",
+    "notes": "Restore radial plan and gift traffic chart with sparkler days countdown",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -188,7 +188,7 @@
         "view/user/affiliate/widthdraw.tpl": "186900dc998b81478bf96ce093a9abc7f807f6b0425378cddc93fe7ee1e219ec",
         "view/user/dashboard/application.tpl": "28d6def500e61f7237fb054824d738281af7bb1e0686dd14f0fe1382868aaa8b",
         "view/user/dashboard/channelinvite.tpl": "f2c48be195c8f7798802466eb4b49f06d0e577f82efcdfa476f8bb6c630b2fbc",
-        "view/user/dashboard/chart.tpl": "e5d157f737937213f9b603b5eb813b23fdc74c833c0f6fa79b91674fc5ef82b0",
+        "view/user/dashboard/chart.tpl": "367dbbc36643ba24dc4b241ef66d7603535903ebb2613407f2d6ea9edd267056",
         "view/user/dashboard/connectionnotice.tpl": "781e6190666dc7831c4d3c9ecb8b014abe783cfb78d05397d4892e807b8b9c28",
         "view/user/dashboard/dashboard.tpl": "1952c3511a78f857b666f4c033c9ea600d4dc551ea69794d90016ca25d58ee8a",
         "view/user/dashboard/giftpopup.tpl": "921e7b34dec6616c2a81ef313c5d05d7432feb4b630f6c3a6f80c32f770eec70",
@@ -203,7 +203,7 @@
         "view/user/dashboard/reservecard.tpl": "5bc6d9c0294c95f73ce1f567c8a6fee5538dc6cd811f33078c6ce7439b78cd67",
         "view/user/dashboard/servers.tpl": "3c053b9a7da68fe81d4f0f040cf11a1a2e6b41e25e4011ccf97f3da64b241f30",
         "view/user/dashboard/statistics.tpl": "4fcdef48ac1371ece42797b22d3438aaf91661993937741ebd06f2ebe8e26434",
-        "view/user/dashboard/subsciption.tpl": "729948bd0c546fd0af38d5ced3622c9df1cf1f271042968246ad51562fb0d620",
+        "view/user/dashboard/subsciption.tpl": "4b791567b973106f266b179a9c0acc194f1997f246ae9c3b7bf714e5745a42f6",
         "view/user/dashboard/tgjoin.tpl": "e2ac644b630708c73bcf176fdbe229e54bee1260f6acc5eaad21c40ba7d64b8e",
         "view/user/dashboard/tgpoll.tpl": "c7021f23dcfd8bcc97659eec06ee051dfe6a5f2e281aab8b41247688197bb493",
         "view/user/dashboard/wallet.tpl": "ef4d7758e885b65487646b18e5bff13a3c924ab786e6ae308c2f4e1e02966ccb",

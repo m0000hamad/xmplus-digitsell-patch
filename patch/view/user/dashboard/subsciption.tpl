@@ -558,6 +558,25 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 }
 .sub-metric-label { display: block; margin-bottom: 4px; font-size: 10.5px; font-weight: 700; color: #8c98ab; }
 .sub-metric-value { display: block; font-size: 15px; font-weight: 900; color: #16203d; direction: ltr; unicode-bidi: isolate; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sub-quota {
+	margin: 12px 0 14px;
+	padding: 8px 10px 11px;
+	border-radius: 16px;
+	border: 1px solid rgba(23, 32, 61, .07);
+	background: rgba(255, 255, 255, .68);
+}
+.sub-quota-title { margin: 2px 4px -10px; font-size: 11.5px; font-weight: 800; color: #68758e; }
+.sub-quota-chart { min-height: 238px; direction: ltr; }
+.sub-quota-legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 7px 16px; margin-top: -12px; }
+.sub-quota-item { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: #7a869f; }
+.sub-quota-item i { width: 9px; height: 9px; border-radius: 3px; background: var(--dot, #6366f1); }
+.sub-quota-item b { color: #16203d; direction: ltr; unicode-bidi: isolate; }
+.sub-quota-gift b { color: #b45309; }
+html[data-hs-theme="dark"] .sub-quota { background: rgba(255, 255, 255, .04); border-color: rgba(255, 255, 255, .08); }
+html[data-hs-theme="dark"] .sub-quota-title,
+html[data-hs-theme="dark"] .sub-quota-item { color: #9fb0cc; }
+html[data-hs-theme="dark"] .sub-quota-item b { color: #e7eaf3; }
+html[data-hs-theme="dark"] .sub-quota-gift b { color: #fcd34d; }
 .sub-secondary { margin-top: 12px; border-top: 1px solid rgba(23, 32, 61, .07); }
 .sub-secondary > summary { padding: 11px 2px 2px; color: #68758e; font-size: 11.5px; font-weight: 800; cursor: pointer; list-style: none; }
 .sub-secondary > summary::-webkit-details-marker { display: none; }
@@ -615,9 +634,30 @@ html[data-hs-theme="dark"] .sub-secondary > summary { color: #b6c4dc; }
 			<h4 class="sub-name">{if $user->planIsActive() && $Order->getPackage($user->id)}{$Order->getPackage($user->id)->name}{else}{$translate->get('NoActivePlan')}{/if}</h4>
 
 			{if $user->planIsActive()}
+				{$subPrize = $user->promoPrize()}
+				<div class="sub-quota">
+					<div class="sub-quota-title">{$translate->get('unUsedData')}</div>
+					<div class="sub-quota-chart" id="quotaChart"></div>
+					<div class="sub-quota-legend">
+						<span class="sub-quota-item"><i id="quotaLegendDot"></i>{if $subPrize.gb > 0}{$translate->get('PromoPlanLeftLabel')} <b>{$user->promoPlanLeft()}</b>{else}{$translate->get('unUsedData')} <b>{$user->unusedTraffic()}</b>{/if}</span>
+						{if $subPrize.gb > 0}<span class="sub-quota-item sub-quota-gift"><i style="--dot:#f5b301"></i>🎁 {$translate->get('PromoPrizeLeftLabel')} <b>{$user->promoPrizeLeft()}</b></span>{/if}
+					</div>
+				</div>
+
+				{if !$user->planNeverExpires()}
+					<div class="sub-clock">
+						<div class="sub-clock-top">
+							<span class="sub-days"><b>{$user->daysLeft()}</b> {$translate->get('DaysLeft')}</span>
+							<span class="sub-until">{$translate->get('Until')} <time>{date("Y-m-d H:i",strtotime($user->expire_in))}</time></span>
+						</div>
+						<div class="sub-bar sub-bar-fuse"><span style="width:{$user->planTimePercent()}%"><i class="sub-fuse" aria-hidden="true"></i></span></div>
+						<div class="sub-mood"><span>{$moodEmoji}</span> {$moodText}</div>
+					</div>
+				{else}
+					<div class="sub-clock"><div class="sub-days">♾️ {$translate->get('PlanDontExpire')}</div><div class="sub-mood"><span>{$moodEmoji}</span> {$moodText}</div></div>
+				{/if}
+
 				<div class="sub-metrics">
-					<div class="sub-metric"><span class="sub-metric-label">{$translate->get('DashRemainingTraffic')}</span><b class="sub-metric-value">{$user->unusedTraffic()}</b></div>
-					<div class="sub-metric"><span class="sub-metric-label">{$translate->get('DashRemainingDays')}</span><b class="sub-metric-value">{if $user->planNeverExpires()}∞{else}{$user->daysLeft()} {$translate->get('DashDayUnit')}{/if}</b></div>
 					<div class="sub-metric"><span class="sub-metric-label">{$translate->get('TodayData')}</span><b class="sub-metric-value">{$user->TodayTraffic()}</b></div>
 					<div class="sub-metric"><span class="sub-metric-label">{$translate->get('DashWalletBalance')}</span><b class="sub-metric-value">{if $user->paygEnabled()}{$user->paygBalanceShown()} {if $user->paygToman()}{$translate->get('PaygToman')}{else}{$translate->get('PaygRial')}{/if}{else}{number_format((float)$user->money, (int){$currency->decimals})} {$translate->get('PaygRial')}{/if}</b></div>
 				</div>
