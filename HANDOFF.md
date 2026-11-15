@@ -2,7 +2,7 @@
 
 Customer notification emails now end with a prominent action button and the same full URL as visible text. Expired subscriptions and exhausted traffic link to plan/top-up purchase; wallet alerts link to wallet charging or plan purchase as appropriate; promotions, reservations, card-to-card results, ticket closure and invoices link to their relevant panel pages. The canonical panel origin is resolved from configured URLs with the production panel as a safe cron fallback. Stock expiry and traffic templates are now shipped by the patch so those two high-priority notices cannot omit their purchase links.
 
-Local validation: all changed PHP files pass syntax checks; structural assertions cover every notification-to-route mapping; manifest 1.38.41 contains 212 files and all source checksums were independently verified. Publication, live installation, template compilation and installed/latest health checks are pending.
+Validation: all changed PHP files pass syntax checks; structural assertions cover every notification-to-route mapping; manifest 1.38.41 contains 212 files and all source checksums were independently verified. Published release commit `4879953c9e87348db85af70a7136476e330bed19` to `origin/main`; remote branch, immutable manifest and every published hash were verified. Installed live with backup `storage/patch/backup-20261115-162839`; authenticated updater status reports installed/latest 1.38.41, all 212 runtime hashes match, all four email templates compile, rendered notices contain both the action button and visible canonical URL, and both panel roots and `/login` routes return HTTP 200.
 
 ## 1.38.40 - stack gift traffic under plan traffic (2026-11-15)
 
