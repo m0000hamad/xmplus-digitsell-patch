@@ -2,7 +2,7 @@
 
 People online now sits inside the per-server usage card instead of occupying a separate dashboard row. The active subscription card no longer repeats Telegram bot/channel connection status; the existing popup remains the connection prompt when needed. The next responsive row pairs the applications/setup card on the right with the usage details and chart on the left. The usage card now surfaces remaining, used and conditional gift traffic above the existing range chart.
 
-Validation: pending publication and live installation.
+Validation: all six changed templates compile with the installed Smarty engine; structural assertions confirm online people is nested only in the server card, connection-status copy is absent, apps precede the chart in the RTL responsive row, and remaining/gift traffic is present. Manifest 1.38.38 contains 209 files and all source checksums were verified. Published release commit `34a7da3306501b024c154ba6832415f1fac2d490` to `origin/main`; remote branch, immutable manifest and all published hashes were verified. Installed live with backup `storage/patch/backup-20261115-154944`; installed/latest are 1.38.38, all 209 runtime hashes match, installed templates compile, and both panel roots and `/login` routes return HTTP 200. The legacy nonexistent `/auth/login` path returns the application's debug-style 500 for a not-found route and is not the panel login health path.
 
 ## 1.38.37 - merged active dashboard cards (2026-11-15)
 
