@@ -26,6 +26,9 @@
 html[data-hs-theme="dark"] .online-compact { background: rgba(255, 255, 255, .04); border-color: rgba(34, 211, 238, .2); }
 html[data-hs-theme="dark"] .online-compact-title { color: #aab6cc; }
 html[data-hs-theme="dark"] .online-compact-count { color: #e7eaf3; }
+.usage-card .online-compact-wrap { margin: 8px 0 4px; padding-top: 10px; border-top: 1px dashed rgba(23, 32, 61, .09); }
+.usage-card .online-compact { min-height: 42px; padding: 7px 10px; border-radius: 12px; box-shadow: none; background: rgba(6, 182, 212, .045); }
+html[data-hs-theme="dark"] .usage-card .online-compact-wrap { border-top-color: rgba(255, 255, 255, .09); }
 .dash-more { border: 1px solid rgba(23, 32, 61, .08); border-radius: 16px; background: rgba(255, 255, 255, .72); overflow: hidden; }
 .dash-more > summary { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 13px 16px; font-size: 12.5px; font-weight: 800; color: #4f46e5; cursor: pointer; list-style: none; }
 .dash-more > summary::-webkit-details-marker { display: none; }

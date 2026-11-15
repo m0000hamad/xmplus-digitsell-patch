@@ -60,6 +60,26 @@ html[data-hs-theme="dark"] .usage-badge {
 	gap: 12px;
 	margin-bottom: 18px;
 }
+.usage-balance {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+	gap: 8px;
+	margin-bottom: 12px;
+}
+.usage-balance-item {
+	padding: 10px 12px;
+	border-radius: 12px;
+	border: 1px solid rgba(23, 32, 61, .07);
+	background: #fff;
+}
+.usage-balance-label { display: block; margin-bottom: 3px; font-size: 10.5px; font-weight: 700; color: #8c98ab; }
+.usage-balance-value { display: block; font-size: 14px; font-weight: 900; color: #16203d; direction: ltr; unicode-bidi: isolate; }
+.usage-balance-gift { background: rgba(245, 158, 11, .09); border-color: rgba(245, 158, 11, .22); }
+.usage-balance-gift .usage-balance-value { color: #b45309; }
+html[data-hs-theme="dark"] .usage-balance-item { background: rgba(255, 255, 255, .04); border-color: rgba(255, 255, 255, .08); }
+html[data-hs-theme="dark"] .usage-balance-label { color: #9fb0cc; }
+html[data-hs-theme="dark"] .usage-balance-value { color: #e7eaf3; }
+html[data-hs-theme="dark"] .usage-balance-gift .usage-balance-value { color: #fcd34d; }
 .usage-kpi {
 	position: relative;
 	border-radius: 14px;
@@ -308,7 +328,7 @@ html[data-hs-theme="dark"] .usage-empty { color: #aab6cc; }
 </style>
 {/literal}
 
-<div class="col-lg-12 col-xl-8 col-md-12 col-sm-12 mb-3 mb-lg-5">
+<div class="col-lg-12 col-xl-6 col-md-12 col-sm-12 mb-4">
 	<div class="card card-shadow shadow-lg rounded usage-card">
 		<div class="card-header card-header-content-between border-bottom">
 			<h4 class="card-header-title mb-0">{$translate->get('TrafficUsageChart')}</h4>
@@ -321,6 +341,12 @@ html[data-hs-theme="dark"] .usage-empty { color: #aab6cc; }
 		</div>
 
 		<div class="card-body">
+			{$usagePrize = $user->promoPrize()}
+			<div class="usage-balance">
+				<div class="usage-balance-item"><span class="usage-balance-label">{$translate->get('DashRemainingTraffic')}</span><b class="usage-balance-value">{$user->unusedTraffic()}</b></div>
+				<div class="usage-balance-item"><span class="usage-balance-label">{$translate->get('UsedData')}</span><b class="usage-balance-value">{$user->usedTraffic()}</b></div>
+				{if $usagePrize.gb > 0}<div class="usage-balance-item usage-balance-gift"><span class="usage-balance-label">🎁 {$translate->get('PromoPrizeLeftLabel')}</span><b class="usage-balance-value">{$user->promoPrizeLeft()}</b></div>{/if}
+			</div>
 			<div class="usage-kpis">
 				<div class="usage-kpi" style="--kpi-color:#8b5cf6">
 					<div class="usage-kpi-label"><span class="usage-kpi-dot"></span>{$translate->get('TotalUsage')}</div>

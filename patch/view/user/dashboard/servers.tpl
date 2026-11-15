@@ -7,6 +7,7 @@
 
 				<div class="card-body py-2">
 					<div class="usage-servers-list" id="usageServerList"></div>
+					{include file='user/dashboard/onlinepeople.tpl'}
 				</div>
 			</div>
 		</div>

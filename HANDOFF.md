@@ -1,3 +1,9 @@
+## 1.38.38 - grouped dashboard usage and connection details (2026-11-15)
+
+People online now sits inside the per-server usage card instead of occupying a separate dashboard row. The active subscription card no longer repeats Telegram bot/channel connection status; the existing popup remains the connection prompt when needed. The next responsive row pairs the applications/setup card on the right with the usage details and chart on the left. The usage card now surfaces remaining, used and conditional gift traffic above the existing range chart.
+
+Validation: pending publication and live installation.
+
 ## 1.38.37 - merged active dashboard cards (2026-11-15)
 
 The duplicate top overview is removed. Active-plan traffic left, days left, today's usage and wallet balance now live inside the existing Active subscription card, paired at equal desktop width with the compact current-style per-server usage list. The apps/setup card moves below at full width, Telegram/reward/reservation extras start collapsed, and the detailed time-range chart remains under its own collapsed section. The People online card is now an inline fit-content card: it keeps the online/limit count but renders only the currently online silhouettes, so one online person no longer stretches a row sized for all 30 allowed slots.

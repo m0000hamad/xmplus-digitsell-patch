@@ -650,41 +650,7 @@ html[data-hs-theme="dark"] .sub-secondary > summary { color: #b6c4dc; }
 				{/if}
 			</div>
 
-			<details class="sub-secondary">
-				<summary>{$translate->get('More')}</summary>
-			{if isset($Config['telegram']) && $Config['telegram'] == 1
-				&& isset($Config['telegrambind']) && $Config['telegrambind'] == 1
-				&& isset($Config['telegrambot']) && $Config['telegrambot'] != ""}
-				<div class="sub-tg {if $user->telegram_id > 0}sub-tg-on{else}sub-tg-off{/if}">
-					<div class="sub-tg-left">
-						<span class="sub-tg-emoji"><i class="fa-brands fa-telegram"></i></span>
-						<div>
-							<div class="sub-tg-title">{$translate->get('TelegramNotify')}</div>
-							<div class="sub-tg-state">
-								<i class="sub-tg-dot"></i>
-								{if $user->telegram_id > 0}
-									{$translate->get('TelegramLinked')}{if $user->telegram_name != ""} &middot; <b>@{$user->telegram_name|escape:'html'}</b>{/if}
-								{else}
-									{$translate->get('TelegramNotLinked')}
-								{/if}
-							</div>
-							{if $user->telegram_id <= 0 && $user->tgBindGiftOpen()}
-								<div class="sub-tg-gift"><i class="fa-solid fa-gift"></i> {$translate->get('TgBindGift')}</div>
-							{/if}
-						</div>
-					</div>
-					{if $user->telegram_id > 0}
-						<a class="sub-tg-btn sub-tg-btn-manage" href="/portal/settings#telegramSection">⚙️ {$translate->get('TelegramManage')}</a>
-					{else}
-						<a class="sub-tg-btn" href="https://telegram.me/{$Config['telegrambot']|escape:'url'}?start={$user->tg_token|escape:'url'}" target="_blank" rel="noopener"><i class="fa-brands fa-telegram"></i> {$translate->get('TelegramConnect')}</a>
-					{/if}
-				</div>
-			{/if}
-
-			{include file='user/dashboard/tgjoin.tpl'}
-
 			{include file='user/dashboard/reservecard.tpl'}
-			</details>
 
 		</div>
 	</div>

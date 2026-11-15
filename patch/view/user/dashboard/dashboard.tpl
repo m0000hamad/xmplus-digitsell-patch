@@ -18,10 +18,9 @@
 			{include file='user/dashboard/subsciption.tpl'}
 		</div>
 	{/if}
-	{include file='user/dashboard/onlinepeople.tpl'}
-
-	<div class="row match-height">
+	<div class="row match-height dash-secondary">
 		{include file='user/dashboard/application.tpl'}
+		{include file='user/dashboard/chart.tpl'}
 	</div>
 	{* the OpenVPN card, unless OpenVPN is already an app in the apps card above *}
 	{$ovpnInApps = false}
@@ -35,12 +34,6 @@
 		{include file='user/dashboard/ovpn.tpl'}
 	{/if}
 	{* the WireGuard card is disabled as AmneziaWG is in the apps card *}
-	<details class="dash-more mb-4">
-		<summary><span>📈 {$translate->get('DashMoreDetails')}</span><i class="fa-solid fa-chevron-down"></i></summary>
-		<div class="row match-height dash-more-body">
-			{include file='user/dashboard/chart.tpl'}
-		</div>
-	</details>
 	{include file='user/dashboard/order.tpl'}
 	
   {literal}
