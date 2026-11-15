@@ -1,3 +1,7 @@
+## 1.38.36 - responsive priority dashboard (2026-11-15)
+
+Active subscriptions now open with a compact four-card overview (remaining traffic, days, today's usage and wallet) followed immediately by a slim per-server usage list. The full time-range chart moves into a collapsed details section, reducing the initial card wall without removing it. Accounts without an active subscription instead get a full-width purchase callout before all other dashboard content. The responsive overview becomes two columns on tablets and phones. The former online-IP tile is now “People online”: it retains the current/limit count and draws one silhouette per allowed slot, lighting exactly the currently online count.
+
 ## 1.38.35 - compact application selector (2026-11-15)
 
 The dashboard connection guide keeps operating systems as the only large cards. Each selected operating system now exposes its applications in one compact native dropdown, right-aligned and sized by its longest application name, instead of rendering every application as a second card grid. Changing the dropdown switches the existing install/connect pane without changing application data, download links, subscription profiles, OpenVPN or WireGuard behavior. The light/dark styles and mobile maximum width are retained.

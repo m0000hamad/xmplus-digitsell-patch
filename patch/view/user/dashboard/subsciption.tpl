@@ -178,6 +178,51 @@
 	border: 1px solid rgba(23, 32, 61, .07);
 	overflow: hidden;
 }
+.sub-online-people {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 4px;
+	min-height: 28px;
+	margin: 6px 0 8px;
+}
+.sub-online-person {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 17px;
+	height: 20px;
+	border-radius: 50%;
+	opacity: .24;
+}
+.sub-online-person::before {
+	content: "";
+	position: absolute;
+	top: 1px;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: #94a3b8;
+}
+.sub-online-person::after {
+	content: "";
+	position: absolute;
+	bottom: 1px;
+	width: 14px;
+	height: 9px;
+	border-radius: 9px 9px 4px 4px;
+	background: #94a3b8;
+}
+.sub-online-person.is-online {
+	opacity: 1;
+	filter: drop-shadow(0 3px 4px rgba(6, 182, 212, .3));
+}
+.sub-online-person.is-online::before,
+.sub-online-person.is-online::after {
+	background: linear-gradient(135deg, #06b6d4, #2563eb);
+}
+.sub-online-empty { font-size: 11.5px; color: #97a4af; }
 .sub-tile::before {
 	content: "";
 	position: absolute;
@@ -655,13 +700,14 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 		</div>
 		{/if}
 
+		{$onlinePeople = $user->online_ip_count()}
 		<div class="sub-tile" style="--tile:#06b6d4">
-			<div class="sub-tile-head"><span class="sub-tile-emoji">📱</span>{$translate->get('OnlineIp')}</div>
-			<div class="sub-tile-value">{$user->online_ip_count()} / {$user->iplimit}</div>
-			<div class="sub-tile-bar">
-				<span style="width:{$user->ipPercent()}%"></span>
+			<div class="sub-tile-head"><span class="sub-tile-emoji">👥</span>{$translate->get('OnlinePeople')}</div>
+			<div class="sub-tile-value">{$onlinePeople} / {$user->iplimit}</div>
+			<div class="sub-online-people" aria-label="{$translate->get('OnlinePeople')}: {$onlinePeople}">
+				{section name=onlinePerson loop=$user->iplimit}<span class="sub-online-person {if $smarty.section.onlinePerson.index < $onlinePeople}is-online{/if}" aria-hidden="true"></span>{sectionelse}<span class="sub-online-empty">{$translate->get('NobodyOnline')}</span>{/section}
 			</div>
-			<div class="sub-tile-note">{$translate->get('DevicesConnected')}</div>
+			<div class="sub-tile-note">{$translate->get('OnlinePeopleHint')}</div>
 		</div>
 	</div>
 

@@ -6,6 +6,13 @@
 			</div>
         </div>
     </div>
+
+	{if $user->planIsActive()}
+		{include file='user/dashboard/overview.tpl'}
+		{include file='user/dashboard/servers.tpl'}
+	{else}
+		{include file='user/dashboard/noplan.tpl'}
+	{/if}
 	  
 	<div class="row match-height">
 		{include file='user/dashboard/subsciption.tpl'}
@@ -23,11 +30,12 @@
 		{include file='user/dashboard/ovpn.tpl'}
 	{/if}
 	{* the WireGuard card is disabled as AmneziaWG is in the apps card *}
-	<div class="row match-height">
-		{include file='user/dashboard/statistics.tpl'}	
-		{include file='user/dashboard/chart.tpl'}	
-	</div>
-{include file='user/dashboard/servers.tpl'}
+	<details class="dash-more mb-4">
+		<summary><span>📈 {$translate->get('DashMoreDetails')}</span><i class="fa-solid fa-chevron-down"></i></summary>
+		<div class="row match-height dash-more-body">
+			{include file='user/dashboard/chart.tpl'}
+		</div>
+	</details>
 	{include file='user/dashboard/order.tpl'}
 	
   {literal}
@@ -366,7 +374,7 @@ var renderUsageCharts = (function () {
 		var host = document.getElementById('usageDonut');
 		var list = document.getElementById('usageServerList');
 		var badge = document.getElementById('usageServerRangeLabel');
-		if (!host || !list) { return; }
+		if (!list) { return; }
 
 		if (badge) { badge.textContent = txt(range); }
 
@@ -376,11 +384,11 @@ var renderUsageCharts = (function () {
 		if (donutChart) { donutChart.destroy(); donutChart = null; }
 
 		if (!servers.length) {
-			host.innerHTML = '<div class="usage-empty"><i class="bi-hdd-network"></i><span>' + txt('empty') + '</span></div>';
+			if (host) { host.innerHTML = '<div class="usage-empty"><i class="bi-hdd-network"></i><span>' + txt('empty') + '</span></div>'; }
 			list.innerHTML = '';
 			return;
 		}
-		host.innerHTML = '';
+		if (host) { host.innerHTML = ''; }
 
 		var names = [];
 		var values = [];
@@ -391,7 +399,7 @@ var renderUsageCharts = (function () {
 			grand += servers[i].total;
 		}
 
-		donutChart = new ApexCharts(host, {
+		if (host) { donutChart = new ApexCharts(host, {
 			chart: { type: 'donut', height: 270, fontFamily: 'inherit', foreColor: axisColor() },
 			series: values,
 			labels: names,
@@ -428,7 +436,7 @@ var renderUsageCharts = (function () {
 			},
 			responsive: [{ breakpoint: 576, options: { chart: { height: 230 } } }]
 		});
-		donutChart.render();
+		donutChart.render(); }
 
 		var live = stats().live || [];
 		var liveProfiles = stats().live_profiles || [];
@@ -574,6 +582,12 @@ var renderUsageCharts = (function () {
 			currentRange = button.getAttribute('data-range');
 			paint();
 		});
+		var details = document.querySelector('.dash-more');
+		if (details) {
+			details.addEventListener('toggle', function () {
+				if (details.open) { drawArea(currentRange); }
+			});
+		}
 		wired = true;
 	}
 
