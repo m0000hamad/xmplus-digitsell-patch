@@ -1,3 +1,9 @@
+## 1.38.41 - action links in customer emails (2026-11-15)
+
+Customer notification emails now end with a prominent action button and the same full URL as visible text. Expired subscriptions and exhausted traffic link to plan/top-up purchase; wallet alerts link to wallet charging or plan purchase as appropriate; promotions, reservations, card-to-card results, ticket closure and invoices link to their relevant panel pages. The canonical panel origin is resolved from configured URLs with the production panel as a safe cron fallback. Stock expiry and traffic templates are now shipped by the patch so those two high-priority notices cannot omit their purchase links.
+
+Local validation: all changed PHP files pass syntax checks; structural assertions cover every notification-to-route mapping; manifest 1.38.41 contains 212 files and all source checksums were independently verified. Publication, live installation, template compilation and installed/latest health checks are pending.
+
 ## 1.38.40 - stack gift traffic under plan traffic (2026-11-15)
 
 The radial quota legend now places remaining gift traffic on its own centered row directly below remaining plan traffic instead of presenting both labels inline. The single-label no-gift state remains centered.

@@ -972,16 +972,22 @@ class PaygJob
 			$this->api('sendMessage', ['chat_id' => $user->telegram_id, 'text' => $title . "\n\n" . $text]);
 		}
 
-		$this->mail($user, $title, $text);
+		$this->mail($user, $title, $text, $kind);
 	}
 
-	private function mail($user, $subject, $text)
+	private function mail($user, $subject, $text, $kind)
 	{
 		if ($this->setting('maildriver') != 1 || !filter_var((string) $user->email, FILTER_VALIDATE_EMAIL)) {
 			return;
 		}
 
 		$template = trim((string) $this->setting('promo_mail_template'));
+
+		$action = in_array($kind, ['empty', 'low'], true)
+			? \App\Patch\EmailAction::fields('/portal/dashboard#wallet-charge', 'شارژ کیف پول')
+			: ($kind === 'warn'
+				? \App\Patch\EmailAction::fields('/portal/plans', 'خرید یا تمدید اشتراک')
+				: \App\Patch\EmailAction::fields('/portal/dashboard', 'مشاهده وضعیت حساب'));
 
 		try {
 			Queue::insert([
@@ -993,7 +999,7 @@ class PaygJob
 					'username' => $user->username,
 					'title'    => $subject,
 					'lines'    => array_values(array_filter(explode("\n", $text), 'strlen')),
-				], JSON_UNESCAPED_UNICODE),
+				] + $action, JSON_UNESCAPED_UNICODE),
 				'time'       => time(),
 			]);
 		} catch (\Throwable $error) {

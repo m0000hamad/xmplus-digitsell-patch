@@ -35,7 +35,8 @@ final class TicketJob
                     DB::connection()->transaction(function () use ($notice, $user, $text) {
                         Queue::insert(['to_email' => $user->email, 'subject' => 'تیکت بسته شد', 'telegramid' => 0,
                             'template' => 'promo.tpl', 'array' => json_encode(['username' => $user->username,
-                                'title' => 'تیکت بسته شد', 'lines' => [$text]], JSON_UNESCAPED_UNICODE), 'time' => time()]);
+                                'title' => 'تیکت بسته شد', 'lines' => [$text]]
+                                + \App\Patch\EmailAction::fields('/portal/tickets', 'مشاهده تیکت‌ها'), JSON_UNESCAPED_UNICODE), 'time' => time()]);
                         DB::table('ticket_close_notice')->where('ticketid', $notice->ticketid)->update(['mail_sent' => 1]);
                     });
                 }

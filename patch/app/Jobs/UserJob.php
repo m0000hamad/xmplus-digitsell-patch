@@ -110,8 +110,8 @@ class UserJob
 					$subject  = $this->settings->get('appName') . " - " . $this->translate->get('ExpireNotice');					
 					$array = [
 						'username' => $user->username,
-					];
-							
+					] + \App\Patch\EmailAction::fields('/portal/plans', 'خرید یا تمدید اشتراک');
+
 					Queue::insert([
 						'to_email' 	=> $user->email,
 						'subject' 	=> $subject,
@@ -144,8 +144,8 @@ class UserJob
 						'username' => $user->username,
 						'enableddata'=> (new Helpers)->trafficConvert($user->transfer_enable),
 						'useddata'	=> (new Helpers)->trafficConvert($user->u + $user->d),
-					];
-							
+					] + \App\Patch\EmailAction::fields('/portal/plans', 'خرید حجم یا اشتراک');
+
 					Queue::insert([
 						'to_email' 	=> $user->email,
 						'subject' 	=> $subject,

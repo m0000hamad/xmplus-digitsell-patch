@@ -23,6 +23,12 @@
 				{foreach $lines as $line}
 					<p style="margin:0 0 6px;">{$line|escape:'html'}</p>
 				{/foreach}
+				{if !empty($action_url)}
+					<p style="margin:18px 0 10px;text-align:center;">
+						<a href="{$action_url|escape:'html'}" style="display:inline-block;padding:10px 22px;border-radius:10px;background:#6d28d9;color:#ffffff;text-decoration:none;font-weight:bold;">{$action_label|default:'مشاهده در پنل'|escape:'html'}</a>
+					</p>
+					<p style="margin:0;color:#64748b;font-size:12px;line-height:1.8;overflow-wrap:anywhere;" dir="ltr"><a href="{$action_url|escape:'html'}" style="color:#64748b;">{$action_url|escape:'html'}</a></p>
+				{/if}
 			</td>
 		</tr>
 	</table>

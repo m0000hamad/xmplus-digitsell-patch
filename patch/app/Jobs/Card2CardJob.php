@@ -982,6 +982,7 @@ class Card2CardJob
 
 		$template = trim((string) $this->setting('promo_mail_template'));
 
+		$action = \App\Patch\EmailAction::fields('/portal/orders', 'مشاهده سفارش و پرداخت');
 		try {
 			Queue::insert([
 				'to_email'   => $user->email,
@@ -992,7 +993,7 @@ class Card2CardJob
 					'username' => $user->username,
 					'title'    => $subject,
 					'lines'    => array_values(array_filter(explode("\n", $text), 'strlen')),
-				], JSON_UNESCAPED_UNICODE),
+				] + $action, JSON_UNESCAPED_UNICODE),
 				'time'       => time(),
 			]);
 		} catch (\Throwable $error) {

@@ -556,6 +556,10 @@ class ReserveJob
 
 		$template = trim((string) $this->setting('promo_mail_template'));
 
+		$cancelled = mb_strpos($subject, 'لغو') !== false || mb_strpos($subject, 'برگشت') !== false;
+		$action = $cancelled
+			? \App\Patch\EmailAction::fields('/portal/plans', 'انتخاب اشتراک')
+			: \App\Patch\EmailAction::fields('/portal/dashboard', 'مشاهده رزرو');
 		try {
 			Queue::insert([
 				'to_email'   => $user->email,
@@ -566,7 +570,7 @@ class ReserveJob
 					'username' => $user->username,
 					'title'    => $subject,
 					'lines'    => array_values(array_filter(explode("\n", $text), 'strlen')),
-				], JSON_UNESCAPED_UNICODE),
+				] + $action, JSON_UNESCAPED_UNICODE),
 				'time'       => time(),
 			]);
 		} catch (\Throwable $error) {

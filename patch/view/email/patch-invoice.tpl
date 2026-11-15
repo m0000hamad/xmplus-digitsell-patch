@@ -7,6 +7,7 @@
   <p>{$username|escape:'html'} عزیز،</p>
   {foreach $lines as $line}<p>{$line|escape:'html'}</p>{/foreach}
   <a href="{$invoice_url|escape:'html'}" style="display:inline-block;background:#4f46e5;color:white;padding:10px 20px;border-radius:10px;text-decoration:none">مشاهده و پرداخت فاکتور</a>
+  <p style="margin:10px 0 0;color:#64748b;font-size:12px;overflow-wrap:anywhere" dir="ltr"><a href="{$invoice_url|escape:'html'}" style="color:#64748b">{$invoice_url|escape:'html'}</a></p>
  </div>
 </body>
 </html>

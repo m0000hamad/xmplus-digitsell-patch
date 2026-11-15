@@ -695,7 +695,7 @@ class PromoJob
 			}
 
 			if ($email) {
-				$this->mail($user, '🔥 پروموشن جدید', $text);
+				$this->mail($user, '🔥 پروموشن جدید', $text, '/portal/plans', 'مشاهده و خرید پروموشن');
 			}
 
 			$sent++;
@@ -819,7 +819,7 @@ class PromoJob
 			$this->api('sendMessage', ['chat_id' => $user->telegram_id, 'text' => $text]);
 		}
 
-		$this->mail($user, $prize ? '🎁 جایزه‌ی خرید پروموشن' : '🎉 خرید پروموشن', $text);
+		$this->mail($user, $prize ? '🎁 جایزه‌ی خرید پروموشن' : '🎉 خرید پروموشن', $text, '/portal/dashboard', 'مشاهده اشتراک');
 	}
 
 	private function adminPurchase($user, $order, array $entry, $prize)
@@ -880,7 +880,7 @@ class PromoJob
 	 * and only when mail is switched on (`maildriver` = 1). `telegramid` is left
 	 * empty on purpose: the Telegram message was sent above.
 	 */
-	private function mail($user, $subject, $text)
+	private function mail($user, $subject, $text, $path = '/portal/dashboard', $label = 'مشاهده در پنل')
 	{
 		if ($this->setting('maildriver') != 1 || !filter_var((string) $user->email, FILTER_VALIDATE_EMAIL)) {
 			return;
@@ -888,6 +888,7 @@ class PromoJob
 
 		$template = trim((string) $this->setting('promo_mail_template'));
 
+		$action = \App\Patch\EmailAction::fields($path, $label);
 		try {
 			Queue::insert([
 				'to_email'   => $user->email,
@@ -898,7 +899,7 @@ class PromoJob
 					'username' => $user->username,
 					'title'    => $subject,
 					'lines'    => array_values(array_filter(explode("\n", str_replace("\u{200E}", '', $text)), 'strlen')),
-				], JSON_UNESCAPED_UNICODE),
+				] + $action, JSON_UNESCAPED_UNICODE),
 				'time'       => time(),
 			]);
 		} catch (\Throwable $error) {
