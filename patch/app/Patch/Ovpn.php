@@ -651,7 +651,7 @@ function ovpnRequireUser(): array
     return vpnRequireUser();
 }
 
-function ovpnProfileText(array $node, string $login, string $mode): string
+function ovpnProfileText(array $node, string $login, string $password, string $mode): string
 {
     $protos = $mode === 'both' ? ovpnOffered($node) : [$mode];
     $single = count($protos) === 1;
@@ -698,7 +698,11 @@ function ovpnProfileText(array $node, string $login, string $mode): string
     }
 
     $lines = array_merge($lines, [
-        'auth-user-pass',
+        // Keep the account credentials in the profile so OpenVPN Connect can
+        // import and connect without asking the customer for a password.
+        // auth-retry nointeract also prevents a stale profile from falling
+        // back to an interactive prompt after the subscription link is reset.
+        'auth-retry nointeract',
         // sign-in is username + password; without this OpenVPN Connect asks
         // for a client certificate it does not need
         'setenv CLIENT_CERT 0',
@@ -718,6 +722,10 @@ function ovpnProfileText(array $node, string $login, string $mode): string
     $lines[] = '<tls-crypt>';
     $lines[] = trim((string) $node['tls_crypt']);
     $lines[] = '</tls-crypt>';
+    $lines[] = '<auth-user-pass>';
+    $lines[] = $login;
+    $lines[] = $password;
+    $lines[] = '</auth-user-pass>';
 
     return implode("\n", $lines) . "\n";
 }
@@ -750,7 +758,12 @@ function ovpnProfile(): void
     header('Content-Type: application/x-openvpn-profile');
     header('Content-Disposition: attachment; filename="' . $file . '"');
     header('Cache-Control: no-store, private');
-    echo ovpnProfileText($node, vpnLogin((int) $user['id']), $mode);
+    echo ovpnProfileText(
+        $node,
+        vpnLogin((int) $user['id']),
+        ovpnPassword((int) $user['id'], (string) ($user['uuid'] ?? '')),
+        $mode
+    );
     exit;
 }
 

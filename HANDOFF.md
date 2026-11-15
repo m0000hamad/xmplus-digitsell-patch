@@ -1,3 +1,9 @@
+## 1.38.42 - passwordless OpenVPN profile imports (2026-11-15)
+
+Newly downloaded OpenVPN profiles embed the account's derived username and password in the standard inline `auth-user-pass` block, so OpenVPN Connect imports and connects without prompting. `auth-retry nointeract` prevents a stale profile from falling back to a password prompt. Resetting the subscription link still rotates the UUID-derived password, so previously downloaded profiles stop authenticating and the customer must download a new one. Installing this release does not rotate `ovpn_secret`, UUIDs or any stored credential, so profiles downloaded before the release continue to work until that customer resets the subscription link. The dashboard no longer exposes separate OpenVPN credentials and explains the new download/reset flow.
+
+Local validation: changed PHP and localization files pass syntax checks; generated-profile assertions verify inline credentials, noninteractive retry and removal of standalone interactive `auth-user-pass`; credential-rotation assertions verify a changed subscription UUID produces a different valid password. Publication, live installation, native Smarty compilation and installed/latest health checks are pending.
+
 ## 1.38.41 - action links in customer emails (2026-11-15)
 
 Customer notification emails now end with a prominent action button and the same full URL as visible text. Expired subscriptions and exhausted traffic link to plan/top-up purchase; wallet alerts link to wallet charging or plan purchase as appropriate; promotions, reservations, card-to-card results, ticket closure and invoices link to their relevant panel pages. The canonical panel origin is resolved from configured URLs with the production panel as a safe cron fallback. Stock expiry and traffic templates are now shipped by the patch so those two high-priority notices cannot omit their purchase links.

@@ -1,8 +1,8 @@
 {*
   OpenVPN on the same subscription (app/Patch/Ovpn.php). Included by
   dashboard.tpl only when User::ovpnEnabled() - the switch is on and at least
-  one OpenVPN server serves this account's group. The login and password come
-  from the model; the profile is downloaded from
+  one OpenVPN server serves this account's group. The generated profile embeds
+  credentials derived from the current subscription token and is downloaded from
   /xmplus-patch.php?do=ovpn.profile&node=N, which checks the session again.
 *}
 {include file='user/dashboard/ovpnstyle.tpl'}
@@ -39,17 +39,6 @@
 
 					<div class="ovpn-box">
 						<h5 class="ovpn-box-title"><span class="ovpn-num">3</span>{$translate->get('OvpnStepLogin')}</h5>
-						<div class="ovpn-cred">
-							<span class="ovpn-cred-label">{$translate->get('OvpnUsername')}</span>
-							<span class="ovpn-cred-value">{$user->ovpnLogin()}</span>
-							<button type="button" class="ovpn-icon-btn copy-text" data-clipboard-text="{$user->ovpnLogin()}" title="{$translate->get('OvpnCopy')}"><i class="fa-regular fa-copy"></i></button>
-						</div>
-						<div class="ovpn-cred">
-							<span class="ovpn-cred-label">{$translate->get('OvpnPassword')}</span>
-							<span class="ovpn-cred-value" data-ovpn-pass="{$user->ovpnPassword()}">••••••••••••</span>
-							<button type="button" class="ovpn-icon-btn" data-ovpn-show title="{$translate->get('OvpnShow')}"><i class="fa-regular fa-eye"></i></button>
-							<button type="button" class="ovpn-icon-btn copy-text" data-clipboard-text="{$user->ovpnPassword()}" title="{$translate->get('OvpnCopy')}"><i class="fa-regular fa-copy"></i></button>
-						</div>
 						<ol class="ovpn-steps">
 							<li>{$translate->get('OvpnHow1')}</li>
 							<li>{$translate->get('OvpnHow2')}</li>

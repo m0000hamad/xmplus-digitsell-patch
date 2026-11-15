@@ -3,8 +3,8 @@
   place of the subscription link when the client's name contains "OpenVPN"
   (added by the admin in the panel's own client apps list, which is where its
   download link, icon and guide are edited). Parameter: app - the client row.
-  OpenVPN does not read the subscription link: it needs a server file and the
-  account's OpenVPN username / password (app/Patch/Ovpn.php).
+  OpenVPN does not read the subscription link: it needs a server file whose
+  credentials are embedded by app/Patch/Ovpn.php.
 *}
 {include file='user/dashboard/ovpnstyle.tpl'}
 
@@ -25,17 +25,6 @@
 				{/foreach}
 			</ul>
 
-			<div class="ovpn-cred">
-				<span class="ovpn-cred-label">{$translate->get('OvpnUsername')}</span>
-				<span class="ovpn-cred-value">{$user->ovpnLogin()}</span>
-				<button type="button" class="ovpn-icon-btn copy-text" data-clipboard-text="{$user->ovpnLogin()}" title="{$translate->get('OvpnCopy')}"><i class="fa-regular fa-copy"></i></button>
-			</div>
-			<div class="ovpn-cred">
-				<span class="ovpn-cred-label">{$translate->get('OvpnPassword')}</span>
-				<span class="ovpn-cred-value" data-ovpn-pass="{$user->ovpnPassword()}">••••••••••••</span>
-				<button type="button" class="ovpn-icon-btn" data-ovpn-show title="{$translate->get('OvpnShow')}"><i class="fa-regular fa-eye"></i></button>
-				<button type="button" class="ovpn-icon-btn copy-text" data-clipboard-text="{$user->ovpnPassword()}" title="{$translate->get('OvpnCopy')}"><i class="fa-regular fa-copy"></i></button>
-			</div>
 		{else}
 			<p class="ovpn-note mb-3">{$translate->get('OvpnAppOff')}</p>
 		{/if}
@@ -51,7 +40,7 @@
 			<div class="app-howto">
 				<div class="app-howto-item"><span class="app-howto-emoji">⬇️</span><span>{$translate->get('OvpnAppStep1')}</span></div>
 				<div class="app-howto-item"><span class="app-howto-emoji">📂</span><span>{$translate->get('OvpnHow1')}</span></div>
-				<div class="app-howto-item"><span class="app-howto-emoji">🔑</span><span>{$translate->get('OvpnHow2')}</span></div>
+				<div class="app-howto-item"><span class="app-howto-emoji">⚡</span><span>{$translate->get('OvpnHow2')}</span></div>
 			</div>
 			<p class="ovpn-note mb-0">{$translate->get('OvpnResetNote')}</p>
 		{/if}
