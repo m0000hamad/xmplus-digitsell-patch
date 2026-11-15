@@ -1,3 +1,9 @@
+## 1.38.44 - task-first customer menu (2026-11-15)
+
+The customer sidebar now follows task frequency instead of configuration order: home first, then purchase/order/wallet, owned services, support, and finally notices/invitations/settings. New localized section labels keep related destinations together in Persian, English and Chinese; the former transaction heading is now the clearer purchase-and-billing label.
+
+Validation: all three localization files pass PHP syntax checks; structural assertions verify the exact section and destination order and ensure every destination occurs once. Publication, installation and live verification are pending.
+
 ## 1.38.43 - staged Telegram gift invitations (2026-11-15)
 
 The dashboard Telegram invitations are now a sequential reward funnel. An eligible paying customer without a linked Telegram account sees only the bot invitation, explicitly offering the existing one-time 1–10 GB gift. After linking, `TgJoinJob` confirms the awarded amount inside the bot and offers the channel as the next step. A linked user who is not a channel member sees the channel invitation with the existing up-to-50-GB reward plus news, discount-code and installation-guide benefits. Known channel members continue to see no channel invitation; users who are ineligible for the bot-link gift are not promised one.

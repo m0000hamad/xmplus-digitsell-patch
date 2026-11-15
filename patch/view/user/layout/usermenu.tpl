@@ -24,42 +24,6 @@
               </a>
             </div>
 			
-			<div class="nav-item" style="--mc:#0ea5e9;--mcs:rgba(14, 165, 233,.12);--mch:rgba(14, 165, 233,.26);--mcd:#0369a1">
-              <a class="nav-link " href="/portal/settings" data-placement="left">
-                <span class="nav-icon nav-sticker">⚙️</span>
-				<span class="nav-link-title">{$translate->get('AccSettings')}</span>
-              </a>
-            </div>
-			
-			<div class="nav-item" style="--mc:#f59e0b;--mcs:rgba(245, 158, 11,.12);--mch:rgba(245, 158, 11,.26);--mcd:#b45309">
-              <a class="nav-link " href="/portal/notices" data-placement="left">
-                <span class="nav-icon nav-sticker">📣</span>
-				<span class="nav-link-title">{$translate->get('Notices')}</span>
-              </a>
-            </div>
-			{if $Config['rebate'] == 1}
-			<div class="nav-item" style="--mc:#ec4899;--mcs:rgba(236, 72, 153,.12);--mch:rgba(236, 72, 153,.26);--mcd:#be185d">
-              <a class="nav-link " href="/portal/affiliate#invite" data-placement="left">
-                <span class="nav-icon nav-sticker">🤝</span>
-				<span class="nav-link-title">{$translate->get('Invitation')}</span>
-              </a>
-            </div>
-			{/if}
-			<div class="nav-item" style="--mc:#06b6d4;--mcs:rgba(6, 182, 212,.12);--mch:rgba(6, 182, 212,.26);--mcd:#0e7490">
-              <a class="nav-link " href="/portal/servers" data-placement="left">
-                <span class="nav-icon nav-sticker">🌍</span>
-				<span class="nav-link-title">{$translate->get('Servers')}</span>
-              </a>
-            </div>
-			{if $Config['accounts'] == 1}
-			<div class="nav-item" style="--mc:#8b5cf6;--mcs:rgba(139, 92, 246,.12);--mch:rgba(139, 92, 246,.26);--mcd:#6d28d9">
-              <a class="nav-link " href="/portal/accounts" data-placement="left">
-                <span class="nav-icon nav-sticker">🔗</span>
-				<span class="nav-link-title">{$translate->get('SharedAccount')}</span>
-              </a>
-            </div>
-			{/if}
-
             <span class="dropdown-header mt-4">{$translate->get('Transaction')}</span>
             <small class="bi-three-dots nav-subtitle-replacer"></small>
 
@@ -82,6 +46,24 @@
               <a class="nav-link " href="/portal/dashboard#wallet" data-placement="left">
                 <span class="nav-icon nav-sticker">💳</span>
                 <span class="nav-link-title">{$translate->get('PaygWallet')}</span>
+              </a>
+            </div>
+			{/if}
+
+            <span class="dropdown-header mt-4">{$translate->get('MenuServices')}</span>
+            <small class="bi-three-dots nav-subtitle-replacer"></small>
+
+			<div class="nav-item" style="--mc:#06b6d4;--mcs:rgba(6, 182, 212,.12);--mch:rgba(6, 182, 212,.26);--mcd:#0e7490">
+              <a class="nav-link " href="/portal/servers" data-placement="left">
+                <span class="nav-icon nav-sticker">🌍</span>
+				<span class="nav-link-title">{$translate->get('Servers')}</span>
+              </a>
+            </div>
+			{if $Config['accounts'] == 1}
+			<div class="nav-item" style="--mc:#8b5cf6;--mcs:rgba(139, 92, 246,.12);--mch:rgba(139, 92, 246,.26);--mcd:#6d28d9">
+              <a class="nav-link " href="/portal/accounts" data-placement="left">
+                <span class="nav-icon nav-sticker">🔗</span>
+				<span class="nav-link-title">{$translate->get('SharedAccount')}</span>
               </a>
             </div>
 			{/if}
@@ -110,6 +92,30 @@
               </a>
 			</div>
 			{/if}
+
+            <span class="dropdown-header mt-4">{$translate->get('MenuAccount')}</span>
+            <small class="bi-three-dots nav-subtitle-replacer"></small>
+
+			<div class="nav-item" style="--mc:#f59e0b;--mcs:rgba(245, 158, 11,.12);--mch:rgba(245, 158, 11,.26);--mcd:#b45309">
+              <a class="nav-link " href="/portal/notices" data-placement="left">
+                <span class="nav-icon nav-sticker">📣</span>
+				<span class="nav-link-title">{$translate->get('Notices')}</span>
+              </a>
+            </div>
+			{if $Config['rebate'] == 1}
+			<div class="nav-item" style="--mc:#ec4899;--mcs:rgba(236, 72, 153,.12);--mch:rgba(236, 72, 153,.26);--mcd:#be185d">
+              <a class="nav-link " href="/portal/affiliate#invite" data-placement="left">
+                <span class="nav-icon nav-sticker">🤝</span>
+				<span class="nav-link-title">{$translate->get('Invitation')}</span>
+              </a>
+            </div>
+			{/if}
+			<div class="nav-item" style="--mc:#0ea5e9;--mcs:rgba(14, 165, 233,.12);--mch:rgba(14, 165, 233,.26);--mcd:#0369a1">
+              <a class="nav-link " href="/portal/settings" data-placement="left">
+                <span class="nav-icon nav-sticker">⚙️</span>
+				<span class="nav-link-title">{$translate->get('AccSettings')}</span>
+              </a>
+            </div>
           </div>
 
         </div>
