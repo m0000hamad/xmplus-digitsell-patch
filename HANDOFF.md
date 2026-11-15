@@ -1,3 +1,9 @@
+## 1.38.40 - stack gift traffic under plan traffic (2026-11-15)
+
+The radial quota legend now places remaining gift traffic on its own centered row directly below remaining plan traffic instead of presenting both labels inline. The single-label no-gift state remains centered.
+
+Validation: pending publication and live installation.
+
 ## 1.38.39 - restore visual quota and sparkler countdown (2026-11-15)
 
 The Active subscription card again contains the radial remaining-traffic chart, separating the plan remainder from purchase-gift traffic in its legend. The animated sparkler countdown and exact expiry return below it. The fixed remaining-traffic and remaining-days metric tiles are removed, as are the duplicate fixed traffic balances above the detailed range chart; today's use and wallet remain as the only compact metrics.

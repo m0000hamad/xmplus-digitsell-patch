@@ -1,7 +1,7 @@
 {
-    "version": "1.38.39",
+    "version": "1.38.40",
     "released": "2026-11-15",
-    "notes": "Restore radial plan and gift traffic chart with sparkler days countdown",
+    "notes": "Stack gift traffic below remaining plan traffic in radial quota legend",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -203,7 +203,7 @@
         "view/user/dashboard/reservecard.tpl": "5bc6d9c0294c95f73ce1f567c8a6fee5538dc6cd811f33078c6ce7439b78cd67",
         "view/user/dashboard/servers.tpl": "3c053b9a7da68fe81d4f0f040cf11a1a2e6b41e25e4011ccf97f3da64b241f30",
         "view/user/dashboard/statistics.tpl": "4fcdef48ac1371ece42797b22d3438aaf91661993937741ebd06f2ebe8e26434",
-        "view/user/dashboard/subsciption.tpl": "4b791567b973106f266b179a9c0acc194f1997f246ae9c3b7bf714e5745a42f6",
+        "view/user/dashboard/subsciption.tpl": "00445aaa394358682ea31ae247254916a90138a8749b006fa173aa51bc46ef1f",
         "view/user/dashboard/tgjoin.tpl": "e2ac644b630708c73bcf176fdbe229e54bee1260f6acc5eaad21c40ba7d64b8e",
         "view/user/dashboard/tgpoll.tpl": "c7021f23dcfd8bcc97659eec06ee051dfe6a5f2e281aab8b41247688197bb493",
         "view/user/dashboard/wallet.tpl": "ef4d7758e885b65487646b18e5bff13a3c924ab786e6ae308c2f4e1e02966ccb",

@@ -567,7 +567,7 @@ html[data-hs-theme="dark"] .sub-tg-btn-manage { color: #bfdbfe !important; backg
 }
 .sub-quota-title { margin: 2px 4px -10px; font-size: 11.5px; font-weight: 800; color: #68758e; }
 .sub-quota-chart { min-height: 238px; direction: ltr; }
-.sub-quota-legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 7px 16px; margin-top: -12px; }
+.sub-quota-legend { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; margin-top: -12px; }
 .sub-quota-item { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: #7a869f; }
 .sub-quota-item i { width: 9px; height: 9px; border-radius: 3px; background: var(--dot, #6366f1); }
 .sub-quota-item b { color: #16203d; direction: ltr; unicode-bidi: isolate; }
