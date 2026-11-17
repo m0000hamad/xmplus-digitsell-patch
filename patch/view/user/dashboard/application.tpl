@@ -117,6 +117,20 @@
 	margin-left: auto;
 	margin-right: 0;
 }
+.app-app-content[hidden] { display: none !important; }
+.app-select-prompt {
+	display: block;
+	margin-top: 10px;
+	padding: 10px 12px;
+	border-inline-start: 3px solid #6366f1;
+	border-radius: 8px;
+	background: rgba(99, 102, 241, .08);
+	color: #4f46e5;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.9;
+}
+html[data-hs-theme="dark"] .app-select-prompt { color: #c7d2fe; }
 .app-select {
 	width: auto;
 	max-width: 100%;
@@ -354,25 +368,24 @@ html[data-hs-theme="dark"] .app-howto-item {
 							<span class="app-step-num">2</span>
 							<div>
 								<h5 class="app-step-title">{$translate->get('PickApp')}</h5>
-								<span class="app-step-sub">{$translate->get('PickAppHint')}</span>
+								<span class="app-select-prompt" id="app-hint-{$client->type}">👇 {$translate->get('PickAppHint')}</span>
 							</div>
 						</div>
 
 						<div class="app-select-wrap">
-							<select class="app-select" aria-label="{$translate->get('PickApp')}" onchange="appSelect(this)">
-							{$a = 0}
+							<select class="app-select" aria-label="{$translate->get('PickApp')}" aria-describedby="app-hint-{$client->type}" aria-controls="app-content-{$client->type}" onchange="appSelect(this)">
+							<option value="" selected disabled>{$translate->get('PickApp')}</option>
 							{foreach $clients as $app}
 								{if $app->type == $client->type}
-								{$a = $a + 1}
 								{$appid = $app->type|cat:"-"|cat:$app->client|replace:" ":"-"|replace:".":"-"}
-									<option value="app-{$appid}" {if $a == 1}selected{/if}>{$app->client}</option>
+									<option value="app-{$appid}">{$app->client}</option>
 								{/if}
 							{/foreach}
 							</select>
 						</div>
 					</div>
 
-					<div class="tab-content app-app-content">
+					<div class="tab-content app-app-content" id="app-content-{$client->type}" hidden>
 						{$t = 0}
 						{$content = ""}
 						{foreach $clients as $contentTab}
@@ -380,7 +393,7 @@ html[data-hs-theme="dark"] .app-howto-item {
 						{$t = $t + 1}
 						{$content = $contentTab->client}
 						{$tabid = $contentTab->type|cat:"-"|cat:$contentTab->client|replace:" ":"-"|replace:".":"-"}
-							<div class="tab-pane fade {if $t == 1}show active{/if}" id="app-{$tabid}" role="tabpanel">
+							<div class="tab-pane fade" id="app-{$tabid}" role="tabpanel">
 								{* the link with the plan / wallet status on top (app/Patch/SubInfo.php), once switched on *}
 								{$subLink = $SubUrl|cat:$contentTab->link}
 								{if isset($Config['sub_info_enabled']) && $Config['sub_info_enabled'] == 1 && preg_match('~/link/[A-Za-z0-9_-]+/?$~', $SubUrl)}
@@ -404,7 +417,7 @@ html[data-hs-theme="dark"] .app-howto-item {
 									<div class="app-step-head">
 										<span class="app-step-num">3</span>
 										<div>
-											<h5 class="app-step-title">{$translate->get('InstallConnect')}</h5>
+											<h5 class="app-step-title">{$translate->get('GetConnection')}</h5>
 											<span class="app-step-sub">{$translate->get('InstallConnectHint')}</span>
 										</div>
 									</div>
@@ -485,14 +498,16 @@ html[data-hs-theme="dark"] .app-howto-item {
 		var platformPane = select.closest ? select.closest('.tab-pane') : null;
 		var content = platformPane ? platformPane.querySelector('.app-app-content') : null;
 		var target = document.getElementById(select.value);
-		if (!content || !target) { return; }
+		if (!content) { return; }
 
 		for (var i = 0; i < content.children.length; i++) {
 			if (content.children[i].classList) {
 				content.children[i].classList.remove('show', 'active');
 			}
 		}
-		target.classList.add('show', 'active');
+		var valid = target && target.parentNode === content;
+		content.hidden = !valid;
+		if (valid) { target.classList.add('show', 'active'); }
 	};
 
 	function detect() {

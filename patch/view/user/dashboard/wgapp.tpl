@@ -9,7 +9,7 @@
 	<div class="app-step-head">
 		<span class="app-step-num">3</span>
 		<div>
-			<h5 class="app-step-title">{$translate->get('InstallConnect')}</h5>
+			<h5 class="app-step-title">{$translate->get('GetConnection')}</h5>
 			<span class="app-step-sub">{$translate->get('WgAppHint')}</span>
 		</div>
 	</div>

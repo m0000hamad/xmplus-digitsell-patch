@@ -1,3 +1,9 @@
+## 1.38.46 - explicit application choice (2026-11-17)
+
+The dashboard application selector starts with the localized “Choose an app” placeholder. Step 3 and every connection pane remain hidden until the customer explicitly selects an application, including OpenVPN and WireGuard. A highlighted localized instruction explains selecting an app first and getting its link/config next; step 3 uses a dedicated link/config title. Existing app selections remain scoped to their operating system.
+
+Validation: localization PHP lint and JavaScript behavioral assertions passed (initial/empty states, application switching and platform isolation). All changed templates compiled and rendered with the live server's Smarty engine using isolated fixtures; DOM assertions confirm placeholders, hidden connection sections, no preselected applications, and link/config titles for ordinary apps, OpenVPN and WireGuard. Publication and native updater installation are authorized and in progress; live installed/latest and runtime checksums must be verified before completion.
+
 ## 1.38.44 - task-first customer menu (2026-11-15)
 
 The customer sidebar now follows task frequency instead of configuration order: home first, then purchase/order/wallet, owned services, support, and finally notices/invitations/settings. New localized section labels keep related destinations together in Persian, English and Chinese; the former transaction heading is now the clearer purchase-and-billing label.
