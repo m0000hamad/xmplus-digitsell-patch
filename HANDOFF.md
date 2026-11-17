@@ -1516,3 +1516,13 @@ legacy commission and explicit adjustments; PHP syntax checks. Published to conf
 - Reuse-config now enters certificate repair when a YAML file-mode certificate/key is missing. Import no longer aborts on stale file references before wizard overrides can be merged. Existing valid paths are preserved; unattended import warns and lets the agent use its documented fallback.
 - Regression: menu choice 1 with a second node referencing a nonexistent certificate. Node-only publication authorized; no live server deployment.
 Release 1.38.45 adds inclusive custom usage dates and archives completed local days before deleting their logs in the same transaction. Temporary-table MySQL checks passed. Existing incomplete archives require independent recovery.
+
+## 2026-11-17 - usage archive release and last-month recovery
+
+Release 1.38.45 was published in commit b934dee and installed through the panel updater. Authenticated live status confirmed installed/latest 1.38.45, and login health returned HTTP 200.
+
+At the owner's request, historical usage reports were recovered for all users within 2026-10-18 through 2026-11-16. Traffic observations from 257 on-server encrypted backup snapshots were deduplicated by trafficlog ID and grouped by user, Tehran calendar day, server and recorded profile name. Upload, download and total values already include the historical billing multiplier, so recovery did not multiply them again.
+
+A user/day was replaced only when its reconstructed total exceeded the existing archive. Recovery improved 3,593 user-days across 386 users, adding approximately 4,412.3943 GiB of previously missing report history. Every replacement was verified against its reconstructed sum inside one database transaction. Repeating the recovery comparison produced zero further candidates. The login endpoint returned HTTP 200 after recovery.
+
+The operation changed traffic_daily report history only. Previous affected rows and recovery inputs remain in a private, mode-0600 server backup outside this repository. Customer quota counters were not updated. Sparse older snapshots may leave gaps, so this recovery does not establish byte-for-byte completeness for the entire month. No additional panel release was needed for the data recovery.
