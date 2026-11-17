@@ -19,25 +19,29 @@ class TrafficStatsJob
 		ini_set('memory_limit', '-1');
 
 		$this->createTable();
+        $cutoff = strtotime('today 00:00:00');
+        $offset = (int) date('Z', $cutoff);
+        $daySql = "DATE(DATE_ADD('1970-01-01', INTERVAL (datetime + {$offset}) SECOND))";
+        DB::connection('default')->transaction(function () use ($daySql, $cutoff) {
 
 		// Rebuild every user/day still represented by raw rows. This also removes
 		// the former one-row-per-node aggregate when profile names are split.
 		DB::connection('default')->statement("
 			DELETE td FROM `traffic_daily` td
 			INNER JOIN (
-				SELECT DISTINCT `userid`, DATE(FROM_UNIXTIME(`datetime`)) AS `day`
-				FROM `trafficlog`
+				SELECT DISTINCT `userid`, {$daySql} AS `day`
+				FROM `trafficlog` WHERE `datetime` < {$cutoff}
 			) raw ON raw.`userid` = td.`userid` AND raw.`day` = td.`day`
 		");
 
 		DB::connection('default')->statement("
 			INSERT INTO `traffic_daily` (`userid`,`day`,`serverid`,`servername`,`u`,`d`,`total`)
 			SELECT `userid`,
-			       DATE(FROM_UNIXTIME(`datetime`)) AS `day`,
+			       {$daySql} AS `day`,
 			       `serverid`,
 			       SUBSTRING(MAX(`servername`),1,191),
 			       SUM(`u`), SUM(`d`), SUM(`total`)
-			FROM `trafficlog`
+			FROM `trafficlog` WHERE `datetime` < {$cutoff}
 			GROUP BY `userid`, `day`, `serverid`, `servername`
 			ON DUPLICATE KEY UPDATE
 			  `servername` = VALUES(`servername`),
@@ -46,7 +50,10 @@ class TrafficStatsJob
 			  `total` = VALUES(`total`)
 		");
 
-		// keep two years of history, that is enough for the yearly chart
+		DB::connection('default')->table('trafficlog')->where('datetime', '<', $cutoff)->delete();
+        });
+
+        // keep two years of history, that is enough for the yearly chart
 		DB::connection('default')->table('traffic_daily')
 			->where('day', '<', date('Y-m-d', strtotime('-730 days')))
 			->delete();

@@ -320,6 +320,12 @@ html[data-hs-theme="dark"] .usage-empty { color: #aab6cc; }
 			</div>
 		</div>
 
+        <form method="get" class="px-3 py-2 d-flex flex-wrap align-items-end gap-2">
+            <label>از تاریخ <input required class="form-control" name="usage_from" type="date" min="{date('Y-m-d',strtotime('-729 days'))}" max="{date('Y-m-d')}"></label>
+            <label>تا تاریخ <input required class="form-control" name="usage_to" type="date" min="{date('Y-m-d',strtotime('-729 days'))}" max="{date('Y-m-d')}"></label>
+            <button class="btn btn-primary" type="submit">نمایش بازه دلخواه</button>
+        </form>
+
 		<div class="card-body">
 			<div class="usage-kpis">
 				<div class="usage-kpi" style="--kpi-color:#8b5cf6">

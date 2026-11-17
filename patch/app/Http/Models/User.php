@@ -279,13 +279,13 @@ final class User extends Model
 		return $map;
 	}
 
-	private function historyByServer($fromDate)
+	private function historyByServer($fromDate, $until = null)
 	{
 		$map = [];
 		try {
 			$rows = TrafficDaily::where('userid', $this->id)
 				->where('day', '>=', $fromDate)
-				->where('day', '<', date('Y-m-d'))
+				->where('day', '<', $until ?: date('Y-m-d'))
 				->selectRaw('serverid, servername AS sname, COALESCE(SUM(u),0) AS su, COALESCE(SUM(d),0) AS sd')
 				->groupBy('serverid', 'servername')
 				->get();
@@ -302,6 +302,7 @@ final class User extends Model
 			$map = [];
 		}
 
+		if ($until && $until <= date('Y-m-d')) return $map;
 		foreach ($this->liveTodayServers() as $key => $server) {
 			if (isset($map[$key])) {
 				$map[$key]['u'] += $server['u'];
@@ -544,6 +545,28 @@ final class User extends Model
 			$stats['live_profiles'] = [];
 		}
 
+        $from = $_GET['usage_from'] ?? '';
+        $to = $_GET['usage_to'] ?? '';
+        $validDate = static function ($value) {
+            return is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/D', $value)
+                && date('Y-m-d', strtotime($value)) === $value;
+        };
+        if ($validDate($from) && $validDate($to) && $from <= $to
+            && $from >= date('Y-m-d', strtotime('-729 days')) && $to <= date('Y-m-d')) {
+            $history = $this->historyByDay($from);
+            $series = ['labels'=>[], 'up'=>[], 'down'=>[], 'total'=>[]];
+            $up = $down = 0;
+            for ($day = $from; $day <= $to; $day = date('Y-m-d', strtotime($day . ' +1 day'))) {
+                $bytes = $history[$day] ?? ['u'=>0, 'd'=>0];
+                $up += $bytes['u'];
+                $down += $bytes['d'];
+                $series['labels'][] = $day;
+                foreach ($this->toMB($bytes['u'], $bytes['d']) as $key => $value) $series[$key][] = $value;
+            }
+            $stats['ranges']['custom'] = $series;
+            $stats['totals']['custom'] = $this->toMB($up, $down);
+            $stats['servers']['custom'] = $this->serverList($this->historyByServer($from, $day));
+        }
 		return $stats;
 	}
 

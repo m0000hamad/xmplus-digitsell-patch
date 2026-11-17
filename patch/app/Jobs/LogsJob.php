@@ -18,7 +18,6 @@ class LogsJob
 		// weekly/monthly/yearly usage charts have nothing to read from
 		(new TrafficStatsJob)->dispatch();
 
-		TrafficLog::where('datetime','<',strtotime('today 00:00:00'))->delete();	
 		SubscribeLog::truncate();
 	}	
 }

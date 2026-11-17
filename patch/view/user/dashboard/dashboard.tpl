@@ -198,7 +198,7 @@ var renderUsageCharts = (function () {
 	var areaChart = null;
 	var donutChart = null;
 	var quotaChart = null;
-	var currentRange = 'day';
+	var currentRange = window.usageStats.ranges.custom ? 'custom' : 'day';
 	var wired = false;
 
 	function stats() {
@@ -569,7 +569,19 @@ var renderUsageCharts = (function () {
 		var box = document.getElementById('usageRange');
 		if (!box) { return; }
 
-		box.addEventListener('click', function (event) {
+		var start = document.querySelector('[name="usage_from"]'), end = document.querySelector('[name="usage_to"]');
+        if (start && end) {
+            if (currentRange === 'custom') {
+                var labels = stats().ranges.custom.labels;
+                start.value = labels[0]; end.value = labels[labels.length - 1];
+                window.usageI18n.custom = start.value + ' – ' + end.value;
+                box.querySelector('.active').classList.remove('active');
+                if (box.closest('details')) box.closest('details').open = true;
+            }
+            start.onchange = function () { end.min = start.value || start.min; };
+            start.onchange();
+        }
+        box.addEventListener('click', function (event) {
 			var button = event.target.closest('.usage-range-btn');
 			if (!button) { return; }
 

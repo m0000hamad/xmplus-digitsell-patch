@@ -1515,3 +1515,4 @@ legacy commission and explicit adjustments; PHP syntax checks. Published to conf
 ## 2026-11-10 - node 1.5.5 certificate reuse repair
 - Reuse-config now enters certificate repair when a YAML file-mode certificate/key is missing. Import no longer aborts on stale file references before wizard overrides can be merged. Existing valid paths are preserved; unattended import warns and lets the agent use its documented fallback.
 - Regression: menu choice 1 with a second node referencing a nonexistent certificate. Node-only publication authorized; no live server deployment.
+Release 1.38.45 adds inclusive custom usage dates and archives completed local days before deleting their logs in the same transaction. Temporary-table MySQL checks passed. Existing incomplete archives require independent recovery.
