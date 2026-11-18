@@ -62,7 +62,32 @@ html[data-hs-theme="dark"] .coupon-editor {
   gap: .55rem;
   margin: 0;
 }
-.coupon-editor-cycles label input { flex: none; float: none; margin: .22em 0 0; }
+.coupon-editor-cycles label input, .coupon-editor .coupon-rule-check input {
+  flex: none;
+  float: none;
+  margin: .22em 0 0;
+}
+.coupon-editor-rules {
+  margin-top: 1rem;
+  border-top: 1px solid var(--ce-border);
+  padding-top: .75rem;
+}
+.coupon-editor-rules legend {
+  float: none;
+  width: auto;
+  margin-bottom: .4rem;
+  padding-inline: .35rem;
+  font-size: .95rem;
+  font-weight: 700;
+}
+.coupon-editor .coupon-rule-check {
+  display: flex;
+  align-items: flex-start;
+  gap: .65rem;
+  margin-bottom: .65rem;
+}
+.coupon-rule-check small { display: block; color: var(--ce-muted); font-weight: 400; }
+.coupon-editor [data-rule-status] { margin-inline-start: .45rem; }
 .coupon-editor-publish, .coupon-editor-actions {
   display: flex;
   flex-wrap: wrap;

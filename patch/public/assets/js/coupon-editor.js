@@ -50,6 +50,7 @@
     if (route[1]) {
       editor.querySelector('h2').textContent = editor.dataset.edit;
       editor.querySelector('[data-campaign-link]').href = '/admin/coupons?campaign_coupon=' + route[1] + '#couponCampaignPanel';
+      setupRules(editor, route[1]);
     }
 
     const type = editor.querySelector('#type');
@@ -67,6 +68,46 @@
     stock.append(...host.childNodes);
     host.append(stock, editor);
     host.classList.add('coupon-editor-host');
+  }
+
+  function setupRules(editor, couponId) {
+    const fieldset = editor.querySelector('[data-coupon-rules]');
+    const fresh = fieldset.querySelector('[data-rule-fresh]');
+    const ip = fieldset.querySelector('[data-rule-ip]');
+    const status = fieldset.querySelector('[data-rule-status]');
+    const endpoint = '/xmplus-patch.php?do=couponrules.';
+    let token = '';
+    editor.querySelector('[data-rule-create]').hidden = true;
+    fieldset.hidden = false;
+
+    fetch(endpoint + 'get&coupon_id=' + couponId)
+      .then(response => response.json())
+      .then(data => {
+        if (!data.ok || !data.rule) throw new Error();
+        token = data.token;
+        fresh.checked = data.rule.fresh;
+        ip.checked = data.rule.unique_ip;
+        fieldset.disabled = false;
+      })
+      .catch(() => { status.textContent = status.dataset.error; });
+
+    fieldset.querySelector('[data-rule-save]').addEventListener('click', async () => {
+      const body = new URLSearchParams({
+        token, coupon_id: couponId, fresh: fresh.checked ? '1' : '0', unique_ip: ip.checked ? '1' : '0',
+      });
+      fieldset.disabled = true;
+      status.textContent = '';
+      try {
+        const data = await fetch(endpoint + 'save', {method: 'POST', body}).then(response => response.json());
+        if (data.reason === 'schedule') status.textContent = status.dataset.schedule;
+        else if (data.ok && data.rule) status.textContent = status.dataset.saved;
+        else throw new Error();
+      } catch (error) {
+        status.textContent = status.dataset.error;
+      } finally {
+        fieldset.disabled = false;
+      }
+    });
   }
 
   function setupDates(editor, start, end, save) {

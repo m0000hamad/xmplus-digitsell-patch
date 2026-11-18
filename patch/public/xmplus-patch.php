@@ -404,6 +404,11 @@ function clearCompiledTemplates(): void
 
 $action = $_GET['do'] ?? 'status';
 
+if (strpos($action, 'couponrules.') === 0) {
+    require ROOT . '/app/Patch/CouponRulesEndpoint.php';
+    exit;
+}
+
 if (strpos($action, 'couponcampaign.') === 0) {
     require ROOT . '/app/Patch/CouponCampaignEndpoint.php';
     exit;

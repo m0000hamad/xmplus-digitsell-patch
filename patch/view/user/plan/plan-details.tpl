@@ -542,6 +542,7 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 							</div>
 							<div id="coupon-feedback" class="small mt-2" role="status"
 								data-applied="{$translate->get('CouponCampaignApplied')|escape:'html'}"
+								data-blocked="{$translate->get('CouponRuleBlocked')|escape:'html'}"
 								data-error="{$translate->get('CouponCampaignError')|escape:'html'}"></div>
 						</div>
 					</div>
@@ -657,6 +658,29 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 			couponInput.disabled = Boolean(code);
 			redeem.disabled = remove.disabled = true;
 		}
+		if (code) {
+			quoteRequest = $.ajax({
+				type: "POST",
+				url: "/xmplus-patch.php?do=couponrules.check",
+				dataType: "json",
+				timeout: 10000,
+				data: { code: code },
+				success: (data) => {
+					if (version !== quoteVersion) return;
+					if (!data.ok) rejectCoupon(type, couponFeedback.dataset.error);
+					else if (data.reason) rejectCoupon(type, couponFeedback.dataset.blocked);
+					else requestQuote(type, code, version);
+				},
+				error: (request, status) => {
+					if (version === quoteVersion && status !== 'abort') rejectCoupon(type, couponFeedback.dataset.error);
+				}
+			});
+			return;
+		}
+		requestQuote(type, code, version);
+	}
+
+	function requestQuote(type, code, version){
 		quoteRequest = $.ajax({
 			type: "POST",
 			url: code ? "/portal/checkout/redeem" : "/portal/checkout/billing",

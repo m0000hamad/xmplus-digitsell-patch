@@ -1,3 +1,11 @@
+## 2026-11-18 — Coupon registration eligibility (1.38.52)
+
+After creating a native code, open its editor and select either optional rule under Additional eligibility rules. Fresh registration uses the saved coupon start timestamp. The registration-IP rule allows the oldest customer account at each already recorded public IP, normalizes IPv4-mapped IPv6 and equivalent IPv6 literals, and excludes staff accounts from the match. It also rejects an account without a public registration IP. People sharing a public address can be affected when this rule is enabled. The patch does not collect new network identifiers or export IPs to the customer UI.
+
+The same MySQL rule serves the authenticated quote and active-offer checks and runs for direct order inserts and later coupon or buyer changes. Existing assignments can settle normally. Migration 034 is additive and idempotent, with the rules dormant when the recorded patch rolls back below 1.38.52. Coupon deletion clears its rule via the foreign key. Existing codes start with both rules off.
+
+Native checkout with connection-local fixtures confirmed that it writes the validated coupon code and discount directly to orders without firing an Eloquent save event. Isolated MySQL tests covered fresh registrations, duplicate IPv4/IPv6, unsupported addresses, direct inserts and reassignment, payment-status updates, rollback, and disabling rules. Smarty and checkout behavior checks passed. Publication and installation pending.
+
 ## 2026-11-18 — Redesigned coupon editor (1.38.51)
 
 The add and edit screens now use a responsive editor grouped around discount, schedule, purchase eligibility, redemption limits and campaign settings. It mounts the native controls and save action in the new layout, preserving plan and billing-cycle scope, first-order eligibility, and usage caps. Tehran calendar controls synchronize native start and end fields. Entering validity days fills the end from the chosen start, or uses the current Tehran time when the start is empty. The popup, admin summary and Telegram announcement recognize the panel's native numeric percentage type (2).

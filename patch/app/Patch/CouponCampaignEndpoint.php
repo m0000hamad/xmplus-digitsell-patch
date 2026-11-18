@@ -2,10 +2,12 @@
 declare(strict_types=1);
 
 use App\Patch\CouponCampaigns;
+use App\Patch\CouponEligibility;
 
 define('INVOICE_CORE_ONLY', true);
 require_once ROOT . '/app/Patch/Invoice.php';
 require_once ROOT . '/app/Patch/CouponCampaigns.php';
+require_once ROOT . '/app/Patch/CouponEligibility.php';
 
 try {
     if ($action === 'couponcampaign.active') {
@@ -17,6 +19,7 @@ try {
         }
 
         invoiceBootstrap();
+        $eligibility = new CouponEligibility(db());
         $offers = [];
         $next = null;
         foreach ($entries as $id => $entry) {
@@ -25,6 +28,9 @@ try {
             }
             $coupon = CouponCampaigns::schedule($entry);
             if (CouponCampaigns::isActive($entry, $coupon, $now)) {
+                if ($eligibility->reasonForCode($coupon['code'], $uid) !== null) {
+                    continue;
+                }
                 $offers[] = [
                     'id' => $id, 'title' => $entry['title'], 'theme' => $entry['theme'],
                     'code' => $coupon['code'], 'start' => $coupon['start'], 'end' => $coupon['end'],
