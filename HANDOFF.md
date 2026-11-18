@@ -2,7 +2,7 @@
 
 The native coupon pages keep their save, cancel and delete controls in a separate fixed toolbar. The editor now binds to the native save button in that toolbar. Smarty renders the restrictions with the saved coupon ID outside the replacement editor, so the controls can load and save even when the native form remains visible. Tested with the separate toolbar and with no replacement editor.
 
-Publication and installation pending.
+Published `44f25f6bb34832189f65b5f51ffb7c50fe15dfa1` to the configured main branch and installed over SSH. Backup `storage/patch/backup-20261118-172440`. The installed version matches the published manifest and all 225 live checksums. The installed Smarty view renders the controls for a native saved coupon. The panel, login, and versioned editor asset return HTTP 200. The authenticated web updater status was not opened during the SSH-only verification.
 
 ## 2026-11-18 — Coupon registration eligibility (1.38.52)
 
