@@ -4,7 +4,7 @@ The add and edit screens now use a responsive editor grouped around discount, sc
 
 Coupon eligibility still uses the native first-order and redemption-limit checks. A registration-age guard and cross-account identity checks require a tested purchase-side enforcement point. The relevant native routing and checkout controllers are ionCube encoded. HTTP requests cannot supply a client's MAC address.
 
-Smarty rendered the editor in all three locales. DOM fixtures passed for both routes, native control and save bindings, percentage labels, month rollover, missing-start handling, and invalid schedule rejection. Publication and installation pending.
+Smarty rendered the editor in all three locales. DOM fixtures passed for both routes, native control and save bindings, percentage labels, month rollover, missing-start handling, and invalid schedule rejection. Published `63734244299c882fd0c40d9faef2551113bd6774` to the configured main branch. Installed over SSH using the shipped installer after verifying the immutable package and all 223 checksums. Backup `storage/patch/backup-20261118-152119`. Verified the installed version through the panel's configuration provider and compared it with the configured branch manifest. All 223 live hashes match. The native add/edit and new editor templates compile on the server, existing native percentage coupons are detected, and the panel root, login and both editor assets return HTTP 200. The authenticated web updater status was not separately opened during the SSH-only deployment.
 
 ## 2026-11-18 — Native coupon picker and validity details (1.38.50)
 
