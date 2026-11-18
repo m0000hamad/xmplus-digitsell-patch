@@ -1,8 +1,6 @@
 (() => {
   const route = location.pathname.match(/^\/admin\/coupon\/(?:add|(\d+)\/edit)\/?$/);
-  if (!route) return;
-
-  function mountEditor() {
+  function mountEditor(rules) {
     const template = document.getElementById('coupon-editor-template');
     const start = document.getElementById('start_date');
     const end = document.getElementById('expire_date');
@@ -10,10 +8,9 @@
     if (!template || !host || !end || !host.contains(end)) return;
     const required = ['code', 'credit', 'type'];
     if (required.some(id => !host.querySelector('#' + id))) return;
-    const cancel = host.querySelector('a[href="/admin/coupons"]');
-    const actions = Array.from(host.querySelectorAll('button, input[type="submit"]'));
-    const save = actions.filter(button => !button.closest('.input-group, .ts-wrapper')).at(-1);
-    if (!cancel || !save) return;
+    const save = document.querySelector('button[onclick="saveCoupon()"]')
+      || host.querySelector('button[type="submit"], input[type="submit"]');
+    if (!save) return;
 
     const editor = template.content.firstElementChild.cloneNode(true);
     const stock = document.createElement('div');
@@ -45,12 +42,18 @@
       cycles.append(label);
     }
     const editorActions = editor.querySelector('[data-native-actions]');
-    editorActions.append(cancel, save);
+    if (host.contains(save)) {
+      const cancel = host.querySelector('a[href="/admin/coupons"]');
+      if (cancel) editorActions.append(cancel);
+      editorActions.append(save);
+    } else {
+      editorActions.remove();
+    }
 
     if (route[1]) {
       editor.querySelector('h2').textContent = editor.dataset.edit;
       editor.querySelector('[data-campaign-link]').href = '/admin/coupons?campaign_coupon=' + route[1] + '#couponCampaignPanel';
-      setupRules(editor, route[1]);
+      if (rules) editor.querySelector('#coupon-eligibility-heading').parentElement.append(rules);
     }
 
     const type = editor.querySelector('#type');
@@ -70,15 +73,13 @@
     host.classList.add('coupon-editor-host');
   }
 
-  function setupRules(editor, couponId) {
-    const fieldset = editor.querySelector('[data-coupon-rules]');
+  function setupRules(fieldset) {
+    const couponId = fieldset.dataset.couponRules;
     const fresh = fieldset.querySelector('[data-rule-fresh]');
     const ip = fieldset.querySelector('[data-rule-ip]');
     const status = fieldset.querySelector('[data-rule-status]');
     const endpoint = '/xmplus-patch.php?do=couponrules.';
     let token = '';
-    editor.querySelector('[data-rule-create]').hidden = true;
-    fieldset.hidden = false;
 
     fetch(endpoint + 'get&coupon_id=' + couponId)
       .then(response => response.json())
@@ -184,6 +185,16 @@
     }, true);
   }
 
-  if (document.readyState === 'complete') mountEditor();
-  else window.addEventListener('load', mountEditor, {once: true});
+  function mountPage() {
+    const rules = document.querySelector('[data-coupon-rules]');
+    if (rules) {
+      const card = document.getElementById('start_date')?.closest('.card');
+      if (card) card.before(rules);
+      setupRules(rules);
+    }
+    if (route) mountEditor(rules);
+  }
+
+  if (document.readyState === 'complete') mountPage();
+  else window.addEventListener('load', mountPage, {once: true});
 })();

@@ -1,3 +1,9 @@
+## 2026-11-18 — Coupon restrictions visible in the native editor (1.38.53)
+
+The native coupon pages keep their save, cancel and delete controls in a separate fixed toolbar. The editor now binds to the native save button in that toolbar. Smarty renders the restrictions with the saved coupon ID outside the replacement editor, so the controls can load and save even when the native form remains visible. Tested with the separate toolbar and with no replacement editor.
+
+Publication and installation pending.
+
 ## 2026-11-18 — Coupon registration eligibility (1.38.52)
 
 After creating a native code, open its editor and select either optional rule under Additional eligibility rules. Fresh registration uses the saved coupon start timestamp. The registration-IP rule allows the oldest customer account at each already recorded public IP, normalizes IPv4-mapped IPv6 and equivalent IPv6 literals, and excludes staff accounts from the match. It also rejects an account without a public registration IP. People sharing a public address can be affected when this rule is enabled. The patch does not collect new network identifiers or export IPs to the customer UI.

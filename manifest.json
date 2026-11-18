@@ -1,7 +1,7 @@
 {
-    "version": "1.38.52",
+    "version": "1.38.53",
     "released": "2026-11-18",
-    "notes": "Optional new-registration and repeat signup IP rules enforced at checkout.",
+    "notes": "Show saved coupon restrictions in the native editor with its separate action bar.",
     "migrations": [
         "001_commission_log.php",
         "002_traffic_daily.php",
@@ -128,11 +128,11 @@
         "public/assets/css/coupon-campaign.css": "717483c08d21f41efe26a4010704f2fe5dd322647a41ff7aaca46f9f6c1592eb",
         "public/assets/css/coupon-editor.css": "057c884e5c11dbb1894f903cfe37f05b6e81751e6b5b044f27ddb9c54dd181e0",
         "public/assets/js/coupon-campaign.js": "b7c4afa17b485671c3e8d449916899cd4412089890793a0e7bbc3e141301573a",
-        "public/assets/js/coupon-editor.js": "922ffc2bbf66bb3fbb4718a1e2812acd6c75a88fc1e924063f9b54257c0ee56c",
+        "public/assets/js/coupon-editor.js": "5a8c69754d534c8c739e5020837f3414f31ab16817cecd5cab01e93948584580",
         "public/xmplus-patch.php": "880cb3755afa20dfd4ef68f248b606ff5e91e8c4e8f6d0e89d1f29910363b915",
         "view/admin/affiliates/option.tpl": "72f7fb8f73721fcf564d768f31ac1ab09d440e920995d3cb4d02c0efe12b9cbe",
         "view/admin/coupons/campaigns.tpl": "2245c13fcc3620c63cf2b474ac7f8a5521c75957e50a459fc15ea7e0899059de",
-        "view/admin/coupons/editor.tpl": "4db7eb6b15b5b77d479cd553912845f1d1a9e9381a30279a3d769a6bbc202b27",
+        "view/admin/coupons/editor.tpl": "94afd14f95631e1b41645055bdd2eb9fb6f0d6172aa4845d809537d23f775e5c",
         "view/admin/dashboard/dashboard.tpl": "e9e411f52b104946ea4ed781e50a1ff751c348102a95ff278f9ce5ded7ca02d3",
         "view/admin/dashboard/dashboardjs.tpl": "d518f2a79470176744cf784fd5efa9531c04d5b801b9125b8e27a14a8ba210c4",
         "view/admin/layout/footer.tpl": "ffe3d41bda228a9544642fd12a0a28cc255c39b5bc84205c9074f9884facd07c",

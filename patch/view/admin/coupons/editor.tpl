@@ -36,23 +36,9 @@
           <div class="coupon-editor-wide" data-control="packageid"><label>{$translate->get('SelectPlan')}</label><div data-control-mount></div></div>
         </div>
         <p class="coupon-editor-help mb-0">{$translate->get('CouponEditorFirstOrderHint')}</p>
-        <p class="coupon-editor-help mb-0" data-rule-create>{$translate->get('CouponRuleAfterCreate')}</p>
-        <fieldset class="coupon-editor-rules" data-coupon-rules hidden disabled>
-          <legend>{$translate->get('CouponRuleTitle')}</legend>
-          <label class="coupon-rule-check">
-            <input type="checkbox" class="form-check-input" data-rule-fresh>
-            <span>{$translate->get('CouponRuleFresh')}<small>{$translate->get('CouponRuleFreshHint')}</small></span>
-          </label>
-          <label class="coupon-rule-check">
-            <input type="checkbox" class="form-check-input" data-rule-ip>
-            <span>{$translate->get('CouponRuleIp')}<small>{$translate->get('CouponRuleIpHint')}</small></span>
-          </label>
-          <button type="button" class="btn btn-outline-primary btn-sm" data-rule-save>{$translate->get('CouponRuleSave')}</button>
-          <span class="coupon-editor-help" role="status" data-rule-status
-            data-error="{$translate->get('CouponCampaignError')|escape:'html'}"
-            data-schedule="{$translate->get('CouponRuleSchedule')|escape:'html'}"
-            data-saved="{$translate->get('CouponRuleSaved')|escape:'html'}"></span>
-        </fieldset>
+        {if !isset($coupon->id)}
+        <p class="coupon-editor-help mb-0">{$translate->get('CouponRuleAfterCreate')}</p>
+        {/if}
       </section>
       <details class="coupon-editor-section">
         <summary>{$translate->get('CouponEditorLimits')}</summary>
@@ -75,6 +61,24 @@
     <footer class="coupon-editor-actions" data-native-actions></footer>
   </section>
 </template>
-<link rel="stylesheet" href="/assets/css/coupon-editor.css?v=1.38.52">
-<script defer src="/assets/js/coupon-editor.js?v=1.38.52"></script>
+{if isset($coupon->id) && $coupon->id > 0}
+<fieldset class="coupon-editor coupon-editor-rules" data-coupon-rules="{$coupon->id|escape:'html'}" disabled>
+  <legend>{$translate->get('CouponRuleTitle')}</legend>
+  <label class="coupon-rule-check">
+    <input type="checkbox" class="form-check-input" data-rule-fresh>
+    <span>{$translate->get('CouponRuleFresh')}<small>{$translate->get('CouponRuleFreshHint')}</small></span>
+  </label>
+  <label class="coupon-rule-check">
+    <input type="checkbox" class="form-check-input" data-rule-ip>
+    <span>{$translate->get('CouponRuleIp')}<small>{$translate->get('CouponRuleIpHint')}</small></span>
+  </label>
+  <button type="button" class="btn btn-outline-primary btn-sm" data-rule-save>{$translate->get('CouponRuleSave')}</button>
+  <span class="coupon-editor-help" role="status" data-rule-status
+    data-error="{$translate->get('CouponCampaignError')|escape:'html'}"
+    data-schedule="{$translate->get('CouponRuleSchedule')|escape:'html'}"
+    data-saved="{$translate->get('CouponRuleSaved')|escape:'html'}"></span>
+</fieldset>
+{/if}
+<link rel="stylesheet" href="/assets/css/coupon-editor.css?v=1.38.53">
+<script defer src="/assets/js/coupon-editor.js?v=1.38.53"></script>
 {/if}
