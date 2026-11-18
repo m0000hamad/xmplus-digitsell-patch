@@ -160,54 +160,11 @@
 	}
 </script>
 </head>
+{include file='common/nightstyle.tpl'}
 {include file='user/layout/style.tpl'}
 <body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl footer-offset">
   <script src="/assets/js/hs.theme-appearance.js"></script>
-{literal}
-<script>
-/*
- * hs.theme-appearance.js swaps stylesheets but leaves no mark on the document,
- * so page-level CSS had no way to ask which theme is on. Mirror it here.
- * The attribute is data-hs-theme, not data-hs-appearance: that one is what the
- * theme script uses to find its <link> nodes.
- */
-(function () {
-	/* HSThemeMirror */
-	function resolved() {
-		var theme = null;
-
-		try {
-			theme = localStorage.getItem('hs_theme');
-		} catch (error) { /* private mode */ }
-
-		if (!theme && window.hs_config && window.hs_config.themeAppearance) {
-			theme = window.hs_config.themeAppearance.layoutSkin;
-		}
-		if (!theme) { theme = 'default'; }
-
-		if (theme === 'auto') {
-			theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default';
-		}
-		return theme;
-	}
-
-	function stamp(theme) {
-		document.documentElement.setAttribute('data-hs-theme', theme || resolved());
-	}
-
-	stamp();
-
-	window.addEventListener('on-hs-appearance-change', function (event) {
-		stamp(event.detail);
-	});
-
-	var query = window.matchMedia('(prefers-color-scheme: dark)');
-	if (query.addEventListener) {
-		query.addEventListener('change', function () { stamp(); });
-	}
-})();
-</script>
-{/literal}
+{include file='common/thememirror.tpl'}
   <script src="/assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js"></script>
   <header  id="header" class="navbar navbar-expand-lg navbar-fixed navbar-height navbar-container navbar-bordered bg-white">
     <div class="navbar-nav-wrap">

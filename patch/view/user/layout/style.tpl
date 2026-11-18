@@ -508,12 +508,13 @@ html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link:hover .nav-icon {
 	color: #fff !important;
 }
 html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link.nav-here {
-	background: var(--mc);
+	background: var(--night-hover);
 	border-color: var(--mc);
+	color: var(--night-text) !important;
 	box-shadow: 0 7px 18px var(--mch);
 }
 html[data-hs-theme="dark"] #navbarVerticalMenu .dropdown-header {
-	color: rgba(255, 255, 255, .42) !important;
+	color: var(--night-muted) !important;
 }
 html[data-hs-theme="dark"] #navbarVerticalMenu .dropdown-header::after {
 	background: linear-gradient(90deg, rgba(255, 255, 255, .16), transparent);
@@ -583,25 +584,25 @@ html[data-hs-theme="dark"] #navbarVerticalMenu .dropdown-header::after {
 	100% { opacity: .55; }
 }
 
-/* at night the lamp is brighter and the text catches its light */
+/* Keep the glow subdued behind the menu text in dark mode. */
 html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link:hover::before,
-html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link:focus-visible::before { opacity: .8; }
+html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link:focus-visible::before {
+	opacity: .25;
+	animation-name: none;
+}
 html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link:hover,
 html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link:focus-visible {
 	box-shadow: 0 0 0 1px color-mix(in srgb, var(--mc) 55%, transparent), 0 0 18px -2px var(--mc);
 }
-html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link:hover .nav-link-title {
-	text-shadow: 0 0 10px color-mix(in srgb, var(--mc) 70%, #fff);
+html[data-hs-theme="dark"] .nav-tabs .nav-link.active,
+html[data-hs-theme="dark"] .nav-tabs .nav-item.show .nav-link {
+	color: var(--night-accent);
+	border-color: var(--night-border);
 }
-@keyframes navLampOnNight {
-	0%   { opacity: .2; }
-	18%  { opacity: .85; }
-	30%  { opacity: .25; }
-	48%  { opacity: .8; }
-	60%  { opacity: .4; }
-	100% { opacity: .8; }
+html[data-hs-theme="dark"] .nav-pills .nav-item .nav-link.active {
+	color: var(--night-text);
+	background-color: var(--night-hover);
 }
-html[data-hs-theme="dark"] #navbarVerticalMenu .nav-link:hover::before { animation-name: navLampOnNight; }
 
 /* the page you are on is already lit; keep its solid pill readable */
 #navbarVerticalMenu .nav-link.nav-here::before { display: none; }

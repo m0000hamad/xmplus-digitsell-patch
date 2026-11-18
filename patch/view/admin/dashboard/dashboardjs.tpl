@@ -120,11 +120,10 @@ var dxText = {
 
 	// ---------------------------------------------------------------- theme
 	function dark() {
-		try { return typeof HSThemeAppearance !== 'undefined' && HSThemeAppearance.getAppearance() === 'dark'; } catch (e) { return false; }
+		return document.documentElement.getAttribute('data-hs-theme') === 'dark';
 	}
 	function css(name) { return getComputedStyle(root).getPropertyValue(name).trim(); }
 	function palette() {
-		root.classList.toggle('dx-dark', dark());
 		return {
 			s: [css('--dx-s1'), css('--dx-s2'), css('--dx-s3'), css('--dx-s4'), css('--dx-s5')],
 			ok: css('--dx-ok'), warn: css('--dx-warn'), fail: css('--dx-fail'),
@@ -268,7 +267,7 @@ var dxText = {
 		o.labels = keys.map(function (k) { return dxText[k]; });
 		o.colors = keys.map(function (k) { return colorOf[k]; });
 		o.stroke = { width: 2, colors: [pal.surface] };
-		o.plotOptions = { pie: { donut: { size: '72%', labels: { show: true, name: { fontSize: '12px' }, value: { fontSize: '20px', fontWeight: 700, formatter: function (v) { return num(Number(v)); } }, total: { show: true, label: dxText.orders, color: pal.muted, formatter: function (w) { return num(w.globals.seriesTotals.reduce(function (a, b) { return a + b; }, 0)); } } } } } };
+		o.plotOptions = { pie: { donut: { size: '72%', labels: { show: true, name: { fontSize: '12px', color: pal.muted }, value: { fontSize: '20px', fontWeight: 700, color: pal.muted, formatter: function (v) { return num(Number(v)); } }, total: { show: true, label: dxText.orders, color: pal.muted, formatter: function (w) { return num(w.globals.seriesTotals.reduce(function (a, b) { return a + b; }, 0)); } } } } } };
 		o.tooltip.y = { formatter: function (v, opt) { return num(v) + ' · ' + moneyShort(mr[keys[opt.seriesIndex]]); } };
 		draw('mix', 'cMix', o);
 		var total = keys.reduce(function (a, k) { return a + m[k]; }, 0) || 1;
@@ -333,7 +332,7 @@ var dxText = {
 		o.labels = parts.map(function (p) { return p.label; });
 		o.colors = parts.map(function (p) { return p.c; });
 		o.stroke = { width: 2, colors: [pal.surface] };
-		o.plotOptions = { pie: { donut: { size: '72%', labels: { show: true, name: { fontSize: '12px' }, value: { fontSize: '20px', fontWeight: 700, formatter: function (v) { return num(Number(v)); } }, total: { show: true, label: dxText.users, color: pal.muted, formatter: function () { return num(u.total); } } } } } };
+		o.plotOptions = { pie: { donut: { size: '72%', labels: { show: true, name: { fontSize: '12px', color: pal.muted }, value: { fontSize: '20px', fontWeight: 700, color: pal.muted, formatter: function (v) { return num(Number(v)); } }, total: { show: true, label: dxText.users, color: pal.muted, formatter: function () { return num(u.total); } } } } } };
 		o.tooltip.y = { formatter: function (v) { return num(v) + ' · ' + nf1.format(v / (u.total || 1) * 100) + '%'; } };
 		draw('segments', 'cSegments', o);
 		legend('lSegments', parts.map(function (p) { return { label: p.label, color: p.c, value: num(p.v) }; }));
@@ -474,7 +473,9 @@ var dxText = {
 			try { ({ revenue: revenue, registrations: registrations, traffic: traffic })[key](); } catch (err) { if (window.console) { console.error(err); } }
 		});
 	});
-	window.addEventListener('on-hs-appearance-change', function () { setTimeout(render, 50); });
+	new MutationObserver(function () { requestAnimationFrame(render); }).observe(document.documentElement, {
+		attributeFilter: ['data-hs-theme']
+	});
 
 	load();
 	// keep the numbers fresh while the page is open

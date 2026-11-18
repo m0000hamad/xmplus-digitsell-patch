@@ -277,6 +277,7 @@
 {literal}
 (function () {
 	var COLORS = ['#377dff', '#ed4c78', '#00c9a7', '#f5ca99', '#7a5af8', '#09a5be', '#f58b3d', '#71869d', '#9ccc65', '#e45b9b', '#4e5d78', '#c7a26a'];
+	var NIGHT_COLORS = ['#70afff', '#ff86a8', '#53dab0', '#ffd5a5', '#b3a0ff', '#55d9f0', '#ffae71', '#b1c4de', '#b5e77e', '#f998cb', '#92a3bf', '#eed292'];
 	var data = null, chart = null, range = 'day';
 
 	function fmt(gb) {
@@ -293,11 +294,12 @@
 	function colorOf(id) {
 		var index = 0;
 		data.servers.forEach(function (s, i) { if (s.id === id) { index = i; } });
-		return COLORS[index % COLORS.length];
+		var colors = isDark() ? NIGHT_COLORS : COLORS;
+		return colors[index % colors.length];
 	}
 
-	function textColor() {
-		return getComputedStyle(document.body).color || '#677788';
+	function isDark() {
+		return document.documentElement.getAttribute('data-hs-theme') === 'dark';
 	}
 
 	function rangeTotals(key) {
@@ -323,7 +325,9 @@
 				maxBarThickness: 28
 			};
 		});
-		var fg = textColor();
+		var dark = isDark();
+		var fg = dark ? '#c3cde0' : (getComputedStyle(document.body).color || '#677788');
+		var grid = dark ? 'rgba(183,195,217,.24)' : 'rgba(127,127,127,.15)';
 
 		if (chart) { chart.destroy(); }
 		chart = new Chart(document.getElementById('serverUsageChart').getContext('2d'), {
@@ -350,7 +354,7 @@
 				},
 				scales: {
 					xAxes: [{ stacked: true, gridLines: { display: false }, ticks: { fontColor: fg, autoSkip: true, maxRotation: 0 } }],
-					yAxes: [{ stacked: true, gridLines: { color: 'rgba(127,127,127,.15)', zeroLineColor: 'rgba(127,127,127,.25)' }, ticks: { fontColor: fg, beginAtZero: true, callback: function (v) { return fmt(v); } } }]
+					yAxes: [{ stacked: true, gridLines: { color: grid, zeroLineColor: dark ? '#677494' : 'rgba(127,127,127,.25)' }, ticks: { fontColor: fg, beginAtZero: true, callback: function (v) { return fmt(v); } } }]
 				}
 			}
 		});
@@ -431,6 +435,10 @@
 	if (typeof table_1 !== 'undefined' && table_1 && table_1.on) {
 		table_1.on('draw', badges);
 	}
+
+	new MutationObserver(function () {
+		if (data) { render(); }
+	}).observe(document.documentElement, { attributeFilter: ['data-hs-theme'] });
 
 	$.ajax({
 		type: 'GET',

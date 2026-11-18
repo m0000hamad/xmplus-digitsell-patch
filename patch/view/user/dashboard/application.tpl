@@ -267,9 +267,9 @@ html[data-hs-theme="dark"] .app-pick {
 }
 html[data-hs-theme="dark"] .app-pick.active { color: #fff !important; }
 html[data-hs-theme="dark"] .app-select {
-	background: rgba(99, 102, 241, .14);
+	background: var(--night-surface);
 	border-color: #818cf8;
-	color: #f3f4ff;
+	color: var(--night-text);
 }
 html[data-hs-theme="dark"] .app-connect {
 	background: linear-gradient(135deg, rgba(99, 102, 241, .16), rgba(139, 92, 246, .16));

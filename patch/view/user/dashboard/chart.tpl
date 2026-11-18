@@ -202,8 +202,10 @@ html[data-hs-theme="dark"] .usage-server-bar { background: rgba(255, 255, 255, .
 
 html[data-hs-theme="dark"] .usage-kpi-label,
 html[data-hs-theme="dark"] .usage-server-meta { color: #aab6cc; }
-html[data-hs-theme="dark"] .usage-kpi-sub { color: #9aa8c0; }
-html[data-hs-theme="dark"] .usage-empty { color: #aab6cc; }
+html[data-hs-theme="dark"] .usage-kpi-sub { color: var(--night-muted); }
+html[data-hs-theme="dark"] .usage-empty { color: var(--night-muted); }
+html[data-hs-theme="dark"] .usage-server-rank,
+html[data-hs-theme="dark"] .usage-live { color: #151a2b; }
 /* ---- the server this user is connected to: a Gemini-style halogen line ----
    The colour lives only inside the bar's own track - no glow or blur
    spilling outside it. */

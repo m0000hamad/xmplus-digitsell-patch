@@ -11,10 +11,10 @@
 		--dx-ok: #0e9f6e; --dx-warn: #d98a00; --dx-fail: #e02424;
 		--dx-muted: #6b7280; --dx-line: rgba(127,127,127,.16); --dx-soft: rgba(127,127,127,.07);
 	}
-	html[data-hs-appearance="dark"] .dx, .dx.dx-dark {
-		--dx-s1: #3987e5; --dx-s2: #d95926; --dx-s3: #199e70; --dx-s4: #c98500; --dx-s5: #d55181;
+	html[data-hs-theme="dark"] .dx {
+		--dx-s1: #70afff; --dx-s2: #ff956d; --dx-s3: #53dab0; --dx-s4: #ffd16b; --dx-s5: #f794bb;
 		--dx-ok: #31c48d; --dx-warn: #f0b429; --dx-fail: #f05252;
-		--dx-muted: #9aa3b2; --dx-line: rgba(200,200,200,.12); --dx-soft: rgba(200,200,200,.05);
+		--dx-muted: var(--night-muted); --dx-line: rgba(183,195,217,.24); --dx-soft: rgba(200,200,200,.05);
 	}
 	.dx .card { border-radius: 14px; }
 	.dx .card-header { padding-top: .9rem; padding-bottom: .9rem; }

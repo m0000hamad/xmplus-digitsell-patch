@@ -213,9 +213,7 @@ var renderUsageCharts = (function () {
 	   read data-hs-appearance, which is never set on <html>, so the charts
 	   always drew light-theme ink - invisible on the dark cards. */
 	function isDark() {
-		var mark = document.documentElement.getAttribute('data-hs-theme');
-		if (mark) { return mark === 'dark'; }
-		try { return HSThemeAppearance.getAppearance() === 'dark'; } catch (e) { return false; }
+		return document.documentElement.getAttribute('data-hs-theme') === 'dark';
 	}
 
 	function palette() {
@@ -330,7 +328,7 @@ var renderUsageCharts = (function () {
 			},
 			markers: { size: 0, strokeWidth: 2, hover: { size: 5 } },
 			grid: {
-				borderColor: dark ? 'rgba(255,255,255,.08)' : 'rgba(23,32,61,.07)',
+				borderColor: dark ? 'rgba(183,195,217,.24)' : 'rgba(23,32,61,.07)',
 				strokeDashArray: 4,
 				xaxis: { lines: { show: false } },
 				padding: { left: 6, right: 6, top: -6 }
@@ -469,7 +467,7 @@ var renderUsageCharts = (function () {
 	}
 
 	function quotaColors(remaining) {
-		if (remaining >= 50) { return ['#6366f1', '#a855f7']; }
+		if (remaining >= 50) { return isDark() ? ['#8b9bff', '#c98bff'] : ['#6366f1', '#a855f7']; }
 		if (remaining >= 20) { return ['#f59e0b', '#fb923c']; }
 		return ['#f43f5e', '#fb7185'];
 	}
@@ -524,7 +522,7 @@ var renderUsageCharts = (function () {
 					endAngle: 135,
 					hollow: { size: '66%', background: 'transparent' },
 					track: {
-						background: dark ? 'rgba(255,255,255,.07)' : '#eef1f8',
+						background: dark ? '#414b63' : '#eef1f8',
 						strokeWidth: '100%',
 						margin: 8
 					},
@@ -618,7 +616,9 @@ var renderUsageCharts = (function () {
 {/literal}
 
 <script>
-	window.addEventListener('on-hs-appearance-change', () => renderUsageCharts());
+	new MutationObserver(renderUsageCharts).observe(document.documentElement, {
+		attributeFilter: ['data-hs-theme']
+	});
 	renderUsageCharts();
 	
 	{if $bought > 0 && $Order->getSubsciption($user->id) != null && $Order->getPackage($user->id)}

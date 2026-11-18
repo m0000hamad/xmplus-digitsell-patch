@@ -34,6 +34,8 @@
     <i class="bi-chevron-up"></i>
   </a>-->
   
+  {include file='common/nightstyle.tpl'}
+  {include file='common/thememirror.tpl'}
   <script src="/assets/js/vendor.min.js"></script>
   <script src="/assets/js/theme.min.js"></script>
   <script src="/assets/js/clipboard.js"></script>

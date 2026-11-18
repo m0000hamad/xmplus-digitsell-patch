@@ -1,3 +1,9 @@
+## 2026-11-18 — Dark theme readability (1.38.47)
+
+Native select popups, Bootstrap dropdowns and Tom Select menus use explicit dark surfaces and readable text. The portal sidebar uses a darker active item and a subdued hover glow. Customer traffic and quota charts and admin sales and server-usage charts use brighter labels and grid lines. Both layouts share the resolved theme, including system preference changes, and the charts redraw when it changes.
+
+Chrome RTL fixture passed for option colors, menus, dropdown selection and light/dark/auto switching, including chart option updates. JavaScript syntax checks passed. Publication and live installation are pending. The GitHub connector did not expose its commit endpoint and automatic approval for Git/SSH network access returned HTTP 404, so authenticated installed/latest and live health were not checked.
+
 ## 1.38.46 - explicit application choice (2026-11-17)
 
 The dashboard application selector starts with the localized “Choose an app” placeholder. Step 3 and every connection pane remain hidden until the customer explicitly selects an application, including OpenVPN and WireGuard. A highlighted localized instruction explains selecting an app first and getting its link/config next; step 3 uses a dedicated link/config title. Existing app selections remain scoped to their operating system.
