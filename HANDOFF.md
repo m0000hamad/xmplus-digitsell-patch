@@ -4,7 +4,7 @@ In Admin → Coupon codes, link a saved timed coupon to a campaign title and an 
 
 PHP and JavaScript syntax checks passed. Smarty 4.5.3 compiled the changed layouts and checkout and rendered the new interfaces in all three locales. Isolated checks passed for schedule boundaries, native redemption responses and stale quote ordering, plus Telegram activation and duplicate prevention. The legacy rainy and occasion-picker test failures are recorded below. No customer coupon or Telegram message was created for testing.
 
-Publication and live installation pending.
+Published to the configured `origin/main` at `99a82e60ce4e61ee1f279a2f9361385de7b39211`. The remote branch and immutable manifest were verified against all 220 release checksums. Installed with the authenticated panel updater. Its status reports installed and latest 1.38.49. All 220 live files match the immutable manifest. The panel root, login and both new campaign assets returned HTTP 200.
 
 ## 2026-11-18 — Black Friday promotion theme (local 1.38.48)
 
