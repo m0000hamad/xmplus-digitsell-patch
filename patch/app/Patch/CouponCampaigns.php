@@ -81,7 +81,7 @@ final class CouponCampaigns
             'start' => self::timestamp($row['start_date'] ?? null),
             'end' => self::timestamp($row['expire_date'] ?? null),
             'credit' => is_numeric($credit) ? (float) $credit : null,
-            'percentage' => in_array($type, ['percentage_amount', 'percentage', 'percent'], true),
+            'percentage' => in_array($type, ['2', 'percentage_amount', 'percentage', 'percent'], true),
         ];
     }
 

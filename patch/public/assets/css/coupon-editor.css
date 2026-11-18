@@ -1,0 +1,85 @@
+.coupon-editor-host.card { border: 0; box-shadow: none; background: transparent; }
+.coupon-editor-host [data-coupon-stock] { display: none !important; }
+.coupon-editor {
+  --ce-border: #e3e9f3;
+  --ce-surface: #fff;
+  --ce-ink: #172741;
+  --ce-muted: #4f617c;
+  max-width: 58rem;
+  margin-inline: auto;
+  color: var(--ce-ink);
+}
+html[data-hs-theme="dark"] .coupon-editor {
+  --ce-border: #3b4760;
+  --ce-surface: #202a3c;
+  --ce-ink: #eef4ff;
+  --ce-muted: #c3cde0;
+}
+.coupon-editor h2, .coupon-editor h3 { margin: 0; color: inherit; }
+.coupon-editor-header {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  color: #fff;
+  background: linear-gradient(110deg, #142344, #2d4279);
+  border-radius: 1rem;
+  padding: 1.25rem clamp(1rem, 5vw, 2rem);
+}
+.coupon-editor-header h2 { font-size: clamp(1.35rem, 3.2vw, 1.85rem); }
+.coupon-editor-header [data-control="status"] { min-width: min(12rem, 100%); }
+.coupon-editor-body { display: grid; gap: .9rem; margin-block: 1rem; }
+.coupon-editor-section {
+  min-width: 0;
+  border: 1px solid var(--ce-border);
+  border-radius: .85rem;
+  background: var(--ce-surface);
+  padding: clamp(.9rem, 3vw, 1.35rem);
+}
+.coupon-editor-section h3 { font-size: 1.05rem; margin-bottom: .75rem; }
+.coupon-editor-section summary { font-weight: 700; cursor: pointer; }
+.coupon-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .65rem 1rem;
+}
+.coupon-editor-grid > * { min-width: 0; }
+.coupon-editor-wide { grid-column: span 2; }
+.coupon-editor label { display: block; margin-bottom: .28rem; font-weight: 600; }
+.coupon-editor label > .form-control { margin-top: .28rem; }
+.coupon-editor input[type="datetime-local"], .coupon-editor #code { direction: ltr; }
+.coupon-editor-help { margin-top: .55rem; color: var(--ce-muted); font-size: .9rem; }
+.coupon-editor-cycles {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem 1rem;
+}
+.coupon-editor-cycles label {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: .55rem;
+  margin: 0;
+}
+.coupon-editor-cycles label input { flex: none; float: none; margin: .22em 0 0; }
+.coupon-editor-publish, .coupon-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .65rem;
+}
+.coupon-editor-publish h3 { margin-bottom: .2rem; }
+.coupon-editor-actions {
+  justify-content: flex-end;
+  padding: .45rem 0;
+}
+.coupon-editor [hidden] { display: none !important; }
+@media (max-width: 720px) {
+  .coupon-editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 490px) {
+  .coupon-editor-grid { grid-template-columns: 1fr; }
+  .coupon-editor-wide { grid-column: auto; }
+}

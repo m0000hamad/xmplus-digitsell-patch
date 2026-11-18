@@ -1,8 +1,16 @@
+## 2026-11-18 — Redesigned coupon editor (1.38.51)
+
+The add and edit screens now use a responsive editor grouped around discount, schedule, purchase eligibility, redemption limits and campaign settings. It mounts the native controls and save action in the new layout, preserving plan and billing-cycle scope, first-order eligibility, and usage caps. Tehran calendar controls synchronize native start and end fields. Entering validity days fills the end from the chosen start, or uses the current Tehran time when the start is empty. The popup, admin summary and Telegram announcement recognize the panel's native numeric percentage type (2).
+
+Coupon eligibility still uses the native first-order and redemption-limit checks. A registration-age guard and cross-account identity checks require a tested purchase-side enforcement point. The relevant native routing and checkout controllers are ionCube encoded. HTTP requests cannot supply a client's MAC address.
+
+Smarty rendered the editor in all three locales. DOM fixtures passed for both routes, native control and save bindings, percentage labels, month rollover, missing-start handling, and invalid schedule rejection. Publication and installation pending.
+
 ## 2026-11-18 — Native coupon picker and validity details (1.38.50)
 
 The campaign editor selects saved discount codes from the native coupon list. Selecting a code shows its discount, Tehran start and end times, duration, and any missing dates or disabled or expired status. New and edit links open the native coupon forms that own the percentage and dates. The editor loads and saves each campaign by its coupon ID, and customer offers follow the current code if it is renamed. Percentage coupons show their native percentage in the popup and Telegram announcement. The admin checkbox labels have explicit spacing and can wrap without covering text.
 
-Smarty rendered the updated templates in all three locales. Isolated model and editor checks covered percent and fixed coupons, timestamp parsing, multiple independent selections, campaign ID binding, renamed codes, and disabling an orphaned campaign. Publication and live installation pending.
+Smarty rendered the updated templates in all three locales. Isolated model and editor checks covered separate native codes, timestamp parsing, campaign ID binding, renamed codes, and disabling an orphaned campaign. Published at `24c22cc7f59d4be2a7193a4382ab193f3230bb37`; verified the remote branch, immutable manifest, installed application version, all 220 runtime checksums and HTTP health. The on-server read-only model check identified native numeric type 2, addressed in 1.38.51.
 
 ## 2026-11-18 — Timed coupon campaigns (1.38.49)
 

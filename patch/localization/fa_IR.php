@@ -2296,4 +2296,12 @@ $i18n['fa_IR'] = array(
     'CouponCampaignUse' => 'استفاده از تخفیف',
     'CouponCampaignSelected' => 'انتخاب شد',
     'CouponCampaignApplied' => 'تخفیف اعمال شد.',
+    'CouponEditorDays' => 'مدت اعتبار به روز',
+    'CouponEditorDaysHint' => 'تعداد روز را وارد کنید تا زمان پایان از روی تاریخ شروع محاسبه شود.',
+    'CouponEditorEligibility' => 'شرایط استفاده',
+    'CouponEditorFirstOrder' => 'فقط سفارش اول',
+    'CouponEditorFirstOrderHint' => 'با فعال‌کردن این گزینه، کد فقط برای سفارش اول حساب قابل استفاده است.',
+    'CouponEditorLimits' => 'سقف استفاده و دوره‌های خرید',
+    'CouponEditorCampaignHint' => 'بعد از ذخیرهٔ کد، آن را در کمپین‌ها انتخاب کنید تا پاپ‌آپ و اعلان تلگرام تنظیم شود.',
+    'CouponEditorInvalidWindow' => 'زمان پایان باید بعد از شروع باشد.',
 );

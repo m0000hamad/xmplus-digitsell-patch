@@ -2259,4 +2259,12 @@ $i18n['zh_CN'] = array(
     'CouponCampaignUse' => '使用优惠',
     'CouponCampaignSelected' => '已选择',
     'CouponCampaignApplied' => '优惠已应用。',
+    'CouponEditorDays' => '有效天数',
+    'CouponEditorDaysHint' => '输入天数后将根据所选开始时间计算结束时间。',
+    'CouponEditorEligibility' => '使用条件',
+    'CouponEditorFirstOrder' => '仅限首单',
+    'CouponEditorFirstOrderHint' => '启用后，优惠码仅适用于该账户的首个订单。',
+    'CouponEditorLimits' => '兑换限制和购买周期',
+    'CouponEditorCampaignHint' => '保存优惠码后，在优惠码活动中选择它以设置弹窗和 Telegram 公告。',
+    'CouponEditorInvalidWindow' => '结束时间必须晚于开始时间。',
 );
