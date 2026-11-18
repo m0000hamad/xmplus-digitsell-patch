@@ -1,3 +1,11 @@
+## 2026-11-18 — Timed coupon campaigns (1.38.49)
+
+In Admin → Coupon codes, link a saved timed coupon to a campaign title and an occasion design. Black Friday, Nowruz, Yalda, Christmas and classic designs share the customer's timed popup and persistent corner button. The campaign follows the native code's start, expiry and enabled status. Selecting an offer carries it into the native plan quote and checkout, which validate the chosen plan and billing cycle. The existing promotion worker can post the activation once per scheduled start in the configured Telegram promotion channel. Its purchase link carries the campaign ID into the portal.
+
+PHP and JavaScript syntax checks passed. Smarty 4.5.3 compiled the changed layouts and checkout and rendered the new interfaces in all three locales. Isolated checks passed for schedule boundaries, native redemption responses and stale quote ordering, plus Telegram activation and duplicate prevention. The legacy rainy and occasion-picker test failures are recorded below. No customer coupon or Telegram message was created for testing.
+
+Publication and live installation pending.
+
 ## 2026-11-18 — Black Friday promotion theme (local 1.38.48)
 
 Black Friday is a manual occasion in both promotion theme pickers, with a black-and-gold sticker and banner palette and localized suggested occasion text that preserves custom text. Focused PHP and JavaScript checks passed. The older occasion tests already failed on the legacy rainy key and the picker template split before this change. Not published or installed live.

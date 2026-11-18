@@ -301,6 +301,7 @@
 }
 .pd-buy:hover { box-shadow: 0 12px 26px rgba(16, 185, 129, .44); }
 .pd-buy:active { transform: scale(.98); }
+.pd-buy:disabled { opacity: .65; cursor: wait; }
 .pd-safe {
 	margin-top: 11px;
 	font-size: 11.5px;
@@ -539,6 +540,9 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 								<button type="button" class="pd-mini" id="redeem">{$translate->get('Redeem')}</button>
 								<button type="button" class="pd-mini pd-mini-off" id="remove" onClick="Remove()" hidden>{$translate->get('Remove')}</button>
 							</div>
+							<div id="coupon-feedback" class="small mt-2" role="status"
+								data-applied="{$translate->get('CouponCampaignApplied')|escape:'html'}"
+								data-error="{$translate->get('CouponCampaignError')|escape:'html'}"></div>
 						</div>
 					</div>
 				{/if}
@@ -579,7 +583,7 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 							<span class="pd-total-value">{$currency->symbol_left} <span id="total">{$price}</span> {$currency->symbol_right}</span>
 						</div>
 
-						<button type="button" class="pd-buy" onClick="Checkout()">🛒 {$translate->get('Checkout')}</button>
+						<button type="button" class="pd-buy" id="plan-buy" onClick="Checkout()">🛒 {$translate->get('Checkout')}</button>
 						<div class="pd-safe">🔒 {$translate->get('CheckoutSafeNote')}</div>
 					</div>
 				</div>
@@ -591,16 +595,17 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 {include file='user/layout/footer.tpl'}
 {include file='common/orderresult.tpl'}
 <script>
-	checkBill();
-	reserveBoot();
-	
-	{if $Config['allow_coupon_use'] == 1}
-		var coupon = localStorage.getItem('coupon');
-		if(coupon != null){
-			localStorage.removeItem('coupon');
-		}
-	{/if}
-	
+	let requestedCoupon = '';
+	let confirmedCoupon = '';
+	let checkoutOffer = null;
+	let quoteRequest = null;
+	let quoteVersion = 0;
+	const buyButton = document.getElementById('plan-buy');
+	const couponInput = document.getElementById('coupon');
+	const couponFeedback = document.getElementById('coupon-feedback');
+	const redeem = document.getElementById('redeem');
+	const remove = document.getElementById('remove');
+
 	function DisableActive(){
 		var mark = document.getElementById('disableactiveState');
 		if (mark) {
@@ -627,96 +632,95 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 	}
 	
 	function Remove(){
-		document.getElementById("coupon").disabled = false;
-		document.getElementById("remove").setAttribute("hidden", true);
-		document.getElementById("redeem").removeAttribute("hidden");
-		localStorage.removeItem('coupon');
-		$("#coupon").val("");
-		location.reload();
-	}	
-	
-	function checkBill(){
-		var type = $("input[name='plan']:checked").val();
-		Billing(type);
+		if (window.clearCheckoutOffer) window.clearCheckoutOffer();
+		checkoutOffer = null;
+		requestedCoupon = '';
+		couponInput.value = '';
+		couponFeedback.textContent = '';
+		checkBill();
 	}
-	
-	function Billing(type){
-		var coupon = localStorage.getItem('coupon');
-		if(coupon != null){
-			var code = coupon;
-		}else{
-			var code = "";
-		}
-		$.ajax({
-			type: "POST",
-			url: "/portal/checkout/billing",
-			dataType: "json",
-			data: {
-				packageid : {$package->id},
-				type: type,
-				code: code,
-			},
-			success: (data) => {
-				if (data.ret) {
-					$("#total").html(data.total);
-					$("#subtotal").html(data.subtotal);
-					$("#discount").html(data.discount);
-				}else{
-					layer.msg(data.msg, {
-						time: 3000,
-						offset:  '100px'
-					});
-				}
-			},
-			error: (jqXHR) => {
-				layer.msg(jqXHR.responseText, {
-					time: 8000,
-					offset:  '100px'
-				});
-			}
-		});
-	}	
 
-	
-	{if $Config['allow_coupon_use'] == 1}
-	$('#redeem').click(function (){
-		var plan =  $("input[name='plan']:checked").val();
-		localStorage.setItem('coupon', $("#coupon").val());
-		$.ajax({
+	function checkBill(){
+		Billing($("input[name='plan']:checked").val());
+	}
+
+	function Billing(type){
+		refreshQuote(type, checkoutOffer ? checkoutOffer.code : requestedCoupon);
+	}
+
+	function refreshQuote(type, code){
+		const version = ++quoteVersion;
+		if (quoteRequest) quoteRequest.abort();
+		confirmedCoupon = '';
+		buyButton.disabled = true;
+		if (couponInput) {
+			couponInput.disabled = Boolean(code);
+			redeem.disabled = remove.disabled = true;
+		}
+		quoteRequest = $.ajax({
 			type: "POST",
-			url: "/portal/checkout/redeem",
+			url: code ? "/portal/checkout/redeem" : "/portal/checkout/billing",
 			dataType: "json",
-			data: {
-				packageid : {$package->id},
-				plan: plan,
-				code: localStorage.getItem('coupon'),
-			},
+			timeout: 10000,
+			data: code ? { packageid: {$package->id}, plan: type, code: code }
+				: { packageid: {$package->id}, type: type, code: '' },
 			success: (data) => {
-				if (data.ret) {
-					$("#total").html(data.total);
-					$("#subtotal").html(data.subtotal);
-					$("#discount").html(data.discount);
-					document.getElementById("coupon").disabled = true;
-					document.getElementById("redeem").setAttribute("hidden", true);
-					document.getElementById("remove").removeAttribute("hidden");
-				}else{
-				    localStorage.removeItem('coupon');
-					layer.msg(data.msg, {
-						time: 3000,
-						offset:  '100px'
-					});
+				if (version !== quoteVersion) return;
+				if (Number(data.ret) > 0) {
+					$("#total").text(data.total);
+					$("#subtotal").text(data.subtotal);
+					$("#discount").text(data.discount);
+					confirmedCoupon = code;
+					if (code) couponFeedback.textContent = couponFeedback.dataset.applied;
+				} else if (code) {
+					rejectCoupon(type, data.msg);
+				} else {
+					layer.msg(data.msg, { time: 3000, toffset: '100px' });
 				}
 			},
-			error: (jqXHR) => {
-				layer.msg(jqXHR.responseText, {
-					time: 8000,
-					offset:  '100px'
-				});
+			error: (jqXHR, status) => {
+				if (version !== quoteVersion || status === 'abort') return;
+				if (code) rejectCoupon(type, couponFeedback.dataset.error);
+				else if (couponFeedback && !couponFeedback.textContent) couponFeedback.textContent = couponFeedback.dataset.error;
+			},
+			complete: () => {
+				if (version !== quoteVersion) return;
+				quoteRequest = null;
+				buyButton.disabled = false;
+				if (couponInput) {
+					const accepted = Boolean(confirmedCoupon);
+					couponInput.disabled = accepted;
+					redeem.hidden = accepted;
+					remove.hidden = !accepted;
+					redeem.disabled = remove.disabled = false;
+				}
 			}
 		});
+	}
+
+	function rejectCoupon(type, message){
+		requestedCoupon = '';
+		couponFeedback.textContent = message || couponFeedback.dataset.error;
+		refreshQuote(type, '');
+	}
+
+	{if $Config['allow_coupon_use'] == 1}
+	redeem.addEventListener('click', function () {
+		if (window.clearCheckoutOffer) window.clearCheckoutOffer();
+		checkoutOffer = null;
+		requestedCoupon = couponInput.value.trim();
+		couponFeedback.textContent = '';
+		checkBill();
 	});
+
+	window.setCheckoutOffer = function (offer) {
+		checkoutOffer = offer;
+		couponInput.value = requestedCoupon = offer ? offer.code : '';
+		couponFeedback.textContent = '';
+		checkBill();
+	};
 	{/if}
-	
+
 	/* ---- reserve this plan to start later (app/Patch/Reserve.php) ---- */
 	var reserveToken = "";
 	var reserveMaxDays = 365;
@@ -854,7 +858,6 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 				disableactive: disableactive
 			},
 			success: (data) => {
-				localStorage.removeItem('coupon');
 				if (data.ret == -4) {
 					Swal.fire({
 						title: '',
@@ -914,18 +917,18 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 	}
 
 	function Checkout(){
+		if (buyButton.disabled) return;
+		if (checkoutOffer && window.checkoutOfferExpired && window.checkoutOfferExpired(checkoutOffer)) {
+			Remove();
+			return;
+		}
 		var plan =  $("input[name='plan']:checked").val();
 		// commission pays for plans: move it into the wallet first, then check out
 		if (window.CommissionUse && !window.CommissionUse.passed) {
 			window.CommissionUse.before({$package->id}, plan, Checkout);
 			return;
 		}
-		var coupon = localStorage.getItem('coupon');
-		if(coupon != null){
-			var code = coupon;
-		}else{
-			var code = "";
-		}
+		const code = confirmedCoupon;
 
 		if (ReserveReady()) {
 			reservePrepare(plan, code);
@@ -939,6 +942,6 @@ html[data-hs-theme="dark"] .pd-switch-state { color: #fcd34d; }
 		}
 		SubmitOrder({$package->id}, plan, code, disableactive);
 	}	
+	checkBill();
+	reserveBoot();
 </script>
-	
-	

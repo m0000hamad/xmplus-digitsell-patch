@@ -3,6 +3,7 @@ namespace App\Jobs;
 
 use App\Http\Models\Package;
 use App\Http\Models\Queue;
+use App\Patch\CouponCampaigns;
 use Illuminate\Database\Capsule\Manager as DB;
 
 /**
@@ -94,7 +95,59 @@ class PromoJob
 			}
 		}
 
+		try {
+			$this->announceCouponCampaigns();
+		} catch (\Throwable $error) {
+			error_log('Coupon campaign announcements: ' . $error->getMessage());
+		}
 		return $logged;
+	}
+
+	private function announceCouponCampaigns(): void
+	{
+		$chat = trim((string) $this->setting('promo_channel_id'));
+		if ($chat === '' || $this->token === '' || (string) $this->setting('allow_coupon_use') !== '1') {
+			return;
+		}
+		require_once dirname(__DIR__) . '/Patch/CouponCampaigns.php';
+		$entries = CouponCampaigns::read($this->setting(CouponCampaigns::SETTING));
+		$site = $this->siteUrl();
+		foreach ($entries as $id => $entry) {
+			if (empty($entry['notify']) || empty($entry['enabled'])) {
+				continue;
+			}
+			$coupon = CouponCampaigns::schedule($entry);
+			if (!CouponCampaigns::isActive($entry, $coupon, time()) || ($entry['sent'] ?? null) === $coupon['start']) {
+				continue;
+			}
+			CouponCampaigns::change(DB::connection()->getPdo(), function (array $current) use ($id, $chat, $site) {
+				$entry = $current[$id] ?? null;
+				if (empty($entry['notify']) || empty($entry['enabled'])) {
+					return $current;
+				}
+				$coupon = CouponCampaigns::schedule($entry);
+				if (!CouponCampaigns::isActive($entry, $coupon, time()) || ($entry['sent'] ?? null) === $coupon['start']) {
+					return $current;
+				}
+				$title = htmlspecialchars($entry['title'], ENT_QUOTES, 'UTF-8');
+				$end = $this->date($coupon['end'], true);
+				$reply = $this->api('sendMessage', [
+					'chat_id' => $chat,
+					'text' => "🎟 <b>{$title}</b>\n\nتخفیف فعال شد.\n⏳ مهلت استفاده: {$end}",
+					'parse_mode' => 'HTML',
+					'reply_markup' => json_encode(['inline_keyboard' => [[[
+						'text' => '🛒 خرید با تخفیف',
+						'url' => "{$site}/portal/plans?offer={$id}",
+					]]]], JSON_UNESCAPED_UNICODE),
+				]);
+				if (!empty($reply['ok']) && !empty($reply['result']['message_id'])) {
+					$current[$id]['sent'] = $coupon['start'];
+				} else {
+					error_log('Coupon campaign channel announcement was not confirmed: ' . $id);
+				}
+				return $current;
+			});
+		}
 	}
 
 	private function setting($name)

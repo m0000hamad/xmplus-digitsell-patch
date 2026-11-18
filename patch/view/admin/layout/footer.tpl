@@ -138,3 +138,4 @@
 {include file='common/ovpnicon.tpl'}
 {include file='common/wgicon.tpl'}
 {include file='admin/servers/profiledomains.tpl'}
+{include file='admin/coupons/campaigns.tpl'}

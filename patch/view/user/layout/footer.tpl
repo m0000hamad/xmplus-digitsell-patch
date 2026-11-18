@@ -235,3 +235,6 @@
  </script>
 {/if}
 {include file='common/copy.tpl'}
+{if $Config['allow_coupon_use'] == 1}
+{include file='user/layout/couponcampaign.tpl'}
+{/if}
