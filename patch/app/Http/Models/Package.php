@@ -279,6 +279,7 @@ final class Package extends Model
 		'nowruz'    => '🌱',
 		'yalda'     => '🍉',
 		'christmas' => '🎄',
+		'black_friday' => '🛍️',
 		'mother'    => '💐',
 		'father'    => '👔',
 		'girl'      => '🎀',

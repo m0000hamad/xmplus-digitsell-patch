@@ -1,3 +1,7 @@
+## 2026-11-18 — Black Friday promotion theme (local 1.38.48)
+
+Black Friday is a manual occasion in both promotion theme pickers, with a black-and-gold sticker and banner palette and localized suggested occasion text that preserves custom text. Focused PHP and JavaScript checks passed. The older occasion tests already failed on the legacy rainy key and the picker template split before this change. Not published or installed live.
+
 ## 2026-11-18 — Dark theme readability (1.38.47)
 
 Native select popups, Bootstrap dropdowns and Tom Select menus use explicit dark surfaces and readable text. The portal sidebar uses a darker active item and a subdued hover glow. Customer traffic and quota charts and admin sales and server-usage charts use brighter labels and grid lines. Both layouts share the resolved theme, including system preference changes, and the charts redraw when it changes.

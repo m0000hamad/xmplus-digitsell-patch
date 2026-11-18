@@ -9,6 +9,7 @@
 						<option value="nowruz" {if $selectedtheme == 'nowruz'}selected{/if}>🌱 {$translate->get('PromoThemeNowruz')}</option>
 						<option value="yalda" {if $selectedtheme == 'yalda'}selected{/if}>🍉 {$translate->get('PromoThemeYalda')}</option>
 						<option value="christmas" {if $selectedtheme == 'christmas'}selected{/if}>🎄 {$translate->get('PromoThemeChristmas')}</option>
+						<option value="black_friday" {if $selectedtheme == 'black_friday'}selected{/if}>🛍️ {$translate->get('PromoThemeBlackFriday')}</option>
 						<option value="mother" {if $selectedtheme == 'mother'}selected{/if}>💐 {$translate->get('PromoThemeMother')}</option>
 						<option value="father" {if $selectedtheme == 'father'}selected{/if}>👔 {$translate->get('PromoThemeFather')}</option>
 						<option value="girl" {if $selectedtheme == 'girl'}selected{/if}>🎀 {$translate->get('PromoThemeGirl')}</option>

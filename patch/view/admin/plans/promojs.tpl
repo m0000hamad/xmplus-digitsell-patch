@@ -45,6 +45,7 @@
 	promoThemeText.nowruz    = "{$translate->get('PromoOccasionNowruz')|escape:'javascript'}";
 	promoThemeText.yalda     = "{$translate->get('PromoOccasionYalda')|escape:'javascript'}";
 	promoThemeText.christmas = "{$translate->get('PromoOccasionChristmas')|escape:'javascript'}";
+	promoThemeText.black_friday = "{$translate->get('PromoOccasionBlackFriday')|escape:'javascript'}";
 	promoThemeText.mother    = "{$translate->get('PromoOccasionMother')|escape:'javascript'}";
 	promoThemeText.father    = "{$translate->get('PromoOccasionFather')|escape:'javascript'}";
 	promoThemeText.girl      = "{$translate->get('PromoOccasionGirl')|escape:'javascript'}";

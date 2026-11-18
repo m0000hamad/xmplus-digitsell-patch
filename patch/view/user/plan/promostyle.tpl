@@ -223,6 +223,10 @@
 .promo-theme-christmas .promo-sticker-slot2, .promo-theme-christmas .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #f0fdf4, #4ade80 36%, #15803d 72%, #14532d); --st-ink: #fff; --st-glow: rgba(22, 163, 74, .65); }
 .promo-theme-christmas, .promo-sticker-special.promo-special-theme-christmas { --st-orn: "🎄"; --st-part: "❄"; }
 
+.promo-theme-black_friday .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-black_friday { --st-bg: radial-gradient(circle at 35% 30%, #475569, #1e293b 52%, #0f172a 78%, #020617); --st-ink: #fde68a; --st-glow: rgba(250, 204, 21, .58); }
+.promo-theme-black_friday .promo-sticker-slot2, .promo-theme-black_friday .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fef3c7, #fbbf24 52%, #d97706 80%, #92400e); --st-ink: #292219; --st-glow: rgba(251, 191, 36, .65); }
+.promo-theme-black_friday, .promo-sticker-special.promo-special-theme-black_friday { --st-orn: "🛍️"; --st-part: "✦"; }
+
 .promo-theme-mother .promo-sticker-slot1, .plan-card .promo-sticker-special.promo-special-theme-mother { --st-bg: radial-gradient(circle at 35% 30%, #fff1f2, #fda4af 38%, #f43f5e 72%, #9f1239); --st-ink: #fff; --st-glow: rgba(244, 63, 94, .65); }
 .promo-theme-mother .promo-sticker-slot2, .promo-theme-mother .promo-sticker-slot3 { --st-bg: radial-gradient(circle at 35% 30%, #fdf4ff, #f0abfc 38%, #c026d3 74%, #701a75); --st-ink: #fff; --st-glow: rgba(217, 70, 239, .6); }
 .promo-theme-mother, .promo-sticker-special.promo-special-theme-mother { --st-orn: "💐"; --st-part: "❤"; }
@@ -347,6 +351,7 @@
 .promo-banner.promo-theme-nowruz    { background: linear-gradient(135deg, #15803d, #22c55e 50%, #f59e0b); }
 .promo-banner.promo-theme-yalda     { background: linear-gradient(135deg, #7f1d1d, #dc2626 45%, #4c1d95); }
 .promo-banner.promo-theme-christmas { background: linear-gradient(135deg, #b91c1c, #dc2626 45%, #15803d); }
+.promo-banner.promo-theme-black_friday { background: linear-gradient(135deg, #020617, #1e293b 55%, #713f12); }
 .promo-banner.promo-theme-mother    { background: linear-gradient(135deg, #be123c, #f43f5e 50%, #c026d3); }
 .promo-banner.promo-theme-father    { background: linear-gradient(135deg, #1e3a8a, #2563eb 55%, #b45309); }
 .promo-banner.promo-theme-girl      { background: linear-gradient(135deg, #a21caf, #e879f9 50%, #f472b6); }
