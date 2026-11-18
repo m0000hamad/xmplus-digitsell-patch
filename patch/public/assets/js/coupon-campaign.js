@@ -21,8 +21,10 @@
   let refreshTimer;
   let loading = false;
   const seen = new Set();
-  const number = new Intl.NumberFormat(document.documentElement.lang || 'en', {useGrouping: false});
-  const padded = new Intl.NumberFormat(document.documentElement.lang || 'en', {minimumIntegerDigits: 2, useGrouping: false});
+  const locale = (root.dataset.locale || document.documentElement.lang || 'en').replace('_', '-');
+  const number = new Intl.NumberFormat(locale, {useGrouping: false});
+  const padded = new Intl.NumberFormat(locale, {minimumIntegerDigits: 2, useGrouping: false});
+  const percent = new Intl.NumberFormat(locale, {style: 'percent', maximumFractionDigits: 2});
 
   function read(storage, key) {
     try { return window[storage].getItem(key); } catch (error) { return null; }
@@ -111,6 +113,11 @@
       const card = template.content.firstElementChild.cloneNode(true);
       theme(card, offer);
       card.querySelector('h3').textContent = offer.title;
+      const discount = card.querySelector('[data-offer-percent]');
+      if (discount && typeof offer.percent === 'number' && offer.percent > 0) {
+        discount.textContent = percent.format(offer.percent / 100);
+        discount.hidden = false;
+      }
       const button = card.querySelector('.offer-use');
       button.textContent = root.dataset.use;
       button.addEventListener('click', () => select(offer));

@@ -1,3 +1,9 @@
+## 2026-11-18 — Native coupon picker and validity details (1.38.50)
+
+The campaign editor selects saved discount codes from the native coupon list. Selecting a code shows its discount, Tehran start and end times, duration, and any missing dates or disabled or expired status. New and edit links open the native coupon forms that own the percentage and dates. The editor loads and saves each campaign by its coupon ID, and customer offers follow the current code if it is renamed. Percentage coupons show their native percentage in the popup and Telegram announcement. The admin checkbox labels have explicit spacing and can wrap without covering text.
+
+Smarty rendered the updated templates in all three locales. Isolated model and editor checks covered percent and fixed coupons, timestamp parsing, multiple independent selections, campaign ID binding, renamed codes, and disabling an orphaned campaign. Publication and live installation pending.
+
 ## 2026-11-18 — Timed coupon campaigns (1.38.49)
 
 In Admin → Coupon codes, link a saved timed coupon to a campaign title and an occasion design. Black Friday, Nowruz, Yalda, Christmas and classic designs share the customer's timed popup and persistent corner button. The campaign follows the native code's start, expiry and enabled status. Selecting an offer carries it into the native plan quote and checkout, which validate the chosen plan and billing cycle. The existing promotion worker can post the activation once per scheduled start in the configured Telegram promotion channel. Its purchase link carries the campaign ID into the portal.

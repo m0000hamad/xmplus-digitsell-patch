@@ -131,9 +131,10 @@ class PromoJob
 				}
 				$title = htmlspecialchars($entry['title'], ENT_QUOTES, 'UTF-8');
 				$end = $this->date($coupon['end'], true);
+				$discount = $coupon['percentage'] && $coupon['credit'] > 0 ? "\n🎁 {$coupon['credit']}٪ تخفیف" : '';
 				$reply = $this->api('sendMessage', [
 					'chat_id' => $chat,
-					'text' => "🎟 <b>{$title}</b>\n\nتخفیف فعال شد.\n⏳ مهلت استفاده: {$end}",
+					'text' => "🎟 <b>{$title}</b>\n\nتخفیف فعال شد.{$discount}\n⏳ مهلت استفاده: {$end}",
 					'parse_mode' => 'HTML',
 					'reply_markup' => json_encode(['inline_keyboard' => [[[
 						'text' => '🛒 خرید با تخفیف',

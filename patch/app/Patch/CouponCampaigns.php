@@ -49,17 +49,39 @@ final class CouponCampaigns
 
     public static function coupon(string $code): ?array
     {
-        $coupon = Coupon::where('code', $code)->first();
-        if (!$coupon) {
+        return self::describe(Coupon::where('code', $code)->first());
+    }
+
+    public static function couponById(int $id): ?array
+    {
+        return self::describe(Coupon::find($id));
+    }
+
+    public static function choices(): array
+    {
+        $coupons = [];
+        foreach (Coupon::orderBy('id', 'desc')->get() as $coupon) {
+            $coupons[] = self::describe($coupon);
+        }
+        return $coupons;
+    }
+
+    private static function describe(?Coupon $coupon): ?array
+    {
+        if ($coupon === null) {
             return null;
         }
         $row = $coupon->getAttributes();
+        $type = strtolower((string) ($row['type'] ?? ''));
+        $credit = $row['credit'] ?? null;
         return [
             'id' => (int) $coupon->getKey(),
             'code' => (string) $row['code'],
             'enabled' => (int) ($row['status'] ?? 0) === 1,
             'start' => self::timestamp($row['start_date'] ?? null),
             'end' => self::timestamp($row['expire_date'] ?? null),
+            'credit' => is_numeric($credit) ? (float) $credit : null,
+            'percentage' => in_array($type, ['percentage_amount', 'percentage', 'percent'], true),
         ];
     }
 
@@ -77,8 +99,7 @@ final class CouponCampaigns
 
     public static function schedule(array $entry): ?array
     {
-        $coupon = self::coupon($entry['code']);
-        return $coupon && $coupon['id'] === $entry['coupon_id'] ? $coupon : null;
+        return self::couponById((int) $entry['coupon_id']);
     }
 
     public static function isActive(array $entry, ?array $coupon, int $now): bool
