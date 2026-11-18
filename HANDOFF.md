@@ -4,7 +4,9 @@ After creating a native code, open its editor and select either optional rule un
 
 The same MySQL rule serves the authenticated quote and active-offer checks and runs for direct order inserts and later coupon or buyer changes. Existing assignments can settle normally. Migration 034 is additive and idempotent, with the rules dormant when the recorded patch rolls back below 1.38.52. Coupon deletion clears its rule via the foreign key. Existing codes start with both rules off.
 
-Native checkout with connection-local fixtures confirmed that it writes the validated coupon code and discount directly to orders without firing an Eloquent save event. Isolated MySQL tests covered fresh registrations, duplicate IPv4/IPv6, unsupported addresses, direct inserts and reassignment, payment-status updates, rollback, and disabling rules. Smarty and checkout behavior checks passed. Publication and installation pending.
+Native checkout with connection-local fixtures confirmed that it writes the validated coupon code and discount directly to orders without firing an Eloquent save event. Isolated MySQL tests covered fresh registrations, duplicate IPv4/IPv6, unsupported addresses, direct inserts and reassignment, payment-status updates, rollback, disabling rules, and safe deletion. Smarty and checkout behavior checks passed.
+
+Published `bfd22c0e2d936f1dd6eed22bd557b1b91c82923a` to the configured main branch and verified the immutable manifest, installer and migration. Installed over SSH with backup `storage/patch/backup-20261118-165204`. Migration 034 ran successfully. All 225 live files match the published manifest, and the live application configuration reports installed 1.38.52 against published 1.38.52. Both order triggers, the rule function, native Smarty compilation, login, public assets and unauthenticated access rejection passed. No production coupon rule was enabled during deployment. The authenticated web updater status was not opened during the SSH-only deployment.
 
 ## 2026-11-18 — Redesigned coupon editor (1.38.51)
 
