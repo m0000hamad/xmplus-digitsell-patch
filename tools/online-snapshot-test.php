@@ -9,7 +9,7 @@ $db->exec('CREATE TABLE servers (id INTEGER PRIMARY KEY, name TEXT);
 CREATE TABLE user (id INTEGER PRIMARY KEY, username TEXT);
 CREATE TABLE online_ip (id INTEGER PRIMARY KEY, userid INTEGER, serverid INTEGER, ip TEXT, datetime INTEGER, username TEXT, servername TEXT);
 CREATE TABLE node_profile_online(serverid INTEGER PRIMARY KEY,profile1 INTEGER,profile2 INTEGER,unclassified INTEGER,ready INTEGER,datetime INTEGER);
-CREATE TABLE node_user_profile_online(serverid INTEGER,userid INTEGER,profile INTEGER,datetime INTEGER,PRIMARY KEY(serverid,userid,profile));
+CREATE TABLE node_user_profile_online(serverid INTEGER,userid INTEGER,profile INTEGER,datetime INTEGER,ip_count INTEGER NOT NULL,PRIMARY KEY(serverid,userid,profile));
 INSERT INTO servers VALUES (58,"US"),(59,"TR"); INSERT INTO user VALUES (1,"fixture"),(2,"fixture2");');
 $ip = ['subscription_id' => 1, 'ip' => '198.51.100.7'];
 nodeOnlineSnapshot($db, 58, [$ip], 1000);
@@ -64,4 +64,16 @@ nodeOnlineSnapshot($db, 59, [$ip], 1105, [['subscription_id'=>1,'ip'=>$ip['ip'],
 onlineCheck(array_map('intval', $db->query($members)->fetchAll(PDO::FETCH_COLUMN)) === [1], 'direct profile clears tunnel presence');
 nodeOnlineSnapshot($db, 59, [$ip], 1106);
 onlineCheck($db->query($members)->fetchAll(PDO::FETCH_COLUMN) === [], 'unclassified reports clear stale profile memberships');
+$tenIps = [];
+for ($host = 1; $host <= 10; ++$host) {
+    $tenIps[] = ['subscription_id'=>1, 'ip'=>'198.51.100.' . $host];
+}
+$direct = array_map(static function ($row) { return $row + ['profile'=>1]; }, $tenIps);
+$tunnel = $tenIps[0] + ['profile'=>2];
+nodeOnlineSnapshot($db, 58, $tenIps, 1107, array_merge($direct, [$direct[0], $tunnel]), true);
+$profileCounts = $db->query('SELECT ip_count FROM node_user_profile_online WHERE serverid=58 AND userid=1 ORDER BY profile')->fetchAll(PDO::FETCH_COLUMN);
+onlineCheck(array_map('intval', $profileCounts) === [10, 1], 'count distinct addresses per profile without a two-device cap');
+nodeOnlineSnapshot($db, 58, array_slice($tenIps, 0, 2), 1108, array_slice($direct, 0, 2), true);
+$profileCounts = $db->query('SELECT ip_count FROM node_user_profile_online WHERE serverid=58 AND userid=1 ORDER BY profile')->fetchAll(PDO::FETCH_COLUMN);
+onlineCheck(array_map('intval', $profileCounts) === [2], 'the next report updates the count and clears the disconnected profile');
 echo "PASS online snapshots: cross-node isolation, distinct NAT IPs, disconnect, validation, rollback and normalization\n";

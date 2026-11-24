@@ -89,7 +89,7 @@ function nodeOnlineSnapshot(PDO $pdo, int $node, array $rows, int $now, ?array $
         $perProfile = [1 => [], 2 => []]; $identified = []; $unknown = [];
         foreach ($profiles as $row) {
             if (!isset($users[$row['subscription_id']])) continue;
-            $perProfile[$row['profile']][$row['subscription_id']] = true;
+            $perProfile[$row['profile']][$row['subscription_id']][$row['ip']] = true;
             $identified[$row['subscription_id'] . '|' . $row['ip']] = true;
         }
         foreach ($rows as $row) {
@@ -100,10 +100,10 @@ function nodeOnlineSnapshot(PDO $pdo, int $node, array $rows, int $now, ?array $
             ->execute([$node, count($perProfile[1]), count($perProfile[2]), count($unknown), $profilesActive ? 1 : 0, $now]);
         $pdo->prepare('DELETE FROM node_user_profile_online WHERE serverid=?')->execute([$node]);
         if ($profilesActive) {
-            $insertProfile = $pdo->prepare('INSERT INTO node_user_profile_online(serverid,userid,profile,datetime) VALUES(?,?,?,?)');
+            $insertProfile = $pdo->prepare('INSERT INTO node_user_profile_online(serverid,userid,profile,datetime,ip_count) VALUES(?,?,?,?,?)');
             foreach ($perProfile as $profile => $members) {
-                foreach ($members as $userId => $_) {
-                    $insertProfile->execute([$node, $userId, $profile, $now]);
+                foreach ($members as $userId => $ips) {
+                    $insertProfile->execute([$node, $userId, $profile, $now, count($ips)]);
                 }
             }
         }

@@ -511,10 +511,10 @@ final class User extends Model
 			$stats['live'] = DB::table('online_ip')
 				->where('userid', $this->id)
 				->where('datetime', '>=', $onlineSince)
-				->distinct()
-				->pluck('serverid')
-				->map(function ($id) { return (int) $id; })
-				->values()
+				->selectRaw('serverid, COUNT(DISTINCT ip) AS ip_count')
+				->groupBy('serverid')
+				->pluck('ip_count', 'serverid')
+				->map(function ($count) { return (int) $count; })
 				->all();
 		} catch (\Throwable $e) {
 			$stats['live'] = [];
@@ -524,8 +524,10 @@ final class User extends Model
 			$stats['live_profiles'] = DB::table('node_user_profile_online')
 				->where('userid', $this->id)
 				->where('datetime', '>=', $onlineSince)
-				->get(['serverid', 'profile'])
-				->map(function ($row) { return $row->serverid . ':' . $row->profile; })
+				->get(['serverid', 'profile', 'ip_count'])
+				->mapWithKeys(function ($row) {
+					return [$row->serverid . ':' . $row->profile => (int) $row->ip_count];
+				})
 				->all();
 		} catch (\Throwable $e) {
 			$stats['live_profiles'] = [];

@@ -14,7 +14,7 @@ foreach(['user','servers','online_ip'] as $table){
     $db->exec(str_replace('CREATE TABLE','CREATE TEMPORARY TABLE',$ddl));
 }
 $db->exec('CREATE TEMPORARY TABLE node_profile_online(serverid INT PRIMARY KEY,profile1 INT,profile2 INT,unclassified INT,ready TINYINT,datetime BIGINT) ENGINE=InnoDB');
-$db->exec('CREATE TEMPORARY TABLE node_user_profile_online(serverid INT,userid INT,profile TINYINT,datetime BIGINT,PRIMARY KEY(serverid,userid,profile)) ENGINE=InnoDB');
+$db->exec('CREATE TEMPORARY TABLE node_user_profile_online(serverid INT,userid INT,profile TINYINT,datetime BIGINT,ip_count INT NOT NULL,PRIMARY KEY(serverid,userid,profile)) ENGINE=InnoDB');
 function insertProfileFixture(string $table,array $row):void{
     global $db;
     $db->prepare('INSERT INTO `'.$table.'` (`'.implode('`,`',array_keys($row)).'`) VALUES('.implode(',',array_fill(0,count($row),'?')).')')->execute(array_values($row));

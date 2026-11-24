@@ -1,6 +1,10 @@
+## 1.38.55 - number of connected addresses by server
+
+The usage chart shows the count of distinct fresh source IPs per account and server or split profile. Migration 036 adds the profile IP count while admin profile totals continue counting accounts. Devices sharing an IP and a credential are indistinguishable in node snapshots. PHP lint, presence snapshot tests and per-server badge rendering passed for this release build. Publication and installation verification follow.
+
 ## 1.38.54 - dashboard profile presence (2026-11-24)
 
-The dashboard now uses each user's fresh profile membership from the authenticated node snapshot. Previously it inferred profile presence from traffic history on the shared server, so a direct connection could show the tunnel badge. Migration 035 creates the account-level presence table and each node snapshot atomically replaces its own memberships. Agents without profile observations leave split badges hidden. PHP lint, snapshot regression tests and Xray profile tests passed. Publication and installation verification follow the release build.
+The dashboard now uses each user's fresh profile membership from the authenticated node snapshot. Previously it inferred profile presence from traffic history on the shared server, so a direct connection could show the tunnel badge. Migration 035 creates the account-level presence table and each node snapshot atomically replaces its own memberships. Agents without profile observations leave split badges hidden. PHP lint, SQLite and native MySQL snapshot tests, native Smarty rendering and Xray profile tests passed. Published 31bfaa70fc2bf555ea0aa63925331262d5842583 to origin/main and verified all 225 published and installed checksums. Installed over SSH with backup storage/patch/backup-20261124-165638; migration 035 ran. Authenticated updater reports installed/latest 1.38.54, login returns HTTP 200 and S4 sends fresh profile snapshots. The refreshed signed-in dashboard showed the connected badge beside S4 direct, with no badge beside the S4 tunnel.
 
 ## 2026-11-18 — Coupon restrictions visible in the native editor (1.38.53)
 

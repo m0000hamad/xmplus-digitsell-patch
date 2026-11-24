@@ -434,25 +434,26 @@ var renderUsageCharts = (function () {
 		});
 		donutChart.render(); }
 
-		var live = stats().live || [];
-		var liveProfiles = stats().live_profiles || [];
+		var live = stats().live || {};
+		var liveProfiles = stats().live_profiles || {};
 		var colors = palette();
 		var html = '';
 		for (var j = 0; j < servers.length; j++) {
 			var server = servers[j];
 			var color = colors[j % colors.length];
 			var width = grand > 0 ? Math.max((server.total / grand) * 100, 1.5) : 0;
-			// the server this user is on right now gets the halogen bar
-			var isLive = server.profile
-				? liveProfiles.indexOf(server.id + ':' + server.profile) !== -1
-				: live.indexOf(server.id) !== -1;
+			var activeCount = server.profile
+				? Number(liveProfiles[server.id + ':' + server.profile] || 0)
+				: Number(live[server.id] || 0);
+			var isLive = activeCount > 0;
+			var liveLabel = activeCount > 1 ? activeCount + ' ' + txt('live') : txt('live');
 
 			html += '<div class="usage-server' + (isLive ? ' is-live' : '') + '" style="--srv:' + color + '">'
 				+ '<span class="usage-server-rank" style="background:' + color + '">' + (j + 1) + '</span>'
 				+ '<div class="usage-server-body">'
 				+ '<div class="usage-server-head">'
 				+ '<span class="usage-server-name">' + escapeHtml(server.name)
-				+ (isLive ? ' <span class="usage-live"><i></i>' + txt('live') + '</span>' : '') + '</span>'
+				+ (isLive ? ' <span class="usage-live"><i></i>' + liveLabel + '</span>' : '') + '</span>'
 				+ '<span class="usage-server-total">' + format(server.total) + '</span>'
 				+ '</div>'
 				+ '<div class="usage-server-bar"><span style="width:' + width.toFixed(1) + '%;background:' + color + '"></span></div>'
