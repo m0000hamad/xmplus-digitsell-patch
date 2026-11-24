@@ -98,6 +98,15 @@ function nodeOnlineSnapshot(PDO $pdo, int $node, array $rows, int $now, ?array $
         $pdo->prepare('DELETE FROM node_profile_online WHERE serverid=?')->execute([$node]);
         $pdo->prepare('INSERT INTO node_profile_online(serverid,profile1,profile2,unclassified,ready,datetime) VALUES(?,?,?,?,?,?)')
             ->execute([$node, count($perProfile[1]), count($perProfile[2]), count($unknown), $profilesActive ? 1 : 0, $now]);
+        $pdo->prepare('DELETE FROM node_user_profile_online WHERE serverid=?')->execute([$node]);
+        if ($profilesActive) {
+            $insertProfile = $pdo->prepare('INSERT INTO node_user_profile_online(serverid,userid,profile,datetime) VALUES(?,?,?,?)');
+            foreach ($perProfile as $profile => $members) {
+                foreach ($members as $userId => $_) {
+                    $insertProfile->execute([$node, $userId, $profile, $now]);
+                }
+            }
+        }
         $pdo->commit();
         return $count;
     } catch (Throwable $error) {

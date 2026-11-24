@@ -504,44 +504,30 @@ final class User extends Model
 				: $this->serverList($this->historyByServer($froms[$range]));
 		}
 
-		/* ---- servers this user is connected to right now ---- */
+		$onlineSince = time() - 120;
 		$stats['live'] = [];
 		$stats['live_profiles'] = [];
 		try {
-			// nodes report online IPs about once a minute; five minutes of
-			// silence means the connection is gone
 			$stats['live'] = DB::table('online_ip')
 				->where('userid', $this->id)
-				->where('datetime', '>=', time() - 120)
+				->where('datetime', '>=', $onlineSince)
 				->distinct()
 				->pluck('serverid')
 				->map(function ($id) { return (int) $id; })
 				->values()
 				->all();
-
-			/* Split rows share one physical server id. Use the newest traffic
-			 * observation for that connected node to decide which profile row gets
-			 * the live badge; rows from the same second can legitimately mark both. */
-			if ($stats['live']) {
-				$latest = []; $recent = [];
-				$rows = TrafficLog::where('userid', $this->id)
-					->whereIn('serverid', $stats['live'])
-					->where('datetime', '>=', strtotime('today 00:00:00'))
-					->orderBy('datetime', 'desc')->get();
-				foreach ($rows as $row) {
-					$id = (int) $row->serverid; $at = (int) $row->datetime;
-					if (!isset($latest[$id])) $latest[$id] = $at;
-					if ($latest[$id] !== $at) continue;
-					$name = (string) $row->servername; $key = $id . ':' . $name;
-					if (!isset($recent[$key])) $recent[$key] = ['id' => $id, 'name' => $name, 'u' => 0, 'd' => 0];
-					$recent[$key]['u'] += (float) $row->u; $recent[$key]['d'] += (float) $row->d;
-				}
-				foreach ($this->serverList($recent) as $server) {
-					if (!empty($server['profile'])) $stats['live_profiles'][] = $server['id'] . ':' . $server['profile'];
-				}
-			}
 		} catch (\Throwable $e) {
 			$stats['live'] = [];
+		}
+
+		try {
+			$stats['live_profiles'] = DB::table('node_user_profile_online')
+				->where('userid', $this->id)
+				->where('datetime', '>=', $onlineSince)
+				->get(['serverid', 'profile'])
+				->map(function ($row) { return $row->serverid . ':' . $row->profile; })
+				->all();
+		} catch (\Throwable $e) {
 			$stats['live_profiles'] = [];
 		}
 

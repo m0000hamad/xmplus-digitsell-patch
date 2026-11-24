@@ -9,6 +9,7 @@ $db->exec('CREATE TABLE servers (id INTEGER PRIMARY KEY, name TEXT);
 CREATE TABLE user (id INTEGER PRIMARY KEY, username TEXT);
 CREATE TABLE online_ip (id INTEGER PRIMARY KEY, userid INTEGER, serverid INTEGER, ip TEXT, datetime INTEGER, username TEXT, servername TEXT);
 CREATE TABLE node_profile_online(serverid INTEGER PRIMARY KEY,profile1 INTEGER,profile2 INTEGER,unclassified INTEGER,ready INTEGER,datetime INTEGER);
+CREATE TABLE node_user_profile_online(serverid INTEGER,userid INTEGER,profile INTEGER,datetime INTEGER,PRIMARY KEY(serverid,userid,profile));
 INSERT INTO servers VALUES (58,"US"),(59,"TR"); INSERT INTO user VALUES (1,"fixture"),(2,"fixture2");');
 $ip = ['subscription_id' => 1, 'ip' => '198.51.100.7'];
 nodeOnlineSnapshot($db, 58, [$ip], 1000);
@@ -57,4 +58,10 @@ onlineCheck(array_map('intval',$db->query('SELECT profile1,profile2,ready FROM n
 nodeOnlineSnapshot($db,59,[$ip],1104,[['subscription_id'=>1,'ip'=>$ip['ip'],'profile'=>2]],true);
 onlineCheck((int)$db->query('SELECT profile2 FROM node_profile_online WHERE serverid=59')->fetchColumn()===1, 'another node maintains its own independent profile counts');
 onlineCheck((int)$db->query('SELECT profile2 FROM node_profile_online WHERE serverid=58')->fetchColumn()===0, 'updating another node must not move memberships');
+$members = 'SELECT profile FROM node_user_profile_online WHERE serverid = 59 AND userid = 1 ORDER BY profile';
+onlineCheck(array_map('intval', $db->query($members)->fetchAll(PDO::FETCH_COLUMN)) === [2], 'report stores the real profile for the user');
+nodeOnlineSnapshot($db, 59, [$ip], 1105, [['subscription_id'=>1,'ip'=>$ip['ip'],'profile'=>1]], true);
+onlineCheck(array_map('intval', $db->query($members)->fetchAll(PDO::FETCH_COLUMN)) === [1], 'direct profile clears tunnel presence');
+nodeOnlineSnapshot($db, 59, [$ip], 1106);
+onlineCheck($db->query($members)->fetchAll(PDO::FETCH_COLUMN) === [], 'unclassified reports clear stale profile memberships');
 echo "PASS online snapshots: cross-node isolation, distinct NAT IPs, disconnect, validation, rollback and normalization\n";

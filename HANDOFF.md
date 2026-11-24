@@ -1,3 +1,7 @@
+## 1.38.54 - dashboard profile presence (2026-11-24)
+
+The dashboard now uses each user's fresh profile membership from the authenticated node snapshot. Previously it inferred profile presence from traffic history on the shared server, so a direct connection could show the tunnel badge. Migration 035 creates the account-level presence table and each node snapshot atomically replaces its own memberships. Agents without profile observations leave split badges hidden. PHP lint, snapshot regression tests and Xray profile tests passed. Publication and installation verification follow the release build.
+
 ## 2026-11-18 — Coupon restrictions visible in the native editor (1.38.53)
 
 The native coupon pages keep their save, cancel and delete controls in a separate fixed toolbar. The editor now binds to the native save button in that toolbar. Smarty renders the restrictions with the saved coupon ID outside the replacement editor, so the controls can load and save even when the native form remains visible. Tested with the separate toolbar and with no replacement editor.
